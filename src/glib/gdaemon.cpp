@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -23,6 +23,7 @@
 
 #include "gdef.h"
 #include "gdaemon.h"
+#include "groot.h"
 #include "gprocess.h"
 
 //static
@@ -71,5 +72,4 @@ void G::Daemon::PidFile::commit()
 	if( m_valid )
 		create( m_path ) ;
 }
-
 

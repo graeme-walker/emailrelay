@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -225,7 +225,7 @@ void GNet::Select::dropException( Descriptor fd )
 	m_exception_list.remove( fd ) ;
 }
 
-void GNet::Select::setTimeout( G::DateTime::EpochTime )
+void GNet::Select::setTimeout( const G::credentials<TimerList> & , G::DateTime::EpochTime )
 {
 	// not used -- interval() in runOnce() suffices
 }

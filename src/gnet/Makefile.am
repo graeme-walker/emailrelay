@@ -1,5 +1,5 @@
 # 
-# Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -33,11 +33,13 @@ libgnet_a_SOURCES = gaddress_ipv4.cpp \
 	gclient_unix.cpp \
 	gconnection.cpp \
 	gdescriptor_unix.cpp \
-	gevent.cpp \
+	geventloop.cpp \
+	geventhandler.cpp \
 	gevent_unix.cpp \
 	geventserver.cpp \
 	glinebuffer.cpp \
 	glocal_unix.cpp \
+	glocal.cpp \
 	gmonitor.cpp \
 	gresolve.cpp \
 	gresolve_ipv4.cpp \
@@ -52,6 +54,8 @@ libgnet_a_SOURCES = gaddress_ipv4.cpp \
 	gconnection.h \
 	gdescriptor.h \
 	gevent.h \
+	geventloop.h \
+	geventhandler.h \
 	geventserver.h \
 	glinebuffer.h \
 	glocal.h \

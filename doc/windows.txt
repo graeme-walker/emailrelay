@@ -83,7 +83,7 @@ your e-mail messages while you are off-line. By default E-MailRelay will
 look for a directory "<windir>\spool\emailrelay", where "<windir>" is the
 path of your main windows directory, typically "c:\win98" for Windows 98.
 
-Finally you will need to configure you e-mail client program to use
+Finally you will need to configure your e-mail client program to use
 the local E-MailRelay server for outgoing mail. Where it asks for the
 name of the SMTP server for outgoing mail you should tell it to use
 "localhost" or "127.0.0.1".
@@ -96,4 +96,4 @@ taskbar, desktop or "Start->Programs->StartUp" shortcuts.
 
 
 
-Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
+Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -218,6 +218,13 @@ std::string G::Str::fromUInt( unsigned int n )
 {
 	std::stringstream ss ;
 	ss << n ;
+	return ss.str() ;
+}
+
+std::string G::Str::fromULong( unsigned long ul )
+{
+	std::stringstream ss ;
+	ss << ul ;
 	return ss.str() ;
 }
 
@@ -482,4 +489,27 @@ void G::Str::splitIntoFields( const std::string & in_in , void * out ,
 	}
 }
 
+std::string G::Str::join( const G::Strings & strings , const std::string & sep )
+{
+	std::string result ;
+	bool first = true ;
+	for( G::Strings::const_iterator p = strings.begin() ; p != strings.end() ; ++p , first = false )
+	{
+		if( !first ) result.append( sep ) ;
+		result.append( *p ) ;
+	}
+	return result ;
+}
+
+std::string G::Str::join( const StringArray & strings , const std::string & sep )
+{
+	std::string result ;
+	bool first = true ;
+	for( StringArray::const_iterator p = strings.begin() ; p != strings.end() ; ++p , first = false )
+	{
+		if( !first ) result.append( sep ) ;
+		result.append( *p ) ;
+	}
+	return result ;
+}
 

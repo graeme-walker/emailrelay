@@ -1,0 +1,183 @@
+
+
+div.two-column-content
+{
+	margin-left: 220px ;
+	padding: 40px ;
+}
+
+div.two-column-menu
+{
+	background-color: #eee ;
+
+	position: absolute ;
+	top: 100px ;
+	left: 20px ;
+	padding: 10px ;
+
+	border-style: solid ;
+	border-width: 1px ;
+	border-color: #999 ;
+
+	width: 150px ;
+}
+
+body 
+{
+        font-family: verdana, arial, helvetica, sans-serif ;
+        background-color: white ;
+}
+
+div.div-main
+{
+	margin-left: 10% ;
+	margin-right: 10% ;
+}
+
+div.div-toc
+{
+	background: #eee ;
+	padding: 0.5em ;
+}
+
+div.two-column-menu div.div-toc
+{
+	padding: 0px ;
+}
+
+div.div-pre
+{
+	margin-left: 3% ;
+	/* font-size: smaller ; */ /* smaller is unreadable on ie5 */
+	background: #eee ;
+	padding: 0.5em ;
+	border: none ;
+}
+
+h1
+{
+	text-align: center ;
+        color: #09c ;
+}
+
+img
+{
+	margin-left: 8% ;
+}
+
+h2
+{
+        color: #09c ;
+}
+
+p 
+{
+        font: verdana, arial, helvetica, sans-serif ;
+	text-align: justify ;
+}
+
+a.a-toc
+{
+	color: #09c ;
+	text-decoration: none ;
+	padding-left: 0% ;
+}
+
+a.a-toc:hover 
+{
+	background-color: #ccc ;
+}
+
+a.a-header
+{
+        text-decoration:none ;
+}
+
+a.a-href
+{
+	text-decoration: none ;
+        font-weight: bold ;
+}
+
+a.a-href:link 
+{
+	color: #09c ;
+}
+
+a.a-href:visited 
+{
+	color: #07a ;
+}
+
+a.a-href:hover 
+{
+	background-color: #eee ;
+}
+
+div.two-column-header
+{
+        background-color: #eee ;
+
+        border-style: solid ;
+        border-color: #999 ;
+        border-width: 1px 0px ; /* top/bottom left/right */
+}
+
+em.quote
+{
+	font-weight: bold ;
+}
+
+em.fn
+{
+	font-weight: bold ;
+}
+
+li em.fn
+{
+	font-weight: normal ;
+	font-style: normal ;
+}
+
+dt
+{
+	font-weight: bold ;
+	margin-left: 3% ;
+}
+
+dd
+{
+	font-size: smaller ;
+	margin-left: 6% ;
+	padding-bottom: 4px ; /* for konqueror */
+}
+
+h3.h3-toc
+{
+	margin-bottom: 0px ;
+}
+
+ul.ul-toc
+{
+	list-style-type: none ;
+	margin-top: 0px ;
+	margin-bottom: 0px ;
+	padding-left: 15% ;
+}
+
+li.li-toc
+{
+	padding-top: 3%
+}
+
+span.span-mailto
+{
+	font-size: smaller ;
+}
+
+#img-sourceforge
+{
+	border-width: 0px ;
+        border-style: none ; /* check */
+}
+

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -27,6 +27,7 @@
 #include "gsocket.h"
 #include "gdatetime.h"
 #include "gresolve.h"
+#include "groot.h"
 #include "gmonitor.h"
 #include "gclient.h"
 #include "gdebug.h"
@@ -374,6 +375,7 @@ GNet::ClientImp::Status GNet::ClientImp::connectCore( Address remote_address ,
 	G_ASSERT( error_p != NULL ) ;
 	std::string &error = *error_p ;
 
+	G::Root claim_root ;
 	Address local_address( set_port ? port : 0 ) ;
 	bool bound = s().bind(local_address) ;
 	if( !bound )
@@ -452,7 +454,7 @@ void GNet::ClientImp::readEvent()
 	}
 	else if( n != -1 )
 	{
-		G_ASSERT( n <= sizeof(buffer) ) ;
+		G_ASSERT( static_cast<size_t>(n) <= sizeof(buffer) ) ;
 		//G_DEBUG( "GNet::ClientImp::readEvent: " << n << " byte(s)" ) ;
 		m_interface.onData( buffer , n ) ;
 	}
@@ -478,14 +480,14 @@ void GNet::ClientImp::setState( State new_state )
 	{
 		G_DEBUG( "GNet::ClientImp::setState: " << m_state
 			<< " -> " << new_state << ": quitting the event loop" ) ;
-		EventSources::instance().quit() ;
+		EventLoop::instance().quit() ;
 	}
 	m_state = new_state ;
 }
 
 void GNet::ClientImp::run()
 {
-	EventSources::instance().run() ;
+	EventLoop::instance().run() ;
 }
 
 std::pair<bool,GNet::Address> GNet::ClientImp::localAddress() const

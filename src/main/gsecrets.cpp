@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -24,6 +24,7 @@
 #include "gdef.h"
 #include "gsmtp.h"
 #include "gsecrets.h"
+#include "groot.h"
 #include "gxtext.h"
 #include "gstr.h"
 #include <fstream>
@@ -38,6 +39,7 @@ GSmtp::Secrets::Secrets( const G::Path & path )
 	}
 	else
 	{
+		G::Root claim_root ;
 		std::ifstream file( path.str().c_str() ) ;
 		if( !file.good() )
 			throw OpenError( path.str() ) ;

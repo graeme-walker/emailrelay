@@ -1,6 +1,22 @@
 E-MailRelay Change Log
 ======================
 
+0.9.6 -> 0.9.7
+--------------
+* CRAM-MD5 authentication mechanism added.
+* Revoke root permissions at start up, and reclaim them when needed.
+* Allow mail pre-processing ("--filter") when started as root.
+* Domain-override switch ("--domain") added.
+* Non-privileged user switch ("--user") added.
+* Better handling of NarrowPipe exception (ie. 8-bit message to 7-bit server).
+* Allow null return path in MAIL-FROM.
+* Reject recipients which look like "<user>@localhost" (as used by fetchmail for local delivery).
+* Treat recipients which look like "postmaster@localhost" or "postmaster@<fqdn>" as local postmaster.
+* Optional timestamps on log output ("--log-time").
+* Fix EHLO to HELO fallback for 501/502 responses in client protocol.
+* Submission utility "emailrelay-submit" added.
+* HTML4.0 compliant HTML documentation, using CSS.
+
 0.9.5 -> 0.9.6
 --------------
 * SMTP AUTHentication extension -- LOGIN mechanism only.

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -60,15 +60,10 @@ public:
 	class ClientCallback // A callback interface used by GSmtp::Client.
 	{
 		public: virtual void clientDone( std::string ) = 0 ;
+		public: virtual void clientStatusChange( const std::string & , const std::string & ) ;
 		public: virtual ~ClientCallback() ;
 		private: void operator=( const ClientCallback & ) ; // not implemented
 	} ;
-
-	Client( MessageStore & store , bool quit_on_disconnect ) ;
-		// Constructor. The message-store reference is kept.
-		//
-		// The 'quit_on_disconnect' parameter refers to
-		// GNet::EventSources::quit().
 
 	Client( MessageStore & store , ClientCallback & callback , bool quit_on_disconnect ) ;
 			// Constructor. The message-store and callback
@@ -128,6 +123,7 @@ private:
 	bool sendNext() ;
 	void start( StoredMessage & ) ;
 	void doCallback( const std::string & ) ;
+	void doStatusChange( const std::string & , const std::string & ) ;
 	void finish( const std::string & reason = std::string() ) ;
 
 private:
@@ -141,6 +137,7 @@ private:
 	ClientCallback * m_callback ;
 	std::string m_host ;
 	GNet::Timer m_connect_timer ;
+	unsigned int m_message_index ;
 	static unsigned int m_response_timeout ;
 	static unsigned int m_connection_timeout ;
 } ;

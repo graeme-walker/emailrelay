@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -86,6 +86,9 @@ public:
 	virtual const char *title() const ;
 		// Overridable. Defines the main window's title.
 
+	bool messageBoxQuery( const std::string & message ) ; // not const
+		// Puts up a questioning message box.
+
 	void messageBox( const std::string & message ) ; // not const
 		// Puts up a message box.
 
@@ -142,6 +145,10 @@ protected:
 private:
 	ApplicationBase( const ApplicationBase &other ) ; // not implemented
 	void operator=( const ApplicationBase &other ) ; // not implemented
+	static bool messageBoxCore( HWND , unsigned int ,
+		const std::string & , const std::string & ) ;
+	HWND messageBoxHandle() const ;
+	static unsigned int messageBoxType(HWND,unsigned int) ;
 
 private:
 	std::string m_name ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -264,7 +264,7 @@ void GNet::Winsock::onTimer()
 	TimerList::instance().doTimeouts() ;
 }
 
-void GNet::Winsock::setTimeout( G::DateTime::EpochTime t )
+void GNet::Winsock::setTimeout( const G::credentials<TimerList> & , G::DateTime::EpochTime t )
 {
 	G_DEBUG( "GNet::Winsock::setTimeout: " << t ) ;
 	if( t != 0U )

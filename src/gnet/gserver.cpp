@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -24,6 +24,7 @@
 #include "gdef.h"
 #include "gnet.h"
 #include "gserver.h"
+#include "groot.h"
 #include "gmonitor.h"
 #include "gdebug.h"
 #include "gassert.h"
@@ -145,6 +146,7 @@ void GNet::Server::init( const Address & listening_address )
 {
 	m_socket <<= new StreamSocket ;
 	G_DEBUG( "GNet::Server::init: listening on " << listening_address.displayString() ) ;
+	G::Root claim_root ;
 	if( ! m_socket->bind( listening_address ) )
 		throw CannotBind( listening_address.displayString() ) ;
 	if( ! m_socket->listen() )
@@ -162,6 +164,7 @@ void GNet::Server::readEvent()
 
 	G_DEBUG( "GNet::Server::readEvent: " << (void*)this ) ;
 	G_ASSERT( m_socket.get() != NULL ) ;
+	G::Root claim_root ;
 	AcceptPair pair = m_socket->accept() ;
 	if( pair.first.get() == NULL )
 	{

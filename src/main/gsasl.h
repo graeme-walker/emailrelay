@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -127,7 +127,8 @@ public:
 		// was valid. See also Secrets::valid().
 
 	bool init( const std::string & mechanism ) ;
-		// Initialiser. May be used more than once.
+		// Initialiser. Returns true if a supported mechanism.
+		// May be used more than once.
 
 	bool mustChallenge() const ;
 		// Returns true if the mechanism must start with

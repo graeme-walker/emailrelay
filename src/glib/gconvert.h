@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -27,22 +27,28 @@
 #include "gdef.h"
 #include "gexception.h"
 
-G_EXCEPTION( GConvertOverflow , "arithmetic overflow" ) ;
+namespace G
+{
 
-// Template function: GConvert
+G_EXCEPTION( ConvertOverflow , "arithmetic overflow" ) ;
+
+// Template function: G::Convert
 // Description: Does arithmetic conversions with
 // overflow checking.
+// See also: boost::numeric_cast<>()
 //
 template <class Tout, class Tin>
 inline
-Tout GConvert( const Tin & in )
+Tout Convert( const Tin & in )
 {
 	Tout out = in ;
 	Tin copy = out ;
 	if( in != copy )
-		throw GConvertOverflow( std::stringstream() << in ) ;
+		throw ConvertOverflow( std::stringstream() << in ) ;
 	return out ;
 }
+
+} ;
 
 #endif
 

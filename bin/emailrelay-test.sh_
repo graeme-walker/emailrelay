@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -110,7 +110,7 @@ RunPoke()
 
 Content()
 {
-	echo "To: recipient-1@localhost, recipient-2@localhost"
+	echo "To: recipient-1@f.q.d.n, recipient-2@f.q.d.n"
 	echo "Subject: test message 1"
 	echo "From: sender"
 	echo " "
@@ -123,8 +123,8 @@ Envelope()
 	echo "X-MailRelay-Content: 8bit"
 	echo "X-MailRelay-From: sender"
 	echo "X-MailRelay-ToCount: 2"
-	echo "X-MailRelay-To-Remote: recipient-1@localhost"
-	echo "X-MailRelay-To-Remote: recipient-2@localhost"
+	echo "X-MailRelay-To-Remote: recipient-1@f.q.d.n"
+	echo "X-MailRelay-To-Remote: recipient-2@f.q.d.n"
 	echo "X-MailRelay-Authentication: "
 	echo "X-MailRelay-Client: 127.0.0.1"
 	echo "X-MailRelay-End: 1"
@@ -162,18 +162,22 @@ CreateAuth()
 {
 	mkdir -p "${base_dir}"
 
+	# encrypted version "joes_password" provided by emailrelay-passwd
+	key="2168297042.2818429713.1297528852.2023008371.2713943401.1997919265.1829599518.235099638"
+
 	file="${base_dir}/server.auth"
 	echo "# server.auth" > ${file}
-	echo "login server fred freds_password" >> ${file}
-	echo "login server joe joe+00s_password" >> ${file}
-	echo "login client dummy pwd" >> ${file}
-	echo "cram-md5 client dummy digest" >> ${file}
+	echo "LOGIN server fred freds_password" >> ${file}
+	echo "CRAM-MD5 server joe ${key}" >> ${file}
+	echo "CRAM-MD5 server brian 1.1.1.1.2.2.2.2" >> ${file}
 
-	file="${base_dir}/client.auth"
-	echo "# client.auth" > ${file}
-	echo "cram-md5 client foo bar" >> ${file}
-	echo "login client joe joe+00s_password" >> ${file}
-	echo "login server abc def" >> ${file}
+	file="${base_dir}/client-fred.auth"
+	echo "# client-fred.auth" > ${file}
+	echo "LOGIN client fred freds_password" >> ${file}
+
+	file="${base_dir}/client-joe.auth"
+	echo "# client-joe.auth" > ${file}
+	echo "CRAM-MD5 client joe ${key}" >> ${file}
 }
 
 trap "Trap ; exit" 1 2 3 13 15
@@ -182,8 +186,8 @@ trap "Trap 0 ; exit" 0
 StartTimer
 CreateAuth
 RunServer ${pp}1 store-2 log-1 pid-1
-RunServer ${pp}2 store-2 log-2 pid-2 "--admin ${pp}9 --forward-to localhost:${pp}3"
-RunServer ${pp}3 store-3 log-3 pid-3 "--immediate --forward-to localhost:${pp}4 --filter ${null_filter} --client-auth ${base_dir}/client.auth"
+RunServer ${pp}2 store-2 log-2 pid-2 "--admin ${pp}9 --forward-to localhost:${pp}3 --client-auth ${base_dir}/client-joe.auth"
+RunServer ${pp}3 store-3 log-3 pid-3 "--immediate --forward-to localhost:${pp}4 --filter ${null_filter} --client-auth ${base_dir}/client-fred.auth --server-auth ${base_dir}/server.auth"
 RunServer ${pp}4 store-4 log-4 pid-4 "--server-auth ${base_dir}/server.auth"
 CreateMessages
 RunClient localhost:${pp}1 store-1 log-c pid-5

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -42,19 +42,6 @@ std::string GNet::Local::hostname()
 	return name ;
 }
 
-std::string GNet::Local::domainname()
-{
-	// (see also: getdomainname() -- returns empty)
-
-	std::string full = fqdn() ;
-	size_t pos = full.rfind( '.' ) ;
-	if( pos == std::string::npos )
-		throw Error( "invalid fqdn" ) ;
-
-	G_DEBUG( "GNet::Local::domainname: \"" << full.substr(pos+1U) << "\"" ) ;
-	return full.substr( pos+1U ) ;
-}
-
 GNet::Address GNet::Local::canonicalAddress()
 {
 	std::pair<Resolver::HostInfo,std::string> rc = Resolver::resolve( hostname() , "0" ) ;
@@ -63,18 +50,13 @@ GNet::Address GNet::Local::canonicalAddress()
 	return rc.first.address ;
 }
 
-GNet::Address GNet::Local::localhostAddress()
-{
-	return Address::localhost( 0U ) ;
-}
-
-std::string GNet::Local::fqdn()
+std::string GNet::Local::fqdnImp()
 {
 	std::pair<Resolver::HostInfo,std::string> rc = Resolver::resolve( hostname() , "0" ) ;
 	if( rc.second.length() != 0U )
 		throw Error(rc.second) ;
 
-	G_DEBUG( "GNet::Local::fqdn: \"" << rc.first.canonical_name << "\"" ) ;
+	G_DEBUG( "GNet::Local::fqdnImp: \"" << rc.first.canonical_name << "\"" ) ;
 	return rc.first.canonical_name ;
 }
 

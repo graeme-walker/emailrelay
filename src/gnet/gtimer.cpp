@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -152,7 +152,7 @@ void GNet::TimerList::update( G::DateTime::EpochTime t_old ,
 	(void) op.length() ; // pacify the compiler
 	if( t_old != t_new )
 	{
-		EventSources::instance().setTimeout( t_new ) ;
+		EventLoop::instance().setTimeout( "" , t_new ) ;
 	}
 }
 
@@ -205,7 +205,7 @@ void GNet::TimerList::doTimeouts()
 		if( now >= (*p)->t() )
 			(*p)->doTimeout() ;
 	}
-	EventSources::instance().setTimeout( soonest() ) ;
+	EventLoop::instance().setTimeout( "" , soonest() ) ;
 }
 
 // ===

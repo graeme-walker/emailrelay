@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -28,16 +28,19 @@
 #include "gsmtpclient.h"
 #include "gsasl.h"
 #include "gsecrets.h"
-#include "gevent.h"
+#include "geventloop.h"
 #include "garg.h"
 #include "gdaemon.h"
 #include "gfilestore.h"
 #include "gnewfile.h"
 #include "gadminserver.h"
 #include "gmonitor.h"
+#include "glocal.h"
+#include "groot.h"
 #include "gexception.h"
 #include "gprocess.h"
 #include "gmemory.h"
+#include "glogoutput.h"
 #include "gdebug.h"
 #include <iostream>
 #include <exception>
@@ -45,11 +48,15 @@
 //static
 std::string Main::Run::versionNumber()
 {
-	return "0.9.6" ;
+	return "0.9.7" ;
 }
 
 Main::Run::Run( const G::Arg & arg ) :
 	m_arg(arg)
+{
+}
+
+Main::Run::~Run()
 {
 }
 
@@ -114,9 +121,15 @@ void Main::Run::run()
 {
 	// logging
 	//
-	G::LogOutput debug( cfg().log() , cfg().verbose() ) ;
+	G::LogOutput log( cfg().log() , cfg().verbose() ) ;
 	if( cfg().syslog() )
-		debug.syslog(G::LogOutput::Mail) ;
+		log.syslog(G::LogOutput::Mail) ;
+	if( cfg().logTimestamp() )
+		log.timestamp() ;
+
+	// fqdn override option
+	//
+	GNet::Local::fqdn( cfg().fqdn() ) ;
 
 	// daemonising
 	//
@@ -129,6 +142,10 @@ void Main::Run::run()
 			pid_file = G::Daemon::PidFile( G::Path(cfg().pidFile()) ) ;
 		G::Daemon::detach( pid_file ) ;
 	}
+
+	// release root privileges
+	//
+	G::Root::init( cfg().nobody() ) ;
 
 	// message store singleton
 	//
@@ -143,7 +160,7 @@ void Main::Run::run()
 	// event loop singletons
 	//
 	GNet::TimerList timer_list ;
-	std::auto_ptr<GNet::EventSources> event_loop(GNet::EventSources::create()) ;
+	std::auto_ptr<GNet::EventLoop> event_loop(GNet::EventLoop::create()) ;
 	if( ! event_loop->init() )
 		throw G::Exception( "cannot initialise network layer" ) ;
 
@@ -170,7 +187,7 @@ void Main::Run::run()
 }
 
 void Main::Run::doServing( G::Daemon::PidFile & pid_file ,
-	GNet::EventSources & event_loop )
+	GNet::EventLoop & event_loop )
 {
 	GSmtp::Server server( cfg().port() ,
 		cfg().allowRemoteClients() , smtpIdent() ,
@@ -185,13 +202,16 @@ void Main::Run::doServing( G::Daemon::PidFile & pid_file ,
 			cfg().allowRemoteClients() , cfg().serverAddress() ) ;
 	}
 
-	pid_file.commit() ;
+	{
+		G::Root claim_root ;
+		pid_file.commit() ;
+	}
 
 	closeMoreFiles() ;
 	event_loop.run() ;
 }
 
-void Main::Run::doForwarding( GSmtp::MessageStore & store , GNet::EventSources & event_loop )
+void Main::Run::doForwarding( GSmtp::MessageStore & store , GNet::EventLoop & event_loop )
 {
 	const bool quit_on_disconnect = true ;
 	GSmtp::Client::responseTimeout( cfg().responseTimeout() ) ;
@@ -220,5 +240,15 @@ void Main::Run::clientDone( std::string reason )
 	G_DEBUG( "Main::Run::clientDone: \"" << reason << "\"" ) ;
 	if( ! reason.empty() )
 		throw G::Exception( reason ) ;
+}
+
+void Main::Run::clientStatusChange( const std::string & s1 , const std::string & s2 )
+{
+	onStatusChange( s1 , s2 ) ;
+}
+
+void Main::Run::onStatusChange( const std::string & , const std::string & )
+{
+	; // default implementation does nothing
 }
 

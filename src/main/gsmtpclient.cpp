@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -48,17 +48,6 @@ std::string GSmtp::Client::crlf()
 	return std::string("\015\012") ;
 }
 
-GSmtp::Client::Client( MessageStore & store , bool quit_on_disconnect ) :
-	GNet::Client(false,quit_on_disconnect) ,
-	m_store(&store) ,
-	m_buffer(crlf()) ,
-	m_protocol(*this,GNet::Local::fqdn(),m_response_timeout,must_authenticate) ,
-	m_socket(NULL) ,
-	m_callback(NULL) ,
-	m_connect_timer(*this)
-{
-}
-
 GSmtp::Client::Client( MessageStore & store , ClientCallback & callback ,
 	bool quit_on_disconnect ) :
 		GNet::Client(false,quit_on_disconnect) ,
@@ -67,7 +56,8 @@ GSmtp::Client::Client( MessageStore & store , ClientCallback & callback ,
 		m_protocol(*this,GNet::Local::fqdn(),m_response_timeout,must_authenticate) ,
 		m_socket(NULL) ,
 		m_callback(&callback) ,
-		m_connect_timer(*this)
+		m_connect_timer(*this) ,
+		m_message_index(0U)
 {
 }
 
@@ -79,7 +69,8 @@ GSmtp::Client::Client( std::auto_ptr<StoredMessage> message , ClientCallback & c
 	m_protocol(*this,GNet::Local::fqdn(),m_response_timeout,must_authenticate) ,
 	m_socket(NULL) ,
 	m_callback(&callback) ,
-	m_connect_timer(*this)
+	m_connect_timer(*this) ,
+	m_message_index(0U)
 {
 }
 
@@ -94,9 +85,13 @@ std::string GSmtp::Client::init( const std::string & s )
 
 std::string GSmtp::Client::init( const std::string & host , const std::string & service )
 {
+	m_message_index = 0U ;
 	m_host = host ;
+
 	if( m_store != NULL && m_store->empty() )
 		return "no messages to send" ;
+
+	doStatusChange( "connecting" , host ) ;
 
 	if( m_connection_timeout != 0U )
 		m_connect_timer.startTimer( m_connection_timeout ) ;
@@ -137,6 +132,9 @@ void GSmtp::Client::onConnect( GNet::Socket & socket )
 {
 	m_connect_timer.cancelTimer() ;
 
+	doStatusChange( "connected" ,
+		socket.getPeerAddress().second.displayString() ) ;
+
 	m_socket = &socket ;
 	if( m_store != NULL )
 	{
@@ -174,6 +172,9 @@ bool GSmtp::Client::sendNext()
 
 void GSmtp::Client::start( StoredMessage & message )
 {
+	m_message_index++ ;
+	doStatusChange( "sending" , G::Str::fromUInt(m_message_index) ) ; // or G::Str::join(message.to(),",") or whatever
+
 	std::string server_name = peerName() ; // (from GNet::Client)
 	if( server_name.empty() )
 		server_name = m_host ;
@@ -244,9 +245,16 @@ void GSmtp::Client::doCallback( const std::string & reason )
 {
 	if( m_callback != NULL )
 	{
+		m_callback->clientStatusChange( "done" , "" ) ;
 		m_callback->clientDone( reason ) ;
 		m_callback = NULL ;
 	}
+}
+
+void GSmtp::Client::doStatusChange( const std::string & s1 , const std::string & s2 )
+{
+	if( m_callback != NULL )
+		m_callback->clientStatusChange( s1 , s2 ) ;
 }
 
 void GSmtp::Client::onWriteable()
@@ -281,5 +289,12 @@ void GSmtp::Client::onTimeout( GNet::Timer & )
 
 GSmtp::Client::ClientCallback::~ClientCallback()
 {
+}
+
+void GSmtp::Client::ClientCallback::clientStatusChange( const std::string & s1 ,
+	const std::string & s2 )
+{
+	(void) s1.length() ; (void) s2.length() ; // pacify the compiler
+	G_DEBUG( "GSmtp::Client::ClientCallback::clientStatusChange: \"" << s1 << "\": \"" << s2 << "\"" ) ;
 }
 

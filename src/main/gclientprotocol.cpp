@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -144,14 +144,25 @@ void GSmtp::ClientProtocol::apply( const std::string & rx )
 
 void GSmtp::ClientProtocol::sendMail()
 {
+	if( !m_server_has_8bitmime && m_message_is_8bit )
+	{
+		std::string reason = "cannot send 8-bit message to 7-bit server" ;
+		G_WARNING( "GSmtp::ClientProtocol: " << reason ) ;
+		m_state = sEnd ;
+		doCallback( false , false , reason ) ;
+	}
+	else
+	{
+		sendMailCore() ;
+	}
+}
+
+void GSmtp::ClientProtocol::sendMailCore()
+{
 	std::string mail_from = std::string("MAIL FROM:<") + m_from + ">" ;
 	if( m_server_has_8bitmime )
 	{
 		mail_from.append( " BODY=8BITMIME" ) ;
-	}
-	if( !m_server_has_8bitmime && m_message_is_8bit )
-	{
-		throw NarrowPipe() ; // (could do better)
 	}
 	if( m_authenticated_with_server && !m_message_authentication.empty() )
 	{
@@ -182,7 +193,10 @@ void GSmtp::ClientProtocol::applyEvent( const Reply & reply )
 	{
 		;
 	}
-	else if( m_state == sSentEhlo && reply.is(Reply::SyntaxError_500) )
+	else if( m_state == sSentEhlo && (
+		reply.is(Reply::SyntaxError_500) ||
+		reply.is(Reply::SyntaxError_501) ||
+		reply.is(Reply::NotImplemented_502) ) )
 	{
 		m_state = sSentHelo ;
 		send( std::string("HELO ") + m_thishost ) ;
@@ -227,7 +241,7 @@ void GSmtp::ClientProtocol::applyEvent( const Reply & reply )
 		else
 		{
 			m_state = done ? sAuth2 : m_state ;
-			send( Base64::encode(rsp) ) ;
+			send( Base64::encode(rsp,std::string()) ) ;
 		}
 	}
 	else if( m_state == sAuth2 )
@@ -296,8 +310,7 @@ void GSmtp::ClientProtocol::applyEvent( const Reply & reply )
 	else
 	{
 		G_WARNING( "GSmtp::ClientProtocol: failure in client protocol: " << static_cast<int>(m_state) ) ;
-		m_state = sEnd ; // (was sReset)
-		if( 0 ) send( "RSET" ) ; // for good meausre
+		m_state = sEnd ;
 		doCallback( false , true , std::string("unexpected response: ")+reply.text() ) ;
 	}
 }

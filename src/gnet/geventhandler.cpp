@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -18,12 +18,13 @@
 //
 // ===
 //
-// gevent.cpp
+// geventhandler.cpp
 //
 
 #include "gdef.h"
 #include "gnet.h"
-#include "gevent.h"
+#include "geventhandler.h"
+#include "geventloop.h"
 #include "gdebug.h"
 #include "gassert.h"
 #include "glog.h"
@@ -45,30 +46,6 @@ void GNet::EventHandler::writeEvent()
 void GNet::EventHandler::exceptionEvent()
 {
 	G_DEBUG( "GNet::EventHandler::exceptionEvent: no override" ) ;
-}
-
-// ===
-
-GNet::EventSources * GNet::EventSources::m_this = NULL ;
-
-GNet::EventSources::EventSources()
-{
-	if( m_this == NULL )
-		m_this = this ;
-	else
-		G_WARNING( "GNet::EventSources::ctor: multiple instances" ) ;
-}
-
-GNet::EventSources::~EventSources()
-{
-	if( m_this == this )
-		m_this = NULL ;
-}
-
-GNet::EventSources & GNet::EventSources::instance()
-{
-	G_ASSERT( m_this != NULL ) ;
-	return *m_this ;
 }
 
 // ===

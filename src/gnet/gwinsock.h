@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -42,7 +42,7 @@ namespace GNet
 // and these messages have to be passed on the the
 // WinSock layer.
 //
-class GNet::Winsock : public EventSources
+class GNet::Winsock : public EventLoop
 {
 public:
 	Winsock() ;
@@ -55,7 +55,7 @@ public:
 		// Returns false on error.
 
 	virtual bool init() ;
-		// Override from EventSources. Initialses the
+		// Override from EventLoop. Initialses the
 		// WinSock library, passing it the handle
 		// of an internally-created hidden window.
 		// Returns false on error.
@@ -99,10 +99,10 @@ public:
 		// receives a WM_TIMER message.
 
 	virtual void run() ;
-		// Override from EventSources. Calls GGui::Pump::run().
+		// Override from EventLoop. Calls GGui::Pump::run().
 
 	virtual void quit() ;
-		// Override from EventSources. Calls GGui::Pump::quit().
+		// Override from EventLoop. Calls GGui::Pump::quit().
 
 protected:
 	virtual void addRead( Descriptor fd , EventHandler & handler ) ;
@@ -111,7 +111,7 @@ protected:
 	virtual void dropRead( Descriptor fd ) ;
 	virtual void dropWrite( Descriptor fd ) ;
 	virtual void dropException( Descriptor fd ) ;
-	virtual void setTimeout( G::DateTime::EpochTime ) ;
+	virtual void setTimeout( const G::credentials<TimerList> & , G::DateTime::EpochTime ) ;
 
 private:
 	Winsock( const Winsock & other ) ;

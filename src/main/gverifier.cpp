@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -25,42 +25,42 @@
 #include "gsmtp.h"
 #include "gverifier.h"
 #include "gstr.h"
+#include "glocal.h"
 #include "gassert.h"
 #include "glog.h"
 
-GSmtp::Verifier::Status GSmtp::Verifier::verify( const std::string & user ) const
+GSmtp::Verifier::Status GSmtp::Verifier::verify( const std::string & address ) const
 {
-	G_DEBUG( "GSmtp::ProtocolMessage::verify: \"" << user << "\"" ) ;
-	Status rc( isLocal(user) , std::string() ) ;
-	if( isLocal(user) && isValid(user) )
-		rc.second = fullName(user) ;
-	return rc ;
-}
+	G_DEBUG( "GSmtp::ProtocolMessage::verify: \"" << address << "\"" ) ;
 
-//static
-bool GSmtp::Verifier::isLocal( const std::string & user )
-{
-	return user.find('@') == std::string::npos ;
-}
-
-//static
-bool GSmtp::Verifier::isValid( const std::string & user )
-{
-	// only recognise one local mailbox
-	return isPostmaster(user) ;
-}
-
-//static
-bool GSmtp::Verifier::isPostmaster( std::string user )
-{
+	std::string fqdn = GNet::Local::fqdn() ;
+	std::string host ;
+	std::string user( address ) ;
+	size_t at_pos = address.find('@') ;
+	if( at_pos != std::string::npos )
+	{
+		host = address.substr(at_pos+1U) ;
+		user = address.substr(0U,at_pos) ;
+	}
+	G::Str::toUpper( fqdn ) ;
+	G::Str::toUpper( host ) ;
 	G::Str::toUpper( user ) ;
-	G::Str::trim( user , " \t" ) ;
-	return user == "POSTMASTER" ;
-}
 
-//static
-std::string GSmtp::Verifier::fullName( const std::string & /*user*/ )
-{
-	return "Local postmaster <postmaster@localhost>" ;
+	if( user == "POSTMASTER" && ( host.empty() || host == "LOCALHOST" || host == fqdn ) )
+	{
+		// accept 'postmaster' for local delivery
+		std::string full_name( "Local postmaster <postmaster@localhost>" ) ;
+		return std::make_pair( true , full_name ) ;
+	}
+	else if( host.empty() || host == "LOCALHOST" )
+	{
+		// reject local addressees
+		return std::make_pair( true , std::string() ) ;
+	}
+	else
+	{
+		// forward
+		return std::make_pair( false , std::string() ) ;
+	}
 }
 

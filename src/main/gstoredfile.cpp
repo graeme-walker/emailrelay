@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,6 +26,7 @@
 #include "gfilestore.h"
 #include "gstoredfile.h"
 #include "gmemory.h"
+#include "groot.h"
 #include "gxtext.h"
 #include "gfile.h"
 #include "gstr.h"
@@ -64,6 +65,7 @@ bool GSmtp::StoredFile::readEnvelope( std::string & reason , bool check )
 
 void GSmtp::StoredFile::readEnvelopeCore( bool check )
 {
+	G::Root claim_root ;
 	std::ifstream stream( m_envelope_path.str().c_str() , std::ios_base::binary | std::ios_base::in ) ;
 	if( ! stream.good() )
 		throw OpenError() ;
@@ -152,6 +154,7 @@ bool GSmtp::StoredFile::openContent( std::string & reason )
 {
 	try
 	{
+		G::Root claim_root ;
 		G::Path content_path = contentPath() ;
 		G_DEBUG( "GSmtp::FileStore::openContent: \"" << content_path << "\"" ) ;
 		std::auto_ptr<std::istream> stream( new std::ifstream(
@@ -204,6 +207,7 @@ std::string GSmtp::StoredFile::crlf() const
 
 bool GSmtp::StoredFile::lock()
 {
+	G::Root claim_root ;
 	G::Path & src = m_envelope_path ;
 	G::Path dst( src.str() + ".busy" ) ;
 	bool ok = G::File::rename( src , dst , G::File::NoThrow() ) ;
@@ -219,6 +223,8 @@ void GSmtp::StoredFile::fail( const std::string & reason )
 {
 	try
 	{
+		G::Root claim_root ;
+
 		// write the reason into the file
 		{
 			std::ofstream file( m_envelope_path.str().c_str() ,
@@ -244,6 +250,7 @@ void GSmtp::StoredFile::destroy()
 {
 	try
 	{
+		G::Root claim_root ;
 		G_LOG( "GSmtp::StoredMessage: deleting file: \"" << m_envelope_path.basename() << "\"" ) ;
 		G::File::remove( m_envelope_path , G::File::NoThrow() ) ;
 

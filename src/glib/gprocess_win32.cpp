@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -140,6 +140,17 @@ bool G::Process::privileged()
 	return false ;
 }
 
+G::Process::Identity G::Process::beOrdinary( Identity identity )
+{
+	// not implemented
+	return identity ;
+}
+
+void G::Process::beSpecial( Identity )
+{
+	// not implemented
+}
+
 // not implemented...
 // int G::Process::errno_()
 // Who G::Process::fork() {}
@@ -147,4 +158,23 @@ bool G::Process::privileged()
 // void G::Process::exec( const Path & exe , const std::string & arg ) {}
 // int G::Process::wait( const Id & child ) {}
 // int G::Process::wait( const Id & child , int error_return ) {}
+
+// ===
+
+G::Process::Identity::Identity() :
+	uid(0) ,
+	gid(0)
+{
+}
+
+G::Process::Identity::Identity( const std::string & ) :
+	uid(0) ,
+	gid(0)
+{
+}
+
+std::string G::Process::Identity::str() const
+{
+	return "0/0" ;
+}
 

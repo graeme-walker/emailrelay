@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -36,6 +36,7 @@ std::string Main::CommandLine::osSwitchSpec()
 	ss
 		<< "l!log!writes log information on standard error (if open) and syslog (if not disabled)!0!|"
 		<< "t!no-daemon!does not detach from the terminal!0!|"
+		<< "u!user!names the effective user to switch to when started as root (default is \"daemon\")!1!username|"
 		<< "n!no-syslog!disables syslog output!0!|"
 		<< "q!as-client!equivalent to \"--log --no-syslog --no-daemon --dont-serve --forward --forward-to\"!" << "1!host:port|"
 		<< "d!as-server!equivalent to \"--log --close-stderr\"!0!"

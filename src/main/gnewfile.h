@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -45,7 +45,6 @@ class GSmtp::NewFile : public GSmtp:: NewMessage
 {
 public:
 	G_EXCEPTION( InvalidPath , "invalid path -- must be absolute" ) ;
-	G_EXCEPTION( Dangerous , "message filtering not allowed if running as a privileged process" ) ;
 
 	NewFile( const std::string & from , FileStore & store ) ;
 		// Constructor.
@@ -90,6 +89,7 @@ private:
 	static bool isEightBit( const std::string & line ) ;
 	void deliver( const G::Strings & , const G::Path & , const G::Path & , const G::Path & ) ;
 	bool preprocess( const G::Path & , bool & ) ;
+	int preprocessCore( const G::Path & ) ;
 } ;
 
 #endif

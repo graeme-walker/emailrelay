@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -29,6 +29,7 @@
 #include "gprocess.h"
 #include "gdirectory.h"
 #include "gmemory.h"
+#include "groot.h"
 #include "gpath.h"
 #include "gfile.h"
 #include "gstr.h"
@@ -118,6 +119,7 @@ std::string GSmtp::FileStore::format( int n )
 //static
 void GSmtp::FileStore::checkPath( const G::Path & directory_path )
 {
+	G::Root claim_root ;
 	// (void) G::File::mkdir( directory_path ) ;
 	G::Directory dir_test( directory_path ) ;
 	if( ! dir_test.valid() )
@@ -134,6 +136,7 @@ void GSmtp::FileStore::checkPath( const G::Path & directory_path )
 
 std::auto_ptr<std::ostream> GSmtp::FileStore::stream( const G::Path & path )
 {
+	G::Root claim_root ;
 	std::auto_ptr<std::ostream> ptr(
 		new std::ofstream( path.pathCstr() ,
 			std::ios_base::binary | std::ios_base::out | std::ios_base::trunc ) ) ;
@@ -193,6 +196,7 @@ bool GSmtp::FileStore::empty() const
 
 bool GSmtp::FileStore::emptyCore() const
 {
+	G::Root claim_root ;
 	G::Directory dir( m_dir ) ;
 	G::DirectoryIterator iter( dir , "*.envelope" ) ;
 	const bool no_more = iter.error() || !iter.more() ;
@@ -201,6 +205,7 @@ bool GSmtp::FileStore::emptyCore() const
 
 GSmtp::MessageStore::Iterator GSmtp::FileStore::iterator()
 {
+	G::Root claim_root ;
 	return MessageStore::Iterator( new FileIterator(G::Directory(m_dir) ) ) ;
 }
 

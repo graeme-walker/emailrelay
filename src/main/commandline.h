@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -18,7 +18,7 @@
 //
 // ===
 //
-// commandline.cpp
+// commandline.h
 //
 
 #ifndef G_MAIN_COMMAND_LINE_H
@@ -91,12 +91,6 @@ public:
 
 	void showCopyright( bool error_stream = false ) const ;
 		// Writes a copyright message.
-
-	static std::string warranty( const std::string & eol = std::string("\n") ) ;
-		// Returns the warranty text.
-
-	static std::string copyright() ;
-		// Returns the copyright text.
 
 private:
 	void showWarranty( bool error_stream ) const ;

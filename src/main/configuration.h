@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -48,9 +48,10 @@ public:
 	explicit Configuration( const CommandLine & cl ) ;
 		// Constructor. The reference is kept.
 
-	std::string str( const std::string & line_prefix = std::string() , const std::string & eol = std::string("\n") ) const ;
-		// Reports the configuration in a multi-line
-		// string.
+	std::string str( const std::string & line_prefix = std::string() ,
+		const std::string & eol = std::string("\n") ) const ;
+			// Reports the configuration in a multi-line
+			// string.
 
 	unsigned int port() const ;
 		// Returns the main port number.
@@ -72,6 +73,9 @@ public:
 
 	bool syslog() const ;
 		// Returns true if generating syslog events.
+
+	bool logTimestamp() const ;
+		// Returns true if logging output should be timestamped.
 
 	bool daemon() const ;
 		// Returns true if running as a daemon.
@@ -122,6 +126,13 @@ public:
 	std::string serverSecretsFile() const ;
 		// Returns the server-side autentication secrets (password) file.
 		// Returns the empty string if none.
+
+	std::string fqdn() const ;
+		// Returns the fully-qualified-domain-name override.
+
+	std::string nobody() const ;
+		// Returns the name of an unprivileged user. This is only
+		// used if running with a real user-id of root.
 
 private:
 	const CommandLine & m_cl ;

@@ -1,2 +1,7 @@
-no news
+
+To do...
+* optionally enforce authentication by clients
+* OS-X port
+* better windows gui (esp. client side)
+* sample pre-processor script for spamassassin
 

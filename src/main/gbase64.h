@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -43,8 +43,12 @@ class GSmtp::Base64
 public:
 	G_EXCEPTION( Error , "base64 encoding error" ) ;
 
-	static std::string encode( const std::string & s , const std::string & eol = crlf() ) ;
+	static std::string encode( const std::string & s , const std::string & line_break ) ;
 		// Encodes the given string.
+
+	static std::string encode( const std::string & s ) ;
+		// Encodes the given string. Uses carriage-return-line-feed
+		// as the line-break string.
 
 	static std::string decode( const std::string & ) ;
 		// Decodes the given string. Throws an exception
@@ -52,9 +56,6 @@ public:
 
 	static bool valid( const std::string & ) ;
 		// Returns true if the string can be decoded.
-
-	static std::string crlf() ;
-		// Returns carriage-return-line-feed.
 
 private:
 	Base64() ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -47,8 +47,8 @@ bool GSmtp::ProtocolMessageStore::setFrom( const std::string & from )
 {
 	try
 	{
-		if( from.length() == 0U )
-			return false ;
+		if( from.length() == 0U ) // => probably a failure notification message
+			G_WARNING( "GSmtp::ProtocolMessageStore: empty MAIL-FROM return path" ) ;
 
 		G_ASSERT( m_msg.get() == NULL ) ;
 		clear() ; // just in case

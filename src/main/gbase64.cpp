@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -29,7 +29,7 @@
 
 namespace
 {
-	const char * map = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" ;
+	const char * character_map = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" ;
 	char pad = '=' ;
 } ;
 
@@ -58,14 +58,14 @@ size_t GSmtp::Base64::hi_6( g_uint32_t n )
 
 void GSmtp::Base64::generate_6( g_uint32_t & n , int & i , std::string & result )
 {
-	char c = i-- >= 0 ? map[hi_6(n)] : pad ;
+	char c = i-- >= 0 ? character_map[hi_6(n)] : pad ;
 	result.append( 1U , c ) ;
 	n <<= 6U ;
 }
 
-std::string GSmtp::Base64::crlf()
+std::string GSmtp::Base64::encode( const std::string & s_in )
 {
-	return std::string( "\r\n" ) ;
+	return encode( s_in , "\015\012" ) ;
 }
 
 std::string GSmtp::Base64::encode( const std::string & s_in , const std::string & eol )
@@ -111,9 +111,9 @@ char GSmtp::Base64::to_char( g_uint32_t n )
 
 size_t GSmtp::Base64::index( char c , bool & error )
 {
-	const char * p = std::strchr( map , c ) ;
+	const char * p = std::strchr( character_map , c ) ;
 	error = error || !c || !p ;
-	return p ? (p-map) : 0U ;
+	return p ? (p-character_map) : 0U ;
 }
 
 size_t GSmtp::Base64::accumulate_6( g_uint32_t & n , char c_in , int & n_out , bool & error )

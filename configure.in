@@ -1,5 +1,5 @@
 dnl 
-dnl Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+dnl Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 dnl 
 dnl This program is free software; you can redistribute it and/or
 dnl modify it under the terms of the GNU General Public License
@@ -39,7 +39,7 @@ dnl ===
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(src/main/gsmtp.h)
-AM_INIT_AUTOMAKE(emailrelay,0.9.6)
+AM_INIT_AUTOMAKE(emailrelay,0.9.7)
 AM_CONFIG_HEADER(config.h)
 
 dnl ===
@@ -72,7 +72,6 @@ AC_CHECK_HEADERS(unistd.h)
 AC_CHECK_HEADERS(sys/time.h)
 AC_CHECK_FUNCS(glob)
 AC_LANG_CPLUSPLUS
-AC_TRY_COMPILE([#include <memory>],std::auto_ptr<int> lhs ; const std::auto_ptr<int> & rhs = lhs ; lhs = rhs ;,,AC_DEFINE(HAVE_NONCONST_AUTOPTR,1,auto_ptr assignment has non-const rhs))
 dnl check for *_r() declarations -- using ac_check_funcs
 dnl is no good here since they may be in the library but
 dnl not the header (depending on preprocessor switches)

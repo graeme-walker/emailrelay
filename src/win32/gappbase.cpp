@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -146,26 +146,50 @@ void GGui::ApplicationBase::beep() const
 	::MessageBeep( MB_ICONEXCLAMATION ) ;
 }
 
+bool GGui::ApplicationBase::messageBoxQuery( const std::string & message )
+{
+	HWND hwnd = messageBoxHandle() ;
+	unsigned int type = messageBoxType( hwnd , MB_YESNO | MB_ICONQUESTION ) ;
+	return messageBoxCore( hwnd , type , title() , message ) ;
+}
+
 void GGui::ApplicationBase::messageBox( const std::string & message )
 {
-	HWND box_parent = ::GetActiveWindow() ; // eg. a dialog box
-	if( box_parent == NULL )
-		box_parent = handle() ;
-
-	unsigned int type = MB_OK | MB_ICONEXCLAMATION ;
-	if( box_parent == NULL )
-		type |= ( MB_TASKMODAL | MB_SETFOREGROUND ) ;
-
-	::MessageBox( box_parent , message.c_str() , title() , type ) ;
+	HWND hwnd = messageBoxHandle() ;
+	unsigned int type = messageBoxType( hwnd , MB_OK | MB_ICONEXCLAMATION ) ;
+	messageBoxCore( hwnd , type , title() , message ) ;
 }
 
 //static
 void GGui::ApplicationBase::messageBox( const std::string & title , const std::string & message )
 {
-	HWND box_parent = NULL ;
-	unsigned int type = MB_OK | MB_ICONEXCLAMATION | MB_TASKMODAL | MB_SETFOREGROUND ;
-
-	::MessageBox( box_parent , message.c_str() , title.c_str() , type ) ;
+	HWND hwnd = NULL ;
+	unsigned int type = messageBoxType( hwnd , MB_OK | MB_ICONEXCLAMATION ) ;
+	messageBoxCore( hwnd , type , title , message ) ;
 }
 
+//static
+bool GGui::ApplicationBase::messageBoxCore( HWND parent , unsigned int type ,
+	const std::string & title , const std::string & message )
+{
+	int rc = ::MessageBox( parent , message.c_str() , title.c_str() , type ) ;
+	return rc == IDOK || rc == IDYES ;
+}
+
+HWND GGui::ApplicationBase::messageBoxHandle() const
+{
+	HWND hwnd = ::GetActiveWindow() ; // eg. a dialog box
+	if( hwnd == NULL )
+		hwnd = handle() ;
+	return hwnd ;
+}
+
+//static
+unsigned int GGui::ApplicationBase::messageBoxType( HWND hwnd , unsigned int base_type )
+{
+	unsigned int type = base_type ;
+	if( hwnd == NULL )
+		base_type |= ( MB_TASKMODAL | MB_SETFOREGROUND ) ;
+	return type ;
+}
 

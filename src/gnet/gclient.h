@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -55,7 +55,7 @@ public:
 		// selected at random.
 		//
 		// If the 'quit' parameter is true then the client will
-		// call EventSources::quit() once it fails to connect,
+		// call EventLoop::quit() once it fails to connect,
 		// disconnects or looses the connection. Cleary 'quit'
 		// should only be true if this client is the only thing
 		// using the event loop.
@@ -79,7 +79,7 @@ public:
 		// the connection unblocks.
 
 	void run() ;
-		// Starts the main event loop using EventSources::run().
+		// Starts the main event loop using EventLoop::run().
 
 	static bool synchronousDnsDefault() ;
 		// Returns true if DNS queries should normally be

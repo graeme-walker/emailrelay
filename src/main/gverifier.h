@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -53,12 +53,6 @@ public:
 		// 'second' is set to the full description.
 		// If syntactically remote, then 'first'
 		// is returned false and 'second' is empty.
-
-private:
-	static bool isLocal( const std::string & user ) ;
-	static bool isValid( const std::string & user ) ;
-	static bool isPostmaster( std::string user ) ;
-	static std::string fullName( const std::string & user ) ;
 } ;
 
 #endif

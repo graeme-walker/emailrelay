@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -73,6 +73,7 @@ public:
 		Challenge_334 = 334 ,
 		OkForData_354 = 354 ,
 		SyntaxError_500 = 500 ,
+		SyntaxError_501 = 501 ,
 		NotImplemented_502 = 502 ,
 		BadSequence_503 = 503 ,
 		Invalid = 0 ,
@@ -106,7 +107,6 @@ class GSmtp::ClientProtocol : private GNet::Timer
 public:
 	G_EXCEPTION( NotReady , "not ready" ) ;
 	G_EXCEPTION( NoRecipients , "no recipients" ) ;
-	G_EXCEPTION( NarrowPipe , "cannot send an 8-bit message to a 7-bit server" ) ;
 	typedef ClientProtocolReply Reply ;
 
 	class Sender // An interface used by ClientProtocol to send protocol messages.
@@ -181,6 +181,7 @@ private:
 	bool sendLine( std::string & ) ;
 	size_t sendLines() ;
 	void sendMail() ;
+	void sendMailCore() ;
 	bool endOfContent() const ;
 	static const std::string & crlf() ;
 	void applyEvent( const Reply & event ) ;

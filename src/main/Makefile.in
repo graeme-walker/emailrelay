@@ -11,7 +11,7 @@
 # PARTICULAR PURPOSE.
 
 # 
-# Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -97,36 +97,63 @@ localstatedir = ${prefix}/var/spool/emailrelay
 
 EXTRA_DIST = commandline_win32.cpp main_win32.cpp gmessagestore_win32.cpp emailrelay.dsp icon-32.ico icon2.ico icon3.ico icon4.ico empty_file doxygen.cfg emailrelay.rc resource.h gsasl_cyrus.cpp
 INCLUDES = -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet
+
+noinst_LIBRARIES = libgsmtp.a
 sbin_PROGRAMS = emailrelay 
-libexec_PROGRAMS = emailrelay-poke
+libexec_PROGRAMS = emailrelay-passwd emailrelay-poke emailrelay-submit
 localstate_DATA = empty_file
-emailrelay_SOURCES =  	gadminserver.cpp 	gadminserver.h 	gbase64.cpp 	gbase64.h 	gclientprotocol.cpp 	gclientprotocol.h 	gfilestore.cpp 	gfilestore.h 	gmessagestore.cpp 	gmessagestore.h 	gmessagestore_unix.cpp 	gnewfile.cpp 	gnewfile.h 	gnewmessage.cpp 	gnewmessage.h 	gprotocolmessage.cpp 	gprotocolmessage.h 	gprotocolmessageforward.cpp 	gprotocolmessageforward.h 	gprotocolmessagestore.cpp 	gprotocolmessagestore.h 	gsasl_login.cpp 	gsasl.h 	gsecrets.cpp 	gsecrets.h 	gserverprotocol.cpp 	gserverprotocol.h 	gsmtp.h 	gsmtpclient.cpp 	gsmtpclient.h 	gsmtpserver.cpp 	gsmtpserver.h 	gstoredfile.cpp 	gstoredfile.h 	gstoredmessage.cpp 	gstoredmessage.h 	gverifier.cpp 	gverifier.h 	gxtext.cpp 	gxtext.h 	main_unix.cpp 	configuration.cpp 	configuration.h 	run.cpp 	run.h 	commandline.cpp 	commandline_unix.cpp 	commandline.h
+
+libgsmtp_a_SOURCES =  	gadminserver.cpp 	gadminserver.h 	gbase64.cpp 	gbase64.h 	gclientprotocol.cpp 	gclientprotocol.h 	gfilestore.cpp 	gfilestore.h 	gmessagestore.cpp 	gmessagestore.h 	gmessagestore_unix.cpp 	gnewfile.cpp 	gnewfile.h 	gnewmessage.cpp 	gnewmessage.h 	gprotocolmessage.cpp 	gprotocolmessage.h 	gprotocolmessageforward.cpp 	gprotocolmessageforward.h 	gprotocolmessagestore.cpp 	gprotocolmessagestore.h 	gsasl_native.cpp 	gsasl.h 	gsecrets.cpp 	gsecrets.h 	gserverprotocol.cpp 	gserverprotocol.h 	gsmtp.h 	gsmtpclient.cpp 	gsmtpclient.h 	gsmtpserver.cpp 	gsmtpserver.h 	gstoredfile.cpp 	gstoredfile.h 	gstoredmessage.cpp 	gstoredmessage.h 	gverifier.cpp 	gverifier.h 	gxtext.cpp 	gxtext.h
+
+
+emailrelay_SOURCES =  	main_unix.cpp 	configuration.cpp 	configuration.h 	legal.cpp 	legal.h 	run.cpp 	run.h 	commandline.cpp 	commandline_unix.cpp 	commandline.h
+
+
+emailrelay_LDADD =  	$(top_builddir)/src/main/libgsmtp.a 	$(top_builddir)/src/glib/libglib.a 	$(top_builddir)/src/gnet/libgnet.a
+
 
 emailrelay_poke_SOURCES = poke.c
-emailrelay_LDADD = $(top_builddir)/src/glib/libglib.a $(top_builddir)/src/gnet/libgnet.a
+emailrelay_poke_LDADD = 
+
+emailrelay_passwd_SOURCES = passwd.cpp
+emailrelay_passwd_LDADD = $(top_builddir)/src/glib/libglib.a
+
+emailrelay_submit_SOURCES = submit.cpp legal.cpp
+emailrelay_submit_LDADD =  	$(top_builddir)/src/main/libgsmtp.a 	$(top_builddir)/src/glib/libglib.a 	$(top_builddir)/src/gnet/libgnet.a
+
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../../config.h
 CONFIG_CLEAN_FILES = 
-PROGRAMS =  $(libexec_PROGRAMS) $(sbin_PROGRAMS)
+LIBRARIES =  $(noinst_LIBRARIES)
 
 
 DEFS = @DEFS@ -I. -I$(srcdir) -I../..
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-emailrelay_poke_OBJECTS =  poke.o
-emailrelay_poke_LDADD = $(LDADD)
-emailrelay_poke_DEPENDENCIES = 
-emailrelay_poke_LDFLAGS = 
-emailrelay_OBJECTS =  gadminserver.o gbase64.o gclientprotocol.o \
+libgsmtp_a_LIBADD = 
+libgsmtp_a_OBJECTS =  gadminserver.o gbase64.o gclientprotocol.o \
 gfilestore.o gmessagestore.o gmessagestore_unix.o gnewfile.o \
 gnewmessage.o gprotocolmessage.o gprotocolmessageforward.o \
-gprotocolmessagestore.o gsasl_login.o gsecrets.o gserverprotocol.o \
+gprotocolmessagestore.o gsasl_native.o gsecrets.o gserverprotocol.o \
 gsmtpclient.o gsmtpserver.o gstoredfile.o gstoredmessage.o gverifier.o \
-gxtext.o main_unix.o configuration.o run.o commandline.o \
-commandline_unix.o
-emailrelay_DEPENDENCIES =  $(top_builddir)/src/glib/libglib.a \
-$(top_builddir)/src/gnet/libgnet.a
+gxtext.o
+PROGRAMS =  $(libexec_PROGRAMS) $(sbin_PROGRAMS)
+
+emailrelay_passwd_OBJECTS =  passwd.o
+emailrelay_passwd_DEPENDENCIES =  $(top_builddir)/src/glib/libglib.a
+emailrelay_passwd_LDFLAGS = 
+emailrelay_poke_OBJECTS =  poke.o
+emailrelay_poke_DEPENDENCIES = 
+emailrelay_poke_LDFLAGS = 
+emailrelay_submit_OBJECTS =  submit.o legal.o
+emailrelay_submit_DEPENDENCIES =  $(top_builddir)/src/main/libgsmtp.a \
+$(top_builddir)/src/glib/libglib.a $(top_builddir)/src/gnet/libgnet.a
+emailrelay_submit_LDFLAGS = 
+emailrelay_OBJECTS =  main_unix.o configuration.o legal.o run.o \
+commandline.o commandline_unix.o
+emailrelay_DEPENDENCIES =  $(top_builddir)/src/main/libgsmtp.a \
+$(top_builddir)/src/glib/libglib.a $(top_builddir)/src/gnet/libgnet.a
 emailrelay_LDFLAGS = 
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -145,8 +172,8 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = tar
 GZIP_ENV = --best
-SOURCES = $(emailrelay_poke_SOURCES) $(emailrelay_SOURCES)
-OBJECTS = $(emailrelay_poke_OBJECTS) $(emailrelay_OBJECTS)
+SOURCES = $(libgsmtp_a_SOURCES) $(emailrelay_passwd_SOURCES) $(emailrelay_poke_SOURCES) $(emailrelay_submit_SOURCES) $(emailrelay_SOURCES)
+OBJECTS = $(libgsmtp_a_OBJECTS) $(emailrelay_passwd_OBJECTS) $(emailrelay_poke_OBJECTS) $(emailrelay_submit_OBJECTS) $(emailrelay_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -158,6 +185,39 @@ Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	cd $(top_builddir) \
 	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
+
+mostlyclean-noinstLIBRARIES:
+
+clean-noinstLIBRARIES:
+	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
+
+distclean-noinstLIBRARIES:
+
+maintainer-clean-noinstLIBRARIES:
+
+.c.o:
+	$(COMPILE) -c $<
+
+.s.o:
+	$(COMPILE) -c $<
+
+.S.o:
+	$(COMPILE) -c $<
+
+mostlyclean-compile:
+	-rm -f *.o core *.core
+
+clean-compile:
+
+distclean-compile:
+	-rm -f *.tab.c
+
+maintainer-clean-compile:
+
+libgsmtp.a: $(libgsmtp_a_OBJECTS) $(libgsmtp_a_DEPENDENCIES)
+	-rm -f libgsmtp.a
+	$(AR) cru libgsmtp.a $(libgsmtp_a_OBJECTS) $(libgsmtp_a_LIBADD)
+	$(RANLIB) libgsmtp.a
 
 mostlyclean-libexecPROGRAMS:
 
@@ -209,28 +269,17 @@ uninstall-sbinPROGRAMS:
 	  rm -f $(DESTDIR)$(sbindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
 	done
 
-.c.o:
-	$(COMPILE) -c $<
-
-.s.o:
-	$(COMPILE) -c $<
-
-.S.o:
-	$(COMPILE) -c $<
-
-mostlyclean-compile:
-	-rm -f *.o core *.core
-
-clean-compile:
-
-distclean-compile:
-	-rm -f *.tab.c
-
-maintainer-clean-compile:
+emailrelay-passwd: $(emailrelay_passwd_OBJECTS) $(emailrelay_passwd_DEPENDENCIES)
+	@rm -f emailrelay-passwd
+	$(CXXLINK) $(emailrelay_passwd_LDFLAGS) $(emailrelay_passwd_OBJECTS) $(emailrelay_passwd_LDADD) $(LIBS)
 
 emailrelay-poke: $(emailrelay_poke_OBJECTS) $(emailrelay_poke_DEPENDENCIES)
 	@rm -f emailrelay-poke
 	$(LINK) $(emailrelay_poke_LDFLAGS) $(emailrelay_poke_OBJECTS) $(emailrelay_poke_LDADD) $(LIBS)
+
+emailrelay-submit: $(emailrelay_submit_OBJECTS) $(emailrelay_submit_DEPENDENCIES)
+	@rm -f emailrelay-submit
+	$(CXXLINK) $(emailrelay_submit_LDFLAGS) $(emailrelay_submit_OBJECTS) $(emailrelay_submit_LDADD) $(LIBS)
 
 emailrelay: $(emailrelay_OBJECTS) $(emailrelay_DEPENDENCIES)
 	@rm -f emailrelay
@@ -304,11 +353,12 @@ distdir: $(DISTFILES)
 commandline.o: commandline.cpp ../../src/glib/gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gsmtp.h \
-	../../src/gnet/gnet.h ../../src/glib/glog.h configuration.h \
-	../../src/glib/gpath.h ../../src/glib/gstrings.h commandline.h \
-	../../src/glib/garg.h ../../src/glib/ggetopt.h \
-	../../src/glib/gexception.h gmessagestore.h gnewmessage.h \
-	gstoredmessage.h ../../src/glib/gstr.h ../../src/glib/gdebug.h \
+	../../src/gnet/gnet.h ../../src/glib/glog.h legal.h \
+	configuration.h ../../src/glib/gpath.h \
+	../../src/glib/gstrings.h commandline.h ../../src/glib/garg.h \
+	../../src/glib/ggetopt.h ../../src/glib/gexception.h \
+	gmessagestore.h gnewmessage.h gstoredmessage.h \
+	../../src/glib/gstr.h ../../src/glib/gdebug.h \
 	../../src/glib/glogoutput.h ../../src/glib/gassert.h
 commandline_unix.o: commandline_unix.cpp ../../src/glib/gdef.h \
 	../../config.h ../../lib/gcc2.95/iostream \
@@ -334,11 +384,13 @@ gadminserver.o: gadminserver.cpp ../../src/glib/gdef.h ../../config.h \
 	gadminserver.h ../../src/gnet/gserver.h \
 	../../src/gnet/gsocket.h ../../src/gnet/gaddress.h \
 	../../src/glib/gexception.h ../../src/gnet/gevent.h \
-	../../src/glib/gdatetime.h ../../src/gnet/gdescriptor.h \
-	../../src/gnet/gconnection.h ../../src/gnet/gselect.h \
-	../../src/gnet/glinebuffer.h ../../src/glib/gstrings.h \
-	gserverprotocol.h gprotocolmessage.h gverifier.h gsasl.h \
-	gsecrets.h ../../src/glib/gpath.h gsmtpclient.h \
+	../../src/gnet/geventloop.h ../../src/gnet/geventhandler.h \
+	../../src/glib/gcredentials.h ../../src/glib/gdatetime.h \
+	../../src/gnet/gdescriptor.h ../../src/gnet/gconnection.h \
+	../../src/gnet/gselect.h ../../src/gnet/glinebuffer.h \
+	../../src/glib/gstrings.h gserverprotocol.h gprotocolmessage.h \
+	gverifier.h gsasl.h gsecrets.h ../../src/glib/gpath.h \
+	../../src/glib/gstatemachine.h gsmtpclient.h \
 	../../src/gnet/gclient.h gclientprotocol.h gmessagestore.h \
 	gnewmessage.h gstoredmessage.h ../../src/gnet/gtimer.h \
 	../../src/gnet/gmonitor.h ../../src/glib/gstr.h \
@@ -372,6 +424,7 @@ gfilestore.o: gfilestore.cpp ../../src/glib/gdef.h ../../config.h \
 	../../src/glib/gexception.h ../../src/glib/gdatetime.h \
 	gnewfile.h gstoredfile.h ../../src/glib/gprocess.h \
 	../../src/glib/gdirectory.h ../../src/glib/gmemory.h \
+	../../src/glib/groot.h ../../src/glib/gnoncopyable.h \
 	../../src/glib/gfile.h ../../src/glib/gstr.h \
 	../../src/glib/gassert.h ../../src/glib/glogoutput.h
 gmessagestore.o: gmessagestore.cpp ../../src/glib/gdef.h ../../config.h \
@@ -396,6 +449,7 @@ gnewfile.o: gnewfile.cpp ../../src/glib/gdef.h ../../config.h \
 	../../src/glib/gpath.h ../../src/glib/gexception.h gnewfile.h \
 	gfilestore.h ../../src/glib/gdatetime.h \
 	../../src/glib/gmemory.h ../../src/glib/gprocess.h \
+	../../src/glib/groot.h ../../src/glib/gnoncopyable.h \
 	../../src/glib/gfile.h gxtext.h ../../src/glib/gassert.h \
 	../../src/glib/glogoutput.h
 gnewmessage.o: gnewmessage.cpp ../../src/glib/gdef.h ../../config.h \
@@ -421,11 +475,12 @@ gprotocolmessageforward.o: gprotocolmessageforward.cpp \
 	../../src/gnet/glinebuffer.h ../../src/gnet/gclient.h \
 	../../src/gnet/gaddress.h ../../src/gnet/gconnection.h \
 	../../src/gnet/gsocket.h ../../src/gnet/gevent.h \
-	../../src/glib/gdatetime.h ../../src/gnet/gdescriptor.h \
-	gclientprotocol.h gmessagestore.h gstoredmessage.h gsasl.h \
-	../../src/gnet/gtimer.h ../../src/glib/gmemory.h \
-	../../src/glib/gstr.h ../../src/glib/gassert.h \
-	../../src/glib/glogoutput.h
+	../../src/gnet/geventloop.h ../../src/gnet/geventhandler.h \
+	../../src/glib/gcredentials.h ../../src/glib/gdatetime.h \
+	../../src/gnet/gdescriptor.h gclientprotocol.h gmessagestore.h \
+	gstoredmessage.h gsasl.h ../../src/gnet/gtimer.h \
+	../../src/glib/gmemory.h ../../src/glib/gstr.h \
+	../../src/glib/gassert.h ../../src/glib/glogoutput.h
 gprotocolmessagestore.o: gprotocolmessagestore.cpp ../../src/glib/gdef.h \
 	../../config.h ../../lib/gcc2.95/iostream \
 	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
@@ -436,31 +491,36 @@ gprotocolmessagestore.o: gprotocolmessagestore.cpp ../../src/glib/gdef.h \
 	../../src/glib/gpath.h ../../src/glib/gexception.h \
 	../../src/glib/gmemory.h ../../src/glib/gstr.h \
 	../../src/glib/gassert.h ../../src/glib/glogoutput.h
-gsasl_login.o: gsasl_login.cpp ../../src/glib/gdef.h ../../config.h \
+gsasl_native.o: gsasl_native.cpp ../../src/glib/gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
-	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gsmtp.h \
-	../../src/gnet/gnet.h ../../src/glib/glog.h gsasl.h gsecrets.h \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits \
+	../../src/gnet/gnet.h gsmtp.h ../../src/glib/glog.h \
+	../../src/gnet/glocal.h ../../src/gnet/gaddress.h \
+	../../src/glib/gexception.h gsasl.h gsecrets.h \
 	../../src/glib/gpath.h ../../src/glib/gstrings.h \
-	../../src/glib/gexception.h ../../src/glib/gstr.h \
-	../../src/glib/gmemory.h ../../src/glib/gdebug.h \
-	../../src/glib/glogoutput.h ../../src/glib/gassert.h
+	../../src/glib/gstr.h ../../src/glib/gmd5.h \
+	../../src/glib/gdatetime.h ../../src/glib/gmemory.h \
+	../../src/glib/gdebug.h ../../src/glib/glogoutput.h \
+	../../src/glib/gassert.h
 gsecrets.o: gsecrets.cpp ../../src/glib/gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gsmtp.h \
 	../../src/gnet/gnet.h ../../src/glib/glog.h gsecrets.h \
 	../../src/glib/gpath.h ../../src/glib/gstrings.h \
-	../../src/glib/gexception.h gxtext.h ../../src/glib/gstr.h
+	../../src/glib/gexception.h ../../src/glib/groot.h \
+	../../src/glib/gprocess.h ../../src/glib/gnoncopyable.h \
+	gxtext.h ../../src/glib/gstr.h
 gserverprotocol.o: gserverprotocol.cpp ../../src/glib/gdef.h \
 	../../config.h ../../lib/gcc2.95/iostream \
 	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
 	../../lib/gcc2.95/limits gsmtp.h ../../src/gnet/gnet.h \
 	../../src/glib/glog.h gserverprotocol.h gprotocolmessage.h \
 	../../src/glib/gstrings.h gverifier.h gsasl.h gsecrets.h \
-	../../src/glib/gpath.h ../../src/glib/gexception.h gbase64.h \
-	../../src/glib/gdate.h ../../src/glib/gdatetime.h \
-	../../src/glib/gdebug.h ../../src/glib/glogoutput.h \
-	../../src/glib/gassert.h ../../src/glib/gtime.h \
-	../../src/glib/gstr.h
+	../../src/glib/gpath.h ../../src/glib/gexception.h \
+	../../src/glib/gstatemachine.h gbase64.h ../../src/glib/gdate.h \
+	../../src/glib/gdatetime.h ../../src/glib/gdebug.h \
+	../../src/glib/glogoutput.h ../../src/glib/gassert.h \
+	../../src/glib/gtime.h ../../src/glib/gstr.h
 gsmtpclient.o: gsmtpclient.cpp ../../src/glib/gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits \
@@ -473,24 +533,28 @@ gsmtpclient.o: gsmtpclient.cpp ../../src/glib/gdef.h ../../config.h \
 	gsmtpclient.h gsecrets.h ../../src/gnet/glinebuffer.h \
 	../../src/gnet/gclient.h ../../src/gnet/gconnection.h \
 	../../src/gnet/gsocket.h ../../src/gnet/gevent.h \
-	../../src/gnet/gdescriptor.h gclientprotocol.h gmessagestore.h \
-	gnewmessage.h gstoredmessage.h gsasl.h \
-	../../src/gnet/gresolve.h ../../src/glib/gassert.h \
-	../../src/glib/glogoutput.h
+	../../src/gnet/geventloop.h ../../src/gnet/geventhandler.h \
+	../../src/glib/gcredentials.h ../../src/gnet/gdescriptor.h \
+	gclientprotocol.h gmessagestore.h gnewmessage.h \
+	gstoredmessage.h gsasl.h ../../src/gnet/gresolve.h \
+	../../src/glib/gassert.h ../../src/glib/glogoutput.h
 gsmtpserver.o: gsmtpserver.cpp ../../src/glib/gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gsmtp.h \
 	../../src/gnet/gnet.h ../../src/glib/glog.h gsmtpserver.h \
 	../../src/gnet/gserver.h ../../src/gnet/gsocket.h \
 	../../src/gnet/gaddress.h ../../src/glib/gexception.h \
-	../../src/gnet/gevent.h ../../src/glib/gdatetime.h \
-	../../src/gnet/gdescriptor.h ../../src/gnet/gconnection.h \
-	../../src/gnet/gselect.h ../../src/gnet/glinebuffer.h \
-	../../src/glib/gstrings.h gverifier.h gserverprotocol.h \
-	gprotocolmessage.h gsasl.h gsecrets.h ../../src/glib/gpath.h \
-	gprotocolmessagestore.h gnewmessage.h gprotocolmessageforward.h \
-	gsmtpclient.h ../../src/gnet/gclient.h gclientprotocol.h \
-	gmessagestore.h gstoredmessage.h ../../src/gnet/gtimer.h \
+	../../src/gnet/gevent.h ../../src/gnet/geventloop.h \
+	../../src/gnet/geventhandler.h ../../src/glib/gcredentials.h \
+	../../src/glib/gdatetime.h ../../src/gnet/gdescriptor.h \
+	../../src/gnet/gconnection.h ../../src/gnet/gselect.h \
+	../../src/gnet/glinebuffer.h ../../src/glib/gstrings.h \
+	gverifier.h gserverprotocol.h gprotocolmessage.h gsasl.h \
+	gsecrets.h ../../src/glib/gpath.h \
+	../../src/glib/gstatemachine.h gprotocolmessagestore.h \
+	gnewmessage.h gprotocolmessageforward.h gsmtpclient.h \
+	../../src/gnet/gclient.h gclientprotocol.h gmessagestore.h \
+	gstoredmessage.h ../../src/gnet/gtimer.h \
 	../../src/glib/gmemory.h ../../src/gnet/glocal.h \
 	../../src/glib/gdebug.h ../../src/glib/glogoutput.h \
 	../../src/glib/gassert.h
@@ -501,8 +565,9 @@ gstoredfile.o: gstoredfile.cpp ../../src/glib/gdef.h ../../config.h \
 	gmessagestore.h gnewmessage.h gstoredmessage.h \
 	../../src/glib/gstrings.h ../../src/glib/gpath.h \
 	../../src/glib/gexception.h ../../src/glib/gdatetime.h \
-	gstoredfile.h ../../src/glib/gmemory.h gxtext.h \
-	../../src/glib/gfile.h ../../src/glib/gstr.h \
+	gstoredfile.h ../../src/glib/gmemory.h ../../src/glib/groot.h \
+	../../src/glib/gprocess.h ../../src/glib/gnoncopyable.h \
+	gxtext.h ../../src/glib/gfile.h ../../src/glib/gstr.h \
 	../../src/glib/gassert.h ../../src/glib/glogoutput.h
 gstoredmessage.o: gstoredmessage.cpp ../../src/glib/gdef.h \
 	../../config.h ../../lib/gcc2.95/iostream \
@@ -515,13 +580,18 @@ gverifier.o: gverifier.cpp ../../src/glib/gdef.h ../../config.h \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gsmtp.h \
 	../../src/gnet/gnet.h ../../src/glib/glog.h gverifier.h \
 	../../src/glib/gstr.h ../../src/glib/gexception.h \
-	../../src/glib/gstrings.h ../../src/glib/gassert.h \
+	../../src/glib/gstrings.h ../../src/gnet/glocal.h \
+	../../src/gnet/gaddress.h ../../src/glib/gassert.h \
 	../../src/glib/glogoutput.h
 gxtext.o: gxtext.cpp ../../src/glib/gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gsmtp.h \
 	../../src/gnet/gnet.h ../../src/glib/glog.h gxtext.h \
 	../../src/glib/gassert.h ../../src/glib/glogoutput.h
+legal.o: legal.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits legal.h \
+	gsmtp.h ../../src/gnet/gnet.h ../../src/glib/glog.h
 main_unix.o: main_unix.cpp ../../src/glib/gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gsmtp.h \
@@ -529,13 +599,21 @@ main_unix.o: main_unix.cpp ../../src/glib/gdef.h ../../config.h \
 	../../src/glib/garg.h run.h configuration.h \
 	../../src/glib/gpath.h ../../src/glib/gstrings.h commandline.h \
 	../../src/glib/ggetopt.h ../../src/glib/gexception.h \
-	../../src/gnet/gevent.h ../../src/glib/gdatetime.h \
+	../../src/gnet/geventloop.h ../../src/gnet/geventhandler.h \
+	../../src/glib/gcredentials.h ../../src/glib/gdatetime.h \
 	../../src/gnet/gdescriptor.h ../../src/glib/gdaemon.h \
 	gmessagestore.h gnewmessage.h gstoredmessage.h gsmtpclient.h \
 	gsecrets.h ../../src/gnet/glinebuffer.h \
 	../../src/gnet/gclient.h ../../src/gnet/gaddress.h \
 	../../src/gnet/gconnection.h ../../src/gnet/gsocket.h \
-	gclientprotocol.h gsasl.h ../../src/gnet/gtimer.h
+	../../src/gnet/gevent.h gclientprotocol.h gsasl.h \
+	../../src/gnet/gtimer.h
+passwd.o: passwd.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits \
+	../../src/glib/gstr.h ../../src/glib/gexception.h \
+	../../src/glib/gstrings.h ../../src/glib/garg.h \
+	../../src/glib/gmd5.h
 poke.o: poke.c
 run.o: run.cpp ../../src/glib/gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
@@ -544,19 +622,32 @@ run.o: run.cpp ../../src/glib/gdef.h ../../config.h \
 	configuration.h ../../src/glib/gpath.h \
 	../../src/glib/gstrings.h commandline.h ../../src/glib/garg.h \
 	../../src/glib/ggetopt.h ../../src/glib/gexception.h \
-	../../src/gnet/gevent.h ../../src/glib/gdatetime.h \
+	../../src/gnet/geventloop.h ../../src/gnet/geventhandler.h \
+	../../src/glib/gcredentials.h ../../src/glib/gdatetime.h \
 	../../src/gnet/gdescriptor.h ../../src/glib/gdaemon.h \
 	gmessagestore.h gnewmessage.h gstoredmessage.h gsmtpclient.h \
 	gsecrets.h ../../src/gnet/glinebuffer.h \
 	../../src/gnet/gclient.h ../../src/gnet/gaddress.h \
 	../../src/gnet/gconnection.h ../../src/gnet/gsocket.h \
-	gclientprotocol.h gsasl.h ../../src/gnet/gtimer.h gsmtpserver.h \
-	../../src/gnet/gserver.h ../../src/gnet/gselect.h gverifier.h \
-	gserverprotocol.h gprotocolmessage.h gfilestore.h gnewfile.h \
-	gadminserver.h ../../src/gnet/gmonitor.h \
-	../../src/glib/gprocess.h ../../src/glib/gmemory.h \
-	../../src/glib/gdebug.h ../../src/glib/glogoutput.h \
-	../../src/glib/gassert.h
+	../../src/gnet/gevent.h gclientprotocol.h gsasl.h \
+	../../src/gnet/gtimer.h gsmtpserver.h ../../src/gnet/gserver.h \
+	../../src/gnet/gselect.h gverifier.h gserverprotocol.h \
+	gprotocolmessage.h ../../src/glib/gstatemachine.h gfilestore.h \
+	gnewfile.h gadminserver.h ../../src/gnet/gmonitor.h \
+	../../src/gnet/glocal.h ../../src/glib/groot.h \
+	../../src/glib/gprocess.h ../../src/glib/gnoncopyable.h \
+	../../src/glib/gmemory.h ../../src/glib/glogoutput.h \
+	../../src/glib/gdebug.h ../../src/glib/gassert.h
+submit.o: submit.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits \
+	../../src/gnet/gnet.h gsmtp.h ../../src/glib/glog.h \
+	../../src/gnet/glocal.h ../../src/gnet/gaddress.h \
+	../../src/glib/gexception.h ../../src/glib/garg.h \
+	../../src/glib/gstrings.h ../../src/glib/gstr.h \
+	../../src/glib/ggetopt.h ../../src/glib/gpath.h gfilestore.h \
+	gmessagestore.h gnewmessage.h gstoredmessage.h \
+	../../src/glib/gdatetime.h legal.h
 
 info-am:
 info: info-am
@@ -579,7 +670,7 @@ install: install-am
 uninstall-am: uninstall-libexecPROGRAMS uninstall-sbinPROGRAMS \
 		uninstall-localstateDATA
 uninstall: uninstall-am
-all-am: Makefile $(PROGRAMS) $(DATA)
+all-am: Makefile $(LIBRARIES) $(PROGRAMS) $(DATA)
 all-redirect: all-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install
@@ -597,46 +688,49 @@ distclean-generic:
 	-rm -f config.cache config.log stamp-h stamp-h[0-9]*
 
 maintainer-clean-generic:
-mostlyclean-am:  mostlyclean-libexecPROGRAMS mostlyclean-sbinPROGRAMS \
-		mostlyclean-compile mostlyclean-tags \
-		mostlyclean-generic
+mostlyclean-am:  mostlyclean-noinstLIBRARIES mostlyclean-compile \
+		mostlyclean-libexecPROGRAMS mostlyclean-sbinPROGRAMS \
+		mostlyclean-tags mostlyclean-generic
 
 mostlyclean: mostlyclean-am
 
-clean-am:  clean-libexecPROGRAMS clean-sbinPROGRAMS clean-compile \
-		clean-tags clean-generic mostlyclean-am
+clean-am:  clean-noinstLIBRARIES clean-compile clean-libexecPROGRAMS \
+		clean-sbinPROGRAMS clean-tags clean-generic \
+		mostlyclean-am
 
 clean: clean-am
 
-distclean-am:  distclean-libexecPROGRAMS distclean-sbinPROGRAMS \
-		distclean-compile distclean-tags distclean-generic \
-		clean-am
+distclean-am:  distclean-noinstLIBRARIES distclean-compile \
+		distclean-libexecPROGRAMS distclean-sbinPROGRAMS \
+		distclean-tags distclean-generic clean-am
 
 distclean: distclean-am
 
-maintainer-clean-am:  maintainer-clean-libexecPROGRAMS \
-		maintainer-clean-sbinPROGRAMS maintainer-clean-compile \
-		maintainer-clean-tags maintainer-clean-generic \
-		distclean-am
+maintainer-clean-am:  maintainer-clean-noinstLIBRARIES \
+		maintainer-clean-compile \
+		maintainer-clean-libexecPROGRAMS \
+		maintainer-clean-sbinPROGRAMS maintainer-clean-tags \
+		maintainer-clean-generic distclean-am
 	@echo "This command is intended for maintainers to use;"
 	@echo "it deletes files that may require special tools to rebuild."
 
 maintainer-clean: maintainer-clean-am
 
-.PHONY: mostlyclean-libexecPROGRAMS distclean-libexecPROGRAMS \
-clean-libexecPROGRAMS maintainer-clean-libexecPROGRAMS \
-uninstall-libexecPROGRAMS install-libexecPROGRAMS \
-mostlyclean-sbinPROGRAMS distclean-sbinPROGRAMS clean-sbinPROGRAMS \
-maintainer-clean-sbinPROGRAMS uninstall-sbinPROGRAMS \
-install-sbinPROGRAMS mostlyclean-compile distclean-compile \
-clean-compile maintainer-clean-compile uninstall-localstateDATA \
-install-localstateDATA tags mostlyclean-tags distclean-tags clean-tags \
-maintainer-clean-tags distdir info-am info dvi-am dvi check check-am \
-installcheck-am installcheck install-exec-am install-exec \
-install-data-am install-data install-am install uninstall-am uninstall \
-all-redirect all-am all installdirs mostlyclean-generic \
-distclean-generic clean-generic maintainer-clean-generic clean \
-mostlyclean distclean maintainer-clean
+.PHONY: mostlyclean-noinstLIBRARIES distclean-noinstLIBRARIES \
+clean-noinstLIBRARIES maintainer-clean-noinstLIBRARIES \
+mostlyclean-compile distclean-compile clean-compile \
+maintainer-clean-compile mostlyclean-libexecPROGRAMS \
+distclean-libexecPROGRAMS clean-libexecPROGRAMS \
+maintainer-clean-libexecPROGRAMS uninstall-libexecPROGRAMS \
+install-libexecPROGRAMS mostlyclean-sbinPROGRAMS distclean-sbinPROGRAMS \
+clean-sbinPROGRAMS maintainer-clean-sbinPROGRAMS uninstall-sbinPROGRAMS \
+install-sbinPROGRAMS uninstall-localstateDATA install-localstateDATA \
+tags mostlyclean-tags distclean-tags clean-tags maintainer-clean-tags \
+distdir info-am info dvi-am dvi check check-am installcheck-am \
+installcheck install-exec-am install-exec install-data-am install-data \
+install-am install uninstall-am uninstall all-redirect all-am all \
+installdirs mostlyclean-generic distclean-generic clean-generic \
+maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

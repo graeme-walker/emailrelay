@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -72,6 +72,9 @@ public:
 	void syslog() ;
 		// Enables logging to the syslog system under Unix.
 
+	void timestamp() ;
+		// Enables timestamping.
+
 	void syslog( SyslogFacility facility ) ;
 		// Enables logging to the syslog system under Unix,
 		// using the specified facility.
@@ -99,15 +102,22 @@ private:
 	LogOutput( const LogOutput & ) ;
 	void operator=( const LogOutput & ) ;
 	static void itoa( char *out , unsigned int ) ;
-	static void fileAndLine( char * , size_t , const char * , int ) ;
+	static void addFileAndLine( char * , size_t , const char * , int ) ;
+	static void addTimestamp( char * , size_t , const char * ) ;
+	const char * timestampString() ;
 	static void halt() ;
+	void doOutput( G::Log::Severity , const char * ) ;
+	void doOutput( G::Log::Severity s , const char * , unsigned , const char * ) ;
 
 private:
-	static LogOutput *m_this ;
+	static LogOutput * m_this ;
 	bool m_enabled ;
 	bool m_verbose ;
 	bool m_syslog ;
 	SyslogFacility m_facility ;
+	time_t m_time ;
+	char m_time_buffer[40U] ;
+	bool m_timestamp ;
 } ;
 
 #endif

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -134,7 +134,7 @@ public:
 
 	void doTimeouts() ;
 		// Triggers the timeout callbacks of any expired
-		// timers. Called by the event loop (GNet::EventSources).
+		// timers. Called by the event loop (GNet::EventLoop).
 
 	static TimerList * instance( const NoThrow & ) ;
 		// Singleton access. Returns NULL if none.

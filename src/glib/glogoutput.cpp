@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -25,13 +25,16 @@
 #include "glogoutput.h"
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 
 G::LogOutput *G::LogOutput::m_this = NULL ;
 
 G::LogOutput::LogOutput( bool enabled , bool verbose ) :
 	m_enabled(enabled) ,
 	m_verbose(verbose) ,
-	m_syslog(false)
+	m_syslog(false) ,
+	m_time(0) ,
+	m_timestamp(false)
 {
 	if( m_this == NULL )
 		m_this = this ;
@@ -76,16 +79,41 @@ void G::LogOutput::itoa( char *out , unsigned int n )
 	}
 }
 
+void G::LogOutput::timestamp()
+{
+	m_timestamp = true ;
+}
+
+const char * G::LogOutput::timestampString()
+{
+	std::time_t now = std::time(NULL) ;
+	if( m_time == 0 || m_time != now )
+	{
+		m_time = now ;
+		struct std::tm * tm_p = std::localtime( &m_time ) ;
+		m_time_buffer[0] = '\0' ;
+		std::strftime( m_time_buffer , sizeof(m_time_buffer)-1U , "%Y" "%m" "%d." "%H" "%M" "%S: " , tm_p ) ;
+		m_time_buffer[sizeof(m_time_buffer)-1U] = '\0' ;
+	}
+	return m_time_buffer ;
+}
+
 //static
 void G::LogOutput::output( G::Log::Severity severity , const char *text )
 {
 	if( m_this != NULL )
+		m_this->doOutput( severity , text ) ;
+}
+
+void G::LogOutput::doOutput( G::Log::Severity severity , const char *text )
+{
+	if( m_enabled )
 	{
-		if( severity != G::Log::s_Debug || m_this->m_verbose )
+		if( severity != G::Log::s_Debug || m_verbose )
 		{
-			m_this->rawOutput( severity , text ? text : "" ) ;
+			rawOutput( severity , text ? text : "" ) ;
 			if( text && text[0U] && text[std::strlen(text)-1U] != '\n' )
-				m_this->rawOutput( severity , "\n" ) ;
+				rawOutput( severity , "\n" ) ;
 		}
 	}
 }
@@ -93,19 +121,26 @@ void G::LogOutput::output( G::Log::Severity severity , const char *text )
 //static
 void G::LogOutput::output( G::Log::Severity severity , const char *file, unsigned line, const char *text )
 {
-	file = file ? file : "" ;
-	text = text ? text : "" ;
+	if( m_this != NULL )
+		m_this->doOutput( severity , file , line , text ) ;
+}
 
-	// no-op if disabled
-	if( m_this == NULL || !m_this->m_enabled )
-		return ;
+void G::LogOutput::doOutput( G::Log::Severity severity , const char *file, unsigned line, const char *text )
+{
+	if( m_enabled )
+	{
+		file = file ? file : "" ;
+		text = text ? text : "" ;
 
-	char buffer[500U] ;
-	buffer[0U] = '\0' ;
-	if( severity == G::Log::s_Debug )
-		fileAndLine( buffer , sizeof(buffer) , file , line ) ;
-	std::strncat( buffer + std::strlen(buffer) , text , sizeof(buffer) - 1U - std::strlen(buffer) ) ;
-	output( severity , buffer ) ;
+		char buffer[500U] ;
+		buffer[0U] = '\0' ;
+		if( severity == G::Log::s_Debug )
+			addFileAndLine( buffer , sizeof(buffer) , file , line ) ;
+		else if( m_timestamp )
+			addTimestamp( buffer , sizeof(buffer) , timestampString() ) ;
+		std::strncat( buffer + std::strlen(buffer) , text , sizeof(buffer) - 1U - std::strlen(buffer) ) ;
+		output( severity , buffer ) ;
+	}
 }
 
 G::LogOutput *G::LogOutput::instance()
@@ -119,7 +154,7 @@ void G::LogOutput::onAssert()
 }
 
 //static
-void G::LogOutput::fileAndLine( char *buffer , size_t size , const char *file , int line )
+void G::LogOutput::addFileAndLine( char *buffer , size_t size , const char *file , int line )
 {
 	const char *forward = std::strrchr( file , '/' ) ;
 	const char *back = std::strrchr( file , '\\' ) ;
@@ -134,6 +169,12 @@ void G::LogOutput::fileAndLine( char *buffer , size_t size , const char *file , 
 	std::strncat( buffer+std::strlen(buffer) , "): " , size-std::strlen(buffer)-1U ) ;
 }
 
+//static
+void G::LogOutput::addTimestamp( char *buffer , size_t size , const char * ts )
+{
+	std::strncat( buffer+std::strlen(buffer) , ts , size-std::strlen(buffer)-1U ) ;
+}
+
 void G::LogOutput::assertion( const char *file , unsigned line , bool test , const char *test_string )
 {
 	if( !test )
@@ -143,7 +184,7 @@ void G::LogOutput::assertion( const char *file , unsigned line , bool test , con
 		size_t size = sizeof(buffer) - 10U ; // -10 for luck
 		if( file )
 		{
-			fileAndLine( buffer , size , file , line ) ;
+			addFileAndLine( buffer , size , file , line ) ;
 		}
 		if( test_string )
 		{

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -59,6 +59,11 @@ std::string Main::Configuration::str( const std::string & p , const std::string 
 		<< p << "close stderr? " << yn(closeStderr()) << eol
 		<< p << "allow remote clients? " << yn(allowRemoteClients()) << eol
 		<< p << "pid file: " << (usePidFile()?pidFile():na) << eol
+		<< p << "client secrets file: " << clientSecretsFile() << eol
+		<< p << "server secrets file: " << serverSecretsFile() << eol
+		<< p << "connect timeout: " << connectionTimeout() << "s" << eol
+		<< p << "response timeout: " << responseTimeout() << "s" << eol
+		<< p << "domain override: " << fqdn() << eol
 		;
 	return ss.str() ;
 }
@@ -80,6 +85,11 @@ bool Main::Configuration::verbose() const
 bool Main::Configuration::syslog() const
 {
 	return !m_cl.contains("no-syslog") && !m_cl.contains("as-client") ;
+}
+
+bool Main::Configuration::logTimestamp() const
+{
+	return m_cl.contains("log-time") ;
 }
 
 unsigned int Main::Configuration::port() const
@@ -204,5 +214,15 @@ unsigned int Main::Configuration::connectionTimeout() const
 	const unsigned int default_timeout = 40U ;
 	return m_cl.contains("connection-timeout") ?
 		G::Str::toUInt(m_cl.value("connection-timeout")) : default_timeout ;
+}
+
+std::string Main::Configuration::fqdn() const
+{
+	return m_cl.contains("domain") ? m_cl.value("domain") : std::string() ;
+}
+
+std::string Main::Configuration::nobody() const
+{
+	return m_cl.contains("user") ? m_cl.value("user") : std::string("daemon") ;
 }
 

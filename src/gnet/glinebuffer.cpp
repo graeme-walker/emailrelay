@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -27,24 +27,37 @@
 #include "gdebug.h"
 #include "gassert.h"
 
+unsigned long GNet::LineBuffer::m_limit = 10000000UL ; // 10Mb denial-of-service limit
+
 GNet::LineBuffer::LineBuffer( const std::string & eol ) :
 	m_eol(eol)
 {
 }
 
+unsigned long GNet::LineBuffer::count() const
+{
+	unsigned long result = 0UL ;
+	for( G::Strings::const_iterator p = m_lines.begin() ; p != m_lines.end() ; ++p )
+		result += (*p).length() ;
+	return result ;
+}
+
 void GNet::LineBuffer::add( const std::string & segment )
 {
-	size_t n = segment.size() ;
-	for( size_t i = 0U ; i < n ; i++ )
+	if( m_limit == 0UL || count() < m_limit )
 	{
-		if( m_lines.empty() )
-			m_lines.push_back( std::string() ) ;
-
-		char c = segment.at(i) ;
-		m_lines.back().append( 1U , c ) ;
-		if( terminated() )
+		size_t n = segment.size() ;
+		for( size_t i = 0U ; i < n ; i++ )
 		{
-			m_lines.push_back( std::string() ) ;
+			if( m_lines.empty() )
+				m_lines.push_back( std::string() ) ;
+
+			char c = segment.at(i) ;
+			m_lines.back().append( 1U , c ) ;
+			if( terminated() )
+			{
+				m_lines.push_back( std::string() ) ;
+			}
 		}
 	}
 }

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -37,7 +37,7 @@ namespace GNet
 // Class: GNet::Select
 // Description: A event-source class which uses ::select().
 //
-class GNet::Select : public GNet:: EventSources
+class GNet::Select : public GNet:: EventLoop
 {
 public:
 	G_EXCEPTION( Error , "select() error" ) ;
@@ -49,37 +49,37 @@ public:
 		// Destructor.
 
 	virtual bool init() ;
-		// Override from EventSources. Does nothing. Returns true.
+		// Override from EventLoop. Does nothing. Returns true.
 
 	virtual void run() ;
-		// Override from EventSources. Runs the event loop.
+		// Override from EventLoop. Runs the event loop.
 
 	virtual void quit() ;
-		// Override from EventSources. Causes run() to return.
+		// Override from EventLoop. Causes run() to return.
 
 	virtual void addRead( Descriptor fd , EventHandler &handler ) ;
-		// See EventSources.
+		// See EventLoop.
 
 	virtual void addWrite( Descriptor fd , EventHandler &handler ) ;
-		// See EventSources.
+		// See EventLoop.
 
 	virtual void addException( Descriptor fd , EventHandler &handler ) ;
-		// See EventSources.
+		// See EventLoop.
 
 	virtual void dropRead( Descriptor fd ) ;
-		// See EventSources.
+		// See EventLoop.
 
 	virtual void dropWrite( Descriptor fd ) ;
-		// See EventSources.
+		// See EventLoop.
 
 	virtual void dropException( Descriptor fd ) ;
-		// See EventSources.
+		// See EventLoop.
 
 private:
 	Select( const Select & ) ;
 	void operator=( const Select & ) ;
 	void runOnce() ;
-	virtual void setTimeout( G::DateTime::EpochTime t ) ;
+	virtual void setTimeout( const G::credentials<TimerList> & , G::DateTime::EpochTime t ) ;
 
 private:
 	bool m_quit ;

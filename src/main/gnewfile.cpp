@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -27,6 +27,7 @@
 #include "gnewfile.h"
 #include "gmemory.h"
 #include "gprocess.h"
+#include "groot.h"
 #include "gfile.h"
 #include "gxtext.h"
 #include "gassert.h"
@@ -123,6 +124,7 @@ bool GSmtp::NewFile::store( const std::string & auth_id , const std::string & cl
 
 	// commit the envelope, or rollback the content
 	//
+	G::Root claim_root ;
 	if( ! ok || ! G::File::rename(p0,p1,G::File::NoThrow() ) )
 	{
 		G_ASSERT( m_content_path.str().length() != 0U ) ;
@@ -138,9 +140,7 @@ bool GSmtp::NewFile::preprocess( const G::Path & path , bool & cancelled )
 {
 	if( m_preprocess )
 	{
-		G_LOG( "GSmtp::NewFile::preprocess: " << m_preprocessor << " " << path ) ;
-		int exit_code = G::Process::spawn( m_preprocessor , path.str() ) ;
-		G_LOG( "GSmtp::NewFile::preprocess: exit status " << exit_code ) ;
+		int exit_code = preprocessCore( path ) ;
 		if( exit_code == 100 )
 		{
 			// a special exit-code for pre-processors which
@@ -161,6 +161,14 @@ bool GSmtp::NewFile::preprocess( const G::Path & path , bool & cancelled )
 	return true ;
 }
 
+int GSmtp::NewFile::preprocessCore( const G::Path & path )
+{
+	G_LOG( "GSmtp::NewFile::preprocess: " << m_preprocessor << " " << path ) ;
+	int exit_code = G::Process::spawn( m_preprocessor , path.str() ) ;
+	G_LOG( "GSmtp::NewFile::preprocess: exit status " << exit_code ) ;
+	return exit_code ;
+}
+
 void GSmtp::NewFile::deliver( const G::Strings & /*to*/ ,
 	const G::Path & content_path , const G::Path & envelope_path_now ,
 	const G::Path & envelope_path_later )
@@ -171,6 +179,7 @@ void GSmtp::NewFile::deliver( const G::Strings & /*to*/ ,
 	G_LOG( "GSmtp::NewMessage: copying message for local recipient(s): "
 		<< content_path.basename() << ".local" ) ;
 
+	G::Root claim_root ;
 	G::File::copy( content_path.str() , content_path.str()+".local" ) ;
 	G::File::copy( envelope_path_now.str() , envelope_path_later.str()+".local" ) ;
 }
@@ -218,9 +227,6 @@ void GSmtp::NewFile::setPreprocessor( const G::Path & exe )
 {
 	if( exe.isRelative() )
 		throw InvalidPath( exe.str() ) ;
-
-	if( G::Process::privileged() )
-		throw Dangerous() ;
 
 	m_preprocess = true ;
 	m_preprocessor = exe ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -254,36 +254,36 @@ void GNet::Socket::addReadHandler( EventHandler & handler )
 {
 	G_ASSERT( valid() ) ;
 	G_DEBUG( "GNet::Socket::addReadHandler: fd " << m_socket ) ;
-	EventSources::instance().addRead( m_socket , handler ) ;
+	EventLoop::instance().addRead( m_socket , handler ) ;
 }
 
 void GNet::Socket::dropReadHandler()
 {
-	EventSources::instance().dropRead( m_socket ) ;
+	EventLoop::instance().dropRead( m_socket ) ;
 }
 
 void GNet::Socket::addWriteHandler( EventHandler & handler )
 {
 	G_ASSERT( valid() ) ;
 	G_DEBUG( "GNet::Socket::addWriteHandler: fd " << m_socket ) ;
-	EventSources::instance().addWrite( m_socket , handler ) ;
+	EventLoop::instance().addWrite( m_socket , handler ) ;
 }
 
 void GNet::Socket::addExceptionHandler( EventHandler & handler )
 {
 	G_ASSERT( valid() ) ;
 	G_DEBUG( "GNet::Socket::addExceptionHandler: fd " << m_socket ) ;
-	EventSources::instance().addException( m_socket , handler ) ;
+	EventLoop::instance().addException( m_socket , handler ) ;
 }
 
 void GNet::Socket::dropWriteHandler()
 {
-	EventSources::instance().dropWrite( m_socket ) ;
+	EventLoop::instance().dropWrite( m_socket ) ;
 }
 
 void GNet::Socket::dropExceptionHandler()
 {
-	EventSources::instance().dropException( m_socket ) ;
+	EventLoop::instance().dropException( m_socket ) ;
 }
 
 std::string GNet::Socket::asString() const

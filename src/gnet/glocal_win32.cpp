@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -37,16 +37,6 @@ std::string GNet::Local::hostname()
 	return std::string(buffer) ;
 }
 
-std::string GNet::Local::domainname()
-{
-	std::string full = fqdn() ;
-	size_t pos = full.find( '.' ) ;
-	if( pos == std::string::npos )
-		throw Error( std::stringstream() << "invalid fqdn: no dots in \"" << full << "\"" ) ;
-
-	return full.substr(pos+1U) ;
-}
-
 GNet::Address GNet::Local::canonicalAddress()
 {
 	static bool first = true ; // avoid multiple synchronous DNS queries
@@ -66,12 +56,7 @@ GNet::Address GNet::Local::canonicalAddress()
 	return result ;
 }
 
-GNet::Address GNet::Local::localhostAddress()
-{
-	return Address::localhost( 0U ) ;
-}
-
-std::string GNet::Local::fqdn()
+std::string GNet::Local::fqdnImp()
 {
 	static bool first = true ; // avoid multiple synchronous DNS queries
 	static std::string result ;

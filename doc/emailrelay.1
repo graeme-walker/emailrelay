@@ -1,5 +1,5 @@
 .\" 
-.\" Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+.\" Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 .\" 
 .\" This program is free software; you can redistribute it and/or
 .\" modify it under the terms of the GNU General Public License
@@ -35,8 +35,8 @@ emailrelay \- e-mail transfer agent
 .I server-address
 .SH DESCRIPTION
 .I emailrelay
-is an simple e-mail message transfer agent. It is intended to be used
-on stand-alone machines which have a dial-up connection to an ISP.
+is an simple e-mail message transfer agent. It does store-and-forward
+mail relay to a fixed downstream server, without any routing. 
 .LP
 It runs in two main modes: a storage deamon 
 .RI ( --as-server ) 
@@ -45,8 +45,8 @@ agent
 .RI ( --as-client ). 
 The storage daemon is an SMTP server which stores e-mail 
 messages in a local spool directory. The forwarding agent acts as an
-SMTP client, which passes the spooled e-mail messages on to an ISP's SMTP
-server.
+SMTP client, which passes the spooled e-mail messages on to a downstrema
+SMTP server.
 .LP
 It can also run in a third mode, as a proxy server
 .RI ( --as-proxy ). 
@@ -73,13 +73,16 @@ Enables authentication with remote server, using the given secrets file.
 Closes the standard error stream after start-up.
 .TP
 .B \-U,--connection-timeout \fItime\fR
-Sets the client-side connection timeout in seconds (default is 40).
+Sets the timeout (in seconds) when connecting to a remote server (default is 40).
+.TP
+.B \-D,--domain \fIfqdn\fR
+Sets an override for the host's fully qualified domain name.
 .TP
 .B \-x,--dont-serve 
 Stops the process acting as a server (usually used with \fI--forward\fR).
 .TP
 .B \-z,--filter \fIprogram\fR
-Defines a mail pre-processor (disallowed if running as root).
+Defines a mail pre-processor.
 .TP
 .B \-f,--forward 
 Forwards stored mail on startup (requires \fI--forward-to\fR).
@@ -95,6 +98,9 @@ Forwards each message as soon as it is received (requires \fI--forward-to\fR).
 .TP
 .B \-l,--log 
 Writes log information on standard error (if open) and syslog (if not disabled).
+.TP
+.B \-L,--log-time 
+Adds a timestamp to the logging output.
 .TP
 .B \-t,--no-daemon 
 Does not detach from the terminal.
@@ -112,13 +118,16 @@ Specifies the smtp listening port number.
 Allows remote clients to connect.
 .TP
 .B \-T,--response-timeout \fItime\fR
-Sets the client-side response timeout in seconds (default is 1800).
+Sets the response timeout (in seconds) when talking to a remote server (default is 1800).
 .TP
 .B \-S,--server-auth \fIfile\fR
 Enables authentication of remote clients, using the given secrets file.
 .TP
 .B \-s,--spool-dir \fIdir\fR
 Specifies the spool directory (default is \fI/usr/local/var/spool/emailrelay\fR).
+.TP
+.B \-u,--user \fIusername\fR
+Names the effective user to switch to when started as root (default is \fIdaemon\fR).
 .TP
 .B \-v,--verbose 
 Generates more verbose logging (if compiled-in and logging enabled and stderr open).

@@ -27,15 +27,20 @@ E-MailRelay runs on GNU/Linux, FreeBSD, Solaris and Windows.
 
 What it's not
 -------------
-E-MailRelay does not get involved in processing incoming e-mail messages; it
-only operates on outgoing messages. Incoming e-mail messages will probably be
-retrieved from your ISP by your e-mail front-end program, using the POP3 or
-IMAP protocols.
+With a dial-up connection E-MailRelay does not get involved in processing
+incoming e-mail messages; it only operates on outgoing messages. Incoming e-mail
+messages will probably be retrieved from your ISP by your e-mail front-end
+program, using the POP3 or IMAP protocols.
 
 E-MailRelay is not a routing MTA. It is designed to be used in situations where
-all outgoing e-mail message go out to the Internet, so it is not an appropriate
-choice if you send e-mail to other people who use the same machine or to people
-who are on the same local area network.
+all outgoing e-mail message go out over the dial-up connection, so it is not an
+appropriate choice if you send e-mail to other people who use the same machine
+or to people who are on the same local area network.
+
+Also be careful with programs like "fetchmail" which will fetch incoming mail
+using POP3 or IMAP, but then use a local SMTP server to deliver to local
+mailboxes. If your local SMTP server is E-MailRelay then your incoming e-mail
+will bounce back out.
 
 Why use it?
 -----------
@@ -49,14 +54,13 @@ In particular the configuration of some popular MTAs is notoriously complex
 and arcane, whereas the only thing the E-MailRelay system needs is the name of
 your ISP's mail server.
 
-Even with the move away from dial-up Internet connections a simple
-store-and-forward MTA like E-MailRelay may still be useful for mobile computers
-and PDAs which need to store mail while away from the network.
+Because E-MailRelay can act as a proxy server, it may be useful handling
+incoming mail from a permanent Internet connection. In this configuration the
+pre-processing feature could be used for spam filtering or virus checking.
 
-E-MailRelay can also pre-process the e-mail messages which pass through it. This
-could be used to compensate for features, such as encryption, which are not
-available in your e-mail client program, or it could be used to enforce
-formatting or legal requirements for all outgoing mail.
+For outgoing mail pre-processing could be used to compensate for features, such
+as encryption, which are not available in your e-mail client program. Or it
+could be used to enforce formatting or legal requirements for all outgoing mail.
 
 Running E-MailRelay
 -------------------
@@ -183,6 +187,23 @@ directory may be sufficient:
 	if test -f /usr/local/var/spool/emailrelay/*.envelope.bad ; then echo Failed mail >&2 ; fi
 	EOF
 
+Logging
+-------
+The E-MailRelay program uses the "syslog" system to issue warnings and error messages,
+using the "LOG_MAIL" facility. The "syslog" system is configured through the
+"/etc/syslog.conf" file (try "man syslog.conf"), and in most cases you will find
+that "LOG_MAIL" warnings and errors are directed to an appropriate log file (perhaps
+"/var/log/messages").
+
+To get a file which will accumulate all E-MailRelay log messages (and messages
+from all other mail programs), add a line like this to "/etc/syslog.conf":
+
+	mail.info: /var/log/mail.log
+
+You may have to restart the "syslogd" daemon, or send it a "SIGHUP" signal, in order
+to have this change take effect.
+
+For less verbose logging change "mail.info" to "mail.warning".
 
 Troubleshooting
 ---------------
@@ -297,4 +318,4 @@ Glossary
 
 
 
-Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
+Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.

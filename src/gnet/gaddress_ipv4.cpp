@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -168,8 +168,10 @@ bool GNet::AddressImp::setAddress( const std::string & display_string , std::str
 
 void GNet::AddressImp::setPort( unsigned int port )
 {
-	G_ASSERT( validPort(port) ) ;
-	const g_port_t in_port = ::GConvert<g_port_t>(port) ;
+	if( ! validPort(port) )
+		throw Address::Error( "invalid port number" ) ;
+
+	const g_port_t in_port = G::Convert<g_port_t>(port) ;
 	m_inet.sin_port = htons( in_port ) ;
 }
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -122,6 +122,9 @@ public:
 	static std::string fromUInt( unsigned int ) ;
 		// Converts from unsigned int to a decimal string.
 
+	static std::string fromULong( unsigned long ul ) ;
+		// Converts unsigned long to a decimal string.
+
 	static void toUpper( std::string &s ) ;
 		// Replaces all lowercase characters in string 's' by
 		// uppercase characters.
@@ -192,6 +195,13 @@ public:
 		const std::string & seperators , char escape = '\0' ,
 		bool discard_bogus_escapes = true ) ;
 			// Overload for vector<string>.
+
+	static std::string join( const G::Strings & strings , const std::string & sep ) ;
+		// Concatenates a set of strings.
+
+	static std::string join( const StringArray & strings , const std::string & sep ) ;
+		// Concatenates a set of strings.
+
 
 private:
 	static void listPushBack( void * , const std::string & ) ;

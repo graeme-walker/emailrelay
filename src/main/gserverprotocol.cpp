@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -38,7 +38,7 @@ GSmtp::ServerProtocol::ServerProtocol( Sender & sender , Verifier & verifier , P
 		m_sender(sender) ,
 		m_pmessage(pmessage) ,
 		m_verifier(verifier) ,
-		m_state(sStart) ,
+		m_fsm(sStart,sEnd,s_Same,s_Any) ,
 		m_thishost(thishost) ,
 		m_peer_address(peer_address) ,
 		m_authenticated(false)
@@ -46,36 +46,30 @@ GSmtp::ServerProtocol::ServerProtocol( Sender & sender , Verifier & verifier , P
 	// (dont send anything to the peer from this ctor -- the Sender
 	// object is not fuly constructed)
 
-	addTransition( eQuit    , s_Any   , sEnd     , &GSmtp::ServerProtocol::doQuit ) ;
-	addTransition( eUnknown , s_Any   , s_Same   , &GSmtp::ServerProtocol::doUnknown ) ;
-	addTransition( eRset    , s_Any   , sIdle    , &GSmtp::ServerProtocol::doRset ) ;
-	addTransition( eNoop    , s_Any   , s_Same   , &GSmtp::ServerProtocol::doNoop ) ;
-	addTransition( eVrfy    , s_Any   , s_Same   , &GSmtp::ServerProtocol::doVrfy ) ;
-	addTransition( eEhlo    , s_Any   , sIdle    , &GSmtp::ServerProtocol::doEhlo , s_Same ) ;
-	addTransition( eHelo    , s_Any   , sIdle    , &GSmtp::ServerProtocol::doHelo , s_Same ) ;
-	addTransition( eMail    , sIdle   , sGotMail , &GSmtp::ServerProtocol::doMail , sIdle ) ;
-	addTransition( eRcpt    , sGotMail, sGotRcpt , &GSmtp::ServerProtocol::doRcpt , sGotMail ) ;
-	addTransition( eRcpt    , sGotRcpt, sGotRcpt , &GSmtp::ServerProtocol::doRcpt ) ;
-	addTransition( eData    , sGotMail, sIdle    , &GSmtp::ServerProtocol::doNoRecipients ) ;
-	addTransition( eData    , sGotRcpt, sData    , &GSmtp::ServerProtocol::doData ) ;
+	m_fsm.addTransition( eQuit    , s_Any   , sEnd     , &GSmtp::ServerProtocol::doQuit ) ;
+	m_fsm.addTransition( eUnknown , s_Any   , s_Same   , &GSmtp::ServerProtocol::doUnknown ) ;
+	m_fsm.addTransition( eRset    , s_Any   , sIdle    , &GSmtp::ServerProtocol::doRset ) ;
+	m_fsm.addTransition( eNoop    , s_Any   , s_Same   , &GSmtp::ServerProtocol::doNoop ) ;
+	m_fsm.addTransition( eVrfy    , s_Any   , s_Same   , &GSmtp::ServerProtocol::doVrfy ) ;
+	m_fsm.addTransition( eEhlo    , s_Any   , sIdle    , &GSmtp::ServerProtocol::doEhlo , s_Same ) ;
+	m_fsm.addTransition( eHelo    , s_Any   , sIdle    , &GSmtp::ServerProtocol::doHelo , s_Same ) ;
+	m_fsm.addTransition( eMail    , sIdle   , sGotMail , &GSmtp::ServerProtocol::doMail , sIdle ) ;
+	m_fsm.addTransition( eRcpt    , sGotMail, sGotRcpt , &GSmtp::ServerProtocol::doRcpt , sGotMail ) ;
+	m_fsm.addTransition( eRcpt    , sGotRcpt, sGotRcpt , &GSmtp::ServerProtocol::doRcpt ) ;
+	m_fsm.addTransition( eData    , sGotMail, sIdle    , &GSmtp::ServerProtocol::doNoRecipients ) ;
+	m_fsm.addTransition( eData    , sGotRcpt, sData    , &GSmtp::ServerProtocol::doData ) ;
 
 	if( m_sasl.active() )
 	{
-		addTransition( eAuth    , sStart  , sAuth    , &GSmtp::ServerProtocol::doAuth , sIdle ) ;
-		addTransition( eAuth    , sIdle   , sAuth    , &GSmtp::ServerProtocol::doAuth , sIdle ) ;
-		addTransition( eAuthData, sAuth   , sAuth    , &GSmtp::ServerProtocol::doAuthData , sIdle ) ;
+		m_fsm.addTransition( eAuth    , sStart  , sAuth    , &GSmtp::ServerProtocol::doAuth , sIdle ) ;
+		m_fsm.addTransition( eAuth    , sIdle   , sAuth    , &GSmtp::ServerProtocol::doAuth , sIdle ) ;
+		m_fsm.addTransition( eAuthData, sAuth   , sAuth    , &GSmtp::ServerProtocol::doAuthData , sIdle ) ;
 	}
 }
 
 void GSmtp::ServerProtocol::init( const std::string & ident )
 {
 	sendGreeting( m_thishost , ident ) ;
-}
-
-void GSmtp::ServerProtocol::addTransition( Event e , State state_from , State state_to , Action action , State state_alt )
-{
-	if( state_alt == s_Same ) state_alt = state_to ;
-	m_map.insert( Map::value_type( e , Transition(state_from,state_to,action,state_alt) ) ) ;
 }
 
 void GSmtp::ServerProtocol::sendGreeting( const std::string & thishost , const std::string & ident )
@@ -87,13 +81,13 @@ void GSmtp::ServerProtocol::sendGreeting( const std::string & thishost , const s
 
 bool GSmtp::ServerProtocol::apply( const std::string & line )
 {
-	if( m_state == sData )
+	if( m_fsm.state() == sData )
 	{
 		if( isEndOfText(line) )
 		{
 			G_LOG( "GSmtp::ServerProtocol: rx<<: [message content not logged]" ) ;
 			G_LOG( "GSmtp::ServerProtocol: rx<<: \"" << G::Str::toPrintableAscii(line) << "\"" ) ;
-			m_state = sProcessing ;
+			m_fsm.reset( sProcessing ) ;
 			m_pmessage.process( *this , m_sasl.id() , m_peer_address ) ; // -> processDone() callback
 		}
 		else
@@ -105,7 +99,7 @@ bool GSmtp::ServerProtocol::apply( const std::string & line )
 	else
 	{
 		Event event ;
-		if( m_state == sAuth )
+		if( m_fsm.state() == sAuth )
 		{
 			event = eAuthData ;
 			G_LOG( "GSmtp::ServerProtocol: rx<<: [authentication response not logged]" ) ;
@@ -117,58 +111,24 @@ bool GSmtp::ServerProtocol::apply( const std::string & line )
 			event = commandEvent( commandWord(line) ) ;
 		}
 
-		State new_state = applyEvent( event , commandLine(line) ) ;
+		State new_state = m_fsm.apply( *this , event , commandLine(line) ) ;
+		const bool protocol_error = new_state == s_Any ;
+		if( protocol_error )
+			sendOutOfSequence( line ) ;
 		return new_state == sEnd ;
 	}
 }
 
 void GSmtp::ServerProtocol::processDone( bool success , unsigned long , const std::string & reason )
 {
-	G_ASSERT( m_state == sProcessing ) ; // (a RSET will call m_pmessage.clear() to cancel the callback)
-	if( m_state == sProcessing ) // just in case
+	G_ASSERT( m_fsm.state() == sProcessing ) ; // (a RSET will call m_pmessage.clear() to cancel the callback)
+	if( m_fsm.state() == sProcessing ) // just in case
 	{
-		m_state = sIdle ;
+		m_fsm.reset( sIdle ) ;
 		sendCompletionReply( success , reason ) ;
 	}
 }
 
-GSmtp::ServerProtocol::State GSmtp::ServerProtocol::applyEvent( Event event , const std::string & line )
-{
-	// look up in the multimap keyed on current-state + event
-	//
-	Map::iterator p = m_map.find(event) ;
-	for( ; p != m_map.end() && (*p).first == event ; ++p )
-	{
-		if( (*p).second.from == s_Any || (*p).second.from == m_state )
-		{
-			// change state
-			//
-			State old_state = m_state ;
-			if( (*p).second.to != s_Same )
-				m_state = (*p).second.to ;
-			State state = m_state ;
-
-			// perform action
-			//
-			bool predicate = true ;
-			(this->*((*p).second.action))( line , predicate ) ;
-
-			// respond to predicate -- note that
-			// if the state is sEnd then we cannot
-			// touch any member variables
-			//
-			if( state != sEnd && !predicate )
-			{
-				State alt_state = (*p).second.alt ;
-				m_state = alt_state == s_Same ? old_state : alt_state ;
-				state = m_state ;
-			}
-			return state ;
-		}
-	}
-	sendOutOfSequence( line ) ;
-	return m_state ;
-}
 
 void GSmtp::ServerProtocol::doQuit( const std::string & , bool & )
 {
@@ -335,7 +295,7 @@ void GSmtp::ServerProtocol::doAuthData( const std::string & line , bool & predic
 
 void GSmtp::ServerProtocol::sendChallenge( const std::string & s )
 {
-	send( std::string("334 ") + Base64::encode(s) ) ;
+	send( std::string("334 ") + Base64::encode(s,std::string()) ) ;
 }
 
 void GSmtp::ServerProtocol::doMail( const std::string & line , bool & predicate )
@@ -618,16 +578,6 @@ std::string GSmtp::ServerProtocol::receivedLine() const
 // ===
 
 GSmtp::ServerProtocol::Sender::~Sender()
-{
-}
-
-// ===
-
-GSmtp::ServerProtocol::Transition::Transition( State s1 , State s2 , Action a , State s3 ) :
-	from(s1) ,
-	to(s2) ,
-	action(a) ,
-	alt(s3)
 {
 }
 

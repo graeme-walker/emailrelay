@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -70,8 +70,10 @@ private:
 	LineBuffer( const LineBuffer & ) ;
 	void operator=( const LineBuffer & ) ;
 	bool terminated() const ;
+	unsigned long count() const ;
 
 private:
+	static unsigned long m_limit ;
 	G::Strings m_lines ;
 	std::string m_eol ;
 } ;

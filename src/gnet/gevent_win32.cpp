@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -23,10 +23,10 @@
 
 #include "gdef.h"
 #include "gnet.h"
-#include "gevent.h"
+#include "geventloop.h"
 #include "gwinsock.h"
 
-GNet::EventSources * GNet::EventSources::create()
+GNet::EventLoop * GNet::EventLoop::create()
 {
 	return new Winsock ;
 }

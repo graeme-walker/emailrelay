@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -50,12 +50,9 @@ public:
 	GetOpt( const Arg & arg , const std::string & spec ,
 		char sep_major = '|' , char sep_minor = '/' , char escape = '\\' ) ;
 			// Constructor taking a Arg reference and a
-			// specification string. Supports old-fashioned
-			// getopt specification strings such as "p:dv", and
-			// also new-stye specifications like
-			// "p/port/port number/1|d/debug/show debug/0|v/verbose/show more/0".
-			// In the new-style specification each switch definition
-			// is made up of the following...
+			// specification string. Uses specifications like
+			// "p/port/defines the port number/1/port|v/verbose/shows more logging/0/".
+			// made up of the following parts:
 			//    <single-character-switch-letter>
 			//    <multi-character-switch-name>
 			//    <switch-description>
@@ -107,7 +104,7 @@ public:
 			// prefix(es). The two prefixes are simply concatenated.
 
 	void showErrors( std::ostream & stream ) const ;
-		// An overload which uses prefix() as <prefix_1>.
+		// An overload which uses Arg::prefix() as <prefix_1>.
 
 	void show( std::ostream & stream , std::string prefix ) const ;
 		// For debugging.
@@ -150,9 +147,6 @@ private:
 	void operator=( const GetOpt & ) ;
 	GetOpt( const GetOpt & ) ;
 	void parseSpec( const std::string & spec , char , char , char ) ;
-	void parseOldSpec( const std::string & spec ) ;
-	void parseNewSpec( const std::string & spec , char , char , char ) ;
-	void addSpec( const std::string & sort_key , char c , bool valued ) ;
 	void addSpec( const std::string & sort_key , char c , const std::string & name , const std::string & , bool valued , const std::string & ) ;
 	size_t parseArgs( const Arg & args_in ) ;
 	bool isOldSwitch( const std::string & arg ) const ;

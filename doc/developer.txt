@@ -105,9 +105,7 @@ language/library features:
 * static_cast<> & const_cast<>
 
 but not:
-* defaulted template parameters
 * templated member functions
-* covariant return
 * "mutable"
 
 The header files "gdef.h" in "src/glib", and "gnet.h" in "src/gnet" are intended
@@ -142,8 +140,7 @@ Porting to other compilers
 --------------------------
 If porting to a good ANSI C++ compiler then start by removing files from the
 "lib/gcc2.95" directory (or edit makefiles to remove the include path), and then
-review the following header files: "src/glib/gdef.h", "src/gnet/gnet.h",
-"src/glib/gmemory.h".
+review the following header files "src/glib/gdef.h" and "src/gnet/gnet.h".
 
 Compile-time features
 ---------------------
@@ -162,9 +159,10 @@ The following features are available to source-code hackers:
 
 # Multiple listening ports
 
-  Refer to the Server constructor in "src/main/gsmtpserver.cpp". Set "normal"
-  to false and edit the hard-coded address strings. If the addresses
-  need different port numbers then pass them to bind() in the third
+  The server can be made to listen on several different addresses. Look at the
+  "Server" constructor in "src/main/gsmtpserver.cpp", set the boolean variable
+  "normal" to false and then edit the hard-coded address strings as needed. If
+  the addresses need different port numbers then pass them to bind() in the third
   parameter.
 
 Windows build
@@ -254,4 +252,4 @@ to reassign a std::auto_ptr<>.
 
 
 
-Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
+Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.

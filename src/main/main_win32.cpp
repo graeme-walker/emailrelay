@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,6 +26,7 @@
 #include "run.h"
 #include "configuration.h"
 #include "commandline.h"
+#include "legal.h"
 #include "resource.h"
 #include "gtray.h"
 #include "gappbase.h"
@@ -50,17 +51,21 @@ namespace
 	class Form : public GGui::Dialog
 	{
 	public:
-		Form( GGui::ApplicationBase & , Callback & , const Main::Configuration & cfg ) ;
+		Form( GGui::ApplicationBase & , Callback & ,
+			const Main::Configuration & cfg , bool confirm ) ;
 		void close() ;
 	private:
 		virtual bool onInit() ;
 		virtual void onNcDestroy() ;
 		virtual void onClose() ;
+		virtual void onCommand( unsigned int id ) ;
 		std::string text() const ;
 	private:
+		GGui::ApplicationBase & m_app ;
 		Callback & m_callback ;
 		GGui::EditBox m_edit_box ;
 		Main::Configuration m_cfg ;
+		bool m_confirm ;
 	} ;
 
 	class App : public GGui::ApplicationBase , private Callback
@@ -69,6 +74,7 @@ namespace
 		G_EXCEPTION( Error , "application error" ) ;
 		App( HINSTANCE h , HINSTANCE p , const char * name ) ;
 		void init( const Main::Configuration & cfg ) ;
+		void setStatus( const std::string & , const std::string & ) ;
 	private:
 		void doOpen() ;
 		void doClose() ;
@@ -105,15 +111,24 @@ namespace
 		Menu( const Menu & ) ;
 		void operator=( const Menu & ) ;
 	} ;
+
+	class Run : public Main::Run
+	{
+		public: Run( App & app , const G::Arg & ) ;
+		protected: void onStatusChange( const std::string & , const std::string & ) ;
+		private: App & m_app ;
+	} ;
 } ;
 
 // ===
 
-Form::Form( GGui::ApplicationBase & app , Callback & cb , const Main::Configuration & cfg ) :
+Form::Form( GGui::ApplicationBase & app , Callback & cb , const Main::Configuration & cfg , bool confirm ) :
+	GGui::Dialog(app) ,
+	m_app(app) ,
 	m_callback(cb) ,
 	m_cfg(cfg) ,
-	GGui::Dialog(app) ,
-	m_edit_box(*this,IDC_EDIT1)
+	m_edit_box(*this,IDC_EDIT1) ,
+	m_confirm(confirm)
 {
 }
 
@@ -141,8 +156,8 @@ std::string Form::text() const
 	}
 
 	ss
-		<< crlf << Main::CommandLine::warranty(crlf)
-		<< crlf << Main::CommandLine::copyright() ;
+		<< crlf << Main::Legal::warranty(crlf)
+		<< crlf << Main::Legal::copyright() ;
 
 	return ss.str() ;
 }
@@ -160,6 +175,18 @@ void Form::close()
 void Form::onNcDestroy()
 {
 	m_callback.callback() ;
+}
+
+void Form::onCommand( unsigned int id )
+{
+	if( id == IDOK ) // always true?
+	{
+		bool really = true ;
+		if( m_confirm )
+			really = m_app.messageBoxQuery( "Really quit?" ) ;
+		if( really )
+			end() ;
+	}
 }
 
 // ===
@@ -241,7 +268,7 @@ void App::doOpen()
 {
 	if( m_form.get() == NULL )
 	{
-		m_form <<= new Form( *this , *this , *m_cfg.get() ) ;
+		m_form <<= new Form( *this , *this , *m_cfg.get() , !m_use_tray ) ;
 		if( ! m_form->runModeless(IDD_DIALOG1) )
 			throw Error( "cannot run dialog box" ) ;
 	}
@@ -304,6 +331,25 @@ bool App::onSysCommand( SysCommand sc )
 		return false ;
 }
 
+void App::setStatus( const std::string & s1 , const std::string & s2 )
+{
+	// simple implementation for now...
+
+	std::string s0( title() ) ;
+	std::string message( s0 ) ;
+	if( !s1.empty() )
+	{
+		message.append( ": " ) ;
+		message.append( s1 ) ;
+	}
+	if( !s2.empty() )
+	{
+		message.append( ": " ) ;
+		message.append( s2 ) ;
+	}
+	::SetWindowText( handle() , message.c_str() ) ;
+}
+
 // ===
 
 Menu::Menu( unsigned int id )
@@ -343,6 +389,19 @@ Menu::~Menu()
 
 // ===
 
+Run::Run( App & app , const G::Arg & arg ) :
+	Main::Run(arg) ,
+	m_app(app)
+{
+}
+
+void Run::onStatusChange( const std::string & s1 , const std::string & s2 )
+{
+	m_app.setStatus( s1 , s2 ) ;
+}
+
+// ===
+
 int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous ,
 	LPSTR command_line , int show )
 {
@@ -354,7 +413,7 @@ int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous ,
 
 		try
 		{
-			Main::Run run( arg ) ;
+			Run run( app , arg ) ;
 			G::LogOutput log( run.cfg().log() , run.cfg().verbose() ) ;
 			if( run.prepare() )
 			{

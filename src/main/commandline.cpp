@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -23,6 +23,7 @@
 
 #include "gdef.h"
 #include "gsmtp.h"
+#include "legal.h"
 #include "configuration.h"
 #include "commandline.h"
 #include "gmessagestore.h"
@@ -37,17 +38,19 @@ std::string Main::CommandLine::switchSpec()
 	ss
 		<< osSwitchSpec() << "|"
 		<< "C!client-auth!enables authentication with remote server, using the given secrets file!1!file|"
+		<< "L!log-time!adds a timestamp to the logging output!0!|"
 		<< "S!server-auth!enables authentication of remote clients, using the given secrets file!1!file|"
 		<< "y!as-proxy!equivalent to \"--log --close-stderr --immediate --forward-to\"!1!host:port|"
 		<< "e!close-stderr!closes the standard error stream after start-up!0!|"
 		<< "a!admin!enables the administration interface and specifies its listening port number!1!admin-port|"
 		<< "x!dont-serve!stops the process acting as a server (usually used with --forward)!0!|"
-		<< "z!filter!defines a mail pre-processor (disallowed if running as root)!1!program|"
+		<< "z!filter!defines a mail pre-processor!1!program|"
+		<< "D!domain!sets an override for the host's fully qualified domain name!1!fqdn|"
 		<< "f!forward!forwards stored mail on startup (requires --forward-to)!0!|"
 		<< "o!forward-to!specifies the remote smtp server (required by --forward and --admin)!1!host:port|"
 		<< "h!help!displays help text and exits!0!|"
-		<< "T!response-timeout!sets the client-side response timeout in seconds (default is 1800)!1!time|"
-		<< "U!connection-timeout!sets the client-side connection timeout in seconds (default is 40)!1!time|"
+		<< "T!response-timeout!sets the response timeout (in seconds) when talking to a remote server (default is 1800)!1!time|"
+		<< "U!connection-timeout!sets the timeout (in seconds) when connecting to a remote server (default is 40)!1!time|"
 		<< "m!immediate!forwards each message as soon as it is received (requires --forward-to)!0!|"
 		<< "i!pid-file!records the daemon process-id in the given file!1!pid-file|"
 		<< "p!port!specifies the smtp listening port number!1!port|"
@@ -215,31 +218,13 @@ void Main::CommandLine::showBanner( bool e ) const
 void Main::CommandLine::showCopyright( bool e ) const
 {
 	Show show( e ) ;
-	show.s() << copyright() << std::endl ;
-}
-
-//static
-std::string Main::CommandLine::copyright()
-{
-	return "Copyright (C) 2001 Graeme Walker" ;
+	show.s() << Legal::copyright() << std::endl ;
 }
 
 void Main::CommandLine::showWarranty( bool e ) const
 {
 	Show show( e ) ;
-	show.s() << warranty() ;
-}
-
-//static
-std::string Main::CommandLine::warranty( const std::string & eol )
-{
-	std::stringstream ss ;
-	ss
-		<< "This software is provided without warranty of any kind." << eol
-		<< "You may redistribure copies of this program under " << eol
-		<< "the terms of the GNU General Public License." << eol
-		<< "For more information refer to the file named COPYING." << eol ;
-	return ss.str() ;
+	show.s() << Legal::warranty() ;
 }
 
 void Main::CommandLine::showVersion( bool e ) const

@@ -15,9 +15,6 @@
 /* Define if you have the <ndir.h> header file, and it defines `DIR'. */
 #undef HAVE_NDIR_H
 
-/* auto_ptr assignment has non-const rhs */
-#undef HAVE_NONCONST_AUTOPTR
-
 /* Define if you have the <sys/dir.h> header file, and it defines `DIR'. */
 #undef HAVE_SYS_DIR_H
 

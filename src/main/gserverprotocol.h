@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -29,6 +29,7 @@
 #include "gprotocolmessage.h"
 #include "gverifier.h"
 #include "gsasl.h"
+#include "gstatemachine.h"
 #include <map>
 
 namespace GSmtp
@@ -130,21 +131,11 @@ private:
 		s_Any ,
 		s_Same
 	} ;
-	typedef void (ServerProtocol::*Action)( const std::string & , bool & predicate ) ;
-	struct Transition
-	{
-		State from ;
-		State to ;
-		Action action ;
-		State alt ;
-		Transition(State s1,State s2,Action a,State s3) ;
-	} ;
-	typedef std::multimap<Event,Transition GLessAllocator(Event,Transition) > Map ;
+	typedef G::StateMachine<ServerProtocol,State,Event> Fsm ;
 
 private:
 	ServerProtocol( const ServerProtocol & ) ; // not implemented
 	void operator=( const ServerProtocol & ) ; // not implemented
-	State applyEvent( Event , const std::string & ) ;
 	void send( std::string ) ;
 	Event commandEvent( const std::string & ) const ;
 	std::string commandWord( const std::string & line ) const ;
@@ -153,7 +144,6 @@ private:
 	virtual void processDone( bool , unsigned long , const std::string & ) ; // from ProtocolMessage
 	bool isEndOfText( const std::string & ) const ;
 	bool isEscaped( const std::string & ) const ;
-	void addTransition( Event , State old , State new_ , Action , State alt = s_Same ) ;
 	void doNoop( const std::string & , bool & ) ;
 	void doQuit( const std::string & , bool & ) ;
 	void doEhlo( const std::string & , bool & ) ;
@@ -199,8 +189,7 @@ private:
 	Sender & m_sender ;
 	ProtocolMessage & m_pmessage ;
 	Verifier & m_verifier ;
-	State m_state ;
-	Map m_map ;
+	Fsm m_fsm ;
 	std::string m_thishost ;
 	std::string m_peer_name ;
 	std::string m_peer_address ;

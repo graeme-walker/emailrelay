@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -40,28 +40,6 @@ G::GetOpt::GetOpt( const Arg & args_in , const std::string & spec ,
 
 void G::GetOpt::parseSpec( const std::string & spec , char sep_major , char sep_minor , char escape )
 {
-	if( spec.find(sep_minor) == std::string::npos )
-		parseOldSpec( spec ) ;
-	else
-		parseNewSpec( spec , sep_major , sep_minor , escape ) ;
-}
-
-void G::GetOpt::parseOldSpec( const std::string & spec )
-{
-	for( size_t i = 0U ; i < spec.length() ; i++ )
-	{
-		char c = spec.at(i) ;
-		if( c != ':' )
-		{
-			bool valued = (i+1U) < spec.length() && spec.at(i+1U) == ':' ;
-			addSpec( std::string(1U,c) , c , valued ) ;
-		}
-	}
-}
-
-void G::GetOpt::parseNewSpec( const std::string & spec , char sep_major ,
-	char sep_minor , char escape )
-{
 	Strings outer ;
 	std::string ws_major( 1U , sep_major ) ;
 	G::Str::splitIntoFields( spec , outer , ws_major , escape , false ) ;
@@ -78,13 +56,8 @@ void G::GetOpt::parseNewSpec( const std::string & spec , char sep_major ,
 	}
 }
 
-void G::GetOpt::addSpec( const std::string & sort_key , char c , bool valued )
-{
-	addSpec( sort_key , c , std::string() , std::string() , valued , std::string() ) ;
-}
-
-void G::GetOpt::addSpec( const std::string & sort_key , char c , const std::string & name , const std::string & description ,
-	bool valued , const std::string & value_description )
+void G::GetOpt::addSpec( const std::string & sort_key , char c , const std::string & name ,
+	const std::string & description , bool valued , const std::string & value_description )
 {
 	if( c == '\0' )
 		throw InvalidSpecification() ;

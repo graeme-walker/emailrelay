@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -20,11 +20,12 @@
 //
 // gsasl_cyrus.cpp
 //
-// An implementation of GSmtp::Sasl using Carnegie Mellon's "cyrus"
+// An incomplete implementation of GSmtp::Sasl using Carnegie Mellon's "cyrus"
 // SASL library (http://www.cmu.edu/computing).
 //
-// This is work in progress -- it still needs callback/interaction
-// stuff sorting out.
+// This is work-in-progress which will probably never get completed because
+// the cyrus documentation is useless. Perhaps Carnegie Mellon should teach
+// its students how to write an API spec before letting them loose on code.
 //
 
 #include "gdef.h"
@@ -154,6 +155,7 @@ bool GSmtp::SaslServerImp::init( const std::string & mechanism )
 	m_mechanism = mechanism ;
 	m_first = true ;
 	m_done = false ;
+	return true ;
 }
 
 std::string GSmtp::SaslServerImp::step( const std::string & response , bool & done ) const

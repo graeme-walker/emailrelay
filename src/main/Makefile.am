@@ -1,5 +1,5 @@
 # 
-# Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -26,10 +26,13 @@ localstatedir = ${prefix}/var/spool/emailrelay
 
 EXTRA_DIST=commandline_win32.cpp main_win32.cpp gmessagestore_win32.cpp emailrelay.dsp icon-32.ico icon2.ico icon3.ico icon4.ico empty_file doxygen.cfg emailrelay.rc resource.h gsasl_cyrus.cpp
 INCLUDES = -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet
+
+noinst_LIBRARIES = libgsmtp.a
 sbin_PROGRAMS = emailrelay 
-libexec_PROGRAMS = emailrelay-poke
+libexec_PROGRAMS = emailrelay-passwd emailrelay-poke emailrelay-submit
 localstate_DATA = empty_file
-emailrelay_SOURCES = \
+
+libgsmtp_a_SOURCES = \
 	gadminserver.cpp \
 	gadminserver.h \
 	gbase64.cpp \
@@ -51,7 +54,7 @@ emailrelay_SOURCES = \
 	gprotocolmessageforward.h \
 	gprotocolmessagestore.cpp \
 	gprotocolmessagestore.h \
-	gsasl_login.cpp \
+	gsasl_native.cpp \
 	gsasl.h \
 	gsecrets.cpp \
 	gsecrets.h \
@@ -69,15 +72,34 @@ emailrelay_SOURCES = \
 	gverifier.cpp \
 	gverifier.h \
 	gxtext.cpp \
-	gxtext.h \
+	gxtext.h
+
+emailrelay_SOURCES = \
 	main_unix.cpp \
 	configuration.cpp \
 	configuration.h \
+	legal.cpp \
+	legal.h \
 	run.cpp \
 	run.h \
 	commandline.cpp \
 	commandline_unix.cpp \
 	commandline.h
-emailrelay_poke_SOURCES=poke.c
-emailrelay_LDADD = $(top_builddir)/src/glib/libglib.a $(top_builddir)/src/gnet/libgnet.a
+
+emailrelay_LDADD = \
+	$(top_builddir)/src/main/libgsmtp.a \
+	$(top_builddir)/src/glib/libglib.a \
+	$(top_builddir)/src/gnet/libgnet.a
+
+emailrelay_poke_SOURCES = poke.c
+emailrelay_poke_LDADD =
+
+emailrelay_passwd_SOURCES = passwd.cpp
+emailrelay_passwd_LDADD = $(top_builddir)/src/glib/libglib.a
+
+emailrelay_submit_SOURCES = submit.cpp legal.cpp
+emailrelay_submit_LDADD = \
+	$(top_builddir)/src/main/libgsmtp.a \
+	$(top_builddir)/src/glib/libglib.a \
+	$(top_builddir)/src/gnet/libgnet.a
 

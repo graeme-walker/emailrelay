@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -21,459 +21,76 @@
 #
 # txt2html.sh
 #
-# Converts plain-text to html. The plain-text has to use special
-# formating conventions (see "function process()", Anchorise_1() etc).
+# Converts specially-formatted plain-text to html. 
+# Uses "expand.sh", "txt2mu.sh" and "mu2html.sh".
+# See also "index.sh".
 #
-# Embeds comments in the html output which can be used by "index.sh"
-# to create a document index.
+# The "-t" (text-mode) switch can be used for
+# non-technical input text.
 #
-# Definition lists require a bullet graphic, "graphics/bullet.gif".
+# The "-x" (exclude) switch excludes html header
+# and footer from the output.
 #
-# usage: txt2html.sh [-a <awk-binary>] [-x] <input-file> [<title>]
-#
-# The -x switch excludes header and footer stuff.
+# usage: txt2html.sh [-a <awk-binary>] [-v] [-x] [-t] [<input-file> [<stylesheet> [<graphics-dir> [<title>]]]]
 #
 
 awk="gawk"
 if test "${1}" = "-a"
 then
 	shift
-	if test "${1}" != ""
-	then
-		awk="${1}"
-	fi
+	if test "${1}" != "" ; then awk="${1}" ; fi
 	shift
 fi
 
-full="1"
-if test "${1}" = "-x"
+v=""
+if test "${1}" = "-v"
 then
 	shift
-	full="0"
+	v="-v"
+fi
+
+x=""
+if test "${1}" = "-x"
+then
+	x="-x"
+	shift
+fi
+
+t=""
+if test "${1}" = "-t"
+then
+	t="-t"
+	shift
 fi
 
 file="${1}"
-if test "${file}" = ""
+stylesheet="${2}"
+graphics_dir="${3}"
+title="${4}"
+
+if test "${v}" != "" -a "${file}" != ""
 then
-	echo usage: `basename $0` '<txt-file>' >&2
-	exit 2
+	echo `basename $0`: processing ${file} >&2
 fi
 
-if test \! -f "${file}"
+if test "${file}" != "" -a \! -f "${file}"
 then
 	echo `basename $0`: no such file: ${file} >&2
 	exit 1
 fi
 
-title="`grep -v '^[[:space:]]*$' ${file} | head -1`"
-if test "${2}" != ""
+if test "${stylesheet}" != "" -a \! -f "${stylesheet}"
 then
-	title="${2}"
+	echo `basename $0`: warning: missing stylesheet: "${stylesheet}" >&2
 fi
 
-# ===
-# Include()
-#
-# Expands #include# directives. Included text is then processed
-# as plain text, just like the top-level file. An include directive
-# within a line (ie. not on the lhs) is treated as an inline
-# sustitution, like shell backticks.
-#
-Include()
-{
-${awk} -v cat="${awk} '{print}'" '
-{
-	line = $0
-	if( match(line,"^#include#[^#]*#") )
-	{
-		path = substr(line,10,RLENGTH-10)
-		system( cat "  " path )
-	}
-	else
-	{
-		print line
-	}
-}
-'
-}
+if test "${graphics_dir}" = ""
+then
+	graphics_dir="graphics"
+fi
 
-# ===
-# Main()
-#
-# Does the bulk of the conversion.
-#
-Main()
-{
-${awk} -v title="${1}" -v full="${2}" -v colour="${3}" '
-BEGIN {
-	if( full )
-	{
-		dtd = "-//W3C//DTD HTML 4.01 Transitional//EN"
-		printf( "<!DOCTYPE HTML PUBLIC \"%s\">\n" , dtd )
-		printf( "<html>\n" )
-		printf( "<head>\n" )
-		printf( "<title>%s</title>\n" , title )
-		printf( "</head>\n" )
-		printf( "<body bgcolor=\"%s\">\n" , colour )
-		printf( "<!-- index:0::::%s -->\n" , title )
-	}
-}
-
-function escape( line )
-{
-	gsub( "&" , "\\&amp;" , line )
-	gsub( "<" , "\\&lt;" , line )
-	gsub( ">" , "\\&gt;" , line )
-	return line
-}
-
-function dequote( line )
-{
-	quote = "\""
-	not_quote = "[^" quote "]"
-	#start_tag="<kbd><b>"
-	#end_tag="</b></kbd>"
-	start_tag="<b>"
-	end_tag="</b>"
-	gsub( quote not_quote "*" quote , start_tag "&" end_tag , line )
-	gsub( start_tag quote , start_tag , line )
-	gsub( quote end_tag , end_tag , line )
-	return line
-}
-
-function fn( line )
-{
-	gsub( "[^[:space:]][^[:space:]]*\\(\\)" , "<i>&</i>" , line )
-	return line
-}
-
-function output( line )
-{
-	printf( "%s\n" , fn(dequote(escape(line))) )
-}
-
-function tagOutput( line , tag )
-{
-	printf( "<%s>%s</%s>\n" , tag , fn(dequote(escape(line))) , tag )
-}
-
-function tagOutputRaw( line , tag )
-{
-	printf( "<%s>%s</%s>\n" , tag , escape(line) , tag )
-}
-
-function process( line , next_ )
-{
-	tab = "	"
-	is_blank = match( line , "^ *$" )
-	is_heading = match( next_ , "^==* *$" )
-	is_sub_heading = match( next_ , "^--* *$" )
-	is_list_item = match( line , "^\\* " ) 
-	is_definition_term = match( line , "^\\# " ) 
-	is_definition_text = match( line , "^  [^- ]" )
-	is_outer_list_item = match( line , "^+ " ) 
-	is_inner_list_item = match( line , "^  - " ) 
-	is_sub_list_item = match( line , "^  + " ) 
-	is_numbered_item = match( line , "^\\([[:digit:]][[:digit:]]*\\)" )
-	is_heading_line = match( line , "^==* *$" )
-	is_sub_heading_line = match( line , "^--* *$" )
-	is_code = match( line , "^" tab )
-
-	if( is_blank )
-	{
-		printf( "<br><br>\n" )
-	}
-	else if( is_code )
-	{
-		tagOutputRaw( line , "pre" )
-	}
-	else if( is_definition_term )
-	{
-		gsub( "^# " , "" , line )
-		tagOutput( line , "dt" )
-	}
-	else if( is_definition_text )
-	{
-		tagOutput( line , "dd" )
-	}
-	else if( is_list_item )
-	{
-		gsub( "^\\* " , "" , line )
-		tagOutput( line , "li" )
-	}
-	else if( is_outer_list_item )
-	{
-		gsub( "^+ " , "" , line )
-		tagOutput( line , "Li" )
-	}
-	else if( is_inner_list_item )
-	{
-		gsub( "^  - " , "" , line )
-		tagOutput( line , "lI" )
-	}
-	else if( is_numbered_item )
-	{
-		gsub( "^\\([[:digit:]][[:digit:]]*\\) " , "" , line )
-		tagOutput( line , "LI" )
-	}
-	else if( is_heading )
-	{
-		major += 1
-		minor = 0
-		printf( "<h1><a name=\"H_%d\">%s</a></h1>" , major , line )
-		printf( "<!-- index:1:H:%d::%s -->\n" , major , line )
-	}
-	else if( is_sub_heading )
-	{
-		minor += 1
-		printf( "<h2><a name=\"SH_%d_%d\">%s</a></h2>" , major , minor , line )
-		printf( "<!-- index:2:SH:%d:%d:%s -->\n" , major , minor , line )
-	}
-	else if( !is_heading_line && !is_sub_heading_line )
-	{
-		output( line )
-	}
-}
-
-{
-	if( NR != 1 )
-		process( previous , $0 )
-	previous = $0
-}
-
-END {
-	process( previous , "" )
-	if( full )
-	{
-		printf( "</body>\n" )
-		printf( "</html>\n" )
-	}
-} '
-}
-
-# ===
-# AugmentLists()
-#
-# Adds list begin/end tags around a set of list items
-# eg. <ul> and </ul> tags either side of a set of 
-# contiguous <li> lines.
-#
-# The 'ignore' parameters can be used to make sure that
-# list-item lines separated with 'ignore' patterns are
-# treated as being contiguous.
-#
-AugmentLists()
-{
-${awk} -v item_tag="${1}" -v list_tag="${2}" -v ignore_1_re="${3}" -v ignore_2_re="${4}" '
-{
-	line = $0
-	ignore_1 = length(ignore_1_re) && match( line , ignore_1_re )
-	ignore_2 = length(ignore_2_re) && match( line , ignore_2_re )
-	ignore = ignore_1 || ignore_2
-	if( ignore )
-	{
-		print
-	}
-	else
-	{
-		is_list_item = match( line , "^<" item_tag ">.*</" item_tag ">$" )
-
-		if( is_list_item && !in_list )
-			printf( "<%s>\n" , list_tag )
-		else if( in_list && !is_list_item )
-			printf( "</%s>\n" , list_tag )
-
-		print
-		in_list = is_list_item
-	}
-} '
-}
-
-# ===
-# Elide()
-#
-# Converts repeated lines of <foo>lineN</foo> into
-# <foo>
-# line1
-# line2
-# </foo>
-#
-# Useful for <pre> and <sub>.
-#
-Elide()
-{
-${awk} -v tag="${1}" '
-{
-	line = $0
-	is_tag_line = match( line , "^<" tag ">.*</" tag ">$" )
-
-	core = substr( line , length(tag)+3 , length(line)-length(tag)-length(tag)-5 )
-
-	if( is_tag_line && !in_tag )
-		printf( "<%s>%s" , tag , core )
-	else if( is_tag_line && in_tag )
-		printf( "\n%s" , core )
-	else if( !is_tag_line && in_tag )
-		printf( "</%s>\n%s\n" , tag , line )
-	else
-		print line
-
-	in_tag = is_tag_line
-} '
-}
-
-# ===
-# Decorate()
-#
-# Adds additional stuff after a given opening tag
-# and optionally before a closing tag. The opening 
-# tag is expected to be at the start of the line.
-#
-Decorate()
-{
-${awk} -v tag="${1}" -v first="${2}" -v second="${3}" '
-{
-	line = $0
-	sub( "^<" tag ">" , "<" tag ">" first , line )
-	sub( "</" tag ">" , second "</" tag ">" , line )
-	print line
-} '
-}
-
-# ===
-# Compress()
-#
-# Removes blank lines near to headings (etc).
-#
-Compress()
-{
-${awk} '
-function process( previous , line , next_ )
-{
-	re_blank = "^<br><br>$"
-	re_heading = "^<[Hh][[:digit:]]>"
-	re_dd = "^<dd>"
-	re_pre_start = "^<pre>"
-	re_pre_end = "</pre>$"
-
-	this_is_blank = match(line,re_blank)
-	next_is_special = match(next_,re_heading) || match(next_,re_dd)
-	previous_is_special = match(previous,re_heading) || match(previous,re_dd)
-	next_is_pre_start = match(next_,re_pre_start)
-
-	if( this_is_blank && ( next_is_special || previous_is_special ) )
-	{
-	}
-	else if( this_is_blank && next_is_pre_start )
-	{
-	}
-	else
-	{
-		print line
-	}
-}
-{
-	if( NR >= 2 )
-		process( l2 , l1 , $0 )
-	l2 = l1
-	l1 = $0
-}
-END {
-	process( l2 , l1 , "" )
-	process( l1 , "" , "" )
-}
-'
-}
-
-# ===
-# Anchorise_1()
-#
-# Converts "*foo* [bar]" to <a href="bar">foo</a>.
-#
-Anchorise_1()
-{
-	sed 's/\*\([^[:space:]]*\)\* \[\([^[:space:]]*\)\]/<a href="\2">\1<\/a>/g'
-}
-
-# ===
-# Anchorise_2()
-#
-# Converts [[-foo-bar-]] to <a href="foo">bar</a>.
-# Deprecated.
-#
-Anchorise_2()
-{
-	sed 's/\[\[-\([^-]*\)-\([^-]*\)-\]\]/<a href="\1" type="deprecated">\2<\/a>/g'
-}
-
-# ===
-# Anchorise_3()
-#
-# Converts [[foo]] to <a href="../foo">foo</a>.
-# Deprecated.
-#
-Anchorise_3()
-{
-	sed 's/\[\[\([^\]*\)\]\]/<a href=..\/"\1" type="deprecated">\1<\/a>/g'
-}
-
-# ===
-# Cat()
-#
-# An awk version of "cat" (cygwin cat is
-# broken).
-#
-Cat()
-{
-	${awk} '{print}' $@ | tr -d '\015'
-}
-
-# ===
-# MoveIndex()
-#
-# Moves the index comments to a line before
-# the header, rather than at the end of the
-# header line.
-#
-MoveIndex()
-{
-	${awk} '
-	{
-		line = $0
-		re = "<!-- index:"
-		pos = match(line,re)
-		if( pos )
-		{
-			head = substr(line,1,pos-1)
-			tail = substr(line,pos+length(re))
-			print head
-			print re tail
-		}
-		else
-		{
-			print line
-		}
-	}
-	'
-}
-
-# ==
-
-colour="#FFFFFF"
-Cat "${file}" | \
-	Include | \
-	Main "${title}" "${full}" "${colour}" | \
-	Compress | \
-	AugmentLists li ul | \
-	AugmentLists Li ul "^<lI>" "^<br><br>" | \
-	AugmentLists lI ul | \
-	AugmentLists LI ol | \
-	AugmentLists dt dl "^<dd>" "^<br><br>" | \
-	Elide "sub" | \
-	Elide "dd" | \
-	Elide "pre" | \
-	Decorate dt "<img src=\"graphics/bullet.gif\">\\\&nbsp;" | \
-	Decorate dd "<p>" "<p>" | \
-	Anchorise_1 | \
-	MoveIndex
+txt2mu="`dirname $0`/txt2mu.sh"
+mu2html="`dirname $0`/mu2html.sh"
+expand="`dirname $0`/expand.sh"
+cat ${file} | ${expand} -a "${awk}" ${t} | ${txt2mu} -a "${awk}" ${t} | ${mu2html} -a "${awk}" ${x} "${title}" "${stylesheet}" | ${expand} -a "${awk}"
 

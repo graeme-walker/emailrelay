@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -30,6 +30,8 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h> // open()
+#include <pwd.h> // getpwnam()
+#include <unistd.h> // setuid() etc
 
 // Class: G::Process::IdImp
 // Description: A private implementation class used by G::Process.
@@ -168,7 +170,6 @@ int G::Process::wait( const Id & child_pid , int error_return )
 	return error_return ;
 }
 
-
 //static
 int G::Process::errno_()
 {
@@ -180,9 +181,10 @@ void G::Process::exec( const G::Path & exe , const std::string & arg )
 	if( exe.isRelative() )
 		throw InvalidPath( exe.str() ) ;
 
-	closeFiles() ;
+	if( privileged() )
+		throw Insecure() ;
 
-	// TODO: more security stuff required here -- setuid() etc.
+	closeFiles() ;
 
 	execCore( exe , arg ) ;
 }
@@ -194,7 +196,6 @@ void G::Process::execCore( const G::Path & exe , const std::string & arg )
 	argv[1U] = arg.empty() ? static_cast<char*>(NULL) : const_cast<char*>(arg.c_str()) ;
 	argv[2U] = NULL ;
 
-	// TODO: review the set of environment variables
 	char * env[3U] ;
 	std::string path( "PATH=/usr/bin:/bin" ) ; // no "."
 	std::string ifr( "IFR= \t\n" ) ;
@@ -210,6 +211,12 @@ void G::Process::execCore( const G::Path & exe , const std::string & arg )
 
 int G::Process::spawn( const G::Path & exe , const std::string & arg , int error_return )
 {
+	if( exe.isRelative() )
+		throw InvalidPath( exe.str() ) ;
+
+	if( privileged() )
+		throw Insecure() ;
+
 	Id child_pid ;
 	if( fork(child_pid) == Child )
 	{
@@ -225,6 +232,42 @@ int G::Process::spawn( const G::Path & exe , const std::string & arg , int error
 bool G::Process::privileged()
 {
 	return ::getuid() == 0U || ::geteuid() == 0U ;
+}
+
+void G::Process::beSpecial( Identity identity )
+{
+	// try to change our effective id -- this
+	// will only work if our real uid is root, or if
+	// the executable is suid (assuming the
+	// o/s supports the saved-suid feature)
+	//
+	// gcc requires -D_BSD_SOURCE for seteuid()
+	//
+	Identity old_identity ;
+	(void) ::seteuid( identity.uid ) ;
+	(void) ::setegid( identity.gid ) ;
+	(void) old_identity.str() ; // pacify the compiler
+	G_DEBUG( "G::Process::beSpecial: " << old_identity << " -> " << Identity() ) ;
+}
+
+G::Process::Identity G::Process::beOrdinary( Identity nobody )
+{
+	Identity special_identity ;
+	if( ::getuid() == 0 )
+	{
+		if( ::seteuid(0) ) throw UidError("0") ; // first
+		if( ::setegid(nobody.gid) ) throw GidError(nobody.str()) ; // second
+		if( ::seteuid(nobody.uid) ) throw UidError(nobody.str()) ; // third
+	}
+	else
+	{
+		// switch our effective id back to our real id --
+		// ie. turn off the effects of a suid executable
+		if( ::seteuid( ::getuid() ) ) throw UidError() ;
+		if( ::setegid( ::getgid() ) ) throw GidError() ;
+	}
+	G_DEBUG( "G::Process::beOrdinary: " << special_identity << " -> " << Identity() ) ;
+	return special_identity ;
 }
 
 // ===
@@ -263,5 +306,35 @@ std::string G::Process::Id::str() const
 bool G::Process::Id::operator==( const Id & rhs ) const
 {
 	return m_imp->m_pid == rhs.m_imp->m_pid ;
+}
+
+// ===
+
+G::Process::Identity::Identity() :
+	uid(::geteuid()) ,
+	gid(::getegid())
+{
+}
+
+G::Process::Identity::Identity( const std::string & name ) :
+	uid(static_cast<uid_t>(-1)) ,
+	gid(static_cast<gid_t>(-1))
+{
+	if( ::getuid() == 0 )
+	{
+		::passwd * pw = ::getpwnam( name.c_str() ) ;
+		if( pw == NULL )
+			throw Process::NoSuchUser(name) ;
+		G_DEBUG( "G::Process::Identity: " << name << "=" << pw->pw_uid << "/" << pw->pw_gid ) ;
+		uid = pw->pw_uid ;
+		gid = pw->pw_gid ;
+	}
+}
+
+std::string G::Process::Identity::str() const
+{
+	std::stringstream ss ;
+	ss << uid << "/" << gid ;
+	return ss.str() ;
 }
 

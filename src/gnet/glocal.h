@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -46,22 +46,30 @@ public:
 	static std::string hostname() ;
 		// Returns the hostname.
 
-	static std::string domainname() ;
-		// Returns the domainname.
-
-	static std::string fqdn() ;
-		// Returns the fully-qualified-domain-name
-		// (hostname() + domainname()).
-
 	static Address canonicalAddress() ;
 		// Returns the address associated with
-		// the canonical hostname.
+		// hostname().
+
+	static std::string fqdn() ;
+		// Returns the fully-qualified-domain-name.
+		// (Typically implemented by doing a DNS
+		// lookup on hostname(), but overridable by
+		// fdqn(string).)
+
+	static std::string domainname() ;
+		// Returns the fqdn()'s domainname.
+
+	static void fqdn( const std::string & fqdn_override ) ;
+		// Sets the fqdn() (and therefore domainname())
+		// override.
 
 	static Address localhostAddress() ;
 		// A convenience function returning the
 		// "127.0.0.1:0" address.
 
 private:
+	static std::string m_fqdn_override ;
+	static std::string fqdnImp() ;
 	Local() ;
 } ;
 

@@ -33,13 +33,16 @@ where <switch> is:
   Closes the standard error stream after start-up.
 
 # --connection-timeout (-U)
-  Sets the client-side connection timeout in seconds (default is 40).
+  Sets the timeout (in seconds) when connecting to a remote server (default is 40).
+
+# --domain (-D)
+  Sets an override for the host's fully qualified domain name.
 
 # --dont-serve (-x)
   Stops the process acting as a server (usually used with --forward).
 
 # --filter (-z)
-  Defines a mail pre-processor (disallowed if running as root).
+  Defines a mail pre-processor.
 
 # --forward (-f)
   Forwards stored mail on startup (requires --forward-to).
@@ -55,6 +58,9 @@ where <switch> is:
 
 # --log (-l)
   Writes log information on standard error (if open) and syslog (if not disabled).
+
+# --log-time (-L)
+  Adds a timestamp to the logging output.
 
 # --no-daemon (-t)
   Does not detach from the terminal.
@@ -72,13 +78,16 @@ where <switch> is:
   Allows remote clients to connect.
 
 # --response-timeout (-T)
-  Sets the client-side response timeout in seconds (default is 1800).
+  Sets the response timeout (in seconds) when talking to a remote server (default is 1800).
 
 # --server-auth (-S)
   Enables authentication of remote clients, using the given secrets file.
 
 # --spool-dir (-s)
   Specifies the spool directory (default is "/usr/local/var/spool/emailrelay").
+
+# --user (-u)
+  Names the effective user to switch to when started as root (default is "daemon").
 
 # --verbose (-v)
   Generates more verbose logging (if compiled-in and logging enabled and stderr open).
@@ -95,6 +104,9 @@ behaviour is:
 * disable the administration interface
 * generate no logging or diagnostic messages
 
+The "--as-server" switch makes sure that logging is enabled and that
+the standard error stream is closed.
+
 To foward spooled messages to the ISP the command-line switch "--as-client"
 is provided to run the program...
 * in foreground, exiting when all spooled mail has been processed
@@ -103,21 +115,12 @@ is provided to run the program...
 * with error, warning and information messages sent to stderr
 * without using syslog
 
-The "--as-server" switch makes sure that logging is enabled and that
-the standard error stream is closed.
-
-Note that the test for allowing remote clients only takes account of the local
-machine's canonical IP address: the connection is regarded as local if the
-remote IP address matches the IP address of the local machine's canonical
-hostname (ie. not any DNS aliases).
-
 Message store
 -------------
 Mail messages are stored as text files in the configured spool directory. Each
 message is represented as an envelope file and a content file. The envelope
 file contains parameters relevant to the SMTP dialogue, and the content file
-contains the RFC822 headers and body text. Note that the content is largely
-ignored by the SMTP protocol.
+contains the RFC822 headers and body text.
 
 The filenames used in the message store have a prefix of "emailrelay", followed
 by a process-id and sequence number, followed by "envelope" or "content". The
@@ -141,24 +144,22 @@ SMTP issues
 -----------
 # Authentication:
 
-  The AUTH extension is supported in V0.9.6, but only with the unofficial LOGIN
-  mechanism.
+  The AUTH extension is supported, providing the CRAM-MD5 and LOGIN mechanisms.
 
 # Local delivery:
 
-  E-MailRelay will reject all local recipients, with the exception of
-  "postmaster". This is in line with its intended purpose as a simple mail
-  relay, rather than a fully-fledged routing MTA. Any addressee (except
-  "postmaster") without an "at" sign (@) will be rejected at the time the
-  message is submitted by the e-mail front-end.
+  Recipient addresses like "postmaster", "postmaster@localhost" and "postmaster@fqdn"
+  (where "fqdn" is the host's fully qualified domain name) are treated as the local
+  postmaster, resulting in local delivery rather than mail forwarding.
+
+  Receipient addresses (other than "postmaster" addresses) with no "at" sign (@) or
+  ending in "@localhost" will be rejected at the time the message is submitted by the
+  e-mail front-end. This is in line with E-MailRelay's intended purpose as a simple
+  mail relay, rather than a fully-fledged routing MTA.
 
   Delivery of mail to a local "postmaster" is a feature of E-MailRelay which is
-  provided for completeness and for comformance to the SMTP specification. It is
-  only relevant if you are in the habit of sending mail to yourself as
-  "postmaster"; mail to "postmaster" from an external source is not processed
-  by E-MailRelay and should be delivered normally.
-
-  Note that E-MailRelay daemon does not actually deliver mail to the postmaster
+  provided for completeness and for comformance to the SMTP specification.
+  Note that the E-MailRelay daemon does not actually deliver mail to the postmaster
   mailbox.  All it does is create an envelope and content file in the spool
   directory with a ".local" suffix. Some external system, such as a shell
   script run from cron calling "procmail", should be used to process the
@@ -186,11 +187,11 @@ If enabled, the server will provide a network interface for performing
 administration tasks. This is a simple command-line interface which is
 compatible with "telnet".
 
-Currently the only supported command is "flush", which tries to forward spooled
-mail to the configured dowstream SMTP server. The downstream server address
-must have been defined on the "emailrelay" command line at start-up using the
-"--forward-to" switch; it cannot be specified through the administration
-interface.
+Currently the only supported commands are "flush" and "info". The "flush" command
+is used to forward spooled mail to the configured dowstream SMTP server. The
+downstream server address must have been defined on the "emailrelay" command
+line at start-up using the "--forward-to" switch; it cannot be specified through
+the administration interface.
 
 The "flush" command allows you to run a single process which combines the
 functionality of storage daemon and forwarding client. This might be useful
@@ -246,13 +247,24 @@ system.
 Security issues
 ---------------
 A major security concern is the use of an external mail pre-processor (using the
-"--filter" switch). In this release this feature is simply disabled if the
-process is running as root (effective userid is zero). The pre-processor will
-run as the same userid as the E-MailRelay program, but with an almost empty set
-of environment variables, and no open file descriptors other than
-"stdin"/"stdout"/"stderr" open onto "/dev/null". The pre-processor filename has
-to be configured using a full path, so there is no dependence on the current
-working directory or the PATH variable.
+"--filter" switch), and so the following precautions are taken:
+
+# effective userid
+
+  Root or suid privileges are revoked at start-up, switching to the real userid
+  or "daemon" if the real userid is root. Special privileges are only reclaimed
+  when needed to bind sockets and do file i/o.
+
+# execution environment
+
+  The pre-processor runs with an almost empty set of environment variables,
+  and with no open file descriptors other than "stdin"/"stdout"/"stderr" open
+  onto "/dev/null".
+
+# configuration
+
+  The pre-processor filename has to be configured using a full path, so there is
+  no dependence on the current working directory or the PATH environment variable.
 
 Security issues which relate to the SMTP protocol itself are beyond the scope of
 this document, but RFC2821 makes the following observation: "SMTP mail is
@@ -272,26 +284,28 @@ Some other points are:
 
 Authentication
 --------------
-E-MailRelay has some support for the ESMTP "AUTH" extension, as defined in
-RFC2554, on both the server-side and client-side. The only authentication
-mechanism currently provided is the non-standard (but widely used) "LOGIN"
-mechanism, using plaintext passwords. A future release may add "CRAM-MD5"
-(RFC2195).
+E-MailRelay supports the ESMTP "AUTH" extension, as defined in RFC2554, on both
+the server-side and client-side. The only authentication mechanisms currently
+provided are the non-standard but widely used "LOGIN" mechanism, which uses
+plaintext passwords, and the "CRAM-MD5" mechanism, as defined in RFC2195.
 
 Authentication is enabled with the "--auth-client" and "--auth-server"
 command-line switches. The switch parameter is the name of a "secrets" file,
-containing (in the current release) plaintext passwords.
+containing usernames and passwords.
 
 The secrets file has a line-based format: blank lines are ignored and the hash
 character (#) is used for comments. Lines have four white-space delimited
 fields: "mechanism", "client-or-server", "userid", and "secret". The "mechanism"
-field must be "login" (case-insensitive); the "client-or-server" field must be
-"client" or "server"; the "userid" field is xtext-encoded user identifier; and
-the "secret" field is the xtext-encoded plaintext password. (The "xtext"
-encoding scheme is defined in RFC1891.) A client-side secrets file should
-contain at least one "login client" entry, and a server-side secrets file should
-contains zero or more "login server" entries. The same secrets file may be
-specified for both "--auth-client" and "--auth-server" switches.
+field must be "LOGIN" or "CRAM-MD5" (case-insensitive); the "client-or-server"
+field must be "client" or "server"; the "userid" field is xtext-encoded user
+identifier; and the "secret" field is the xtext-encoded "LOGIN" password or
+"CRAM-MD5" key. The "xtext" encoding scheme is defined in RFC1891. The
+"CRAM-MD5" keys can be generated using the "emailrelay-passwd" utility.
+
+A client-side secrets file should contain at least one "LOGIN client" or
+"CRAM-MD5 client" entry. A server-side secrets file should contains zero or
+more "LOGIN server" or "CRAM-MD5 server" entries. The same secrets file may
+be specified for both "--auth-client" and "--auth-server" switches.
 
 For example, the following secrets file defines "jsmith" as the username to be
 used when E-MailRelay authenticates with a downstream server, and defines two
@@ -301,31 +315,42 @@ authenticate with the E-MailRelay server:
 	#
 	# emailrelay secrets file
 	#
-	login client jsmith my+20password
-	login server user1 secret
-	login server user2 ignorance+3Ddeath
+	LOGIN client jsmith my+20password
+	LOGIN server user1 secret
+	LOGIN server user2 e+3Dmc2
 
-Clearly storing plaintext passwords in a file and then sending them unencypted
-over a network is a bad thing. You should at least make sure that the secrets
-file has tight permissions, and that the passwords in it are not also used for
-anything important (such as root access).
+A "CRAM-MD5" version would look like this:
+
+	#
+	# emailrelay secrets file
+	#
+	CRAM-MD5 client jsmith 688498119.2977922305.1278051807.3015243256.2216875978.2833592318.2902375592.3156808220
+	CRAM-MD5 server user1 4059553961.2316091643.3282746241.1444639637.3735501773.3404060330.2760590371.1201092398
+	CRAM-MD5 server user2 2798539199.3144534242.3784876256.2879973305.2327113479.216533878.2436460291.2361831919
+
+When using the LOGIN mechanism you have to store plaintext passwords in a file
+and then send them unencypted over a network. This is a bad thing. You should at
+least make sure that the secrets file has tight permissions, and that the
+passwords in it are not also used for anything important (such as root access).
 
 On the server side authentication is advertised in the response to the SMTP
-"EHLO" command, but authentication by the client is optional. If the client does
-authenticate then the authenticated user-id is stored with the message and
-then passed on to a downstream server using an "AUTH=userid" parameter on the
-SMTP "MAIL FROM" command. If the client chooses not to authenticate then the
-submitted messages will be forwarded using "AUTH=<>" on the "MAIL FROM"
-command. Note that any "AUTH=userid" information on incoming submitted messages
-is ignored and discarded: it is the authorised userid from the AUTH command
-which is propogated, not the userid from the incoming "MAIL FROM" command's
-"AUTH=" parameter.
+"EHLO" command if the "--auth-server" command line switch is used, but
+authentication by the client is optional. If the client does authenticate then
+the authenticated user-id is stored with the message and then passed on to a
+downstream server using an "AUTH=userid" parameter on the SMTP "MAIL FROM"
+command. If the client chooses not to authenticate then the submitted messages
+will be forwarded using "AUTH=<>" on the "MAIL FROM" command. Note that any
+"AUTH=userid" information on incoming submitted messages is ignored and
+discarded: it is the authorised userid from the AUTH command which is
+propagated, not the userid from the incoming "MAIL FROM" command's "AUTH="
+parameter.
 
 On the client side authentication is performed when the client has connected to
-a server which supports the AUTH extension with the LOGIN mechanism. If client
-authentication is enabled (with the "--auth-client" switch) but the server does not
-support the AUTH extension, or does not support the LOGIN mechanism, then the
-client will fail the first message and terminate with an error message.
+a server which supports the AUTH extension with the LOGIN or CRAM-MD5 mechanism.
+If client authentication is enabled (with the "--auth-client" switch) but the
+server does not support the AUTH extension, or does not support the LOGIN or
+CRAM-MD5 mechanism, then the client will fail the first message and terminate
+with an error message.
 
 Note that some ISPs require separate POP/IMAP authentication before SMTP access
 from a particular IP address is allowed. This type of POP-before-SMTP
@@ -336,6 +361,7 @@ Files
 -----
 By default "make install" installs files in the following locations:
 * /usr/local/libexec/emailrelay-poke
+* /usr/local/libexec/emailrelay-passwd
 * /usr/local/libexec/emailrelay.sh
 * /usr/local/sbin/emailrelay
 * /usr/local/var/spool/emailrelay/empty_file
@@ -352,4 +378,4 @@ than the Filesystem Hierarchy Standard.
 
 
 
-Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
+Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.

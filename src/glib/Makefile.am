@@ -1,5 +1,5 @@
 # 
-# Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -24,7 +24,9 @@ EXTRA_DIST=garg_win32.cpp \
 	gfs_win32.cpp \
 	glogoutput_win32.cpp \
 	gprocess_win32.cpp \
-	gfile_win32.cpp
+	gfile_win32.cpp \
+	md5c.c \
+	md5.h
 INCLUDES = -I$(top_srcdir)/lib/gcc2.95
 noinst_LIBRARIES = libglib.a
 libglib_a_SOURCES = \
@@ -33,6 +35,7 @@ libglib_a_SOURCES = \
 	garg_unix.cpp \
 	gassert.h \
 	gconvert.h \
+	gcredentials.h \
 	gdaemon.h \
 	gdaemon.cpp \
 	gdaemon_unix.cpp \
@@ -60,13 +63,20 @@ libglib_a_SOURCES = \
 	glogoutput.cpp \
 	glogoutput.h \
 	glogoutput_unix.cpp \
+	gmd5.cpp \
+	gmd5.h \
 	gmemory.h \
+	gnoncopyable.h \
 	gpath.cpp \
 	gpath.h \
 	gprocess.h \
 	gprocess_unix.cpp \
+	groot.cpp \
+	groot.h \
+	gstatemachine.h \
 	gstr.cpp \
 	gstr.h \
 	gstrings.h \
 	gtime.cpp \
 	gtime.h
+

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -48,6 +48,10 @@ public:
 	G_EXCEPTION( WaitError , "cannot wait()" ) ;
 	G_EXCEPTION( ChildError , "child process terminated abnormally or stopped" ) ;
 	G_EXCEPTION( InvalidPath , "invalid executable path -- must be absolute" ) ;
+	G_EXCEPTION( NoSuchUser , "no such user" ) ;
+	G_EXCEPTION( UidError , "cannot set uid" ) ;
+	G_EXCEPTION( GidError , "cannot set gid" ) ;
+	G_EXCEPTION( Insecure , "refusing to exec() while the user-id is zero" ) ;
 
 	enum Who { Parent , Child } ;
 	class IdImp ;
@@ -61,6 +65,14 @@ public:
 		public: std::string str() const ;
 		private: IdImp * m_imp ;
 		friend class Process ;
+	} ;
+	struct Identity // Used by G::Process::beSpecial().
+	{
+		uid_t uid ;
+		gid_t gid ;
+		Identity() ;
+		explicit Identity( const std::string & login_name ) ;
+		std::string str() const ;
 	} ;
 	class NoThrow // An overload discriminator for Process.
 		{} ;
@@ -113,6 +125,21 @@ public:
 	static int errno_() ;
 		// Returns the process's current 'errno' value.
 
+	static void beSpecial( Identity special ) ;
+		// Aquires special privileges (either root
+		// or suid). The parameter must have come from
+		// a previous call to beOrdinary().
+
+	static Identity beOrdinary( Identity nobody ) ;
+		// Revokes special privileges (root or suid).
+		// If really root (as opposed to suid root)
+		// then the effective id is changed to that
+		// passed in. If suid, then the effective
+		// id is changed to the real id, and the
+		// parameter is ignored. Returns the old
+		// identity, which can be passed to
+		// beSpecial().
+
 private:
 	Process() ;
 	static void execCore( const Path & , const std::string & ) ;
@@ -124,6 +151,12 @@ namespace G
 	std::ostream & operator<<( std::ostream & stream , const G::Process::Id & id )
 	{
 		return stream << id.str() ;
+	}
+
+	inline
+	std::ostream & operator<<( std::ostream & stream , const G::Process::Identity & identity )
+	{
+		return stream << identity.str() ;
 	}
 } ;
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@
 #include "gsmtp.h"
 #include "configuration.h"
 #include "commandline.h"
-#include "gevent.h"
+#include "geventloop.h"
 #include "gdaemon.h"
 #include "garg.h"
 #include "gmessagestore.h"
@@ -60,6 +60,9 @@ public:
 	explicit Run( const G::Arg & arg ) ;
 		// Constructor.
 
+	virtual ~Run() ;
+		// Destructor.
+
 	bool prepare() ;
 		// Prepares to run(). Returns
 		// false on error.
@@ -74,16 +77,23 @@ public:
 	static std::string versionNumber() ;
 		// Returns the application version number string.
 
+protected:
+	virtual void onStatusChange( const std::string & s1 , const std::string & s2 ) ;
+		// Called when the smtp client status changes.
+
 private:
+	Run( const Run & ) ; // not implemented
+	void operator=( const Run & ) ; // not implemented
 	void runCore() ;
-	void doForwarding( GSmtp::MessageStore & , GNet::EventSources & ) ;
-	void doServing( G::Daemon::PidFile & , GNet::EventSources & ) ;
+	void doForwarding( GSmtp::MessageStore & , GNet::EventLoop & ) ;
+	void doServing( G::Daemon::PidFile & , GNet::EventLoop & ) ;
 	void closeFiles() ;
 	void closeMoreFiles() ;
 	std::string smtpIdent() const ;
 	void recordPid() ;
 	const CommandLine & cl() const ;
-	virtual void clientDone( std::string ) ;
+	virtual void clientDone( std::string ) ; // from ClientCallback
+	virtual void clientStatusChange( const std::string & , const std::string & ) ; // from ClientCallback
 
 private:
 	std::auto_ptr<CommandLine> m_cl ;
