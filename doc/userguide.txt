@@ -311,7 +311,7 @@ variable "GLOGOUTPUT_FILE" can be defined as the name of a log file.
 Preventing open mail relay
 --------------------------
 If you are running E-MailRelay as a server with a permanent connection to the
-Internet it is important to prevent open mail relay. By default public mail
+Internet it is important to prevent open mail relay. By default open mail
 relaying is not possible because E-MailRelay does not accept IP connections from
 remote clients. However, if the "--remote-clients" switch is used then you need
 to be more careful. One option is to require all clients to authenticate, by
@@ -327,6 +327,53 @@ switch but then exempt all clients from authentication with a "NONE server *.*.*
 line in the secrets file. To complete the solution you must have an address
 verifier script ("--verifier") which rejects remote addresses if the client has
 not authenticated. Again, refer to the reference guide for further details.
+
+SpamAssassin
+------------
+The E-MailRelay server can use *Spam Assassin* [http://spamassassin.org] to mark
+potential spam by having a small shell script which calls "spamassassin"
+installed as the E-MailRelay mail pre-processor using the "--filter" command-line
+switch.
+
+Your "--filter" shell script could look something like this:
+
+	#!/bin/sh
+	tmp="/tmp/`basename $0`.$$.tmp"
+	awk '{sub("\r$","");print}' "${1}" | spamassassin --local | awk '{print $0 "\r"}' > $tmp && mv $tmp "${1}"
+	rm -f $tmp 2>/dev/null
+	exit 0
+
+This just pipes the message content file into "spamassassin", using "awk" to
+remove carriage-returns. The output is saved in a temporary file, and then put
+back into the content file, using "awk" again to restore carriage-returns.
+
+To delete spam altogether, rather than just marking it, you could add
+"--exit-code" to the spamassassin command line and deal with messages according
+to the exit code:
+
+	#!/bin/sh
+	awk '{sub("\r$","");print}' "${1}" | spamassassin --local --exit-code > /dev/null
+	if test $? -ne 0
+	then
+		# spam...
+		content="${1}"
+		envelope="`echo \"${content}\" | sed 's/content/envelope.new/'`"
+		rm -f "${envelope}" "${content}"
+		exit 100 # <= tell E-MailRelay that the files are gone
+	fi
+	exit 0
+
+On Windows there is less of a problem with carriage returns, but because
+"spamassassin" is a perl script it takes a bit of work to call it correctly.
+An example JavaScript wrapper called "emailrelay-runperl.js" is included in
+the distribution that by default calls "spamassassin".
+
+Try an E-MailRelay command line like this:
+
+	emailrelay --as-server --filter "cscript //nologo c:/program\ files/emailrelay/emailrelay-runperl.js"
+
+But note that you may have to add explicit paths if perl or spamassassin are not
+on your path.
 
 
 

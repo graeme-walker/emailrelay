@@ -61,7 +61,7 @@ std::string Main::CommandLine::switchSpec( bool is_windows )
 			<< "1!admin-port!3|"
 		<< "x!dont-serve!dont act as a server (usually used with --forward)!0!!3|"
 		<< "X!dont-listen!dont listen for smtp connections (usually used with --admin)!0!!3|"
-		<< "z!filter!defines a mail processor program!1!program!3|"
+		<< "z!filter!defines a mail processor program for when storing!1!program!3|"
 		<< "D!domain!sets an override for the host's fully qualified domain name!1!fqdn!3|"
 		<< "f!forward!forwards stored mail on startup (requires --forward-to)!0!!3|"
 		<< "o!forward-to!specifies the remote smtp server (required by --forward and --admin)!1!host:port!3|"
@@ -75,7 +75,8 @@ std::string Main::CommandLine::switchSpec( bool is_windows )
 		<< "O!poll!enables polling with the specified period (requires --forward-to)!1!period!3|"
 		<< "P!postmaster!deliver to postmaster and reject all other local mailbox addresses!0!!3|"
 		<< "Z!verifier!defines an external address verifier program!1!program!3|"
-		<< "Q!admin-terminate!!0!!0|"
+		<< "Y!client-filter!defines a mail processor program for when forwarding!1!program!3|"
+		<< "Q!admin-terminate!enables the terminate command on the admin interface!0!!3|"
 		<< "R!scanner!!1!host:port!0|"
 		;
 	return ss.str() ;
@@ -167,6 +168,11 @@ std::string Main::CommandLine::semanticError() const
 			"admin listening port must be different" ;
 	}
 
+	if( cfg().withTerminate() && !cfg().doAdmin() )
+	{
+		return "the --admin-terminate switch requires --admin" ;
+	}
+
 	if( cfg().daemon() && cfg().spoolDir().isRelative() )
 	{
 		return "in daemon mode the spool-dir must "
@@ -182,8 +188,8 @@ std::string Main::CommandLine::semanticError() const
 	}
 
 	const bool forward_to =
-		m_getopt.contains("as-proxy") ||
-		m_getopt.contains("as-client") ||
+		m_getopt.contains("as-proxy") || // => forward-to
+		m_getopt.contains("as-client") || // => forward-to
 		m_getopt.contains("forward-to") ;
 
 	if( ! forward_to && (
@@ -194,28 +200,50 @@ std::string Main::CommandLine::semanticError() const
 		return "the --forward, --immediate and --poll switches require --forward-to" ;
 	}
 
-	if( m_getopt.contains("scanner") && ! ( m_getopt.contains("as-proxy") || m_getopt.contains("immediate") ) )
+	const bool forwarding =
+		m_getopt.contains("as-proxy") ||  // => immediate
+		m_getopt.contains("as-client") ||  // => forward
+		m_getopt.contains("forward") ||
+		m_getopt.contains("immediate") ||
+		m_getopt.contains("poll") ;
+
+	if( m_getopt.contains("client-filter") && ! forwarding )
+	{
+		return "the --client-filter switch requires --as-proxy, --as-client, --poll, --immediate or --forward" ;
+	}
+
+	const bool not_serving = m_getopt.contains("dont-serve") || m_getopt.contains("as-client") ;
+
+	if( m_getopt.contains("filter") && not_serving )
+	{
+		return "the --filter switch cannot be used with --as-client or --dont-serve" ;
+	}
+
+	const bool immediate =
+		m_getopt.contains("as-proxy") || // => immediate
+		m_getopt.contains("immediate") ;
+
+	if( m_getopt.contains("scanner") && ! immediate )
 	{
 		return "the --scanner switch requires --as-proxy or --immediate" ;
 	}
 
 	const bool log =
 		m_getopt.contains("log") ||
-		m_getopt.contains("as-server") ||
-		m_getopt.contains("as-client") ||
-		m_getopt.contains("as-proxy") ;
+		m_getopt.contains("as-server") || // => log
+		m_getopt.contains("as-client") || // => log
+		m_getopt.contains("as-proxy") ; // => log
 
 	if( m_getopt.contains("verbose") && ! ( m_getopt.contains("help") || log ) )
 	{
 		return "the --verbose switch must be used with --log, --help, --as-client, --as-server or --as-proxy" ;
 	}
 
-	if( m_getopt.contains("interface") && ( m_getopt.contains("dont-serve") || m_getopt.contains("as-client") ) )
-	{
-		return "the --interface switch cannot be used with --as-client or --dont-serve" ;
-	}
+	const bool no_daemon =
+		m_getopt.contains("as-client") || // => no-daemon
+		m_getopt.contains("no-daemon") ;
 
-	if( cfg().daemon() && m_getopt.contains("hidden") ) // (win32)
+	if( m_getopt.contains("hidden") && ! no_daemon ) // (win32)
 	{
 		return "the --hidden switch requires --no-daemon or --as-client" ;
 	}

@@ -25,6 +25,7 @@ mk_sources=\
 	garg.cpp \
 	garg_win32.cpp \
 	gcleanup_win32.cpp \
+	gexe.cpp \
 	gdaemon_win32.cpp \
 	gdate.cpp \
 	gdatetime.cpp \
