@@ -69,7 +69,7 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-EXTRA_DIST = 
+EXTRA_DIST = emailrelay.spec
 SUBDIRS = src bin lib doc
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -276,6 +276,7 @@ distdir: $(DISTFILES)
 	      || exit 1; \
 	  fi; \
 	done
+
 info-am:
 info: info-recursive
 dvi-am:

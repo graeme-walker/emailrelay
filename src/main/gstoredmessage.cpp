@@ -18,62 +18,15 @@
 //
 // ===
 //
-// gpid_win32.cpp
+// gstoredmessage.cpp
 //
 
 #include "gdef.h"
-#include "gpid.h"
-#include <process.h>
+#include "gsmtp.h"
+#include "gstoredmessage.h"
 
-namespace G
+GSmtp::StoredMessage::~StoredMessage()
 {
-	class PidImp ;
-} ;
-
-// Class: G::PidImp
-// Description: A pimple implementation class for GPid.
-//
-class G::PidImp
-{
-public:
-	int m_pid ;
-} ;
-
-// ===
-
-G::Pid::Pid() : m_imp(NULL)
-{
-	m_imp = new PidImp ;
-	m_imp->m_pid = ::_getpid() ;
+        // empty
 }
-
-G::Pid::~Pid()
-{
-	delete m_imp ;
-}
-
-G::Pid::Pid( const Pid & other ) :
-	m_imp(NULL)
-{
-	m_imp = new PidImp ;
-	m_imp->m_pid = other.m_imp->m_pid ;
-}
-
-G::Pid & G::Pid::operator=( const Pid & rhs )
-{
-	m_imp->m_pid = rhs.m_imp->m_pid ;
-	return *this ;
-}
-
-std::string G::Pid::str() const
-{
-	std::stringstream ss ;
-	ss << m_imp->m_pid ;
-	return ss.str() ;
-}
-
-bool G::Pid::operator==( const Pid & rhs ) const
-{
-	return m_imp->m_pid == rhs.m_imp->m_pid ;
-} ;
 

@@ -23,26 +23,39 @@
 
 #include "gdef.h"
 #include "gdaemon.h"
+#include "gprocess.h"
 
 //static
 void G::Daemon::detach( const Path & )
 {
+	detach() ;
+}
+
+//static
+void G::Daemon::detach( PidFile & )
+{
+	detach() ;
 }
 
 //static
 void G::Daemon::detach()
 {
+	(void) ::FreeConsole() ;
 }
 
-void G::Daemon::closeFiles( bool keep_stderr )
+// ===
+
+G::Daemon::PidFile::PidFile() :
+	m_valid(false)
 {
 }
 
-void G::Daemon::setUmask()
+G::Daemon::PidFile::PidFile( const Path & ) :
+	m_valid(false)
 {
 }
 
-void G::Daemon::closeStderr()
+void G::Daemon::PidFile::commit()
 {
 }
 

@@ -27,83 +27,74 @@
 #include "gdef.h"
 #include "gsmtp.h"
 #include "gstrings.h"
+#include "gverifier.h"
 #include <string>
 
 namespace GSmtp
 {
 	class ProtocolMessage ;
-	class ProtocolMessageImp ;
 } ;
 
 // Class: GSmtp::ProtocolMessage
 // Description: An interface used by the ServerProtocol
 // class to assemble and process an incoming message.
 // It implements the three 'buffers' mentioned in
-// RFC2821 (esp. section 4.1.1). Also does mail-address
-// validation.
+// RFC2821 (esp. section 4.1.1).
 //
-// This class serves to decouple the ServerProtocol class from
-// the MessageStore (or whatever else is downstream).
+// This interface serves to decouple the ServerProtocol class
+// from the MessageStore (or whatever else is downstream).
 //
 class GSmtp::ProtocolMessage
 {
 public:
-	ProtocolMessage() ;
-		// Default constructor.
+	class Callback // A callback interface used by ProtocolMessage::process().
+	{
+		public: virtual ~Callback() ;
+		public: virtual void processDone( bool success , unsigned long id , const std::string & reason ) = 0 ;
+		private: void operator=( const Callback & ) ; // not implemented
+	} ;
 
-	~ProtocolMessage() ;
+	virtual ~ProtocolMessage() ;
 		// Destructor.
 
-	static std::pair<bool,std::string> verify( const std::string & ) ;
-		// Checks an address returning
-		// <is-local>|<local-full-name>.
-		//
-		// (If syntactically local then 'first' is
-		// returned true. If local and valid then
-		// 'second' is set to the full description.
-		// If syntactically remote, then 'first'
-		// is returned false and 'second' is empty.)
+	virtual void clear() = 0 ;
+		// Clears the message state and terminates
+		// any asynchronous message processing.
 
-	void clear() ;
-		// Clears the message state.
-
-	bool setFrom( const std::string & from_user ) ;
+	virtual bool setFrom( const std::string & from_user ) = 0 ;
 		// Sets the message envelope 'from'.
 		// Returns false if an invalid user.
 
-	bool addTo( const std::string & to_user ) ;
+	virtual bool addTo( const std::string & to_user , Verifier::Status to_status ) = 0 ;
 		// Adds an envelope 'to'.
+		//
+		// The 'to_status' parameter comes from
+		// GSmtp::Verifier.verify().
+		//
 		// Returns false if an invalid user.
 		// Precondition: setFrom() called
 		// since clear() or process().
 
-	void addReceived( const std::string & ) ;
+	virtual void addReceived( const std::string & ) = 0 ;
 		// Adds a 'received' line to the
 		// start of the content.
 		// Precondition: at least one
 		// successful addTo() call
 
-	void addText( const std::string & ) ;
+	virtual void addText( const std::string & ) = 0 ;
 		// Adds text.
 		// Precondition: at least one
 		// successful addTo() call
 
-	std::string process() ;
-		// Processes and clears the message.
-		// Returns a non-zero-length reason
-		// string on error.
+	virtual void process( Callback & callback ) = 0 ;
+		// Starts asynchronous processing of the
+		// message. Once processing is complete the
+		// message state is cleared and the callback
+		// is triggered. The callback may be called
+		// before process() returns.
 
 private:
-	static bool isLocal( const std::string & ) ;
-	static bool isValid( const std::string & ) ;
-	static bool isPostmaster( std::string ) ;
-	static std::string fullName( const std::string & ) ;
-	ProtocolMessage( const ProtocolMessage & ) ;
-	void operator=( const ProtocolMessage & ) ;
-
-private:
-	G::Strings m_to_list ;
-	ProtocolMessageImp * m_imp ;
+	void operator=( const ProtocolMessage & ) ; // not implemented
 } ;
 
 #endif

@@ -26,6 +26,8 @@
 
 #include "gdef.h"
 #include "gsmtp.h"
+#include "gnewmessage.h"
+#include "gstoredmessage.h"
 #include "gexception.h"
 #include "gstrings.h"
 #include "gpath.h"
@@ -33,73 +35,6 @@
 namespace GSmtp
 {
 	class MessageStore ;
-	class StoredMessage ;
-	class NewMessage ;
-
-	class MessageStoreImp ;
-	class MessageStoreIteratorImp ;
-	class StoredMessageImp ;
-	class NewMessageImp ;
-} ;
-
-// Class: GSmtp::NewMessage
-// Description: An abstract class to allow the creation
-// of a new message in the message store.
-// See also: MessageStore, MessageStore::newMessage()
-//
-class GSmtp::NewMessage
-{
-public:
-	virtual void addTo( const std::string & to , bool local ) = 0 ;
-		// Adds a 'to' address.
-
-	virtual void addText( const std::string & line ) = 0 ;
-		// Adds a line of content.
-
-	virtual void store() = 0 ;
-		// Stores the message in the message store.
-
-	virtual ~NewMessage() ;
-		// Destructor.
-
-private:
-	void operator=( const NewMessage & ) ;
-} ;
-
-// Class: GSmtp::StoredMessage
-// Description: An abstract class for messages which have
-// come from the store.
-// See also: MessageStore, MessageStore::get()
-//
-class GSmtp::StoredMessage
-{
-public:
-	virtual const std::string & from() const = 0 ;
-		// Returns the envelope 'from' field.
-
-	virtual const G::Strings & to() const = 0 ;
-		// Returns the envelope 'to' fields.
-
-	virtual std::auto_ptr<std::istream> extractContentStream() = 0 ;
-		// Extracts the content stream.
-		// Can only be called once.
-
-	virtual void destroy() = 0 ;
-		// Deletes the message within the store.
-
-	virtual void fail( const std::string & reason ) = 0 ;
-		// Marks the message as failed within the store.
-
-	virtual bool eightBit() const = 0 ;
-		// Returns true if the message content (header+body)
-		// contains a character with the most significant
-		// bit set.
-
-	virtual ~StoredMessage() ;
-		// Destructor.
-
-private:
-	void operator=( const StoredMessage & ) ;
 } ;
 
 // Class: GSmtp::MessageStore
@@ -118,16 +53,24 @@ private:
 class GSmtp::MessageStore
 {
 public:
-	G_EXCEPTION( InvalidDirectory , "invalid spool directory" ) ;
 	G_EXCEPTION( WriteError , "error writing file" ) ;
 	G_EXCEPTION( NoInstance , "no message store instance" ) ;
 	G_EXCEPTION( FormatError , "format error" ) ;
+	class IteratorImp // A base class for MessageStore::Iterator implementations.
+	{
+		public: unsigned long m_ref_count ;
+		public: virtual std::auto_ptr<GSmtp::StoredMessage> next() = 0 ;
+		public: IteratorImp() ;
+		public: virtual ~IteratorImp() ;
+		private: IteratorImp( const IteratorImp & ) ;
+		private: void operator=( const IteratorImp & ) ;
+	} ;
 	class Iterator // An iterator class for GSmtp::MessageStore.
 	{
 		public: std::auto_ptr<StoredMessage> next() ;
-		private: MessageStoreIteratorImp * m_imp ;
+		private: IteratorImp * m_imp ;
 		public: Iterator() ;
-		public: explicit Iterator( MessageStoreIteratorImp * ) ;
+		public: explicit Iterator( IteratorImp * ) ;
 		public: ~Iterator() ;
 		public: Iterator( const Iterator & ) ;
 		public: Iterator & operator=( const Iterator & ) ;
@@ -141,29 +84,29 @@ public:
 		// "/usr/local/var/spool/emailrelay". (Typically
 		// has an os-specific implementation.)
 
-	explicit MessageStore( const G::Path & directory ) ;
-		// Constructor. Throws exceptions if
-		// not a valid storage directory.
+	MessageStore() ;
+		// Default constructor.
 
-	~MessageStore() ;
+	virtual ~MessageStore() ;
 		// Destructor.
 
-	std::auto_ptr<NewMessage> newMessage( const std::string & from ) ;
+	virtual std::auto_ptr<NewMessage> newMessage( const std::string & from ) = 0 ;
 		// Creates a new message.
 
-	bool empty() const ;
+	virtual bool empty() const = 0 ;
 		// Returns true if the message store is empty.
 
-	std::auto_ptr<StoredMessage> get() ;
-		// Pulls a message out of the store (selected
-		// at random). Returns a NULL smart pointer
-		// if there are no messages to extract.
+	virtual std::auto_ptr<StoredMessage> get( unsigned long id ) = 0 ;
+		// Pulls a message out of the store.
+		// Throws execptions on error.
+		//
+		// See also NewMessage::id().
 		//
 		// As a side effect some stored messages may be
 		// marked as bad, or deleted (if they
 		// have no recipients).
 
-	Iterator iterator() ;
+	virtual Iterator iterator() = 0 ;
 		// Returns a read iterator. (Note that copies of
 		// iterators share state. For independent iterators
 		// call iterator() for each.)
@@ -172,17 +115,12 @@ public:
 		// messages may be marked as bad, or deleted (if
 		// they have no recipients).
 
-	G::Path directory() const ;
-		// Returns the storage directory (as passed
-		// to the constructor).
-
 private:
 	MessageStore( const MessageStore & ) ;
 	void operator=( const MessageStore & ) ;
 
 private:
 	static MessageStore * m_this ;
-	MessageStoreImp * m_imp ;
 } ;
 
 #endif

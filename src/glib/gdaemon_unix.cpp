@@ -23,21 +23,54 @@
 
 #include "gdef.h"
 #include "gdaemon.h"
-#include "gpid.h"
+#include "gprocess.h"
+
+namespace
+{
+	void PidFile__testSyntax( const G::Path & pid_file )
+	{
+		if( pid_file != G::Path() && !pid_file.isAbsolute() )
+			throw G::Daemon::BadPidFile(std::string("must be an absolute path: ")+pid_file.str()) ;
+	}
+
+	void PidFile__testCreation( const G::Path & pid_file )
+	{
+		if( pid_file != G::Path() )
+		{
+			std::ofstream tester( pid_file.str().c_str() ) ;
+			if( !tester.good() )
+				throw G::Daemon::BadPidFile(std::string("cannot create file: ")+pid_file.str()) ;
+		}
+	}
+
+	void PidFile__create( const G::Path & pid_file )
+	{
+		if( pid_file != G::Path() )
+		{
+			std::ofstream file( pid_file.str().c_str() ) ;
+			file << G::Process::Id() << std::endl ;
+			if( !file.good() )
+				throw G::Daemon::BadPidFile(std::string("cannot create file: ")+pid_file.str()) ;
+		}
+	}
+} ;
 
 //static
 void G::Daemon::detach( const Path & pid_file )
 {
-	if( !pid_file.isAbsolute() )
-		throw BadPidFile(std::string("must be an absolute path: ")+pid_file.str()) ;
-
-	if( !std::ofstream(pid_file.str().c_str()).good() )
-		throw BadPidFile(std::string("cannot create file: ")+pid_file.str()) ;
+	PidFile__testSyntax( pid_file ) ;
+	PidFile__testCreation( pid_file ) ;
 
 	detach() ;
 
-	std::ofstream file( pid_file.str().c_str() ) ;
-	file << Pid() << std::endl ;
+	PidFile__create( pid_file ) ;
+}
+
+//static
+void G::Daemon::detach( PidFile & pid_file )
+{
+	PidFile__testSyntax( pid_file.m_path ) ;
+	detach() ;
 }
 
 //static
@@ -45,13 +78,13 @@ void G::Daemon::detach()
 {
 	// see Stevens, ISBN 0-201-563137-7, ch 13.
 
-	if( fork() == Parent )
+	if( Process::fork() == Process::Parent )
 		::_exit( 0 ) ;
 
 	setsid() ;
-	cd( "/" ) ;
+	(void) Process::cd( "/" , Process::NoThrow() ) ;
 
-	if( fork() == Parent )
+	if( Process::fork() == Process::Parent )
 		::_exit( 0 ) ;
 }
 
@@ -62,46 +95,23 @@ void G::Daemon::setsid()
 		; // no-op
 }
 
-void G::Daemon::cd( const std::string & dir )
+// ===
+
+G::Daemon::PidFile::PidFile() :
+	m_valid(false)
 {
-	if( 0 != ::chdir( dir.c_str() ) )
-		; // ignore it
 }
 
-void G::Daemon::setUmask()
+G::Daemon::PidFile::PidFile( const G::Path & path ) :
+	m_path(path) ,
+	m_valid(true)
 {
-	// (note that ansi std::ofstream does not support file permissions,
-	// so rely on the umask to keep things secure)
-	mode_t new_mode = 0177 ; // create as -rw-------
-	mode_t old_mode = ::umask( new_mode ) ;
 }
 
-G::Daemon::Who G::Daemon::fork()
+void G::Daemon::PidFile::commit()
 {
-	pid_t pid = ::fork() ;
-	if( pid < 0 )
-	{
-		throw CannotFork() ;
-	}
-	return pid == 0 ? Child : Parent ;
+	if( m_valid )
+		PidFile__create( m_path ) ;
 }
 
-void G::Daemon::closeStderr()
-{
-	::close( STDERR_FILENO ) ;
-}
-
-void G::Daemon::closeFiles( bool keep_stderr )
-{
-	int n = 256U ;
-	long rc = ::sysconf( _SC_OPEN_MAX ) ;
-	if( rc > 0L )
-		n = static_cast<int>( rc ) ;
-
-	for( int fd = 0 ; fd < n ; fd++ )
-	{
-		if( !keep_stderr || fd != STDERR_FILENO )
-			::close( fd ) ;
-	}
-}
 

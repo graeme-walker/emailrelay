@@ -38,9 +38,9 @@ namespace GNet
 
 // Class: GNet::Address
 //
-// Description: The Address class encapsulates an
-// IP transport address. The address is stored
-// internally as a 'sockaddr_in[6]' structure.
+// Description: The Address class encapsulates an IP
+// transport address. The address is stored internally
+// as a 'sockaddr_in/sockaddr_in6' structure.
 //
 // See also: GNet::Resolver
 //
@@ -87,7 +87,7 @@ public:
 		// given port number. Throws an exception if
 		// an invalid port number. See also: validPort()
 
-	explicit Address( unsigned int port , Localhost ) ;
+	Address( unsigned int port , Localhost ) ;
 		// Constructor for a local INADDR_LOOPBACK address with
 		// the given port number. Throws an exception if
 		// an invalid port number. See also: validPort()
@@ -105,7 +105,7 @@ public:
 
 	static Address invalidAddress() ;
 		// Returns an invalid address. Should only be
-		// needed by socket classes.
+		// needed by socket and resolver classes.
 
 	static Address localhost( unsigned int port = 0U ) ;
 		// Returns a localhost ("loopback") address.

@@ -1,69 +1,78 @@
-E-MailRelay Reference Manual
-============================
+E-MailRelay Reference
+=====================
 
-Document
---------
-This is the E-MailRelay reference guide. It contains material which is supplementary
-to the user guide.
+Introduction
+------------
+This is the E-MailRelay reference guide. It contains material which is
+supplementary to the user guide.
 
-Usage
------
+Command line usage
+------------------
 The "emailrelay" program supports the following command-line usage:
 
 	emailrelay [<switch> [<switch> ...]]
 
 where <switch> is:
 
-* --version (-V)
+# --version (-V)
   Displays version information and exits.
 
-* --admin (-a)
+# --admin (-a)
   Enables the administration interface and specifies its listening port number.
 
-* --as-server (-d)
+# --as-server (-d)
   Equivalent to "--close-stderr --log".
 
-* --close-stderr (-e)
+# --close-stderr (-e)
   Closes the standard error stream when daemonising.
 
-* --forward (-f)
+# --forward (-f)
   Forwards stored mail on startup (requires --forward-to).
 
-* --help (-h)
+# --help (-h)
   Displays help text and exits.
 
-* --pid-file (-i)
+# --pid-file (-i)
   Records the daemon process-id in the given file.
 
-* --log (-l)
+# --log (-l)
   Writes log information on standard error (if open) and syslog (if not disabled).
 
-* --no-syslog (-n)
+# --immediate (-m)
+  Forwards each message as soon as it is received (requires --forward-to).
+
+# --no-syslog (-n)
   Disables syslog output.
 
-* --forward-to (-o)
+# --forward-to (-o)
   Specifies the remote smtp server (required by --forward and --admin).
 
-* --port (-p)
+# --port (-p)
   Specifies the smtp listening port number.
 
-* --as-client (-q)
+# --as-client (-q)
   Equivalent to "--no-syslog --no-daemon --log --dont-serve --forward --forward-to".
 
-* --remote-clients (-r)
+# --remote-clients (-r)
   Allows remote clients to connect.
 
-* --spool-dir (-s)
+# --spool-dir (-s)
   Specifies the spool directory (default is "/usr/local/var/spool/emailrelay").
 
-* --no-daemon (-t)
+# --no-daemon (-t)
   Does not detach from the terminal.
 
-* --verbose (-v)
+# --verbose (-v)
   Generates more verbose logging (if compiled-in and logging enabled and stderr open).
 
-* --dont-serve (-x)
+# --dont-serve (-x)
   Stops the process acting as a server (usually used with --forward).
+
+# --as-proxy (-y)
+  Equivalent to "--close-stderr --log --immediate --forward-to".
+
+# --filter (-z)
+  Defines a mail pre-processor (disallowed if running as root).
 
 If no command-line switches are supplied at all then the default
 behaviour is:
@@ -84,6 +93,11 @@ is provided to run the program...
 
 The "--as-server" switch makes sure that logging is enabled and that
 the standard error stream is closed.
+
+Note that the test for allowing remote clients only takes account of the local
+machine's canonical IP address: the connection is regarded as local if the
+remote IP address matches the IP address of the local machine's canonical
+hostname (ie. not any DNS aliases).
 
 Message store
 -------------
@@ -113,37 +127,37 @@ and the failure reason is written into the file.
 
 SMTP issues
 -----------
-Local delivery:
+# Local delivery:
 
-  E-MailRelay will reject all local recipients, with the exception of "postmaster".
-  This is in line with its intended purpose as a simple mail relay, rather than
-  a fully-fledged routing MTA. Any addressee (except "postmaster") without an "at"
-  sign (@) will be rejected at the time the message is submitted by the e-mail
-  front-end.
+  E-MailRelay will reject all local recipients, with the exception of
+  "postmaster". This is in line with its intended purpose as a simple mail
+  relay, rather than a fully-fledged routing MTA. Any addressee (except
+  "postmaster") without an "at" sign (@) will be rejected at the time the
+  message is submitted by the e-mail front-end.
 
   Delivery of mail to a local "postmaster" is a feature of E-MailRelay which is
   provided for completeness and for comformance to the SMTP specification. It is
-  only relevant if you are in the habit of sending mail to yourself as "postmaster";
-  mail to "postmaster" from an external source is not processed by E-MailRelay
-  and should be delivered normally.
+  only relevant if you are in the habit of sending mail to yourself as
+  "postmaster"; mail to "postmaster" from an external source is not processed
+  by E-MailRelay and should be delivered normally.
 
   Note that E-MailRelay daemon does not actually deliver mail to the postmaster
-  mailbox.  All it does is create an envelope and content file in the spool directory
-  with a ".local" suffix. Some external system, such as a shell script run
-  from cron calling "procmail", should be used to process the ".local" files.
-  An example script is provided.
+  mailbox.  All it does is create an envelope and content file in the spool
+  directory with a ".local" suffix. Some external system, such as a shell
+  script run from cron calling "procmail", should be used to process the
+  ".local" files. An example script is provided.
 
-Timeouts:
+# Timeouts:
 
   Client-side timeouts are not implemented. If the ISP server is very slow then
   in a typical setup the dial-up line will be dropped due to inactivity. This
   will have the desired effect of aborting the message submission.
 
-Message loops:
+# Message loops:
 
   Message loops are not detected.
 
-Eight bit messages:
+# Eight bit messages:
 
   The 8BITMIME SMTP extension is supported, however no attempt is made to
   re-encode 8-bit messages into 7-bit messages if the downstream server
@@ -151,39 +165,76 @@ Eight bit messages:
 
 Administration interface
 ------------------------
-If enabled, the server will provide a network interface for performing administration
-tasks. This is a simple command-line interface which is compatible with telnet.
+If enabled, the server will provide a network interface for performing
+administration tasks. This is a simple command-line interface which is
+compatible with "telnet".
 
-Currently the only supported command is "flush", which tries to forward spooled mail
-to the configured dowstream SMTP server. The downstream server address must have been
-defined on the "emailrelay" command line at start-up using the "--forward-to" switch;
-it cannot be specified through the administration interface.
+Currently the only supported command is "flush", which tries to forward spooled
+mail to the configured dowstream SMTP server. The downstream server address
+must have been defined on the "emailrelay" command line at start-up using the
+"--forward-to" switch; it cannot be specified through the administration
+interface.
+
+Mail pre-processing
+-------------------
+The "--filter" command-line switch allows you to specify a pre-processor program
+which operates on mail messages as they pass through the E-MailRelay system. The
+pre-processor program is run as soon as the mail message has been stored in the
+spool directory, with the full path of the content file specified on the command
+line.
+
+This can be combined with the "--immediate" (or "--as-proxy") switch to implement
+personal mail pre-processing, without replacing or reconfiguring the system's
+default MTA.
+
+For example, the following command will start a proxy server on port 10025
+which pre-processes mail using the specified filter program, and then
+forwards the mail on to the system's default MTA (on port 25):
+
+	emailrelay --as-proxy localhost:smtp --port 10025 --no-syslog \
+	  --filter ${HOME}/.emailrelay/filter \
+	  --spool-dir ${HOME}/.emailrelay/spool
 
 Security issues
 ---------------
-E-MailRelay runs with a umask of 177. It does not call exec() or system(). It does not
-change its effective userid. No configuration parameters can be changed through the
-administrative interface. By default connections to the SMTP and administrative ports
-will be rejected if they come from remote machines.
+A major security concern is the use of an external mail pre-processor (using the
+--filter switch). In this release this feature is simply disabled if the process
+is running as root (effective userid is zero). The pre-processor will run as the
+same userid as the E-MailRelay program, but with an almost empty set of
+environment variables, and no open file descriptors other than
+"stdin"/"stdout"/"stderr" open onto "/dev/null". The pre-processor filename has
+to be configured using a full path, so there is no dependence on the current
+working directory or the PATH variable.
+
+Some other points are:
+* The program runs with a "umask" of 177 so files are created with "-rw-------" permissions.
+* Strings are dynamically allocated, so buffer overflow/truncation issues are avoided.
+* By default connections to the SMTP and administrative ports will be rejected if they come from remote machines.
+* No configuration parameters can be changed through the administrative interface.
+* No exec(), system() or popen() calls are used other than execve() to spawn the mail pre-processor.
 
 Files
 -----
-By default "make install" installs the following files:
+By default "make install" installs files in the following locations:
 * /usr/local/sbin/emailrelay
 * /usr/local/libexec/emailrelay-poke
 * /usr/local/libexec/emailrelay.sh
 * /usr/local/var/spool/emailrelay/empty_file
 * /usr/local/share/emailrelay/emailrelay-notify.sh
 * /usr/local/share/emailrelay/emailrelay-deliver.sh
+* /usr/local/share/emailrelay/emailrelay-process.sh
+* /usr/local/share/emailrelay/*.html
 
-This directory structure is constrained by the autoconf and GNU standards. Preferred
-locations would be something like this:
+This directory structure is constrained by the "autoconf" and GNU standards.
+Preferred locations for a GNU/Linux distribution would be something like this:
 * /usr/sbin/emailrelay
 * /opt/emailrelay/bin/emailrelay-poke
 * /sbin/init.d/emailrelay.sh
 * /var/spool/emailrelay/
 * /opt/emailrelay/examples/emailrelay-notify.sh
 * /opt/emailrelay/examples/emailrelay-deliver.sh
+* /opt/emailrelay/examples/emailrelay-process.sh
+* /usr/share/doc/packages/emailrelay/*.html
 
 
 

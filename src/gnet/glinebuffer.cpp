@@ -32,19 +32,6 @@ GNet::LineBuffer::LineBuffer( const std::string & eol ) :
 {
 }
 
-//static
-std::string GNet::LineBuffer::asString( char c )
-{
-	std::stringstream ss ;
-	if( c == '\n' )
-		ss << "\\n" ;
-	else if( c >= ' ' && c < 0x7f )
-		ss << c ;
-	else
-		ss << "\\" << (unsigned int)c ;
-	return ss.str() ;
-}
-
 void GNet::LineBuffer::add( const std::string & segment )
 {
 	size_t n = segment.size() ;

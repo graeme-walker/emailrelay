@@ -40,13 +40,22 @@ namespace G
 // Deamonisation includes fork()ing, detaching from the
 // controlling terminal, setting the process umask, etc.
 // The windows implementation does nothing.
+// See also: G::Process
 //
 class G::Daemon
 {
 public:
 	G_EXCEPTION( CannotFork , "cannot fork" ) ;
 	G_EXCEPTION( BadPidFile , "invalid pid file" ) ;
-	enum Who { Parent , Child } ;
+	class PidFile // Used by G::Daemon::detach().
+	{
+		public: explicit PidFile( const Path & pid_file ) ;
+		public: PidFile() ;
+		public: void commit() ;
+		private: Path m_path ;
+		private: bool m_valid ;
+		friend class Daemon ;
+	} ;
 
 	static void detach() ;
 		// Detaches from the parent environment.
@@ -59,20 +68,23 @@ public:
 		// to a file. The path must be absolute.
 		// Throws BadPidFile on error.
 
-	static void closeFiles( bool keep_stderr = false ) ;
-		// Closes all open file descriptors.
-
-	static void closeStderr() ;
-		// Closes stderr.
-
-	static void setUmask() ;
-		// Sets a tight umask.
+	static void detach( PidFile & pid_file ) ;
+		// An overload which allows for a delayed write
+		// of the new process-id to a file. The path
+		// must be absolute.
+		//
+		// A delayed write is useful for network daemons
+		// which open a listening port. You do not want
+		// a second instance, which will fail on startup,
+		// to overwrite the pid file of the running
+		// server. In this situation call PidFile::commit()
+		// just before entering the event loop.
+		//
+		// Throws BadPidFile on error.
 
 private:
 	Daemon() ;
-	static Who fork() ;
 	static void setsid() ;
-	static void cd( const std::string & ) ;
 } ;
 
 #endif

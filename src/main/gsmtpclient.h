@@ -31,6 +31,7 @@
 #include "gclient.h"
 #include "gclientprotocol.h"
 #include "gmessagestore.h"
+#include "gstoredmessage.h"
 #include "gsocket.h"
 #include "gstrings.h"
 #include "gexception.h"
@@ -49,17 +50,22 @@ namespace GSmtp
 // a remote SMTP server.
 //
 class GSmtp::Client : private GNet::Client ,
-	private GSmtp::ClientProtocol::Sender , private GSmtp::ClientProtocol::Callback
+	private GSmtp:: ClientProtocol::Sender , private GSmtp:: ClientProtocol::Callback
 {
 public:
 	G_EXCEPTION( NotConnected , "not connected" ) ;
 	class ClientCallback // A callback interface used by GSmtp::Client.
 	{
-		public: virtual void onCompletion( std::string ) ;
+		public: virtual void clientDone( std::string ) = 0 ;
+		public: virtual ~ClientCallback() ;
+		private: void operator=( const ClientCallback & ) ; // not implemented
 	} ;
 
 	Client( MessageStore & store , bool quit_on_disconnect ) ;
-		// Constructor. The reference is kept.
+		// Constructor. The message-store reference is kept.
+		//
+		// The 'quit_on_disconnect' parameter refers to
+		// GNet::EventSources::quit().
 
 	Client( MessageStore & store , ClientCallback & callback , bool quit_on_disconnect ) ;
 		// Constructor. The references are kept.
@@ -69,19 +75,26 @@ public:
 		// or that the server connection has
 		// been lost.
 
-	std::string init( const std::string & host , const std::string & service ) ;
+	Client( std::auto_ptr<StoredMessage> message , ClientCallback & callback ) ;
+		// Constructor for sending a single message.
+		//
+		// The callback is used to signal that
+		// all message processing has finished
+		// or that the server connection has
+		// been lost.
+
+	std::string init( const std::string & server_address_string ) ;
 		// Starts the sending process. Messages
 		// are extracted from the message store
 		// (as passed in the ctor) and forwarded
 		// on to the specified server.
 		//
+		// To be called once (only) after construction.
+		//
 		// Returns an error string if there are no messages
 		// to be sent, or if the network connection
 		// cannot be initiated. Returns the empty
 		// string on success.
-
-	std::string init( const std::string & host_service ) ;
-		// An overload.
 
 	bool busy() const ;
 		// Returns true if the client is still
@@ -93,15 +106,18 @@ private:
 	virtual void onData( const char * data , size_t size ) ; // GNet::Client
 	virtual void onWriteable() ; // GNet::Client
 	virtual void onError( const std::string & error ) ; // GNet::Client
-	virtual bool protocolSend( const std::string & ) ; // Sender
-	virtual void callback( bool ) ; // ClientCallback
+	virtual bool protocolSend( const std::string & ) ; // ClientProtocol::Sender
+	virtual void protocolDone( bool , const std::string & ) ; // ClientProtocol::Callback
+	std::string init( const std::string & , const std::string & ) ;
 	GNet::Socket & socket() ;
 	static std::string crlf() ;
 	bool sendNext() ;
-	void finish() ;
+	void start( StoredMessage & ) ;
+	void doCallback( const std::string & ) ;
+	void finish( const std::string & reason = std::string() ) ;
 
 private:
-	MessageStore & m_store ;
+	MessageStore * m_store ;
 	std::auto_ptr<StoredMessage> m_message ;
 	MessageStore::Iterator m_iter ;
 	GNet::LineBuffer m_buffer ;

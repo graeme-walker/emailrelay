@@ -18,60 +18,17 @@
 //
 // ===
 //
-// gpid.h
+// gnewmessage.cpp
 //
-
-#ifndef G_PID_H
-#define G_PID_H
 
 #include "gdef.h"
+#include "gsmtp.h"
+#include "gmessagestore.h"
+#include "gnewmessage.h"
 #include <iostream>
 
-namespace G
+GSmtp::NewMessage::~NewMessage()
 {
-	class PidImp ;
-	class Pid ;
-} ;
-
-// Class: G::Pid
-// Description: A process-id class. Uses a pimple
-// pattern to hide windows/unix type differences.
-//
-class G::Pid
-{
-public:
-	Pid() ;
-		// Default constructor for this
-		// process's id.
-
-	~Pid() ;
-		// Destructor.
-
-	Pid( const Pid & ) ;
-		// Copy constructor.
-
-	Pid & operator=( const Pid & ) ;
-		// Assignment operator.
-
-	std::string str() const ;
-		// Returns a string representation.
-
-	bool operator==( const Pid & ) const ;
-		// Comparison operator.
-
-private:
-	PidImp * m_imp ;
-} ;
-
-namespace G
-{
-	inline
-	std::ostream & operator<<( std::ostream & stream , const Pid & pid )
-	{
-		stream << pid.str() ;
-		return stream ;
-	}
-} ;
-
-#endif
+	// empty
+}
 

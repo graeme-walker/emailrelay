@@ -27,22 +27,45 @@
 #include "gdef.h"
 #include <memory>
 
+#if HAVE_CONFIG_H
+  #include <config.h>
+#else
+  #ifdef G_WINDOWS
+    #define HAVE_NONCONST_AUTOPTR 0
+  #else
+    #define HAVE_NONCONST_AUTOPTR 1
+  #endif
+#endif
+
 // Template function: operator<<=
 // Description: A fix for the problem of resetting
 // an auto_ptr portably. MSVC6.0 does not have a reset
-// method, and GCC has a non-const assignment
+// method, and GCC 2.95 has a non-const assignment
 // operators. This means that the MSVC code and
-// the gcc code for resetting an auto_ptr are
-// radically different. This operator hides
+// the GCC code for resetting auto_ptr<>s has to
+// be quite different. This operator hides
 // those differences.
+//
+// Usage:
+/// #include <memory>
+/// #include "gmemory.h"
+/// {
+///   std::auto_ptr<Foo> ptr ;
+///   for( int i = 0 ; i < 10 ; i++ )
+///   {
+///      ptr <<= new Foo ;
+///      if( ptr->fn() )
+///         eatFoo( ptr->release() ) ;
+///   }
+/// }
 //
 template <class T>
 void operator<<=( std::auto_ptr<T> & ap , T * p )
 {
- #ifdef G_WINDOWS
-	ap = std::auto_ptr<T>( p ) ;
- #else
+ #if HAVE_NONCONST_AUTOPTR
 	ap.reset( p ) ;
+ #else
+	ap = std::auto_ptr<T>( p ) ;
  #endif
 }
 
@@ -52,7 +75,6 @@ void operator<<=( std::auto_ptr<T> & ap , T * p )
 template <class T>
 void operator<<=( std::auto_ptr<T> & ap , int null_pointer )
 {
-	//operator<<=<T>( ap , (T*)(0) ) ;
 	T * p = 0 ;
 	ap <<= p ;
 }

@@ -43,7 +43,7 @@ namespace GSmtp
 // Class: GSmtp::AdminClient
 // Description: A private implementation class.
 //
-class GSmtp::AdminClient : public GSmtp::Client
+class GSmtp::AdminClient : public GSmtp:: Client
 {
 public:
 	AdminClient( AdminPeer & admin_peer ) ;
@@ -55,7 +55,7 @@ public:
 // Description: A derivation of ServerPeer for the administration interface.
 // See also: AdminServer
 //
-class GSmtp::AdminPeer : public GNet::ServerPeer , public GSmtp::Client::ClientCallback
+class GSmtp::AdminPeer : public GNet::ServerPeer , public GSmtp:: Client::ClientCallback
 {
 public:
 	AdminPeer( GNet::StreamSocket * , GNet::Address , AdminServer & server , const std::string & ) ;
@@ -66,7 +66,7 @@ private:
 	void operator=( const AdminPeer & ) ;
 	virtual void onDelete() ; // from GNet::ServerPeer
 	virtual void onData( const char * , size_t ) ; // from GNet::ServerPeer
-	virtual void onCompletion( std::string ) ; // from Client::ClientCallback
+	virtual void clientDone( std::string ) ; // from Client::ClientCallback
 	bool processLine( const std::string & line ) ;
 	static bool is( const std::string & , const char * ) ;
 	void flush( const std::string & ) ;

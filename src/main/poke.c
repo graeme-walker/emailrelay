@@ -50,9 +50,13 @@ int main( int argc , char * argv [] )
 	struct sockaddr_in address ;
 	int fd , rc ;
 
+	/* parse the command line -- port number */
 	if( argc > 1 ) 
+	{
 		port = atoi(argv[1]) ;
+	}
 
+	/* parse the command line -- send string */
 	if( argc > 2 )
 	{
 		buffer[0] = '\0' ;
@@ -60,22 +64,38 @@ int main( int argc , char * argv [] )
 	}
 	strcat( buffer , "\015\012" ) ;
 
+	/* open the socket */
 	fd = socket( AF_INET , SOCK_STREAM , 0 ) ;
-	if( fd < 0 ) return EXIT_FAILURE ;
+	if( fd < 0 ) 
+		return EXIT_FAILURE ;
+
+	/* prepare the address */
 	memset( &address , 0 , sizeof(address) ) ;
 	address.sin_family = AF_INET ;
 	address.sin_port = htons( port ) ;
 	address.sin_addr.s_addr = inet_addr( host ) ;
+
+	/* connect */
 	rc = connect( fd , (const struct sockaddr*)&address , sizeof(address) ) ;
-	if( rc < 0 ) return EXIT_FAILURE ;
+	if( rc < 0 ) 
+		return EXIT_FAILURE ;
+
+	/* send the string */
 	rc = write( fd , buffer , strlen(buffer) ) ;
-	if( rc != strlen(buffer) ) return EXIT_FAILURE ;
+	if( rc != strlen(buffer) ) 
+		return EXIT_FAILURE ;
+
+	/* read the reply */
 	rc = read( fd , buffer , sizeof(buffer)-1U) ;
-	if( rc <= 0 ) return EXIT_FAILURE ;
+	if( rc <= 0 ) 
+		return EXIT_FAILURE ;
+
+	/* print the reply */
 	write( STDOUT_FILENO , buffer , rc ) ;
 	buffer[0U] = '\n' ;
 	buffer[1U] = '\0' ;
 	write( STDOUT_FILENO , buffer , strlen(buffer) ) ;
+
 	return EXIT_SUCCESS ;
 }
 

@@ -39,6 +39,7 @@ namespace G
 
 // Class: G::GetOpt
 // Description: A command line switch parser.
+// See also: G::Arg
 //
 class G::GetOpt
 {
@@ -60,6 +61,9 @@ public:
 			//    <switch-description>
 			//    <value-type> -- 0 is none, and 1 is a string
 			//    <value-description>
+			//
+			// If the switch-description field is empty
+			// then the switch is hidden.
 
 	Arg args() const ;
 		// Returns all the non-switch command-line arguments.
@@ -125,10 +129,12 @@ private:
 		std::string name ;
 		std::string description ;
 		bool valued ;
+		bool hidden ;
 		std::string value_description ;
 		SwitchSpec(char c_,const std::string &name_,const std::string &description_,
 			bool v_,const std::string &vd_) :
 				c(c_) , name(name_) , description(description_) ,
+				hidden(description_.empty()) ,
 				valued(v_) , value_description(vd_) {}
 	} ;
 	typedef std::map<char,SwitchSpec GLessAllocator(char,SwitchSpec) > SwitchSpecMap ;

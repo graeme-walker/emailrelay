@@ -1,47 +1,49 @@
 E-MailRelay User Guide
 ======================
 
-Document
---------
-This document is the user guide for E-MailRelay V0.9.1.
-
 What is it?
 -----------
-E-MailRelay is a simple e-mail store-and-forward transfer agent. It's a program
-which runs in the background and accepts e-mail front-ends (KMail, Mutt, Netscape etc.),
-stores the messages on the hard disk, and when next connected to the Internet forwards
-them to a downstream SMTP server for onward delivery.
+E-MailRelay is a simple store-and-forward e-mail transfer agent. It's a program
+which runs in the background and accepts e-mail front-ends (KMail, Outlook,
+Netscape etc.), stores the messages on the hard disk, and when next connected
+to the Internet forwards them to a downstream SMTP server for onward delivery.
 
-The E-MailRelay program ("emailrelay") can run in two modes: a storage daemon, or
-a forwarding agent. As a storage daemon it waits for connections from your
+The E-MailRelay program ("emailrelay") can run in two main modes: a storage daemon,
+or a forwarding agent. As a storage daemon it waits for connections from your
 e-mail front-end and stores the mail which it receives in a spool directory.
 As a forwarding agent it pulls messages out of the spool directory and passes
 them on to a remote server -- typically an ISP mail server.
 
 E-MailRelay uses the Simple Message Transfer Protocol (SMTP). When running as a
-storage daemon it acts as an SMTP server, and when running as a forwarding agent it
-acts as an SMTP client.
+storage daemon it acts as an SMTP server, and when running as a forwarding
+agent it acts as an SMTP client.
 
-E-MailRelay runs on GNU/Linux and Windows.
+The program can also run as a proxy server. In this mode e-mails submitted at the
+server interface are passed on to the dowstream server immediately, without
+spooling. This can be useful when combined with mail pre-processing to do things
+like encryption, message archiving, addition of digital signatures, etc.
+
+E-MailRelay runs on GNU/Linux, FreeBSD, Solaris and Windows.
 
 What it's not
 -------------
-E-MailRelay does not get involved in processing incoming e-mail messages; it only
-operates on outgoing messages. Incoming e-mail messages will probably be retrieved
-from your ISP by your e-mail front-end program, using the POP3 or IMAP protocols.
+E-MailRelay does not get involved in processing incoming e-mail messages; it
+only operates on outgoing messages. Incoming e-mail messages will probably be
+retrieved from your ISP by your e-mail front-end program, using the POP3 or
+IMAP protocols.
 
-E-MailRelay is not a routing MTA. It is designed to be used in situations where all
-outgoing e-mail message go out to the Internet, so it is not an appropriate choice
-if you send e-mail to other people who use the same machine or to people who are
-on the same local area network.
+E-MailRelay is not a routing MTA. It is designed to be used in situations where
+all outgoing e-mail message go out to the Internet, so it is not an appropriate
+choice if you send e-mail to other people who use the same machine or to people
+who are on the same local area network.
 
 Why use it?
 -----------
-The motivation for developing E-MailRelay is that e-mail store-and-forward using
-SMTP is conceptually a very simple thing, but most popular MTAs are complex.
-E-MailRelay just stores messages and then forwards them on to your ISP, whereas a
-fully-featured MTA does clever things with address re-writing, message routing,
-local delivery, loop detection, fancy DNS lookups etc.
+The motivation for developing E-MailRelay is that e-mail store-and-forward
+using SMTP is conceptually a very simple thing, but most popular MTAs are
+complex. E-MailRelay just stores messages and then forwards them on to your
+ISP, whereas a fully-featured MTA does clever things with address re-writing,
+message routing, local delivery, loop detection, fancy DNS lookups etc.
 
 In particular the configuration of some popular MTAs is notoriously complex
 and arcane, whereas the only thing the E-MailRelay system needs is the name of
@@ -51,10 +53,12 @@ With the move away from dial-up Internet connections a simple store-and-forward
 MTA like E-MailRelay becomes more relevant to mobile computers and PDAs which
 need to store mail while away from the network.
 
-The source code for E-MailRelay is well-structured, portable ANSI C++, without any
-thrid-party library dependencies. It could therefore be the basis for other SMTP
-projects such as, for example, an anonymising remailer or a protocol bridge between
-SMTP and proprietary mail transfer protocols used in private e-mail networks.
+The source code for E-MailRelay is well-structured, portable ANSI C++, without
+any third-party library dependencies. It could therefore be the basis for other
+SMTP projects such as, for example, an anonymising remailer or an encryption
+gateway. E-MailRelay is well suited to gateway applications (sitting between
+local e-mail clients and a local routing MTA) because of its functional
+simplicity.
 
 Running E-MailRelay
 -------------------
@@ -62,8 +66,8 @@ To run E-MailRelay as a storage daemon use the command:
 
 	emailrelay --as-server
 
-To run E-MailRelay as a forwarding agent (once connected to the Internet), use a
-command like this:
+To run E-MailRelay as a forwarding agent (once connected to the Internet), use
+a command like this:
 
 	emailrelay --as-client mail.myisp.net:smtp
 
@@ -76,37 +80,44 @@ interface. The administration interface is a command-line network service
 compatible with telnet. The interface must be enabled using the "--admin"
 command line switch, specifying the listening port number.)
 
+To run E-MailRelay as a personal proxy server (on port 10025) to the system's
+default server use a command like this:
+
+	emailrelay --as-proxy localhost:smtp --no-syslog --port 10025 --filter ${HOME}/.emailrelay/mailfilter --spool-dir ${HOME}/.emailrelay/spool
+
+where 'mailfilter' is a program which does the appropriate mail processing.
+
 For more information on the command-line options refer to the reference guide
 or run:
 
 	emailrelay --help
 
-
 Starting the daemon at boot-time
 --------------------------------
-The standard installation of E-MailRelay (using "make install") puts most of the
-files into the right places, but it does not set things up so that the daemon
-starts at boot time, or that e-mail gets forwarded automatically when you
-connect to the Internet. You have to do those bits yourself because of the
+The standard installation of E-MailRelay (using "make install") puts most of
+the files into the right places, but it does not set things up so that the
+daemon starts at boot time, or that e-mail gets forwarded automatically when
+you connect to the Internet. You have to do those bits yourself because of the
 differences between the various GNU/Linux distributions.
 
 Many systems, including the most popular GNU/Linux distributions, use the
-System-V mechanism for starting daemons at boot time. The directory "/etc/init.d"
-(or "/sbin/init.d") contains a start/stop script for each daemon process, and
-then symbolic links in the "rc<N>.d" subdirectories control which scripts are
-run when entering or leaving a particular run-level (<N>). The links point back
-into the start/stop script in the parent directory, using a "S" prefix for the
-starting link, and a "K" prefix for the stopping link. The numeric part of
-the link name determines the order in which the links are called.
+System-V mechanism for starting daemons at boot time. The directory
+"/etc/init.d" (or "/sbin/init.d") contains a start/stop script for each daemon
+process, and then symbolic links in the "rc<N>.d" subdirectories control which
+scripts are run when entering or leaving a particular run-level (<N>). The
+links point back into the start/stop script in the parent directory, using a
+"S" prefix for the starting link, and a "K" prefix for the stopping link. The
+numeric part of the link name determines the order in which the links are
+called.
 
-Before you start you will need to know where your "init.d" directory can be found
-and what your default run level is:
+Before you start you will need to know where your "init.d" directory can be
+found and what your default run level is:
 
 	$ ls -d /*/init.d
 	$ runlevel | awk '{print $2}'
 
-Assuming these are "/etc/init.d" and "5" you should (as root) copy the E-MailRelay
-start/stop script into "/etc/init.d":
+Assuming these are "/etc/init.d" and "5" you should (as root) copy the
+E-MailRelay start/stop script into "/etc/init.d":
 
 	$ cp /usr/local/libexec/emailrelay.sh /etc/init.d
 
@@ -131,27 +142,28 @@ daemons compete for the standard SMTP listening port):
 
 (There are also KDE and GNOME GUIs which you can use to do the latter steps.)
 
-Automatic triggering of onward delivery
----------------------------------------
-This section assumes that you are using "pppd" to establish your dial-up Internet
-connection. (Note that KDE's "kppp" and Red Hat's "rp3" are graphical front-ends
-to the underlying "pppd" daemon.)
+Triggering onward delivery
+--------------------------
+This section assumes that you are using "pppd" to establish your dial-up
+Internet connection. (Note that KDE's "kppp" and Red Hat's "rp3" are graphical
+front-ends to the underlying "pppd" daemon.)
 
-The ppp daemon calls the script "/etc/ppp/ip-up" when it has successfully established
-a dial-up link to your ISP. This script will probably set up IP routes, update the
-DNS configuration, initialise a firewall, run "fetchmail" and "sendmail", etc. It may
-also call out to another script, "ip-up.local" which is available for you to put
-stuff into without having to grub around inside "ip-up" itself.
+The ppp daemon calls the script "/etc/ppp/ip-up" when it has successfully
+established a dial-up link to your ISP. This script will probably set up IP
+routes, update the DNS configuration, initialise a firewall, run "fetchmail"
+and "sendmail", etc. It may also call out to another script, "ip-up.local"
+which is available for you to put stuff into without having to grub around
+inside "ip-up" itself.
 
-The simplest approach for editing "ip-up" is to look for a "sendmail -q" line. If
-you find "sendmail -q" then it should be sufficient to replace it with this:
+The simplest approach for editing "ip-up" is to look for a "sendmail -q" line.
+If you find "sendmail -q" then it should be sufficient to replace it with this:
 
 	emailrelay --as-client <myisp>:smtp
 
 where you substitute your ISP's SMTP server address for <myisp>.
 
-Or if your "ip-up" calls out to "ip-up.local" then create a two-line "ip-up.local"
-script:
+Or if your "ip-up" calls out to "ip-up.local" then create a two-line
+"ip-up.local" script:
 
 	$ cd /etc/ppp
 	$ cat << EOF > ip-up.local
@@ -160,28 +172,53 @@ script:
 	EOF
 	$ chmod +x ip-up.local
 
+Notification of failed e-mails
+------------------------------
+If e-mail messages become corrupted or inaccessible within the spool directory
+then they will get failed within the E-MailRelay system. In order to get failed
+e-mails to 'bounce' back into your in-tray you will need to run the
+"emailrelay-notify.sh" script periodically. Note that this script requires
+that you have "procmail" installed on your system to act as a "delivery agent".
+
+There are not many ways in which an e-mail can fail within the E-MailRelay
+system. If everything is set up correctly then perhaps the most likely case is
+that you have run out of disk space. If you are not too worried about getting
+failed mail to bounce, or if you do not have a suitable delivery agent, then
+a simple check in your ".profile" script for "*.bad" files in the spool
+directory may be sufficient:
+
+	$ cat <<EOF >> ~/.profile
+	if test -f /usr/local/var/spool/emailrelay/*.envelope.bad ; then echo Failed mail >&2 ; fi
+	EOF
+
+
 Glossary
 --------
 
-ISP = Internet Service Provider. The company your modem calls to connect to the Internet.
+# ISP
+  Internet Service Provider.
 
-MTA = Message Transfer Agent. Something which accepts incoming e-mail messages and
-passes them on either to a local user, or to another MTA. A sophisticated MTA program,
-which is widely used on the Internet, is "sendmail".
+# MTA
+  Message Transfer Agent. Something which accepts incoming e-mail messages
+  and passes them on either to a local user, or to another MTA. A sophisticated
+  MTA program, which is widely used on the Internet, is "sendmail".
 
-SMTP = Simple Message Transfer Protocol. A set of rules which dictate how e-mail messages
-are passed from one part of the e-mail system to the next.  The protocol rules are set
-out in the document called RFC2821.
+# SMTP
+  Simple Message Transfer Protocol. A set of rules which dictate how
+  e-mail messages are passed from one part of the e-mail system to the next.
+  The protocol rules are set out in the document "RFC2821".
 
-POP3 = Post Office Protocol 3. A protocol for fetching incoming e-mail messages from your
-ISP's mail server. Many e-mail front-ends (Mutt, KMail, Netscape, etc) will fetch messages
-directly from your ISP using the POP protocol, or you may have a program like "fetchmail"
-doing it on their behalf.
+# POP3
+  Post Office Protocol 3. A protocol for fetching incoming e-mail messages.
+  Many e-mail front-ends will fetch messages directly from an ISP using the POP
+  protocol, or a program like "fetchmail" may do it on their behalf.
 
-IMAP = Internet Message Access Protocol. A newer alternative to POP3.
+# IMAP
+  Internet Message Access Protocol. A newer alternative to POP3.
 
-PPP = Point to Point Protocol. A low-level protocol used in dial-up connections to an ISP.
-Usually implemented by the "pppd" program on GNU/Linux.
+# PPP
+  Point to Point Protocol. A low-level protocol used in dial-up connections
+  to an ISP. Usually implemented by the "pppd" program on GNU/Linux.
 
 
 

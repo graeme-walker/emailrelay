@@ -24,14 +24,19 @@
 # A shell-script wrapper for E-MailRelay designed for
 # use in the SysV-init system (/etc/init.d).
 #
-# usage: emailrelay.sh { start | stop }
+# usage: emailrelay.sh { start [<emailrelay-switches>] | stop }
 #
 
 # configuration
 #
 var_run="/var/run"
+emailrelay="/usr/local/sbin/emailrelay"
+switches=""
+
+# configuration fallback
+#
 if test \! -d "${var_run}" ; then var_run="/tmp" ; fi
-params=""
+if test \! -x "${emailrelay}" ; then emailrelay="emailrelay" ; fi
 
 # initialisation
 #
@@ -52,8 +57,9 @@ if test "${1}" = "start"
 then
 	# "start"
 	#
+	shift
 	rm -f "${pid_file}" 2>/dev/null
-	emailrelay --as-server --pid-file "${pid_file}" ${params} $@
+	${emailrelay} --as-server --pid-file "${pid_file}" ${switches} $@
 
 elif test "${1}" = "stop"
 then

@@ -74,7 +74,7 @@ bool GSmtp::ClientProtocol::done() const
 	return m_state == sEnd ;
 }
 
-void GSmtp::ClientProtocol::sendComplete()
+void GSmtp::ClientProtocol::sendDone()
 {
 	if( m_state == sData )
 	{
@@ -199,6 +199,12 @@ void GSmtp::ClientProtocol::applyEvent( const Reply & reply )
 		m_state = sSentData ;
 		send( std::string("DATA") ) ;
 	}
+	else if( m_state == sSentRcpt )
+	{
+		G_WARNING( "GSmtp::ClientProtocol: recipient rejected" ) ;
+		m_state = sEnd ;
+		doCallback( false , reply.text() ) ;
+	}
 	else if( m_state == sSentData && reply.is(Reply::OkForData_354) )
 	{
 		m_state = sData ;
@@ -214,21 +220,28 @@ void GSmtp::ClientProtocol::applyEvent( const Reply & reply )
 			send( "." , true ) ;
 		}
 	}
-	else if( m_state == sDone && reply.is(Reply::Ok_250) )
+	else if( m_state == sDone )
 	{
+		const bool ok = reply.is(Reply::Ok_250) ;
 		m_state = sEnd ;
-		if( m_callback )
-		{
-			Callback * cb = m_callback ;
-			m_callback = NULL ;
-			cb->callback( true ) ;
-		}
+		doCallback( ok , ok ? std::string() : reply.text() ) ;
 	}
 	else
 	{
-		G_WARNING( "GSmtp::ClientProtocol: protocol error: " << static_cast<int>(m_state) ) ;
-		m_state = sReset ;
-		send( "RSET" ) ;
+		G_WARNING( "GSmtp::ClientProtocol: failure in client protocol: " << static_cast<int>(m_state) ) ;
+		m_state = sEnd ; // (was sReset)
+		send( "RSET" ) ; // for good meausre
+		doCallback( false , std::string("unexpected response: ")+reply.text() ) ;
+	}
+}
+
+void GSmtp::ClientProtocol::doCallback( bool ok , const std::string & reason )
+{
+	if( m_callback )
+	{
+		Callback * cb = m_callback ;
+		m_callback = NULL ;
+		cb->protocolDone( ok , reason ) ;
 	}
 }
 
@@ -357,5 +370,17 @@ bool GSmtp::ClientProtocolReply::textContains( std::string key ) const
 {
 	G::Str::toUpper(key) ;
 	return m_text.find(key) != std::string::npos ;
+}
+
+// ===
+
+GSmtp::ClientProtocol::Sender::~Sender()
+{
+}
+
+// ===
+
+GSmtp::ClientProtocol::Callback::~Callback()
+{
 }
 

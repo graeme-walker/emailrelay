@@ -24,6 +24,9 @@
 #include "gdef.h"
 #include "gsmtp.h"
 #include "gsmtpserver.h"
+#include "gprotocolmessagestore.h"
+#include "gprotocolmessageforward.h"
+#include "gmemory.h"
 #include "glocal.h"
 #include "glog.h"
 #include "gdebug.h"
@@ -31,9 +34,10 @@
 #include <string>
 
 GSmtp::ServerPeer::ServerPeer( GNet::StreamSocket * socket , GNet::Address peer_address ,
-	Server & server , const std::string & ident ) :
+	Server & server , std::auto_ptr<ProtocolMessage> pmessage , const std::string & ident ) :
 		GNet::ServerPeer( socket , peer_address ) ,
-		m_protocol( *this , thishost() , peer_address.displayString(false) ) ,
+		m_pmessage( pmessage ) ,
+		m_protocol( *this , m_verifier , *m_pmessage.get() , thishost() , peer_address.displayString(false) ) ,
 		m_buffer( crlf() ) ,
 		m_server( server )
 {
@@ -105,17 +109,19 @@ void GSmtp::ServerPeer::protocolDone()
 
 // ===
 
-GSmtp::Server::Server( unsigned int port , bool allow_remote , const std::string & ident ) :
-	GNet::Server( port ) ,
-	m_ident( ident ) ,
-	m_allow_remote( allow_remote )
+GSmtp::Server::Server( unsigned int port , bool allow_remote , const std::string & ident ,
+	const std::string & downstream_server ) :
+		GNet::Server( port ) ,
+		m_ident( ident ) ,
+		m_allow_remote( allow_remote ) ,
+		m_downstream_server(downstream_server)
 {
-	G_LOG( "GSmtp::Server: listening on port " << port ) ;
+	//G_LOG( "GSmtp::Server: listening on port " << port ) ;
 }
 
 GNet::ServerPeer * GSmtp::Server::newPeer( GNet::StreamSocket * socket , GNet::Address peer_address )
 {
-	std::auto_ptr<GNet::StreamSocket> ptr(socket) ;
+	std::auto_ptr<GNet::StreamSocket> socket_ptr(socket) ;
 
 	if( ! m_allow_remote &&
 		!peer_address.sameHost(GNet::Local::canonicalAddress()) &&
@@ -128,6 +134,13 @@ GNet::ServerPeer * GSmtp::Server::newPeer( GNet::StreamSocket * socket , GNet::A
 		return NULL ;
 	}
 
-	return new ServerPeer( ptr.release() , peer_address , *this , m_ident ) ;
+	const bool immediate = ! m_downstream_server.empty() ;
+
+	std::auto_ptr<ProtocolMessage> pmessage(
+		immediate ?
+			static_cast<ProtocolMessage*>(new ProtocolMessageForward(m_downstream_server)) :
+			static_cast<ProtocolMessage*>(new ProtocolMessageStore) ) ;
+
+	return new ServerPeer( socket_ptr.release() , peer_address , *this , pmessage , m_ident ) ;
 }
 

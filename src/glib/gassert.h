@@ -31,7 +31,6 @@
 	#define G_ASSERT( test ) G::LogOutput::assertion( __FILE__ , __LINE__ , test , #test )
 #else
 	#define G_ASSERT( test )
-	//#define G_ASSERT( test ) G::LogOutput::assertion( 0 , 0 , test , NULL )
 #endif
 
 #endif

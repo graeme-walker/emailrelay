@@ -40,7 +40,7 @@ namespace GNet
 // may be created.
 // See also: GNet::EventSources
 //
-class GNet::EventServer : public Server
+class GNet::EventServer : public GNet:: Server
 {
 public:
 	explicit EventServer( unsigned int listening_port ) ;

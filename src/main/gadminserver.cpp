@@ -44,7 +44,7 @@ GSmtp::AdminPeer::AdminPeer( GNet::StreamSocket * s , GNet::Address a , AdminSer
 {
 }
 
-void GSmtp::AdminPeer::onCompletion( std::string s )
+void GSmtp::AdminPeer::clientDone( std::string s )
 {
 	if( s.empty() )
 		send( "OK" ) ;

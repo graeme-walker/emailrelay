@@ -23,51 +23,51 @@ EXTRA_DIST=garg_win32.cpp \
 	gdirectory_win32.cpp \
 	gfs_win32.cpp \
 	glogoutput_win32.cpp \
-	gpid_win32.cpp \
+	gprocess_win32.cpp \
 	gfile_win32.cpp \
 	gnumber.cpp
 INCLUDES = -I$(top_srcdir)/lib/gcc2.95
 noinst_LIBRARIES = libglib.a
-libglib_a_SOURCES = garg.cpp \
-	garg_unix.cpp \
-	gdaemon_unix.cpp \
-	gdate.cpp \
-	gdatetime.cpp \
-	gdatetime_unix.cpp \
-	gdirectory.cpp \
-	gdirectory_unix.cpp \
-	gexception.cpp \
-	gfile.cpp \
-	gfile_unix.cpp \
-	gfs_unix.cpp \
-	ggetopt.cpp \
-	glog.cpp \
-	glogoutput.cpp \
-	glogoutput_unix.cpp \
-	gpath.cpp \
-	gpid_unix.cpp \
-	gstr.cpp \
-	gtime.cpp \
-	gdef.h \
+libglib_a_SOURCES = \
+	garg.cpp \
 	garg.h \
-	gdaemon.h \
-	gdate.h \
-	gdatetime.h \
-	gdirectory.h \
-	gexception.h \
-	gfile.h \
-	gfs.h \
-	ggetopt.h \
-	glog.h \
-	glogoutput.h \
-	gnumber.h \
-	gpath.h \
-	gpid.h \
-	gstr.h \
-	gtime.h \
-	gstrings.h \
-	gdebug.h \
+	garg_unix.cpp \
 	gassert.h \
 	gconvert.h \
-	gmemory.h
-
+	gdaemon.h \
+	gdaemon_unix.cpp \
+	gdate.cpp \
+	gdate.h \
+	gdatetime.cpp \
+	gdatetime.h \
+	gdatetime_unix.cpp \
+	gdebug.h \
+	gdef.h \
+	gdirectory.cpp \
+	gdirectory.h \
+	gdirectory_unix.cpp \
+	gexception.cpp \
+	gexception.h \
+	gfile.cpp \
+	gfile.h \
+	gfile_unix.cpp \
+	gfs.h \
+	gfs_unix.cpp \
+	ggetopt.cpp \
+	ggetopt.h \
+	glog.cpp \
+	glog.h \
+	glogoutput.cpp \
+	glogoutput.h \
+	glogoutput_unix.cpp \
+	gmemory.h \
+	gnumber.h \
+	gpath.cpp \
+	gpath.h \
+	gprocess.h \
+	gprocess_unix.cpp \
+	gstr.cpp \
+	gstr.h \
+	gstrings.h \
+	gtime.cpp \
+	gtime.h

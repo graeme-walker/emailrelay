@@ -24,28 +24,45 @@ AM_INSTALL_PROGRAM_FLAGS=-s
 # change the local-state directory from .../var to .../var/spool/emailrelay
 localstatedir = ${prefix}/var/spool/emailrelay
 
-EXTRA_DIST=gmessagestore_win32.cpp emailrelay.dsp empty_file doxygen.cfg
+EXTRA_DIST=gmessagestore_win32.cpp emailrelay.dsp icon-32.ico empty_file doxygen.cfg emailrelay.rc
 INCLUDES = -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet
 sbin_PROGRAMS = emailrelay 
 libexec_PROGRAMS = emailrelay-poke
 localstate_DATA = empty_file
-emailrelay_SOURCES = gadminserver.cpp \
-	gclientprotocol.cpp \
-	gmessagestore.cpp \
-	gmessagestore_unix.cpp \
-	gprotocolmessage.cpp \
-	gserverprotocol.cpp \
-	gsmtpclient.cpp \
-	gsmtpserver.cpp \
-	mailrelay.cpp \
+emailrelay_SOURCES = \
+	gadminserver.cpp \
 	gadminserver.h \
+	gclientprotocol.cpp \
 	gclientprotocol.h \
+	gfilestore.cpp \
+	gfilestore.h \
+	gmessagestore.cpp \
 	gmessagestore.h \
+	gmessagestore_unix.cpp \
+	gnewfile.cpp \
+	gnewfile.h \
+	gnewmessage.cpp \
+	gnewmessage.h \
+	gprotocolmessage.cpp \
 	gprotocolmessage.h \
+	gprotocolmessageforward.cpp \
+	gprotocolmessageforward.h \
+	gprotocolmessagestore.cpp \
+	gprotocolmessagestore.h \
+	gserverprotocol.cpp \
 	gserverprotocol.h \
 	gsmtp.h \
+	gsmtpclient.cpp \
 	gsmtpclient.h \
-	gsmtpserver.h
+	gsmtpserver.cpp \
+	gsmtpserver.h \
+	gstoredfile.cpp \
+	gstoredfile.h \
+	gstoredmessage.cpp \
+	gstoredmessage.h \
+	gverifier.cpp \
+	gverifier.h \
+	mailrelay.cpp
 emailrelay_poke_SOURCES=poke.c
 emailrelay_LDADD = $(top_builddir)/src/glib/libglib.a $(top_builddir)/src/gnet/libgnet.a
 

@@ -33,6 +33,9 @@
 /* Version number of package */
 #undef VERSION
 
+/* auto_ptr assignment has non-const rhs */
+#undef HAVE_NONCONST_AUTOPTR
+
 /* have reentrant localtime */
 #undef HAVE_LOCALTIME_R
 

@@ -113,7 +113,7 @@ namespace G
 // then warning/error messages should also get raised by some another
 // independent means.
 //
-#define G_LOG_OUTPUT( expr , severity ) { G::Log::stream() << G::Log::Line(__FILE__,__LINE__) << expr << G::Log::end(severity) ; }
+#define G_LOG_OUTPUT( expr , severity ) { try { G::Log::stream() << G::Log::Line(__FILE__,__LINE__) << expr << G::Log::end(severity) ; } catch(...) {} }
 #if defined(_DEBUG) && ! defined(G_NO_DEBUG)
 #define G_DEBUG( expr ) G_LOG_OUTPUT( expr , G::Log::s_Debug )
 #else

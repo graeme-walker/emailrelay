@@ -236,18 +236,26 @@ private:
 // (The standard pair<> template cannot be used because gcc's auto_ptr<> has
 // a non-const copy constructor and assignment operator -- the pair<> op=()
 // fails to compile because the rhs of the 'first' assignment is const,
-// not matching any op=() in auto_ptr<>. Note the use of const_cast<>() below.)
+// not matching any op=() in auto_ptr<>. Note the use of const_cast<>()
+// in the implementation.)
 //
 class GNet::AcceptPair
 {
 public:
 	typedef std::auto_ptr<StreamSocket> first_type ;
 	typedef Address second_type ;
+
 	first_type first ;
 	second_type second ;
+
 	AcceptPair( StreamSocket * new_p , Address a ) ;
+		// Constructor.
+
 	AcceptPair( const AcceptPair & other ) ;
+		// Copy constructor.
+
 	AcceptPair & operator=( const AcceptPair & rhs ) ;
+		// Assignment operator.
 } ;
 
 // ===
@@ -255,7 +263,7 @@ public:
 // Class: GNet::StreamSocket
 // Description: A derivation of Socket for a stream socket.
 //
-class GNet::StreamSocket : public Socket
+class GNet::StreamSocket : public GNet:: Socket
 {
 public:
 	StreamSocket() ;
@@ -293,7 +301,7 @@ private:
 // Description: A derivation of Socket for a connectionless
 // datagram socket.
 //
-class GNet::DatagramSocket : public Socket
+class GNet::DatagramSocket : public GNet:: Socket
 {
 public:
 	DatagramSocket();

@@ -28,7 +28,7 @@
 #include "gassert.h"
 #include "glog.h"
 
-GNet::EventHandler::EventHandler()
+GNet::EventHandler::~EventHandler()
 {
 }
 

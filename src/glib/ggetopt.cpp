@@ -172,7 +172,7 @@ std::string G::GetOpt::usageSummaryPartOne() const
 	bool first = true ;
 	for( SwitchSpecMap::const_iterator p = m_spec_map.begin() ; p != m_spec_map.end() ; ++p )
 	{
-		if( ! (*p).second.valued )
+		if( !(*p).second.valued && !(*p).second.hidden )
 		{
 			if( first )
 				ss << "[-" ;
@@ -192,23 +192,26 @@ std::string G::GetOpt::usageSummaryPartTwo() const
 	const char * sep = "" ;
 	for( SwitchSpecMap::const_iterator p = m_spec_map.begin() ; p != m_spec_map.end() ; ++p )
 	{
-		ss << sep << "[" ;
-		if( (*p).second.name.length() )
+		if( !(*p).second.hidden )
 		{
-			ss << "--" << (*p).second.name ;
+			ss << sep << "[" ;
+			if( (*p).second.name.length() )
+			{
+				ss << "--" << (*p).second.name ;
+			}
+			else
+			{
+				ss << "-" << (*p).first ;
+			}
+			if( (*p).second.valued )
+			{
+				std::string vd = (*p).second.value_description ;
+				if( vd.empty() ) vd = "value" ;
+				ss << " <" << vd << ">" ;
+			}
+			ss << "]" ;
+			sep = " " ;
 		}
-		else
-		{
-			ss << "-" << (*p).first ;
-		}
-		if( (*p).second.valued )
-		{
-			std::string vd = (*p).second.value_description ;
-			if( vd.empty() ) vd = "value" ;
-			ss << " <" << vd << ">" ;
-		}
-		ss << "]" ;
-		sep = " " ;
 	}
 	return ss.str() ;
 }
@@ -223,38 +226,45 @@ std::string G::GetOpt::usageHelpCore( const std::string & prefix , size_t tab_st
 	std::string result ;
 	for( SwitchSpecMap::const_iterator p = m_spec_map.begin() ; p != m_spec_map.end() ; ++p )
 	{
-		std::string line( prefix ) ;
-		line.append( "-" ) ;
-		line.append( 1U , (*p).first ) ;
-
-		if( (*p).second.name.length() )
+		if( !(*p).second.hidden )
 		{
-			line.append( ",--" ) ;
-			line.append( (*p).second.name ) ;
+			std::string line( prefix ) ;
+			line.append( "-" ) ;
+			line.append( 1U , (*p).first ) ;
+
+			if( (*p).second.name.length() )
+			{
+				line.append( ",--" ) ;
+				line.append( (*p).second.name ) ;
+			}
+
+			if( (*p).second.valued )
+			{
+				std::string vd = (*p).second.value_description ;
+				if( vd.empty() ) vd = "value" ;
+				line.append( " <" ) ;
+				line.append( vd ) ;
+				line.append( ">" ) ;
+			}
+			line.append( 1U , ' ' ) ;
+
+			if( line.length() < tab_stop )
+				line.append( tab_stop-line.length() , ' ' ) ;
+
+			line.append( (*p).second.description ) ;
+
+			if( width )
+			{
+				std::string indent( tab_stop , ' ' ) ;
+				line = G::Str::wrap( line , "" , indent , width ) ;
+			}
+			else
+			{
+				line.append( 1U , '\n' ) ;
+			}
+
+			result.append( line ) ;
 		}
-
-		if( (*p).second.valued )
-		{
-			std::string vd = (*p).second.value_description ;
-			if( vd.empty() ) vd = "value" ;
-			line.append( " <" ) ;
-			line.append( vd ) ;
-			line.append( ">" ) ;
-		}
-		line.append( 1U , ' ' ) ;
-
-		if( line.length() < tab_stop )
-			line.append( tab_stop-line.length() , ' ' ) ;
-
-		line.append( (*p).second.description ) ;
-
-		if( width )
-		{
-			std::string indent( tab_stop , ' ' ) ;
-			line = G::Str::wrap( line , "" , indent , width ) ;
-		}
-
-		result.append( line ) ;
 	}
 	return result ;
 }

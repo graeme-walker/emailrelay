@@ -111,22 +111,22 @@ public:
 			//
 			// Returns false if not all of the string
 			// was sent, either due to flow control
-			// or disconnection. After false os returned
-			// the user should call sendComplete() once
+			// or disconnection. After false is returned
+			// the user should call sendDone() once
 			// the full string has been sent.
 
-		private: void operator=( const Sender & ) ;
-		public: virtual ~Sender() {}
+		private: void operator=( const Sender & ) ; // not implemented
+		public: virtual ~Sender() ;
 	} ;
 
 	class Callback // A callback interface used by ClientProtocol.
 	{
-		public: virtual void callback( bool ok ) = 0 ;
+		public: virtual void protocolDone( bool ok , const std::string & reason ) = 0 ;
 			// Called once the protocol has finished with
 			// a given message. See ClientProtocol::start().
 
-		private: void operator=( const Callback & ) ;
-		public: virtual ~Callback() {}
+		private: void operator=( const Callback & ) ; // not implemented
+		public: virtual ~Callback() ;
 	} ;
 
 	ClientProtocol( Sender & sender , const std::string & thishost ) ;
@@ -142,7 +142,7 @@ public:
 			// signal that the message has been
 			// processed.
 
-	void sendComplete() ;
+	void sendDone() ;
 		// Called when a blocked connection becomes unblocked.
 		// See ClientProtocol::Sender::protocolSend().
 
@@ -160,6 +160,7 @@ private:
 	static std::string crlf() ;
 	void applyEvent( const Reply & event ) ;
 	static bool parseReply( Reply & , const std::string & , std::string & ) ;
+	void doCallback( bool , const std::string & ) ;
 
 private:
 	enum State { sStart , sSentEhlo , sSentHelo , sSentMail ,

@@ -37,7 +37,7 @@ namespace GNet
 // Class: GNet::Select
 // Description: A event-source class which uses ::select().
 //
-class GNet::Select : public EventSources
+class GNet::Select : public GNet:: EventSources
 {
 public:
 	G_EXCEPTION( Error , "select() error" ) ;

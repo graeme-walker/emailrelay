@@ -21,16 +21,30 @@
 # 
 # emailrelay-notify.sh
 #
-# An example script which looks for failed mail in the MailRelay spool
+# An example script which looks for failed mail in the E-MailRelay spool
 # directory, and sends failure notification messages using 'procmail'.
+#
+# usage: emailrelay-notify.sh [<spool-dir>]
+#
+# Notification of failed e-mail by means of e-mail messages is a
+# requirement imposed by the SMTP specification. However, a simpler 
+# approach might be more appropriate -- for example, a line like this in
+# a ".profile" script:
+#
+#   if test -f /usr/local/var/spool/emailrelay/*.envelope.bad ; then echo Failed mail >&2 ; fi
+#
+# or perhaps a cron entry like this (since output from a cron job gets sent as mail):
+#
+#   0 0 * * * /bin/cat /usr/local/var/spool/emailrelay/*.envelope.bad 2>/dev/null
 #
 
 tmp="/tmp/`basename $0`.$$.tmp"
 trap "rm -f ${tmp} 2>/dev/null ; exit 0" 0 1 2 3 13 15
+procmail="procmail"
 
 # parse the command line
 #
-store="/var/spool/mailrelay"
+store="/usr/local/var/spool/emailrelay"
 if test $# -ge 1
 then
 	store="${1}"
@@ -46,10 +60,12 @@ fi
 
 # for each failed e-mail...
 #
-for file in ${store}/mail-relay.*.envelope.bad ""
+for file in ${store}/emailrelay.*.envelope.bad ""
 do
 	if test -f "${file}"
 	then
+		# parse out the failure reason and the original sender
+		#
 		content="`echo ${file} | sed 's/envelope/content/' | sed 's/.bad//'`"
 		reason="`fgrep MailRelay-Reason ${file} | sed 's/X-[^ ]*Reason: //' | tr -d '\015'`"
 		from="`fgrep MailRelay-From ${file} | sed 's/X-MailRelay-From: //' | tr -d '\015'`"
@@ -61,33 +77,53 @@ do
 
 		# create a notification message header
 		#
+		boundary="--------------`basename ${file}`.$$"
 		echo "To: ${deliver_to}" > ${tmp}
 		echo "From: postmaster" >> ${tmp}
 		echo "Subject: Your e-mail could not be delivered" >> ${tmp}
-		echo " " >> ${tmp}
+		echo "MIME-Version: 0.1" >> ${tmp}
+		echo "Content-Type: multipart/mixed; boundary=\"${boundary}\"" >> ${tmp}
+		echo "" >> ${tmp}
 
-		# add the message content
+		# add the message text
 		#
+		echo "" >> ${tmp}
+		echo "--${boundary}" >> ${tmp}
+		echo "Content-Type: text/plain; charset=us-ascii" >> ${tmp}
+		echo "" >> ${tmp}
+		if test -f "${content}"
+		then
+			egrep -i '^To:|^Subject:' ${content} >> ${tmp}
+		fi
 		if test "${reason}" != ""
 		then
 			echo "Reason: ${reason}" >> ${tmp}
 		fi
+
+		# add the message attachment
+		#
 		if test -f "${content}"
 		then
-			egrep -i '^To:|^Subject:' ${content} >> ${tmp}
-			echo " " >> ${tmp}
-			echo "The original mail is saved as \"${content}\"." >> ${tmp}
-			echo "You should make a copy of this file if necessary and then delete it." >> ${tmp}
+			echo "--${boundary}" >> ${tmp}
+			echo "Content-Type: message/rfc822" >> ${tmp}
+			echo "Content-Transfer-Encoding: 8bit" >> ${tmp}
+			echo "Content-Description: `basename ${content}`" >> ${tmp}
+			echo "" >> ${tmp}
+			cat ${content} >> ${tmp}
 		fi
+		echo "--${boundary}--" >> ${tmp}
 
 		# deliver the notification using procmail
 		#
 		echo `basename $0`: delivering `basename ${content}` to ${deliver_to}
-		procmail -d ${deliver_to} < ${tmp}
+		${procmail} -d ${deliver_to} < ${tmp}
 		rc=$?
+
+		# clean up
+		#
 		if test "${rc}" -eq 0
 		then
-			rm -f "${file}" 2>/dev/null
+			rm -f "${file}" "${content}" 2>/dev/null
 		fi
 	fi
 done

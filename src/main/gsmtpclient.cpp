@@ -30,6 +30,7 @@
 #include "gmemory.h"
 #include "gsmtpclient.h"
 #include "gresolve.h"
+#include "gassert.h"
 #include "glog.h"
 
 //static
@@ -38,20 +39,31 @@ std::string GSmtp::Client::crlf()
 	return std::string("\015\012") ;
 }
 
-GSmtp::Client::Client( GSmtp::MessageStore & store , bool quit_on_disconnect ) :
+GSmtp::Client::Client( MessageStore & store , bool quit_on_disconnect ) :
 	GNet::Client(false,quit_on_disconnect) ,
 	m_callback(NULL) ,
-	m_store(store) ,
+	m_store(&store) ,
 	m_buffer(crlf()) ,
 	m_protocol(*this,GNet::Local::fqdn()) ,
 	m_socket(NULL)
 {
 }
 
-GSmtp::Client::Client( GSmtp::MessageStore & store , ClientCallback & callback , bool quit_on_disconnect ) :
+GSmtp::Client::Client( MessageStore & store , ClientCallback & callback , bool quit_on_disconnect ) :
 	GNet::Client(false,quit_on_disconnect) ,
 	m_callback(&callback) ,
-	m_store(store) ,
+	m_store(&store) ,
+	m_buffer(crlf()) ,
+	m_protocol(*this,GNet::Local::fqdn()) ,
+	m_socket(NULL)
+{
+}
+
+GSmtp::Client::Client( std::auto_ptr<StoredMessage> message , ClientCallback & callback ) :
+	GNet::Client(false,false) ,
+	m_callback(&callback) ,
+	m_store(NULL) ,
+	m_message(message) ,
 	m_buffer(crlf()) ,
 	m_protocol(*this,GNet::Local::fqdn()) ,
 	m_socket(NULL)
@@ -69,7 +81,7 @@ std::string GSmtp::Client::init( const std::string & s )
 
 std::string GSmtp::Client::init( const std::string & host , const std::string & service )
 {
-	if( m_store.empty() )
+	if( m_store != NULL && m_store->empty() )
 		return "no messages to send" ;
 
 	std::string error ;
@@ -107,20 +119,17 @@ bool GSmtp::Client::protocolSend( const std::string & line )
 void GSmtp::Client::onConnect( GNet::Socket & socket )
 {
 	m_socket = &socket ;
-	m_iter = m_store.iterator() ;
-	if( !sendNext() )
-		finish() ;
-}
-
-void GSmtp::Client::finish()
-{
-	if( m_callback != NULL )
+	if( m_store != NULL )
 	{
-		m_callback->onCompletion(std::string()) ;
-		m_callback = NULL ;
+		m_iter = m_store->iterator() ;
+		if( !sendNext() )
+			finish() ;
 	}
-
-	disconnect() ; // GNet::Client::disconnect()
+	else
+	{
+		G_ASSERT( m_message.get() != NULL ) ;
+		start( *m_message.get() ) ;
+	}
 }
 
 bool GSmtp::Client::sendNext()
@@ -140,29 +149,41 @@ bool GSmtp::Client::sendNext()
 		m_message = message ;
 	}
 
-	m_protocol.start( m_message->from() , m_message->to() , m_message->eightBit() ,
-		m_message->extractContentStream() , *this ) ;
+	start( *m_message.get() ) ;
 	return true ;
 }
 
-void GSmtp::Client::callback( bool ok )
+void GSmtp::Client::start( StoredMessage & message )
 {
-	G_DEBUG( "GSmtp::Client::callback: " << ok ) ;
+	m_protocol.start( message.from() , message.to() , message.eightBit() ,
+		message.extractContentStream() , *this ) ;
+}
+
+void GSmtp::Client::protocolDone( bool ok , const std::string & reason )
+{
+	G_DEBUG( "GSmtp::Client::protocolDone: " << ok << ": " << reason ) ;
+
+	std::string error_message ;
+	if( !ok )
+		error_message = std::string("smtp client protocol failure: ") + reason ;
+
 	if( m_message.get() != NULL )
 	{
 		if( ok )
 			m_message->destroy() ;
 		else
-			m_message->fail("smtp protocol failure") ;
+			m_message->fail( error_message ) ;
 	}
-	if( !sendNext() )
-		finish() ;
+
+	if( m_store == NULL || !sendNext() )
+	{
+		finish( error_message ) ;
+	}
 }
 
 void GSmtp::Client::onDisconnect()
 {
-	if( m_callback != NULL )
-		m_callback->onCompletion( "connection to server lost" ) ;
+	doCallback( "connection to server lost" ) ;
 	m_socket = NULL ;
 }
 
@@ -184,25 +205,38 @@ void GSmtp::Client::onData( const char * data , size_t size )
 	}
 }
 
-void GSmtp::Client::onError( const std::string &error )
+void GSmtp::Client::onError( const std::string & error )
+{
+	doCallback( std::string("error on connection to server: ") + error ) ;
+	G_WARNING( "GSmtp::Client: error: \"" << error << "\"" ) ;
+}
+
+void GSmtp::Client::finish( const std::string & reason )
+{
+	doCallback( reason ) ;
+	disconnect() ; // GNet::Client::disconnect()
+}
+
+void GSmtp::Client::doCallback( const std::string & reason )
 {
 	if( m_callback != NULL )
-		m_callback->onCompletion( std::string("error on connection to server: ") + error ) ;
-	G_WARNING( "GSmtp::Client: error: \"" << error << "\"" ) ;
+	{
+		m_callback->clientDone( reason ) ;
+		m_callback = NULL ;
+	}
 }
 
 void GSmtp::Client::onWriteable()
 {
 	if( protocolSend(m_pending) )
 	{
-		m_protocol.sendComplete() ;
+		m_protocol.sendDone() ;
 	}
 }
 
 // ===
 
-void GSmtp::Client::ClientCallback::onCompletion( std::string )
+GSmtp::Client::ClientCallback::~ClientCallback()
 {
-	// empty
 }
 

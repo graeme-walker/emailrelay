@@ -34,11 +34,13 @@ namespace G
 } ;
 
 // Class: G::Arg
-// Description: A command line parser class.
+// Description: A class which holds a represention of the
+// argc/argv command line array. Also does simple command line
+// parsing, and, under Windows, command line splitting (the
+// single command line string is split into an argv[] array,
+// including argv[0]).
 //
-// Also does command line splitting for Windows:
-// the single command line string is split into
-// an argv[] array, including argv[0].
+// See also: G::GetOpt
 //
 class G::Arg
 {

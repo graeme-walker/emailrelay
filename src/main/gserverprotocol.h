@@ -27,6 +27,7 @@
 #include "gdef.h"
 #include "gsmtp.h"
 #include "gprotocolmessage.h"
+#include "gverifier.h"
 #include <map>
 
 namespace GSmtp
@@ -56,36 +57,40 @@ namespace GSmtp
 //
 // See also: ProtocolMessage, RFC2821
 //
-class GSmtp::ServerProtocol
+class GSmtp::ServerProtocol : private GSmtp:: ProtocolMessage::Callback
 {
 public:
-	class Sender // Used to send protocol replies.
+	class Sender // An interface used by ServerProtocol to send protocol replies.
 	{
 		public: virtual void protocolSend( const std::string & s ) = 0 ;
 		public: virtual void protocolDone() = 0 ;
 		public: virtual ~Sender() ;
-		private: void operator=( const Sender & ) ;
+		private: void operator=( const Sender & ) ; // not implemented
 	} ;
 
-	class End // A private implementation class.
-	{
-		public: ServerProtocol & m_p ;
-		public: End( ServerProtocol & p ) ;
-	} ;
-
-	ServerProtocol( Sender & sender , const std::string & thishost ,
-		const std::string & peer_address ) ;
-			// Constructor. The Sender interface is used to
-			// send protocol replies back to the client.
-			// The 'thishost' string is used in HELO
-			// replies (etc.) The peer address string is
-			// put into the "Received:" trace lines.
+	ServerProtocol( Sender & sender , Verifier & verifier , ProtocolMessage & pmessage ,
+		const std::string & thishost , const std::string & peer_address ) ;
+			// Constructor.
+			//
+			// The Verifier interface is used to verify recipient
+			// addresses. See GSmtp::Verifier.
+			//
+			// The ProtocolMessage interface is used to assemble and
+			// process an incoming message.
+			//
+			// The Sender interface is used to send protocol
+			// replies back to the client.
+			//
+			// The 'thishost' string is used in HELO replies (etc).
+			//
+			// The peer address string is put into the "Received:"
+			// trace lines.
 
 	void init( const std::string & ident ) ;
 		// Starts the protocol. The 'ident' string is issued
 		// to the client.
 
-	~ServerProtocol() ;
+	virtual ~ServerProtocol() ;
 		// Destructor.
 
 	bool apply( const std::string & line ) ;
@@ -93,9 +98,6 @@ public:
 		// The string is expected to be <CRLF> terminated.
 		// Returns true if the protocol has completed
 		// and Sender::protocolDone() has been called.
-
-	void onEnd() ;
-		// A pseudo-private method used by the End class.
 
 private:
 	enum Event
@@ -120,6 +122,7 @@ private:
 		sGotMail ,
 		sGotRcpt ,
 		sData ,
+		sProcessing ,
 		s_Any ,
 		s_Same
 	} ;
@@ -135,15 +138,15 @@ private:
 	typedef std::multimap<Event,Transition GLessAllocator(Event,Transition) > Map ;
 
 private:
-	ServerProtocol( const ServerProtocol & ) ;
-	void operator=( const ServerProtocol & ) ;
+	ServerProtocol( const ServerProtocol & ) ; // not implemented
+	void operator=( const ServerProtocol & ) ; // not implemented
 	State applyEvent( Event , const std::string & ) ;
 	void send( std::string ) ;
 	static Event commandEvent( const std::string & ) ;
-	std::string commandString( const std::string & line ) const ;
-	std::ostream & ss() ;
-	End end() ;
+	std::string commandWord( const std::string & line ) const ;
+	std::string commandLine( const std::string & line ) const ;
 	static std::string crlf() ;
+	virtual void processDone( bool , unsigned long , const std::string & ) ; // from ProtocolMessage
 	bool isEndOfText( const std::string & ) const ;
 	bool isEscaped( const std::string & ) const ;
 	void addTransition( Event , State old , State new_ , Action , State alt = s_Same ) ;
@@ -179,29 +182,20 @@ private:
 	void sendOk() ;
 	std::string parseFrom( const std::string & ) const ;
 	std::string parseTo( const std::string & ) const ;
+	std::string parseMailbox( const std::string & ) const ;
 	std::string parsePeerName( const std::string & ) const ;
 	std::string parse( const std::string & ) const ;
 	std::string receivedLine() const ;
 
 private:
 	Sender & m_sender ;
+	ProtocolMessage & m_pmessage ;
+	Verifier & m_verifier ;
 	State m_state ;
 	Map m_map ;
-	ProtocolMessage m_message ;
-	std::stringstream * m_ss ;
 	std::string m_thishost ;
 	std::string m_peer_name ;
 	std::string m_peer_address ;
-} ;
-
-namespace GSmtp
-{
-	inline
-	std::ostream & operator<<( std::ostream & stream , const ServerProtocol::End & e )
-	{
-		e.m_p.onEnd() ;
-		return stream ;
-	}
 } ;
 
 #endif

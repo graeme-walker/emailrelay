@@ -29,9 +29,13 @@
 
 namespace GNet
 {
-	typedef ::SOCKET Descriptor ; // SOCKET defined in gnet.h
+	typedef ::SOCKET Descriptor ; // (SOCKET is defined in gnet.h)
+
 	bool Descriptor__valid( Descriptor fd ) ;
+		// Tests whether the given network descriptor is valid.
+
 	Descriptor Descriptor__invalid() ;
+		// Returns an invalid network descriptor.
 } ;
 
 #endif

@@ -5,7 +5,8 @@ Introduction
 standard GNU "./configure; make; make install" installation from source. 
 The E-MailRelay userguide describes what you have to do after the "make 
 install" (under GNU/Linux) in order to get the emailrelay daemon to start 
-up at boot-time and automatically forward e-mail to your ISP.
+up at boot-time, automatically forward e-mail to your ISP when connected, 
+and bounce failed mail.
 
 Basic Installation
 ==================

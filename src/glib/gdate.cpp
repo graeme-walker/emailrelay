@@ -26,6 +26,7 @@
 #include "gdebug.h"
 #include <sys/types.h>
 #include <time.h>
+#include <iomanip>
 
 //static
 int G::Date::yearUpperLimit()
@@ -83,10 +84,17 @@ void G::Date::init( const G::DateTime::BrokenDownTime & tm )
 	m_weekday = sunday ;
 }
 
-std::string G::Date::string( Format ) const
+std::string G::Date::string( Format format ) const
 {
+	const char * sep = format == yyyy_mm_dd_slash ? "/" : "" ;
 	std::stringstream ss ;
-	ss << m_year << "/" << m_month << "/" << m_day ;
+	if( format == yyyy_mm_dd_slash )
+		ss << m_year << "/" << m_month << "/" << m_day ;
+	else
+		ss
+			<< m_year
+			<< std::setw(2) << std::setfill('0') << m_month
+			<< std::setw(2) << std::setfill('0') << m_day ;
 	return ss.str() ;
 }
 

@@ -46,7 +46,8 @@ std::stringstream::stringstream()
 }
 
 inline
-std::stringstream::stringstream( char * , size_t )
+std::stringstream::stringstream( char * p , size_t n ) :
+	ostrstream( p , n )
 {
 }
 

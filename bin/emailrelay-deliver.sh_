@@ -21,12 +21,22 @@
 #
 # emailrelay-deliver.sh
 #
-# An example script which looks for local mail in the MailRelay 
+# An example script which looks for local mail in the E-MailRelay 
 # spool directory, and delivers it using 'procmail'.
 #
+# usage: emailrelay-deliver.sh [<spool-dir>]
+#
+# Note that (1) E-MailRelay will only accept mail to a local recipient
+# if that recipient is "postmaster", and the (2) by default E-MailRelay 
+# will only accept connections from local e-mail clients. This means that
+# this script is only relevant if you are in the habit of sending
+# yourself mail as "postmaster". It is provided for completeness,
+# in response to certain requirements in the SMTP specification.
+#
 
-store="/var/spool/mailrelay"
+store="/usr/local/var/spool/emailrelay"
 postmaster="root"
+procmail="procmail"
 
 # parse the command line
 #
@@ -45,7 +55,7 @@ fi
 
 # for each e-mail to a local recipient...
 #
-for file in ${store}/mail-relay.*.envelope.local ""
+for file in ${store}/emailrelay.*.envelope.local ""
 do
 	if test -f "${file}"
 	then
@@ -62,11 +72,11 @@ do
 		if test -f "${content}"
 		then
 			echo `basename $0`: delivering `basename ${content}` to ${deliver_to}
-			procmail -d ${deliver_to} < ${content}
+			${procmail} -d ${deliver_to} < ${content}
 			rc=$?
 			if test "${rc}" -eq 0
 			then
-				echo '' # rm -f "${file}" 2>/dev/null
+				rm -f "${file}" 2>/dev/null
 			fi
 		fi
 	fi

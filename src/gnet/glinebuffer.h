@@ -70,7 +70,6 @@ private:
 	LineBuffer( const LineBuffer & ) ;
 	void operator=( const LineBuffer & ) ;
 	bool terminated() const ;
-	static std::string asString( char c ) ;
 
 private:
 	G::Strings m_lines ;

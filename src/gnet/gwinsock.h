@@ -61,8 +61,8 @@ public:
 		// Returns false on error.
 
 	bool attach( HWND hwnd , unsigned int msg ) ;
-		// Initialises the WinSock library, passin
-		// it the specified window handle an
+		// Initialises the WinSock library, passing
+		// it the specified window handle and
 		// message number. WinSock events are sent
 		// to that window. Returns false on error.
 		//
@@ -88,7 +88,7 @@ public:
 		// 'msg' parameter.
 
 	virtual void run() ;
-		// Override from EventSources. Calls GGui::Pump::run()
+		// Override from EventSources. Calls GGui::Pump::run().
 
 	virtual void quit() ;
 		// Override from EventSources. Calls GGui::Pump::quit().

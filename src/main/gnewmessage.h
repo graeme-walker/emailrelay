@@ -18,64 +18,47 @@
 //
 // ===
 //
-// gpid_unix.cpp
+// gnewmessage.h
 //
+
+#ifndef G_SMTP_NEW_MESSAGE_H
+#define G_SMTP_NEW_MESSAGE_H
 
 #include "gdef.h"
-#include "gpid.h"
-#include <unistd.h>
-#include <sys/types.h>
-#include <sstream>
+#include "gsmtp.h"
 
-namespace G
+namespace GSmtp
 {
-	class PidImp ;
+	class NewMessage ;
+	class MessageStoreImp ;
 } ;
 
-// Class: G::PidImp
-// Description: A pimple implementation class for GPid.
+// Class: GSmtp::NewMessage
+// Description: An abstract class to allow the creation
+// of a new message in the message store.
+// See also: MessageStore, MessageStore::newMessage()
 //
-class G::PidImp
+class GSmtp::NewMessage
 {
 public:
-	pid_t m_pid ;
+	virtual void addTo( const std::string & to , bool local ) = 0 ;
+		// Adds a 'to' address.
+
+	virtual void addText( const std::string & line ) = 0 ;
+		// Adds a line of content.
+
+	virtual void store() = 0 ;
+		// Stores the message in the message store.
+
+	virtual unsigned long id() const = 0 ;
+		// Returns the message's unique identifier.
+
+	virtual ~NewMessage() ;
+		// Destructor.
+
+private:
+	void operator=( const NewMessage & ) ; // not implemented
 } ;
 
-// ===
-
-G::Pid::Pid() : m_imp(NULL)
-{
-	m_imp = new PidImp ;
-	m_imp->m_pid = ::getpid() ;
-}
-
-G::Pid::~Pid()
-{
-	delete m_imp ;
-}
-
-G::Pid::Pid( const Pid & other ) :
-	m_imp(NULL)
-{
-	m_imp = new PidImp ;
-	m_imp->m_pid = other.m_imp->m_pid ;
-}
-
-G::Pid & G::Pid::operator=( const Pid & rhs )
-{
-	m_imp->m_pid = rhs.m_imp->m_pid ;
-	return *this ;
-}
-
-std::string G::Pid::str() const
-{
-	std::stringstream ss ;
-	ss << m_imp->m_pid ;
-	return ss.str() ;
-}
-
-bool G::Pid::operator==( const Pid & rhs ) const
-{
-	return m_imp->m_pid == rhs.m_imp->m_pid ;
-}
+#endif
 

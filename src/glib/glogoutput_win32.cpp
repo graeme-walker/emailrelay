@@ -26,8 +26,6 @@
 #include <cstdlib> // getenv
 #include <cstring> // strlen
 
-namespace std { using ::getenv ; using ::strlen ; } ;
-
 void G::LogOutput::rawOutput( G::Log::Severity severity , const char *message )
 {
 	std::cerr << message ;

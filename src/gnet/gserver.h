@@ -44,7 +44,7 @@ namespace GNet
 // event-source object (such as GNet::Select) for event handling.
 // See also: GNet::ServerPeer
 //
-class GNet::Server : public EventHandler
+class GNet::Server : public GNet:: EventHandler
 {
 public:
 	G_EXCEPTION( CannotBind , "cannot bind the listening port" ) ;
@@ -99,7 +99,7 @@ private:
 // delete themselves when the connection is lost.
 // See also: GNet::Server, GNet::EventHandler
 //
-class GNet::ServerPeer : public EventHandler
+class GNet::ServerPeer : public GNet:: EventHandler
 {
 public:
 	ServerPeer( StreamSocket * , Address ) ;

@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+0.9.2 -> 0.9.3
+--------------
+* Proxy mode (--immediate and --as-proxy)
+* Message preprocessing (--filter)
+* Message store classes better separated using abstract interfaces
+* Improved notification script, with MIME encoding
+* Builds with old 2.91 version of gcc
+
 0.9.1 -> 0.9.2
 --------------
 * Better autoconf detection. (Now builds on all SourceForge's 

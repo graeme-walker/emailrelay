@@ -32,12 +32,13 @@
 #include "gassert.h"
 #include <string>
 
-GSmtp::ServerProtocol::ServerProtocol( Sender & sender , const std::string & thishost ,
-	const std::string & peer_address ) :
+GSmtp::ServerProtocol::ServerProtocol( Sender & sender , Verifier & verifier , ProtocolMessage & pmessage ,
+	const std::string & thishost , const std::string & peer_address ) :
 		m_thishost(thishost) ,
 		m_sender(sender) ,
+		m_verifier(verifier) ,
+		m_pmessage(pmessage) ,
 		m_state(sStart) ,
-		m_ss(NULL) ,
 		m_peer_address(peer_address)
 {
 	// (dont send anything to the peer from this ctor -- the Sender
@@ -71,7 +72,9 @@ void GSmtp::ServerProtocol::addTransition( Event e , State state_from , State st
 
 void GSmtp::ServerProtocol::sendGreeting( const std::string & thishost , const std::string & ident )
 {
-	ss() << "220 " << thishost << " -- " << ident << " -- Service ready" << end() ;
+	std::stringstream ss ;
+	ss << "220 " << thishost << " -- " << ident << " -- Service ready" ;
+	send( ss.str() ) ;
 }
 
 bool GSmtp::ServerProtocol::apply( const std::string & line )
@@ -82,23 +85,31 @@ bool GSmtp::ServerProtocol::apply( const std::string & line )
 		{
 			G_LOG( "GSmtp::ServerProtocol: rx<<: [message content not logged]" ) ;
 			G_LOG( "GSmtp::ServerProtocol: rx<<: \"" << G::Str::toPrintableAscii(line) << "\"" ) ;
-			std::string reason = m_message.process() ;
-			const bool success = reason.empty() ;
-			m_state = sIdle ;
-			sendCompletionReply( success , reason ) ;
+			m_state = sProcessing ;
+			m_pmessage.process( *this ) ; // processDone() callback
 		}
 		else
 		{
-			m_message.addText( isEscaped(line) ? line.substr(1U) : line ) ;
+			m_pmessage.addText( isEscaped(line) ? line.substr(1U) : line ) ;
 		}
 		return false ;
 	}
 	else
 	{
 		G_LOG( "GSmtp::ServerProtocol: rx<<: \"" << G::Str::toPrintableAscii(line) << "\"" ) ;
-		Event event = commandEvent( commandString(line) ) ;
-		State new_state = applyEvent( event , line ) ;
+		Event event = commandEvent( commandWord(line) ) ;
+		State new_state = applyEvent( event , commandLine(line) ) ;
 		return new_state == sEnd ;
+	}
+}
+
+void GSmtp::ServerProtocol::processDone( bool success , unsigned long , const std::string & reason )
+{
+	G_ASSERT( m_state == sProcessing ) ; // (a RSET will call m_pmessage.clear() to cancel the callback)
+	if( m_state == sProcessing ) // just in case
+	{
+		m_state = sIdle ;
+		sendCompletionReply( success , reason ) ;
 	}
 }
 
@@ -154,17 +165,26 @@ void GSmtp::ServerProtocol::doNoop( const std::string & , bool & )
 
 void GSmtp::ServerProtocol::doVrfy( const std::string & line , bool & )
 {
-	size_t pos = line.find_first_of( " \t" ) ;
-	std::string user = line.substr(pos) ;
-	G::Str::trimLeft( user , " \t" ) ;
-	std::pair<bool,std::string> rc = ProtocolMessage::verify( user ) ;
+	std::string mbox = parseMailbox( line ) ;
+	Verifier::Status rc = m_verifier.verify( mbox ) ;
 	bool local = rc.first ;
 	if( local && rc.second.length() )
 		sendVerified( rc.second ) ;
 	else if( local )
-		sendNotVerified( rc.second ) ;
+		sendNotVerified( mbox ) ;
 	else
-		sendWillAccept( rc.second ) ;
+		sendWillAccept( mbox ) ;
+}
+
+std::string GSmtp::ServerProtocol::parseMailbox( const std::string & line ) const
+{
+	std::string user ;
+	size_t pos = line.find_first_of( " \t" ) ;
+	if( pos != std::string::npos )
+		user = line.substr(pos) ;
+
+	G::Str::trim( user , " \t" ) ;
+	return user ;
 }
 
 void GSmtp::ServerProtocol::doEhlo( const std::string & line , bool & predicate )
@@ -178,7 +198,7 @@ void GSmtp::ServerProtocol::doEhlo( const std::string & line , bool & predicate 
 	else
 	{
 		m_peer_name = peer_name ;
-		m_message.clear() ;
+		m_pmessage.clear() ;
 		sendEhloReply( m_thishost ) ;
 	}
 }
@@ -194,16 +214,16 @@ void GSmtp::ServerProtocol::doHelo( const std::string & line , bool & predicate 
 	else
 	{
 		m_peer_name = peer_name ;
-		m_message.clear() ;
+		m_pmessage.clear() ;
 		sendHeloReply( m_thishost ) ;
 	}
 }
 
 void GSmtp::ServerProtocol::doMail( const std::string & line , bool & predicate )
 {
-	m_message.clear() ;
+	m_pmessage.clear() ;
 	std::string from = parseFrom( line ) ;
-	bool ok = m_message.setFrom( from ) ;
+	bool ok = m_pmessage.setFrom( from ) ;
 	predicate = ok ;
 	if( ok )
 		sendMailReply() ;
@@ -214,7 +234,7 @@ void GSmtp::ServerProtocol::doMail( const std::string & line , bool & predicate 
 void GSmtp::ServerProtocol::doRcpt( const std::string & line , bool & predicate )
 {
 	std::string to = parseTo( line ) ;
-	bool ok = m_message.addTo( to ) ;
+	bool ok = m_pmessage.addTo( to , m_verifier.verify(to) ) ;
 	predicate = ok ;
 	if( ok )
 		sendRcptReply() ;
@@ -229,7 +249,7 @@ void GSmtp::ServerProtocol::doUnknown( const std::string & line , bool & )
 
 void GSmtp::ServerProtocol::doRset( const std::string & line , bool & )
 {
-	m_message.clear() ;
+	m_pmessage.clear() ;
 	sendRsetReply() ;
 }
 
@@ -240,7 +260,7 @@ void GSmtp::ServerProtocol::doNoRecipients( const std::string & line , bool & )
 
 void GSmtp::ServerProtocol::doData( const std::string & line , bool & )
 {
-	m_message.addReceived( receivedLine() ) ;
+	m_pmessage.addReceived( receivedLine() ) ;
 	sendDataReply() ;
 }
 
@@ -264,12 +284,23 @@ bool GSmtp::ServerProtocol::isEscaped( const std::string & line ) const
 	return line.length() > 1U && line.at(0U) == '.' ;
 }
 
-std::string GSmtp::ServerProtocol::commandString( const std::string & line ) const
+std::string GSmtp::ServerProtocol::commandWord( const std::string & line_in ) const
 {
-	size_t ws_pos = line.find_first_of( " \t" ) ;
-	std::string command = line.substr( 0U , ws_pos ) ;
+	std::string line( line_in ) ;
+	G::Str::trimLeft( line , " \t" ) ;
+
+	size_t pos = line.find_first_of( " \t" ) ;
+	std::string command = line.substr( 0U , pos ) ;
+
 	G::Str::toUpper( command ) ;
 	return command ;
+}
+
+std::string GSmtp::ServerProtocol::commandLine( const std::string & line_in ) const
+{
+	std::string line( line_in ) ;
+	G::Str::trimLeft( line , " \t" ) ;
+	return line ;
 }
 
 //static
@@ -358,11 +389,12 @@ void GSmtp::ServerProtocol::sendBadTo( const std::string & to )
 
 void GSmtp::ServerProtocol::sendEhloReply( const std::string & domain )
 {
-	ss()
+	std::stringstream ss ;
+	ss
 		<< "250-" << domain << " says hello" << crlf()
 		//<<"250-XYZEXTENSION" << crlf()
-		<< "250 8BITMIME"
-		<< end() ;
+		<< "250 8BITMIME" ;
+	send( ss.str() ) ;
 }
 
 void GSmtp::ServerProtocol::sendHeloReply( const std::string & domain )
@@ -373,25 +405,6 @@ void GSmtp::ServerProtocol::sendHeloReply( const std::string & domain )
 void GSmtp::ServerProtocol::sendOk()
 {
 	send( "250 OK" ) ;
-}
-
-std::ostream & GSmtp::ServerProtocol::ss()
-{
-	delete m_ss ;
-	m_ss = NULL ;
-	m_ss = new std::stringstream ;
-	return *m_ss ;
-}
-
-GSmtp::ServerProtocol::End GSmtp::ServerProtocol::end()
-{
-	return End(*this) ;
-}
-
-void GSmtp::ServerProtocol::onEnd()
-{
-	G_ASSERT( m_ss != NULL ) ;
-	send( m_ss->str() ) ;
 }
 
 //static
@@ -409,7 +422,6 @@ void GSmtp::ServerProtocol::send( std::string line )
 
 GSmtp::ServerProtocol::~ServerProtocol()
 {
-	delete m_ss ;
 }
 
 std::string GSmtp::ServerProtocol::parseFrom( const std::string & line ) const
@@ -454,7 +466,7 @@ std::string GSmtp::ServerProtocol::parsePeerName( const std::string & line ) con
 		return std::string() ;
 
 	std::string peer_name = line.substr( pos + 1U ) ;
-	G::Str::trimLeft( peer_name , " \t" ) ;
+	G::Str::trim( peer_name , " \t" ) ;
 	return peer_name ;
 }
 
@@ -486,13 +498,6 @@ std::string GSmtp::ServerProtocol::receivedLine() const
 // ===
 
 GSmtp::ServerProtocol::Sender::~Sender()
-{
-}
-
-// ===
-
-GSmtp::ServerProtocol::End::End( ServerProtocol & p ) :
-	m_p(p)
 {
 }
 

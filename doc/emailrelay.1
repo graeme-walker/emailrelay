@@ -34,7 +34,7 @@ emailrelay \- e-mail transfer agent
 is an simple e-mail message transfer agent. It is intended to be used
 on stand-alone machines which have a dial-up connection to an ISP.
 .LP
-It runs in two modes: a storage deamon 
+It runs in two main modes: a storage deamon 
 .RI ( --as-server ) 
 and a forwarding 
 agent 
@@ -43,7 +43,15 @@ The storage daemon is an SMTP server which stores e-mail
 messages in a local spool directory. The forwarding agent acts as an
 SMTP client, which passes the spooled e-mail messages on to an ISP's SMTP
 server.
+.LP
+It can also run in a third mode, as a proxy server
+.RI ( --as-proxy ). 
+In this mode all messages are forwarded immediately to the downstream
+server.
 .SH OPTIONS
+.TP
+.B \-V,--version 
+Displays version information and exits.
 .TP
 .B \-a,--admin \fIadmin-port\fR
 Enables the administration interface and specifies its listening port number.
@@ -65,6 +73,9 @@ Records the daemon process-id in the given file.
 .TP
 .B \-l,--log 
 Writes log information on standard error (if open) and syslog (if not disabled).
+.TP
+.B \-m,--immediate 
+Forwards each message as soon as it is received (requires \fI--forward-to\fR).
 .TP
 .B \-n,--no-syslog 
 Disables syslog output.
@@ -93,8 +104,11 @@ Generates more verbose logging (if compiled-in and logging enabled and stderr op
 .B \-x,--dont-serve 
 Stops the process acting as a server (usually used with \fI--forward\fR).
 .TP
-.B \-V,--version 
-Displays version information and exits.
+.B \-y,--as-proxy \fIhost:port\fR
+Equivalent to \fI--close-stderr\fR \fI--log\fR \fI--immediate\fR \fI--forward-to\fR.
+.TP
+.B \-z,--filter \fIprogram\fR
+Defines a mail preprocessor (disallowed if running as root).
 .SH "DIAGNOSTICS"
 If the 
 .IR --log ,
@@ -119,7 +133,7 @@ Failed e-mail messages are kept in the spool directory and given
 a
 .I .bad
 filename suffix. The failure reason is usually recorded within the
-envelope file iteself.
+envelope file itself.
 .SH FILES
 .IP \(bu 2
 /usr/local/sbin/emailrelay
@@ -136,6 +150,8 @@ envelope file iteself.
 .IP \(bu 2
 /usr/local/share/emailrelay/emailrelay-deliver.sh
 .IP \(bu 2
+/usr/local/share/emailrelay/emailrelay-filter.sh
+.IP \(bu 2
 /usr/local/man/man1/emailrelay.1
 .IP \(bu 2
 /usr/local/man/man1/emailrelay-poke.1
@@ -151,6 +167,5 @@ E-MailRelay reference
 .BR syslog (3),
 .BR pppd (8),
 .BR init.d (7)
-.BR emailrelay-poke (1),
 .SH AUTHOR
 Graeme Walker, mailto:graeme_walker@users.sourceforge.net

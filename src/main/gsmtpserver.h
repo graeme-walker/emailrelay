@@ -28,9 +28,12 @@
 #include "gsmtp.h"
 #include "gserver.h"
 #include "glinebuffer.h"
+#include "gverifier.h"
 #include "gserverprotocol.h"
+#include "gprotocolmessage.h"
 #include <string>
 #include <sstream>
+#include <memory>
 
 namespace GSmtp
 {
@@ -43,11 +46,12 @@ namespace GSmtp
 // Instances are created on the heap by Server (only).
 // See also: Server
 //
-class GSmtp::ServerPeer : public GNet::ServerPeer , private GSmtp::ServerProtocol::Sender
+class GSmtp::ServerPeer : public GNet::ServerPeer , private GSmtp:: ServerProtocol::Sender
 {
 public:
-	ServerPeer( GNet::StreamSocket * , GNet::Address , Server & server , const std::string & ident ) ;
-		// Constructor.
+	ServerPeer( GNet::StreamSocket * socket , GNet::Address address ,
+		Server & server , std::auto_ptr<ProtocolMessage> pmessage , const std::string & ident ) ;
+			// Constructor.
 
 private:
 	ServerPeer( const ServerPeer & ) ;
@@ -60,10 +64,12 @@ private:
 	std::string thishost() const ;
 
 private:
+	Server & m_server ;
 	GNet::LineBuffer m_buffer ;
 	static std::string crlf() ;
-	ServerProtocol m_protocol ;
-	Server & m_server ;
+	Verifier m_verifier ; // order dependency -- first
+	std::auto_ptr<ProtocolMessage> m_pmessage ; // order dependency -- second
+	ServerProtocol m_protocol ; // order dependency -- third
 } ;
 
 // Class: GSmtp::Server
@@ -72,8 +78,12 @@ private:
 class GSmtp::Server : private GNet::Server
 {
 public:
-	Server( unsigned int port , bool allow_remote , const std::string & ident ) ;
-		// Constructor.
+	Server( unsigned int port , bool allow_remote , const std::string & ident ,
+		const std::string & downstream_server_address ) ;
+			// Constructor.
+			//
+			// If the 'downstream-server-address' parameter is
+			// given then all messages are forwarded immediately.
 
 private:
 	virtual GNet::ServerPeer * newPeer( GNet::StreamSocket * , GNet::Address ) ;
@@ -83,6 +93,7 @@ private:
 private:
 	std::string m_ident ;
 	bool m_allow_remote ;
+	std::string m_downstream_server ;
 } ;
 
 #endif

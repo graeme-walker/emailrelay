@@ -175,6 +175,10 @@ SOURCE=..\glib\gfile_win32.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\gfilestore.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\glib\gfs_win32.cpp
 # End Source File
 # Begin Source File
@@ -211,6 +215,14 @@ SOURCE=..\..\src\main\gmessagestore_win32.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\gnewfile.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\gnewmessage.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\glib\gnumber.cpp
 # End Source File
 # Begin Source File
@@ -219,11 +231,19 @@ SOURCE=..\..\src\glib\gpath.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\glib\gpid_win32.cpp
+SOURCE=..\..\src\glib\gprocess_win32.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\main\gprotocolmessage.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\gprotocolmessageforward.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\gprotocolmessagestore.cpp
 # End Source File
 # Begin Source File
 
@@ -275,11 +295,23 @@ SOURCE=..\..\src\gnet\gsocket_win32.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\gstoredfile.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\gstoredmessage.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\glib\gstr.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\glib\gtime.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\gverifier.cpp
 # End Source File
 # Begin Source File
 
@@ -379,6 +411,10 @@ SOURCE=..\..\src\glib\gfile.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\gfilestore.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\glib\gfs.h
 # End Source File
 # Begin Source File
@@ -415,15 +451,31 @@ SOURCE=..\..\src\gnet\gnet.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\gnewfile.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\gnewmessage.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\glib\gpath.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\glib\gpid.h
+SOURCE=..\..\src\glib\gprocess.h
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\main\gprotocolmessage.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\gprotocolmessageforward.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\gprotocolmessagestore.h
 # End Source File
 # Begin Source File
 
@@ -463,6 +515,14 @@ SOURCE=..\..\src\gnet\gsocket.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\gstoredfile.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\gstoredmessage.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\glib\gstr.h
 # End Source File
 # Begin Source File
@@ -475,12 +535,24 @@ SOURCE=..\..\src\glib\gtime.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\gverifier.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\gnet\gwinsock.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
+# Begin Source File
+
+SOURCE=.\emailrelay.rc
+# End Source File
+# Begin Source File
+
+SOURCE=".\icon-32.ico"
+# End Source File
 # End Group
 # End Target
 # End Project

@@ -54,13 +54,12 @@ namespace GNet
 class GNet::EventHandler
 {
 public:
-	EventHandler() ;
+	virtual ~EventHandler() ;
 	virtual void readEvent() /*=0*/ ;
 	virtual void writeEvent() /*=0*/ ;
 	virtual void exceptionEvent() /*=0*/ ;
 private:
-	EventHandler( const EventHandler & ) ;
-	void operator=( const EventHandler & ) ;
+	void operator=( const EventHandler & ) ; // not implemented
 } ;
 
 // Class: GNet::EventSources

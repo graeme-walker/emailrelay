@@ -33,7 +33,7 @@
 // Class: GNet::ResolverImp
 // Description: A pimple-pattern implementation class for GNet::Resolver.
 //
-class GNet::ResolverImp : public EventHandler
+class GNet::ResolverImp : public GNet:: EventHandler
 {
 public:
 	ResolverImp( Resolver & resolver , unsigned int port ) ;

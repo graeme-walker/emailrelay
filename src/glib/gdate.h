@@ -38,6 +38,7 @@ namespace G
 
 // Class: G::Date
 // Description: A date (dd/mm/yyyy) class.
+// See also: Time, DateTime
 //
 class G::Date
 {
@@ -53,7 +54,7 @@ public:
 		august , september , october , november , december } ;
 
 	enum Format
-		{ yyyy_mm_dd_slash } ;
+		{ yyyy_mm_dd_slash , yyyy_mm_dd } ;
 
 	static int yearUpperLimit() ;
 		// Returns the smallest supported year value.
@@ -69,16 +70,16 @@ public:
 		// Constructor for the current date
 		// in the local timezone.
 
-	explicit Date( const G::DateTime::BrokenDownTime & tm ) ;
+	Date( const G::DateTime::BrokenDownTime & tm ) ;
 		// Constructor for the specified date.
 
-	explicit Date( G::DateTime::EpochTime t , const LocalTime & ) ;
+	Date( G::DateTime::EpochTime t , const LocalTime & ) ;
 		// Constructor for the date in the local
 		// timezone as at the given epoch time.
 
 	Date( int year , Month month , int day_of_month ) ;
 		// Constructor for the specified date.
-		
+
 	std::string string( Format format = yyyy_mm_dd_slash ) const ;
 		// Returns a string representation of the date.
 
@@ -86,7 +87,8 @@ public:
 		// Returns the day of the week.
 
 	std::string weekdayString( bool brief = false ) const ;
-		// Returns a string representation of the day of the week.
+		// Returns an english string representation of
+		// the day of the week.
 
 	int monthday() const ;
 		// Returns the day of the month.
@@ -98,7 +100,7 @@ public:
 		// Returns the month.
 
 	std::string monthString( bool brief = false ) const ;
-		// Returns the month as a string.
+		// Returns the month as a string (in english).
 
 	int year() const ;
 		// Returns the year.
@@ -106,16 +108,16 @@ public:
 	std::string yearString() const ;
 		// Returns the year as a string.
 
-	Date &operator++() ;
+	Date & operator++() ;
 		// Increments the date by one day.
 
-	Date &operator--() ;
+	Date & operator--() ;
 		// Decrements the date by one day.
 
-	bool operator==( const Date &rhs ) const ;
+	bool operator==( const Date & rhs ) const ;
 		// Comparison operator.
 
-	bool operator!=( const Date &rhs ) const ;
+	bool operator!=( const Date & rhs ) const ;
 		// Comparison operator.
 
 private:
