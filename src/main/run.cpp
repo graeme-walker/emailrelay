@@ -80,7 +80,7 @@ Main::Run * Main::Run::m_this = NULL ;
 //static
 std::string Main::Run::versionNumber()
 {
-	return "1.0.1" ;
+	return "1.0.2" ;
 }
 
 Main::Run::Run( const G::Arg & arg ) :

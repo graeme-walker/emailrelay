@@ -66,7 +66,7 @@ std::string Main::CommandLine::switchSpec()
 		<< "m!immediate!forwards each message as soon as it is received (requires --forward-to)!0!!3|"
 		<< "I!interface!listen on a specific interface!1!ip-address!3|"
 		<< "i!pid-file!records the daemon process-id in the given file!1!pid-file!3|"
-		<< "Z!verifier!!1!program!3|"
+		<< "Z!verifier!defines an external program for validating recipient addresses!1!program!3|"
 		;
 	return ss.str() ;
 }

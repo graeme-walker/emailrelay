@@ -27,6 +27,7 @@
 #include "gdef.h"
 #include "gsmtp.h"
 #include "gprotocolmessage.h"
+#include "gaddress.h"
 #include "gverifier.h"
 #include "gsasl.h"
 #include "gstatemachine.h"
@@ -71,7 +72,7 @@ public:
 	} ;
 
 	ServerProtocol( Sender & sender , Verifier & verifier , ProtocolMessage & pmessage ,
-		const std::string & thishost , const std::string & peer_address ) ;
+		const std::string & thishost , GNet::Address peer_address ) ;
 			// Constructor.
 			//
 			// The Verifier interface is used to verify recipient
@@ -185,6 +186,7 @@ private:
 	std::string parsePeerName( const std::string & ) const ;
 	std::string parse( const std::string & ) const ;
 	std::string receivedLine() const ;
+	Verifier::Status verify( const std::string & , const std::string & ) const ;
 
 private:
 	Sender & m_sender ;
@@ -193,7 +195,7 @@ private:
 	Fsm m_fsm ;
 	std::string m_thishost ;
 	std::string m_peer_name ;
-	std::string m_peer_address ;
+	GNet::Address m_peer_address ;
 	bool m_authenticated ;
 	SaslServer m_sasl ;
 } ;

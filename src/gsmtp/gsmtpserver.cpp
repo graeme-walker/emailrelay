@@ -41,7 +41,7 @@ GSmtp::ServerPeer::ServerPeer( GNet::StreamSocket * socket , GNet::Address peer_
 		m_buffer( crlf() ) ,
 		m_verifier( verifier ) ,
 		m_pmessage( pmessage ) ,
-		m_protocol( *this, m_verifier, *m_pmessage.get(), thishost(), peer_address.displayString(false) )
+		m_protocol( *this, m_verifier, *m_pmessage.get(), thishost(), peer_address )
 {
 	G_LOG_S( "GSmtp::ServerPeer: smtp connection from " << peer_address.displayString() ) ;
 	m_protocol.init( ident ) ;

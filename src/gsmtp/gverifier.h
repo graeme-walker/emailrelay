@@ -27,6 +27,7 @@
 #include "gdef.h"
 #include "gsmtp.h"
 #include "gpath.h"
+#include "gaddress.h"
 #include <string>
 
 namespace GSmtp
@@ -55,34 +56,37 @@ public:
 	explicit Verifier( const G::Path & exe ) ;
 		// Constructor.
 
-        Status verify( const std::string & recipient_address , const std::string & from = std::string() ) const ;
-		// Checks a recipient address returning
-		// a structure which indicates whether the
-		// address is local, what the full name is,
-		// and the canonical address.
-		//
-		// If invalid then 'is_valid' is set false
-		// and a 'reason' is supplied.
-		//
-		// If valid and syntactically local then
-		// 'is_local' is set true, 'full_name' is
-		// set to the full description
-		// and 'address' is set to the
-		// canonical local address (without an
-		// at sign).
-		//
-		// If valid and syntactically remote, then
-		// 'is_local' is set false, 'full_name' is
-		// empty, and 'address' is copied from
-		// 'recipient_address'.
-		//
-		// The 'from' address is passed in for
-		// RCPT commands, but not VRFY.
+        Status verify( const std::string & rcpt_to_parameter ,
+		const std::string & mail_from_parameter , const GNet::Address & client_ip ,
+		const std::string & auth_mechanism , const std::string & auth_extra ) const ;
+			// Checks a recipient address returning
+			// a structure which indicates whether the
+			// address is local, what the full name is,
+			// and the canonical address.
+			//
+			// If invalid then 'is_valid' is set false
+			// and a 'reason' is supplied.
+			//
+			// If valid and syntactically local then
+			// 'is_local' is set true, 'full_name' is
+			// set to the full description
+			// and 'address' is set to the
+			// canonical local address (without an
+			// at sign).
+			//
+			// If valid and syntactically remote, then
+			// 'is_local' is set false, 'full_name' is
+			// empty, and 'address' is copied from
+			// 'recipient_address'.
+			//
+			// The 'from' address is passed in for
+			// RCPT commands, but not VRFY.
 
 private:
 	Status verifyInternal( const std::string & , const std::string & , const std::string & ,
-		const std::string & , const std::string & ) const ;
+		const std::string & ) const ;
 	Status verifyExternal( const std::string & , const std::string & , const std::string & ,
+		const std::string & , const std::string & , const GNet::Address & ,
 		const std::string & , const std::string & ) const ;
 
 private:

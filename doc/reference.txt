@@ -201,8 +201,11 @@ verifier program, using the "--verifier" command-line switch.
 
 The verifier program is passed a command-line containing the full address, the
 user-name part of the address, the host-name part, the local host's fully
-qualified domain name, and the current "MAIL" command's "FROM:" address or the
-empty string for the "VRFY" command.
+qualified domain name, the current "MAIL" command's "FROM:" address or the
+empty string for the "VRFY" command, the IP address of the client connection,
+the authentication mechanism used by the client ("NONE" if trusted), and either
+the authentication name or the fourth field from authentication secrets file if
+a trusted IP address.
 
 For valid local mailbox addresses the verifier is expected to write two lines to
 the standard output -- the full name associated with the mailbox, and the
@@ -214,6 +217,40 @@ written to the standard output is taken as the failure reason.
 
 (Only the few few thousand characters are read from the verifier's standard
 output stream; any more is thrown away.)
+
+In this simple example script all addresses are accepted as long as they contain
+an at sign. This has the effect of removing the normal "postmaster" functionality,
+which is in any case not very useful when running in proxy mode:
+
+	#!/bin/sh
+	# verifier.sh
+	# An address verifier script for E-MailRelay.
+	address="${1}"
+	user="${2}"
+	host="${3}"
+	if test "${address}" != "${user}@${host}" ; then exit 2 ; fi
+	echo "${address}"
+	echo "${address}" # again
+	exit 1 # accept
+
+As another example, the following address verifier script accepts all recipient
+addresses by default, but rejects remote addresses if the client has bypassed
+authentication by connecting on a trusted IP address:
+
+	#!/bin/sh
+	# verifier.sh
+	# An address verifier script for E-MailRelay.
+	host="$3"
+	local_domain="$4"
+	auth_mechanism="$7"
+	if test "${auth_mechanism}" = "NONE" -a "${host}" != "${local_domain}"
+	then
+		echo "cannot relay without authentication"
+		exit 2 # reject the recipient address
+	fi
+	echo "${address}"
+	echo "${address}" # again
+	exit 1 # accept the recipient address
 
 Administration interface
 ------------------------
@@ -373,16 +410,23 @@ least make sure that the secrets file has tight permissions, and that the
 passwords in it are not also used for anything important (such as root access).
 
 On the server side authentication is advertised in the response to the SMTP
-"EHLO" command if the "--auth-server" command-line switch is used, but
-authentication by the client is optional. If the client does authenticate then
+"EHLO" command if the "--auth-server" command-line switch is used, and
+authentication by the client is mandatory unless the client's IP address is
+configured as a trusted address. If the client does authenticate then
 the authenticated user-id is stored with the message and then passed on to a
 next-hop server using an "AUTH=userid" parameter on the SMTP "MAIL FROM"
-command. If the client chooses not to authenticate then the submitted messages
+command. If the client does not to authenticate then the submitted messages
 will be forwarded using "AUTH=<>" on the "MAIL FROM" command. Note that any
 "AUTH=userid" information on incoming submitted messages is ignored and
 discarded: it is the authorised userid from the AUTH command which is
 propagated, not the userid from the incoming "MAIL FROM" command's "AUTH="
 parameter.
+
+Trusted IP addresses are configured with lines in the secrets file having "NONE"
+in the first field, "server" in the second field, a wildcarded IP address in
+the third field, and an arbitrary keyword in the fourth field. The keyword
+is passed to any external address verifier program specified by the "--verifier"
+command-line switch.
 
 On the client side authentication is performed when the client has connected to
 a server which supports the AUTH extension with the LOGIN or CRAM-MD5 mechanism.

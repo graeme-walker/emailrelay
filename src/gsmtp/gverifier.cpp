@@ -38,9 +38,13 @@ GSmtp::Verifier::Verifier( const G::Path & path ) :
 {
 }
 
-GSmtp::Verifier::Status GSmtp::Verifier::verify( const std::string & address , const std::string & from ) const
+GSmtp::Verifier::Status GSmtp::Verifier::verify( const std::string & address ,
+	const std::string & from , const GNet::Address & ip ,
+	const std::string & mechanism , const std::string & extra ) const
 {
-	G_DEBUG( "GSmtp::ProtocolMessage::verify: to \"" << address << "\": from \"" << from << "\"" ) ;
+	G_DEBUG( "GSmtp::ProtocolMessage::verify: to \"" << address << "\": from \"" << from << "\": "
+		<< "ip \"" << ip.displayString(false) << "\": auth-mechanism \"" << mechanism << "\": "
+		<< "auth-extra \"" << extra << "\"" ) ;
 
 	std::string fqdn = GNet::Local::fqdn() ;
 	std::string host ;
@@ -57,14 +61,14 @@ GSmtp::Verifier::Status GSmtp::Verifier::verify( const std::string & address , c
 
 	Status status =
 		m_path == G::Path() ?
-			verifyInternal( address , user , host , fqdn , from ) :
-			verifyExternal( address , user , host , fqdn , from ) ;
+			verifyInternal( address , user , host , fqdn ) :
+			verifyExternal( address , user , host , fqdn , from , ip , mechanism , extra ) ;
 
 	return status ;
 }
 
 GSmtp::Verifier::Status GSmtp::Verifier::verifyInternal( const std::string & address , const std::string & user ,
-	const std::string & host , const std::string & fqdn , const std::string & ) const
+	const std::string & host , const std::string & fqdn ) const
 {
 	Status status ;
 	if( user == "POSTMASTER" && ( host.empty() || host == "LOCALHOST" || host == fqdn ) )
@@ -93,7 +97,8 @@ GSmtp::Verifier::Status GSmtp::Verifier::verifyInternal( const std::string & add
 }
 
 GSmtp::Verifier::Status GSmtp::Verifier::verifyExternal( const std::string & address , const std::string & user ,
-	const std::string & host , const std::string & fqdn , const std::string & from ) const
+	const std::string & host , const std::string & fqdn , const std::string & from ,
+	const GNet::Address & ip , const std::string & mechanism , const std::string & extra ) const
 {
 	G::Strings args ;
 	args.push_back( address ) ;
@@ -101,7 +106,12 @@ GSmtp::Verifier::Status GSmtp::Verifier::verifyExternal( const std::string & add
 	args.push_back( host ) ;
 	args.push_back( fqdn ) ;
 	args.push_back( from ) ;
-	G_LOG( "GSmtp::Verifier: executing " << m_path << " " << address << " " << user << " " << host << " " << fqdn << " " << from ) ;
+	args.push_back( ip.displayString(false) ) ;
+	args.push_back( mechanism ) ;
+	args.push_back( extra ) ;
+	G_LOG( "GSmtp::Verifier: executing " << m_path << " " << address << " " << user << " "
+		<< host << " " << fqdn << " " << from << " " << ip.displayString(false) << " "
+		<< "\"" << mechanism << "\" \"" << extra << "\"" ) ;
 
 	std::string response ;
 	int rc = G::Process::spawn( G::Root::nobody() , m_path , args , &response ) ;

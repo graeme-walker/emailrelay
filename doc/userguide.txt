@@ -297,6 +297,26 @@ from cygwin/bash on Win98 keeps stderr open (albeit with dreadful performance),
 whereas the standard command prompt does not. If necessary the environment
 variable "GLOGOUTPUT_FILE" can be defined as the name of a log file.
 
+Preventing public mail relay
+----------------------------
+If you are running E-MailRelay as a server with a permanent connection to the
+Internet it is important to prevent public mail relay. By default public mail
+relaying is not possible because E-MailRelay does not accept IP connections from
+remote clients. However, if the "--remote-clients" switch is used then you need
+to be more careful. One option is to require all clients to authenticate, by
+using the "--server-auth" switch. But if you need local clients, such as your
+own e-mail front-end, to connect without authentication then you will need to
+put those trusted IP addresses in the secrets file with an authentication
+mechanism of "NONE". Refer to the reference guide for more information.
+
+Taking it one stage further, you may want to allow clients to connect from any
+IP address without authentication, but only allow them to send mail to local
+users. You can do this by requiring authentication with the "--server-auth"
+switch but then exempting all clients from authentication with a "NONE server *.*.*.* x"
+line in the secrets file. To complete the solution you must have an address
+verifier script ("--verifier") which rejects remote addresses if the client has
+not authenticated. Again, refer to the reference guide for further details.
+
 Glossary
 --------
 

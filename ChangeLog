@@ -1,6 +1,13 @@
 E-MailRelay Change Log
 ======================
 
+1.0.0 -> 1.0.2
+--------------
+* Support for trusted IP addresses, allowing certain clients to avoid authentication.
+* Address verifier interface extended to include authentication information.
+* New public mail relay section added to the user guide.
+* Example verifier scripts etc. added to the reference guide.
+
 1.0.0 -> 1.0.1
 --------------
 * In proxy mode unexpected client-side disconnects and timeouts result in ".bad" files [bug-id 659039].

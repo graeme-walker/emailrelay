@@ -34,7 +34,7 @@
 #include <string>
 
 GSmtp::ServerProtocol::ServerProtocol( Sender & sender , Verifier & verifier , ProtocolMessage & pmessage ,
-	const std::string & thishost , const std::string & peer_address ) :
+	const std::string & thishost , GNet::Address peer_address ) :
 		m_sender(sender) ,
 		m_pmessage(pmessage) ,
 		m_verifier(verifier) ,
@@ -88,7 +88,7 @@ bool GSmtp::ServerProtocol::apply( const std::string & line )
 			G_LOG( "GSmtp::ServerProtocol: rx<<: [message content not logged]" ) ;
 			G_LOG( "GSmtp::ServerProtocol: rx<<: \"" << G::Str::toPrintableAscii(line) << "\"" ) ;
 			m_fsm.reset( sProcessing ) ;
-			m_pmessage.process( *this , m_sasl.id() , m_peer_address ) ; // -> processDone() callback
+			m_pmessage.process( *this , m_sasl.id() , m_peer_address.displayString(false) ) ; // -> processDone() callback
 		}
 		else
 		{
@@ -145,7 +145,7 @@ void GSmtp::ServerProtocol::doNoop( const std::string & , bool & )
 void GSmtp::ServerProtocol::doVrfy( const std::string & line , bool & )
 {
 	std::string mbox = parseMailbox( line ) ;
-	Verifier::Status rc = m_verifier.verify( mbox ) ;
+	Verifier::Status rc = verify( mbox , "" ) ;
 	bool local = rc.is_local ;
 	if( local && rc.full_name.length() )
 		sendVerified( rc.full_name ) ;
@@ -153,6 +153,15 @@ void GSmtp::ServerProtocol::doVrfy( const std::string & line , bool & )
 		sendNotVerified( mbox ) ;
 	else
 		sendWillAccept( mbox ) ;
+}
+
+GSmtp::Verifier::Status GSmtp::ServerProtocol::verify( const std::string & to , const std::string & from ) const
+{
+	std::string mechanism = m_sasl.active() ? m_sasl.mechanism() : std::string() ;
+	std::string id = m_sasl.active() ? m_sasl.id() : std::string() ;
+	if( m_sasl.active() && !m_authenticated )
+		mechanism = "NONE" ;
+	return m_verifier.verify( to , from , m_peer_address , mechanism , id ) ;
 }
 
 std::string GSmtp::ServerProtocol::parseMailbox( const std::string & line ) const
@@ -300,7 +309,7 @@ void GSmtp::ServerProtocol::sendChallenge( const std::string & s )
 
 void GSmtp::ServerProtocol::doMail( const std::string & line , bool & predicate )
 {
-	if( m_sasl.active() && ! m_authenticated )
+	if( m_sasl.active() && !m_sasl.trusted(m_peer_address) && !m_authenticated )
 	{
 		predicate = false ;
 		sendAuthRequired() ;
@@ -321,7 +330,7 @@ void GSmtp::ServerProtocol::doMail( const std::string & line , bool & predicate 
 void GSmtp::ServerProtocol::doRcpt( const std::string & line , bool & predicate )
 {
 	std::string to = parseTo( line ) ;
-	bool ok = m_pmessage.addTo( to , m_verifier.verify(to,m_pmessage.from()) ) ;
+	bool ok = m_pmessage.addTo( to , verify(to,m_pmessage.from()) ) ;
 	predicate = ok ;
 	if( ok )
 		sendRcptReply() ;
@@ -337,7 +346,7 @@ void GSmtp::ServerProtocol::doUnknown( const std::string & line , bool & )
 void GSmtp::ServerProtocol::doRset( const std::string & , bool & )
 {
 	m_pmessage.clear() ;
-	m_authenticated = false ; // (not clear in the RFCs)
+	m_sasl.init("") ; m_authenticated = false ; // (not clear in the RFCs)
 	sendRsetReply() ;
 }
 
@@ -575,7 +584,7 @@ std::string GSmtp::ServerProtocol::receivedLine() const
 	ss
 		<< "Received: "
 		<< "FROM " << m_peer_name << " "
-		<< "([" << m_peer_address << "]) "
+		<< "([" << m_peer_address.displayString(false) << "]) "
 		<< "BY " << m_thishost << " "
 		<< "WITH ESMTP "
 		<< "; "

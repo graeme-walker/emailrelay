@@ -89,7 +89,7 @@ static void process( const G::Path & path , std::istream & stream ,
 	{
 		std::string to = *to_p ;
 		G::Str::trim( to , " \t\r\n" ) ;
-		GSmtp::Verifier::Status status = verifier.verify( to ) ;
+		GSmtp::Verifier::Status status = verifier.verify( to , "" , GNet::Address::localhost(0U) , "" , "" ) ;
 		msg->addTo( status.address , status.is_local ) ;
 	}
 

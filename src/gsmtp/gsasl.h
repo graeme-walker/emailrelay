@@ -28,6 +28,7 @@
 #include "gsmtp.h"
 #include "gsecrets.h"
 #include "gexception.h"
+#include "gaddress.h"
 #include "gstrings.h"
 #include "gpath.h"
 #include <map>
@@ -132,6 +133,10 @@ public:
 		// Initialiser. Returns true if a supported mechanism.
 		// May be used more than once.
 
+	std::string mechanism() const ;
+		// Returns the mechanism, as passed to the last init()
+		// call to return true.
+
 	bool mustChallenge() const ;
 		// Returns true if the mechanism must start with
 		// a non-empty server challenge.
@@ -149,11 +154,15 @@ public:
 		// Precondition: apply() returned empty
 
 	std::string id() const ;
-		// Returns the authenticated identity. Returns the
-		// empty string if not authenticated.
+		// Returns the authenticated or trusted identity. Returns the
+		// empty string if not authenticated and not trusted.
 
 	std::string mechanisms( char sep = ' ' ) const ;
 		// Returns a list of supported mechanisms.
+
+	bool trusted( GNet::Address ) ;
+		// Returns true if a trusted client that
+		// does not need to authenticate.
 
 private:
 	SaslServer( const SaslServer & ) ; // not implemented

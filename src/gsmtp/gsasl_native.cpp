@@ -52,9 +52,12 @@ public:
 	std::string m_challenge ;
 	bool m_authenticated ;
 	std::string m_id ;
+	std::string m_trustee ;
 	SaslServerImp() ;
-	void init( const std::string & mechanism ) ;
+	bool init( const std::string & mechanism ) ;
 	bool validate( const std::string & secret , const std::string & response ) const ;
+	bool trusted( GNet::Address ) ;
+	bool trustedCore( const std::string & , const std::string & ) ;
 	static std::string clientResponse( const std::string & secret ,
 		const std::string & challenge , bool & error ) ;
 } ;
@@ -65,19 +68,31 @@ GSmtp::SaslServerImp::SaslServerImp() :
 {
 }
 
-void GSmtp::SaslServerImp::init( const std::string & mechanism )
+bool GSmtp::SaslServerImp::init( const std::string & mechanism )
 {
-	m_mechanism = mechanism ;
 	m_authenticated = false ;
 	m_id = std::string() ;
+	m_trustee = std::string() ;
 	m_first = true ;
 	m_challenge = std::string() ;
+	m_mechanism = std::string() ;
 
-	if( m_mechanism == "CRAM-MD5" )
+	if( mechanism == "LOGIN" )
 	{
+		m_mechanism = mechanism ;
+		return true ;
+	}
+	else if( mechanism == "CRAM-MD5" )
+	{
+		m_mechanism = mechanism ;
 		std::ostringstream ss ;
 		ss << "<" << ::rand() << "." << G::DateTime::now() << "@" << GNet::Local::fqdn() << ">" ;
 		m_challenge = ss.str() ;
+		return true ;
+	}
+	else
+	{
+		return false ;
 	}
 }
 
@@ -120,6 +135,41 @@ std::string GSmtp::SaslServerImp::clientResponse( const std::string & secret ,
 	return std::string() ;
 }
 
+bool GSmtp::SaslServerImp::trusted( GNet::Address address )
+{
+	std::string ip = address.displayString(false) ;
+	G_DEBUG( "GSmtp::SaslServerImp::trusted: \"" << ip << "\"" ) ;
+	G::Str::StringArray part ;
+	G::Str::splitIntoFields( ip , part , "." ) ;
+	if( part.size() == 4U )
+	{
+		return
+			trustedCore(ip,ip) ||
+			trustedCore(ip,part[0]+"."+part[1]+"."+part[2]+".*") ||
+			trustedCore(ip,part[0]+"."+part[1]+".*.*") ||
+			trustedCore(ip,part[0]+".*.*.*") ||
+			trustedCore(ip,"*.*.*.*") ;
+	}
+	else
+	{
+		return trustedCore( ip , ip ) ;
+	}
+}
+
+bool GSmtp::SaslServerImp::trustedCore( const std::string & full , const std::string & key )
+{
+	G_DEBUG( "GSmtp::SaslServerImp::trustedCore: \"" << full << "\", \"" << key << "\"" ) ;
+	std::string secret = Sasl::instance().serverSecrets().secret("NONE",key) ;
+	bool trusted = ! secret.empty() ;
+	if( trusted )
+	{
+		G_LOG( "GSmtp::SaslServer::trusted: trusting \"" << full << "\" "
+			<< "(matched on NONE/server/" << key << "/" << secret << ")" ) ;
+		m_trustee = secret ;
+	}
+	return trusted ;
+}
+
 // ===
 
 std::string GSmtp::SaslServer::mechanisms( char c ) const
@@ -151,10 +201,19 @@ bool GSmtp::SaslServer::mustChallenge() const
 
 bool GSmtp::SaslServer::init( const std::string & mechanism )
 {
-	m_imp->init( mechanism ) ;
+	G_DEBUG( "GSmtp::SaslServer::init: mechanism \"" << mechanism << "\"" ) ;
+	return m_imp->init( mechanism ) ;
+}
 
-	G_DEBUG( "GSmtp::SaslServer::init: mechanism \"" << m_imp->m_mechanism << "\"" ) ;
-	return m_imp->m_mechanism == "LOGIN" || m_imp->m_mechanism == "CRAM-MD5" ;
+std::string GSmtp::SaslServer::mechanism() const
+{
+	return m_imp->m_mechanism ;
+}
+
+bool GSmtp::SaslServer::trusted( GNet::Address a )
+{
+	G_DEBUG( "GSmtp::SaslServer::trusted: checking \"" << a.displayString(false) << "\"" ) ;
+	return m_imp->trusted(a) ;
 }
 
 std::string GSmtp::SaslServer::initialChallenge() const
@@ -210,7 +269,7 @@ bool GSmtp::SaslServer::authenticated() const
 
 std::string GSmtp::SaslServer::id() const
 {
-	return m_imp->m_authenticated ? m_imp->m_id : std::string() ;
+	return m_imp->m_authenticated ? m_imp->m_id : m_imp->m_trustee ;
 }
 
 // ===
