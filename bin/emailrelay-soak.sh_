@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -23,12 +23,15 @@
 #
 # Soak tests the E-MailRelay system.
 #
+# usage: emailrelay-soak.sh [<exe>]
+#
 # (As a side-effect it does "killall emailrelay".)
 #
 
 # configuration
 #
 exe="`dirname $0`/../src/main/emailrelay"
+test -z "${1}" || exe="${1}"
 content="/etc/services"
 pp="1001" # port prefix
 

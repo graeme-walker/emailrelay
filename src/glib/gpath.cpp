@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -45,7 +45,7 @@ G::Path::Path( const std::string & path )
 	validate( "c-ctor" ) ;
 }
 
-G::Path::Path( const char *path )
+G::Path::Path( const char * path )
 {
 	set( std::string(path) ) ;
 	validate( "ctor(cstr)" ) ;
@@ -130,7 +130,7 @@ void G::Path::normalise()
 	}
 }
 
-bool G::Path::valid() const
+bool G::Path::validPath() const
 {
 	const char *slash = std::strrchr( m_str.c_str() , FileSystem::slash() ) ;
 	const char *dot = std::strrchr( m_str.c_str() , '.' ) ;
@@ -157,13 +157,10 @@ void G::Path::streamOut( std::ostream & stream ) const
 	stream << str() ;
 }
 
-void G::Path::validate( const char * where ) const
+void G::Path::validate( const char * /* where */ ) const
 {
-	if( !valid() )
-	{
-		G_ERROR( "G::Path::validate: " << where << ": \"" << m_str << "\"" ) ;
-		G_ASSERT( !"invalid Path" ) ;
-	}
+	//if( !validPath() ) G_ERROR( "G::Path::validate: " << where << ": \"" << m_str << "\"" ) ;
+	G_ASSERT( validPath() ) ;
 }
 
 bool G::Path::simple() const

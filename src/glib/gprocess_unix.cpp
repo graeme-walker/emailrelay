@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -97,7 +97,7 @@ void G::Process::chroot( const Path & dir )
 	if( 0 != ::chroot( dir.str().c_str() ) )
 	{
 		int error = errno_() ;
-		G_DEBUG( "G::Process::chroot: " << error ) ;
+		G_WARNING( "G::Process::chroot: cannot chroot to \"" << dir << "\": " << error ) ;
 		throw CannotChroot( dir.str() ) ;
 	}
 	cd( "/" ) ;

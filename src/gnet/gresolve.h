@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -59,7 +59,7 @@ public:
 		// The name should be in the format:
 		//
 		//	{<host-name>|<host-address>}:{<service-name>|<port-number>}
-		//	host-address := <n1>.<n2>.<n3>.<n4>
+		//	host-address := <n-1>.<n-2>.<n-3>.<n-4>
 		//
 		// (Clearly if either part is in its numeric format then the
 		// resolver has no name-to-address conversion work to do

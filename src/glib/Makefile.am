@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License
@@ -31,12 +31,12 @@ EXTRA_DIST=\
 	gfile_win32.cpp \
 	gregistry_win32.cpp \
 	gregistry.h \
-	md5c.c \
-	md5.h \
 	mingw.mak
 INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION)
 noinst_LIBRARIES = libglib.a
 libglib_a_SOURCES = \
+	md5.cpp \
+	md5.h \
 	garg.cpp \
 	garg.h \
 	garg_unix.cpp \
@@ -74,7 +74,7 @@ libglib_a_SOURCES = \
 	glogoutput.cpp \
 	glogoutput.h \
 	glogoutput_unix.cpp \
-	gmd5_rsa.cpp \
+	gmd5_native.cpp \
 	gmd5.h \
 	gmemory.h \
 	gnoncopyable.h \

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -128,7 +128,7 @@ private:
 	virtual void onData( const char * data , size_t size ) ; // GNet::Client
 	virtual void onWriteable() ; // GNet::Client
 	virtual void onError( const std::string & error ) ; // GNet::Client
-	virtual bool protocolSend( const std::string & ) ; // ClientProtocol::Sender
+	virtual bool protocolSend( const std::string & , size_t ) ; // ClientProtocol::Sender
 	void protocolDone( bool , bool , std::string ) ; // ClientProtocol::doneSignal()
 	virtual void onTimeout( GNet::Timer & ) ; // GNet::TimeoutHandler
 	std::string init( const std::string & , const std::string & , unsigned int ) ;

@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License
@@ -35,9 +35,10 @@ mk_sources=\
 libs=../gsmtp/gsmtp.a ../gnet/gnet.a ../win32/gwin32.a ../glib/glib.a 
 syslibs=-lgdi32 -lwsock32
 rc=emailrelay.rc
-res=$(rc:.rc=.o)
-
+fake_mc=mingw.exe
+mc_output=MSG00001.bin messages.rc
 mk_target=emailrelay.exe
+res=$(rc:.rc=.o)
 
 all: $(mk_target)
 
@@ -46,4 +47,11 @@ include ../mingw-common.mak
 $(mk_target): $(mk_objects) $(res) $(libs)
 	$(mk_gcc) $(mk_gcc_flags) -o $(mk_target) $(mk_objects) $(res) $(libs) $(syslibs)
 
+$(fake_mc): mingw.c
+	$(mk_gcc) -o $@ $<
+
+$(mc_output): $(fake_mc) messages.mc
+	$(fake_mc) messages.mc
+
+$(res): $(rc) $(mc_output)
 

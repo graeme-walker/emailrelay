@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -135,6 +135,10 @@ GSmtp::Verifier::Status GSmtp::Verifier::verifyExternal( const std::string & add
 		status.full_name = response_parts.front() ;
 		response_parts.pop_front() ;
 		status.address = response_parts.front() ;
+	}
+	else if( rc == 100 )
+	{
+		throw AbortRequest() ;
 	}
 	else
 	{

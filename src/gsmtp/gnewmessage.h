@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -36,7 +36,7 @@ namespace GSmtp
 // Class: GSmtp::NewMessage
 // Description: An abstract class to allow the creation
 // of a new message in the message store.
-// See also: MessageStore, MessageStore::newMessage()
+// See also: GSmtp::MessageStore, GSmtp::MessageStore::newMessage()
 //
 class GSmtp::NewMessage
 {

@@ -1,4 +1,4 @@
-# generated automatically by aclocal 1.7.8 -*- Autoconf -*-
+# generated automatically by aclocal 1.7.6 -*- Autoconf -*-
 
 # Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002
 # Free Software Foundation, Inc.
@@ -11,7 +11,7 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
-dnl Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+dnl Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 dnl 
 dnl This program is free software; you can redistribute it and/or
 dnl modify it under the terms of the GNU General Public License
@@ -152,6 +152,19 @@ then
 fi
 ])
 
+dnl enable-fastbuild
+dnl
+AC_DEFUN([ENABLE_FASTBUILD],
+[
+if test "$enable_fastbuild" = "yes"
+then
+	CXX="`pwd`/bin/fastbuild.sh"
+	chmod +x "$CXX"
+	AR="`pwd`/bin/fastbuild.sh"
+	RANLIB="true"
+fi
+])
+
 dnl with-workshop
 dnl
 AC_DEFUN([WITH_WORKSHOP],
@@ -161,6 +174,38 @@ then
 	chmod +x lib/sunpro5/xar
 	AR="`pwd`/lib/sunpro5/xar --cxx \"$CXX\""
 	AC_SUBST(AR)
+fi
+])
+
+dnl with-doxygen
+dnl
+AC_DEFUN([WITH_DOXYGEN],
+[
+if test "$with_doxygen" != ""
+then
+	if test "$with_doxygen" = "yes" -a "$HAVE_DOXYGEN" != "yes"
+	then
+		echo ignoring --with-doxygen
+	else
+		HAVE_DOXYGEN="$with_doxygen"
+		AC_SUBST(HAVE_DOXYGEN)
+	fi
+fi
+])
+
+dnl with-man2html
+dnl
+AC_DEFUN([WITH_MAN2HTML],
+[
+if test "$with_man2html" != ""
+then
+	if test "$with_man2html" = "yes" -a "$HAVE_MAN2HTML" != "yes"
+	then
+		echo ignoring --with-man2html
+	else
+		HAVE_MAN2HTML="$with_man2html"
+		AC_SUBST(HAVE_MAN2HTML)
+	fi
 fi
 ])
 
@@ -188,10 +233,10 @@ AC_DEFUN([FHS_COMPLIANCE],
 	localstatedir='/var'
 	mandir='/usr/man'
 	datadir='/usr/share'
+	sysconfdir='/etc'
 	#
 	# not used by emailrelay
 	#bindir=
-	#sysconfdir=
 	#sharedstatedir=
 	#libdir=
 	#includedir=
@@ -206,6 +251,7 @@ AC_DEFUN([FHS_COMPLIANCE],
 	e_spooldir="$localstatedir/spool/$PACKAGE"
 	e_man1dir="$datadir/man/man1"
 	e_examplesdir="$datadir/doc/$PACKAGE/examples"
+	e_sysconfdir="$sysconfdir"
 ])
 
 
@@ -361,7 +407,7 @@ AC_DEFUN([AM_AUTOMAKE_VERSION],[am__api_version="1.7"])
 # Call AM_AUTOMAKE_VERSION so it can be traced.
 # This function is AC_REQUIREd by AC_INIT_AUTOMAKE.
 AC_DEFUN([AM_SET_CURRENT_AUTOMAKE_VERSION],
-	 [AM_AUTOMAKE_VERSION([1.7.8])])
+	 [AM_AUTOMAKE_VERSION([1.7.6])])
 
 # Helper functions for option handling.                    -*- Autoconf -*-
 

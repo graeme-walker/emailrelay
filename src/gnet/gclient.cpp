@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -39,6 +39,7 @@ namespace
 	const int c_retries = 10 ; // number of retries when using a priviledged local port number
 	const int c_port_start = 512 ;
 	const int c_port_end = 1024 ;
+	const size_t c_buffer_size = 1500U ; // see also gserver.h
 	const std::string c_cannot_connect_to( "cannot connect to " ) ;
 }
 
@@ -469,7 +470,7 @@ void GNet::ClientImp::writeEvent()
 
 void GNet::ClientImp::readEvent()
 {
-	char buffer[200U] ;
+	char buffer[c_buffer_size] ;
 	ssize_t n = s().read( buffer , sizeof(buffer) ) ;
 
 	if( n == 0 || ( n == -1 && !s().eWouldBlock() ) )

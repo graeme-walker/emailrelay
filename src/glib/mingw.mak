@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License
@@ -22,6 +22,7 @@
 #
 
 mk_sources=\
+	md5.cpp \
 	garg.cpp \
 	garg_win32.cpp \
 	gcleanup_win32.cpp \
@@ -41,7 +42,7 @@ mk_sources=\
 	glog.cpp \
 	glogoutput.cpp \
 	glogoutput_win32.cpp \
-	gmd5_rsa.cpp \
+	gmd5_native.cpp \
 	gpath.cpp \
 	gpidfile.cpp \
 	gprocess_win32.cpp \

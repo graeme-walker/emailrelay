@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -88,7 +88,7 @@ bool GSmtp::Processor::process( const G::Path & path )
 
 int GSmtp::Processor::preprocessCore( const G::Path & path )
 {
-	G_LOG( "GSmtp::Processor::preprocess: " << m_exe.exe() << " " << path ) ;
+	G_LOG( "GSmtp::Processor::preprocess: executable \"" << m_exe.exe() << "\": content \"" << path << "\"" ) ;
 	G::Strings args( m_exe.args() ) ;
 	args.push_back( path.str() ) ;
 	std::string raw_output ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -29,6 +29,7 @@
 #include "gsocket.h"
 #include "gconnection.h"
 #include "gevent.h"
+#include "gserver.h" // Peer::c_buffer_size
 #include <utility>
 #include <list>
 #include <memory>
@@ -174,6 +175,8 @@ private:
 class GNet::ServerPeer : public GNet::EventHandler , public GNet::Connection
 {
 public:
+	enum { c_buffer_size = 1500 } ;
+
 	explicit ServerPeer( Server::PeerInfo ) ;
 		// Constructor. This constructor is
 		// only used from within the
@@ -224,7 +227,6 @@ private:
 	void operator=( const ServerPeer & ) ; // not implemented
 
 private:
-	enum { c_buffer_size = 1500 } ;
 	Address m_address ;
 	std::auto_ptr<StreamSocket> m_socket ;
 	ServerPeerHandle * m_handle ;

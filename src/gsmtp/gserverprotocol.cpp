@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -37,15 +37,16 @@
 #include <string>
 
 GSmtp::ServerProtocol::ServerProtocol( Sender & sender , Verifier & verifier , ProtocolMessage & pmessage ,
-	const Secrets & secrets , const std::string & thishost , GNet::Address peer_address ) :
+	const Secrets & secrets , Text & text , GNet::Address peer_address , bool with_vrfy ) :
 		m_sender(sender) ,
-		m_pmessage(pmessage) ,
 		m_verifier(verifier) ,
-		m_fsm(sStart,sEnd,s_Same,s_Any) ,
-		m_thishost(thishost) ,
+		m_pmessage(pmessage) ,
+		m_text(text) ,
 		m_peer_address(peer_address) ,
+		m_fsm(sStart,sEnd,s_Same,s_Any) ,
 		m_authenticated(false) ,
-		m_sasl(secrets)
+		m_sasl(secrets) ,
+		m_with_vrfy(with_vrfy)
 {
 	m_pmessage.doneSignal().connect( G::slot(*this,&ServerProtocol::processDone) ) ;
 	m_pmessage.preparedSignal().connect( G::slot(*this,&ServerProtocol::prepareDone) ) ;
@@ -57,6 +58,8 @@ GSmtp::ServerProtocol::ServerProtocol( Sender & sender , Verifier & verifier , P
 	m_fsm.addTransition( eUnknown , s_Any   , s_Same   , &GSmtp::ServerProtocol::doUnknown ) ;
 	m_fsm.addTransition( eRset    , s_Any   , sIdle    , &GSmtp::ServerProtocol::doRset ) ;
 	m_fsm.addTransition( eNoop    , s_Any   , s_Same   , &GSmtp::ServerProtocol::doNoop ) ;
+	m_fsm.addTransition( eHelp    , s_Any   , s_Same   , &GSmtp::ServerProtocol::doHelp ) ;
+	m_fsm.addTransition( eExpn    , s_Any   , s_Same   , &GSmtp::ServerProtocol::doExpn ) ;
 	m_fsm.addTransition( eVrfy    , s_Any   , s_Same   , &GSmtp::ServerProtocol::doVrfy ) ;
 	m_fsm.addTransition( eEhlo    , s_Any   , sIdle    , &GSmtp::ServerProtocol::doEhlo , s_Same ) ;
 	m_fsm.addTransition( eHelo    , s_Any   , sIdle    , &GSmtp::ServerProtocol::doHelo , s_Same ) ;
@@ -75,9 +78,9 @@ GSmtp::ServerProtocol::ServerProtocol( Sender & sender , Verifier & verifier , P
 	}
 }
 
-void GSmtp::ServerProtocol::init( const std::string & ident )
+void GSmtp::ServerProtocol::init()
 {
-	sendGreeting( m_thishost , ident ) ;
+	sendGreeting( m_text.greeting() ) ;
 	// now deleted
 }
 
@@ -87,11 +90,9 @@ GSmtp::ServerProtocol::~ServerProtocol()
 	m_pmessage.preparedSignal().disconnect() ;
 }
 
-void GSmtp::ServerProtocol::sendGreeting( const std::string & thishost , const std::string & ident )
+void GSmtp::ServerProtocol::sendGreeting( const std::string & text )
 {
-	std::ostringstream ss ;
-	ss << "220 " << thishost << " -- " << ident << " -- Service ready" ;
-	send( ss.str() ) ;
+	send( std::string("220 ") + text ) ;
 }
 
 bool GSmtp::ServerProtocol::apply( const std::string & line )
@@ -164,20 +165,40 @@ void GSmtp::ServerProtocol::doNoop( const std::string & , bool & )
 	// now deleted
 }
 
+void GSmtp::ServerProtocol::doExpn( const std::string & , bool & )
+{
+	sendNotImplemented() ;
+	// now deleted
+}
+
+void GSmtp::ServerProtocol::doHelp( const std::string & , bool & )
+{
+	sendNotImplemented() ;
+	// now deleted
+}
+
 void GSmtp::ServerProtocol::doVrfy( const std::string & line , bool & )
 {
-	std::string mbox = parseMailbox( line ) ;
-	Verifier::Status rc = verify( mbox , "" ) ;
-	bool local = rc.is_local ;
-	if( local && rc.full_name.length() )
-		sendVerified( rc.full_name ) ;
-		// now deleted
-	else if( local )
-		sendNotVerified( mbox ) ;
-		// now deleted
+	if( m_with_vrfy )
+	{
+		std::string mbox = parseMailbox( line ) ;
+		Verifier::Status rc = verify( mbox , "" ) ;
+		bool local = rc.is_local ;
+		if( local && rc.full_name.length() )
+			sendVerified( rc.full_name ) ;
+			// now deleted
+		else if( local )
+			sendNotVerified( mbox ) ;
+			// now deleted
+		else
+			sendWillAccept( mbox ) ;
+			// now deleted
+	}
 	else
-		sendWillAccept( mbox ) ;
+	{
+		sendNotImplemented() ;
 		// now deleted
+	}
 }
 
 GSmtp::Verifier::Status GSmtp::ServerProtocol::verify( const std::string & to , const std::string & from ) const
@@ -213,7 +234,7 @@ void GSmtp::ServerProtocol::doEhlo( const std::string & line , bool & predicate 
 	{
 		m_peer_name = peer_name ;
 		m_pmessage.clear() ;
-		sendEhloReply( m_thishost ) ;
+		sendEhloReply() ;
 		// now deleted
 	}
 }
@@ -231,7 +252,7 @@ void GSmtp::ServerProtocol::doHelo( const std::string & line , bool & predicate 
 	{
 		m_peer_name = peer_name ;
 		m_pmessage.clear() ;
-		sendHeloReply( m_thishost ) ;
+		sendHeloReply() ;
 		// now deleted
 	}
 }
@@ -359,8 +380,8 @@ void GSmtp::ServerProtocol::doMailPrepare( const std::string & line , bool & pre
 	else
 	{
 		m_pmessage.clear() ;
-		std::string from = parseFrom( line ) ;
-		bool ok = m_pmessage.setFrom( from ) ;
+		std::pair<std::string,std::string> from_pair = parseFrom( line ) ;
+		bool ok = from_pair.second.empty() && m_pmessage.setFrom( from_pair.first ) ;
 		predicate = ok ;
 		if( ok )
 		{
@@ -370,7 +391,7 @@ void GSmtp::ServerProtocol::doMailPrepare( const std::string & line , bool & pre
 		}
 		else
 		{
-			sendBadFrom( from ) ;
+			sendBadFrom( from_pair.second ) ;
 			// now deleted
 		}
 	}
@@ -408,15 +429,23 @@ void GSmtp::ServerProtocol::doMail( const std::string & line , bool & predicate 
 
 void GSmtp::ServerProtocol::doRcpt( const std::string & line , bool & predicate )
 {
-	std::string to = parseTo( line ) ;
-	Verifier::Status status = verify( to , m_pmessage.from() ) ;
-	bool ok = m_pmessage.addTo( to , status ) ;
+	std::pair<std::string,std::string> to_pair = parseTo( line ) ;
+	std::string reason = to_pair.second ;
+	bool ok = reason.empty() ;
+	if( ok )
+	{
+		Verifier::Status status = verify( to_pair.first , m_pmessage.from() ) ;
+		ok = m_pmessage.addTo( to_pair.first , status ) ;
+		if( !ok )
+			reason = G::Str::toPrintableAscii(status.reason) ;
+	}
+
 	predicate = ok ;
 	if( ok )
 		sendRcptReply() ;
 		// now deleted
 	else
-		sendBadTo( G::Str::toPrintableAscii(status.reason) ) ;
+		sendBadTo( reason ) ;
 		// now deleted
 }
 
@@ -441,7 +470,10 @@ void GSmtp::ServerProtocol::doNoRecipients( const std::string & , bool & )
 
 void GSmtp::ServerProtocol::doData( const std::string & , bool & )
 {
-	m_pmessage.addReceived( receivedLine() ) ;
+	std::string received_line = m_text.received(m_peer_name) ;
+	if( received_line.length() )
+		m_pmessage.addReceived( received_line ) ;
+
 	sendDataReply() ;
 	// now deleted
 }
@@ -498,6 +530,7 @@ GSmtp::ServerProtocol::Event GSmtp::ServerProtocol::commandEvent( const std::str
 	if( command == "MAIL" ) return eMail ;
 	if( command == "VRFY" ) return eVrfy ;
 	if( command == "NOOP" ) return eNoop ;
+	if( command == "EXPN" ) return eExpn ;
 	if( command == "HELP" ) return eHelp ;
 	if( m_sasl.active() && command == "AUTH" ) return eAuth ;
 	return eUnknown ;
@@ -531,6 +564,12 @@ void GSmtp::ServerProtocol::sendWillAccept( const std::string & user )
 void GSmtp::ServerProtocol::sendUnrecognised( const std::string & line )
 {
 	send( "500 command unrecognized: \"" + line + std::string("\"") ) ;
+	// now deleted
+}
+
+void GSmtp::ServerProtocol::sendNotImplemented()
+{
+	send( "502 command not implemented" ) ;
 	// now deleted
 }
 
@@ -587,9 +626,15 @@ void GSmtp::ServerProtocol::sendRcptReply()
 	// now deleted
 }
 
-void GSmtp::ServerProtocol::sendBadFrom( const std::string & /*from*/ )
+void GSmtp::ServerProtocol::sendBadFrom( std::string reason )
 {
-	send( "553 mailbox name not allowed" ) ;
+	std::string msg("553 mailbox name not allowed") ;
+	if( ! reason.empty() )
+	{
+		msg.append( ": " ) ;
+		msg.append( reason ) ;
+	}
+	send( msg ) ;
 	// now deleted
 }
 
@@ -599,17 +644,19 @@ void GSmtp::ServerProtocol::sendBadTo( const std::string & text )
 	// now deleted
 }
 
-void GSmtp::ServerProtocol::sendEhloReply( const std::string & domain )
+void GSmtp::ServerProtocol::sendEhloReply()
 {
 	std::ostringstream ss ;
-		ss << "250-" << domain << " says hello" << crlf() ;
+		ss << "250-" << m_text.hello(m_peer_name) << crlf() ;
 	if( m_sasl.active() )
 		ss << "250-AUTH " << m_sasl.mechanisms() << crlf() ;
+	if( m_with_vrfy )
+		ss << "250-VRFY" << crlf() ; // see RFC2821-3.5.2
 		ss << "250 8BITMIME" ;
 	send( ss.str() ) ;
 }
 
-void GSmtp::ServerProtocol::sendHeloReply( const std::string & /*domain*/ )
+void GSmtp::ServerProtocol::sendHeloReply()
 {
 	sendOk() ;
 	// now deleted
@@ -635,25 +682,28 @@ void GSmtp::ServerProtocol::send( std::string line , bool allow_delete_this )
 	// now deleted
 }
 
-std::string GSmtp::ServerProtocol::parseFrom( const std::string & line ) const
+std::pair<std::string,std::string> GSmtp::ServerProtocol::parseFrom( const std::string & line ) const
 {
 	// eg. MAIL FROM:<me@localhost>
 	return parse( line ) ;
 }
 
-std::string GSmtp::ServerProtocol::parseTo( const std::string & line ) const
+std::pair<std::string,std::string> GSmtp::ServerProtocol::parseTo( const std::string & line ) const
 {
 	// eg. RCPT TO:<@first.co.uk,@second.co.uk:you@final.co.uk>
 	// eg. RCPT TO:<Postmaster>
 	return parse( line ) ;
 }
 
-std::string GSmtp::ServerProtocol::parse( const std::string & line ) const
+std::pair<std::string,std::string> GSmtp::ServerProtocol::parse( const std::string & line ) const
 {
 	size_t start = line.find( '<' ) ;
 	size_t end = line.find( '>' ) ;
 	if( start == std::string::npos || end == std::string::npos || end < start )
-		return std::string() ;
+	{
+		std::string reason( "missing or invalid angle brackets in mailbox name" ) ;
+		return std::make_pair(std::string(),reason) ;
+	}
 
 	std::string s = line.substr( start + 1U , end - start - 1U ) ;
 	G::Str::trim( s , " \t" ) ;
@@ -663,11 +713,14 @@ std::string GSmtp::ServerProtocol::parse( const std::string & line ) const
 	{
 		size_t colon_pos = s.find( ':' ) ;
 		if( colon_pos == std::string::npos )
-			return std::string() ;
+		{
+			std::string reason( "missing colon" ) ;
+			return std::make_pair(std::string(),reason) ;
+		}
 		s = s.substr( colon_pos + 1U ) ;
 	}
 
-	return s ;
+	return std::make_pair(s,std::string()) ;
 }
 
 std::string GSmtp::ServerProtocol::parsePeerName( const std::string & line ) const
@@ -681,7 +734,34 @@ std::string GSmtp::ServerProtocol::parsePeerName( const std::string & line ) con
 	return peer_name ;
 }
 
-std::string GSmtp::ServerProtocol::receivedLine() const
+// ===
+
+GSmtp::ServerProtocolText::ServerProtocolText( const std::string & ident , const std::string & thishost ,
+	const GNet::Address & peer_address ) :
+		m_ident(ident) ,
+		m_thishost(thishost) ,
+		m_peer_address(peer_address)
+{
+}
+
+std::string GSmtp::ServerProtocolText::greeting() const
+{
+	return m_thishost + " -- " + m_ident + " -- Service ready" ;
+}
+
+std::string GSmtp::ServerProtocolText::hello( const std::string & ) const
+{
+	return m_thishost + " says hello" ;
+}
+
+std::string GSmtp::ServerProtocolText::received( const std::string & peer_name ) const
+{
+	return receivedLine( peer_name , m_peer_address.displayString(false) , m_thishost ) ;
+}
+
+//static
+std::string GSmtp::ServerProtocolText::receivedLine( const std::string & peer_name ,
+	const std::string & peer_address , const std::string & thishost )
 {
 	G::DateTime::EpochTime t = G::DateTime::now() ;
 	G::DateTime::BrokenDownTime tm = G::DateTime::local(t) ;
@@ -692,9 +772,9 @@ std::string GSmtp::ServerProtocol::receivedLine() const
 	std::ostringstream ss ;
 	ss
 		<< "Received: "
-		<< "FROM " << m_peer_name << " "
-		<< "([" << m_peer_address.displayString(false) << "]) "
-		<< "BY " << m_thishost << " "
+		<< "FROM " << peer_name << " "
+		<< "([" << peer_address << "]) "
+		<< "BY " << thishost << " "
 		<< "WITH ESMTP "
 		<< "; "
 		<< date.weekdayName(true) << ", "
@@ -704,6 +784,12 @@ std::string GSmtp::ServerProtocol::receivedLine() const
 		<< time.hhmmss(":") << " "
 		<< zone ;
 	return ss.str() ;
+}
+
+// ===
+
+GSmtp::ServerProtocol::Text::~Text()
+{
 }
 
 // ===

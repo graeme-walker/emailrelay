@@ -1,4 +1,4 @@
-dnl Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+dnl Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 dnl 
 dnl This program is free software; you can redistribute it and/or
 dnl modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl
 
 AC_INIT(src/gsmtp/gsmtp.h)
-AM_INIT_AUTOMAKE(emailrelay,1.2)
+AM_INIT_AUTOMAKE(emailrelay,1.3)
 AM_CONFIG_HEADER(config.h)
 
 dnl ===
@@ -69,10 +69,28 @@ AC_ARG_ENABLE(debug,AC_HELP_STRING([--enable-debug],[enable extra debug messages
 ENABLE_DEBUG
 
 dnl ===
+dnl "--enable-fastbuild"
+dnl
+AC_ARG_ENABLE(fastbuild,AC_HELP_STRING([--enable-fastbuild],[enable experimental faster building; requires --disable-dependency-tracking]))
+ENABLE_FASTBUILD
+
+dnl ===
 dnl "--with-workshop"
 dnl
 AC_ARG_WITH(workshop,AC_HELP_STRING([--with-workshop],[use Sun WorkShop 'CC -xar' as the 'ar' tool]))
 WITH_WORKSHOP
+
+dnl ===
+dnl "--with-doxygen"
+dnl
+AC_ARG_WITH(doxygen,AC_HELP_STRING([--with-doxygen],[generate source code documentation with doxygen]))
+WITH_DOXYGEN
+
+dnl ===
+dnl "--with-man2html"
+dnl
+AC_ARG_WITH(man2html,AC_HELP_STRING([--with-man2html],[convert man pages to html using man2html]))
+WITH_MAN2HTML
 
 dnl ===
 dnl directory tweaking and "--enable-fhs" ...
@@ -83,6 +101,8 @@ AC_SUBST(e_sbindir)
 if test "$e_sbindir" = "" ; then e_sbindir="$sbindir" ; fi
 AC_SUBST(e_libexecdir)
 if test "$e_libexecdir" = "" ; then e_libexecdir="$libexecdir" ; fi
+AC_SUBST(e_sysconfdir)
+if test "$e_sysconfdir" = "" ; then e_sysconfdir="$sysconfdir" ; fi
 AC_SUBST(e_docdir)
 if test "$e_docdir" = "" ; then e_docdir="$datadir/$PACKAGE/doc" ; fi
 AC_SUBST(e_initdir)
@@ -103,5 +123,5 @@ SET_MAKE=""
 dnl ===
 dnl generate files...
 dnl
-AC_OUTPUT(Makefile src/Makefile src/glib/Makefile src/gnet/Makefile src/gsmtp/Makefile src/main/Makefile src/win32/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile lib/sunpro5/Makefile bin/Makefile doc/Makefile)
+AC_OUTPUT(Makefile src/Makefile src/glib/Makefile src/gnet/Makefile src/gsmtp/Makefile src/main/Makefile src/win32/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile lib/sunpro5/Makefile bin/Makefile doc/Makefile etc/Makefile)
 

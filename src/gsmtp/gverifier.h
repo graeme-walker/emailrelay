@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -28,6 +28,7 @@
 #include "gsmtp.h"
 #include "gaddress.h"
 #include "gpath.h"
+#include "gexception.h"
 #include "gexe.h"
 #include <string>
 
@@ -40,11 +41,13 @@ namespace GSmtp
 // Description: A class which verifies recipient addresses.
 // This functionality is used in the VRFY and RCPT commands
 // in the SMTP server-side protocol.
-// See also: ServerProtocol
+// See also: GSmtp::ServerProtocol
 //
 class GSmtp::Verifier
 {
 public:
+	G_EXCEPTION( AbortRequest , "verifier abort request" ) ;
+
 	struct Status // A structure returned by GSmtp::Verifier::verify().
 	{
 		bool is_valid ;
@@ -55,8 +58,8 @@ public:
 	} ;
 
 	Verifier( const G::Executable & exe , bool deliver_to_postmaster , bool reject_local ) ;
-		// Constructor. If an executable path is given (ie. not
-		// G::Path()) then it is used for external verification.
+		// Constructor. If an executable path is given (ie. exe.exe()
+		// is not G::Path()) then it is used for external verification.
 		// Otherwise the internal verifier is used, controlled
 		// by the two boolean flags. The deliver-to-postmaster
 		// flag enables the special treatment of local "postmaster"

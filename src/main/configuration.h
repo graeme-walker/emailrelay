@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -155,7 +155,7 @@ public:
 		// Returns the name of an unprivileged user. This is only
 		// used if running with a real user-id of root.
 
-	G::Path verifier() const ;
+	std::string verifier() const ;
 		// Returns the path of an external address verifier program.
 
 	bool deliverToPostmaster() const ;
@@ -184,6 +184,10 @@ public:
 
 	unsigned int scannerResponseTimeout() const ;
 		// Returns a timeout for talking to the scanner process.
+
+	bool anonymous() const ;
+		// Returns true if the server protocol should be
+		// slightly more anonymous.
 
 private:
 	const CommandLine & m_cl ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -38,7 +38,8 @@ class GNet::AddressImp
 {
 public:
 	typedef sockaddr_in6 address_type ;
-	typedef union { address_type specific ; struct sockaddr general ; } Sockaddr ;
+	union Sockaddr // Used by GNet::AddressImp to casting between sockaddr and sockaddr_in6.
+		{ address_type specific ; struct sockaddr general ; } ;
 
 	explicit AddressImp( unsigned int port ) ; // (not in_port_t -- see validPort(), setPort() etc)
 	explicit AddressImp( const servent & s ) ;

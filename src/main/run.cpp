@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -52,7 +52,7 @@
 //static
 std::string Main::Run::versionNumber()
 {
-	return "1.2" ;
+	return "1.3" ;
 }
 
 Main::Run::Run( Main::Output & output , const G::Arg & arg , const std::string & switch_spec ) :
@@ -266,7 +266,8 @@ void Main::Run::doServing( GSmtp::MessageStore & store , const GSmtp::Secrets & 
 			client_secrets ,
 			cfg().scannerAddress() ,
 			cfg().scannerResponseTimeout() ,
-			cfg().scannerConnectionTimeout() ) ;
+			cfg().scannerConnectionTimeout() ,
+			cfg().anonymous() ) ;
 	}
 
 	if( cfg().doAdmin() )

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -18,7 +18,7 @@
 //
 // ===
 //
-// gmd5_rsa.cpp
+// gmd5_native.cpp
 //
 
 #include "gdef.h"
@@ -26,51 +26,47 @@
 #include "gstr.h"
 #include "gstrings.h"
 #include "gassert.h"
-
-typedef g_uint32_t UINT4 ;
-typedef unsigned char * POINTER ;
 #include "md5.h"
 
 namespace
 {
-	void init( MD5_CTX & context )
+	typedef md5::big_t big_t ;
+	typedef md5::digest_stream md5_state_t ;
+	typedef md5::digest::state_type state_type ;
+	typedef md5::message message ;
+	typedef md5::format format ;
+
+	void init( md5_state_t & )
 	{
-		::MD5Init( &context ) ;
 	}
-	void update( MD5_CTX & context , const std::string & input )
+	void update( md5_state_t & context , const std::string & input )
 	{
-		char * p = const_cast<char*>(input.c_str()) ;
-		unsigned int size = static_cast<int>( input.size() ) ;
-		::MD5Update( &context , reinterpret_cast<unsigned char*>(p) , size ) ;
+		context.add( input ) ;
 	}
-	std::string final( MD5_CTX & context )
+	std::string final( md5_state_t & context )
 	{
-		const size_t L = 16U ; // output size
-		unsigned char buffer[L] ;
-		::MD5Final( buffer , &context ) ;
-		const char * buffer_p = reinterpret_cast<char *>(buffer) ;
-		return std::string( buffer_p , L ) ;
+		context.close() ;
+		return format::raw( context.state().d ) ;
 	}
-	std::string writeOut( const MD5_CTX & context )
+	std::string writeOut( const md5_state_t & context )
 	{
-		G_ASSERT( sizeof context.state[0] <= sizeof(unsigned long) ) ;
+		G_ASSERT( context.state().s.length() == 0U ) ;
+		G_ASSERT( context.state().n == 64U ) ; // ie. magic number below
 		return
-			G::Str::fromULong( context.state[0] ) + "." +
-			G::Str::fromULong( context.state[1] ) + "." +
-			G::Str::fromULong( context.state[2] ) + "." +
-			G::Str::fromULong( context.state[3] ) ;
+			G::Str::fromULong( context.state().d.a ) + "." +
+			G::Str::fromULong( context.state().d.b ) + "." +
+			G::Str::fromULong( context.state().d.c ) + "." +
+			G::Str::fromULong( context.state().d.d ) ;
 	}
-	void readIn( MD5_CTX & context , G::Strings & s )
+	void readIn( md5_state_t & context , G::Strings & s )
 	{
-		static MD5_CTX zero_context ;
-		context = zero_context ;
-		context.count[0] = 0x200 ; // magic number -- see cyrus sasl lib/md5.c
-		G_ASSERT( context.count[1] == 0 ) ;
-		context.state[0] = G::Str::toULong(s.front()) ; s.pop_front() ;
-		context.state[1] = G::Str::toULong(s.front()) ; s.pop_front() ;
-		context.state[2] = G::Str::toULong(s.front()) ; s.pop_front() ;
-		context.state[3] = G::Str::toULong(s.front()) ; s.pop_front() ;
-		G_ASSERT( context.buffer[0] == 0 ) ;
+		big_t a = G::Str::toULong(s.front()) ; s.pop_front() ;
+		big_t b = G::Str::toULong(s.front()) ; s.pop_front() ;
+		big_t c = G::Str::toULong(s.front()) ; s.pop_front() ;
+		big_t d = G::Str::toULong(s.front()) ; s.pop_front() ;
+		state_type state = { a , b , c , d } ;
+		md5::small_t magic_number = 64U ;
+		context = md5_state_t( state , magic_number ) ;
 	}
 }
 
@@ -121,7 +117,7 @@ std::string G::Md5::mask( const std::string & k )
 
 std::string G::Md5::mask( const std::string & k64 , const std::string & pad )
 {
-	MD5_CTX context ;
+	md5_state_t context ;
 	init( context ) ;
 	update( context , xor_(k64,pad) ) ;
 	return writeOut( context ) ;
@@ -134,8 +130,8 @@ std::string G::Md5::hmac( const std::string & masked_key , const std::string & i
 	if( part_list.size() != 8U )
 		throw InvalidMaskedKey( masked_key ) ;
 
-	MD5_CTX inner_context ;
-	MD5_CTX outer_context ;
+	md5_state_t inner_context ;
+	md5_state_t outer_context ;
 	readIn( inner_context , part_list ) ;
 	readIn( outer_context , part_list ) ;
 	update( inner_context , input ) ;
@@ -161,7 +157,7 @@ std::string G::Md5::digest( const std::string & input_1 , const std::string & in
 
 std::string G::Md5::digest( const std::string & input_1 , const std::string * input_2 )
 {
-	MD5_CTX context ;
+	md5_state_t context ;
 	init( context ) ;
 	update( context , input_1 ) ;
 	if( input_2 != NULL )
@@ -185,10 +181,4 @@ std::string G::Md5::printable( const std::string & input )
 
 	return result ;
 }
-
-// Source-file inclusion is not nice, but it means that the md5c.c
-// file can be left in its pristine state, inheriting the UINT4/POINTER
-// definitions from above.
-//
-#include "md5c.c"
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -36,7 +36,7 @@ namespace G
 // Description: Controls and implements low-level logging output, as used by the Log interface.
 // Applications should normally instantiate a LogOutput object in main() to enable
 // log output.
-// See also: Log
+// See also: G::Log
 //
 class G::LogOutput
 {

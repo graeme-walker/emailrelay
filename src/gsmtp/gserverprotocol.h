@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -32,10 +32,12 @@
 #include "gsasl.h"
 #include "gstatemachine.h"
 #include <map>
+#include <utility>
 
 namespace GSmtp
 {
 	class ServerProtocol ;
+	class ServerProtocolText ;
 }
 
 // Class: GSmtp::ServerProtocol
@@ -58,7 +60,7 @@ namespace GSmtp
 // allows the ServerPeer implementation to contain an
 // instance of ServerProtocol as a data member.
 //
-// See also: ProtocolMessage, RFC2821
+// See also: GSmtp::ProtocolMessage, RFC2821
 //
 class GSmtp::ServerProtocol
 {
@@ -70,9 +72,17 @@ public:
 		public: virtual ~Sender() ;
 		private: void operator=( const Sender & ) ; // not implemented
 	} ;
+	class Text // An interface used by ServerProtocol to provide response text strings.
+	{
+		public: virtual std::string greeting() const = 0 ;
+		public: virtual std::string hello( const std::string & peer_name ) const = 0 ;
+		public: virtual std::string received( const std::string & peer_name ) const = 0 ;
+		public: virtual ~Text() ;
+		private: void operator=( const Text & ) ; // not implemented
+	} ;
 
 	ServerProtocol( Sender & sender , Verifier & verifier , ProtocolMessage & pmessage ,
-		const Secrets & secrets , const std::string & thishost , GNet::Address peer_address ) ;
+		const Secrets & secrets , Text & text , GNet::Address peer_address , bool with_vrfy ) ;
 			// Constructor.
 			//
 			// The Verifier interface is used to verify recipient
@@ -84,21 +94,20 @@ public:
 			// The Sender interface is used to send protocol
 			// replies back to the client.
 			//
-			// The 'thishost' string is used in HELO replies (etc).
+			// The Text interface is used to get informational text
+			// for returning to the client.
 			//
-			// The peer address string is put into the "Received:"
-			// trace lines.
+			// All references are kept.
 
-	void init( const std::string & ident ) ;
-		// Starts the protocol. The 'ident' string is issued
-		// to the client.
+	void init() ;
+		// Starts the protocol.
 
 	virtual ~ServerProtocol() ;
 		// Destructor.
 
 	bool apply( const std::string & line ) ;
 		// Called on receipt of a string from the client.
-		// The string is expected to be <CRLF> terminated.
+		// The string is expected to be CR-LF terminated.
 		// Returns true if the protocol has completed
 		// and Sender::protocolDone() has been called.
 
@@ -110,6 +119,7 @@ private:
 		eEhlo ,
 		eRset ,
 		eNoop ,
+		eExpn ,
 		eData ,
 		eRcpt ,
 		eMail ,
@@ -149,6 +159,8 @@ private:
 	bool isEndOfText( const std::string & ) const ;
 	bool isEscaped( const std::string & ) const ;
 	void doNoop( const std::string & , bool & ) ;
+	void doHelp( const std::string & line , bool & ) ;
+	void doExpn( const std::string & line , bool & ) ;
 	void doQuit( const std::string & , bool & ) ;
 	void doEhlo( const std::string & , bool & ) ;
 	void doHelo( const std::string & , bool & ) ;
@@ -162,15 +174,16 @@ private:
 	void doData( const std::string & line , bool & ) ;
 	void doVrfy( const std::string & line , bool & ) ;
 	void doNoRecipients( const std::string & line , bool & ) ;
-	void sendBadFrom( const std::string & line ) ;
+	void sendBadFrom( std::string line ) ;
 	void sendChallenge( const std::string & line ) ;
 	void sendBadTo( const std::string & line ) ;
 	void sendOutOfSequence( const std::string & line ) ;
-	void sendGreeting( const std::string & , const std::string & ) ;
+	void sendGreeting( const std::string & ) ;
 	void sendClosing() ;
 	void sendUnrecognised( const std::string & ) ;
-	void sendHeloReply( const std::string & ) ;
-	void sendEhloReply( const std::string & ) ;
+	void sendNotImplemented() ;
+	void sendHeloReply() ;
+	void sendEhloReply() ;
 	void sendRsetReply() ;
 	void sendMailReply() ;
 	void sendMailError( const std::string & , bool ) ;
@@ -185,24 +198,54 @@ private:
 	void sendWillAccept( const std::string & ) ;
 	void sendAuthDone( bool ok ) ;
 	void sendOk() ;
-	std::string parseFrom( const std::string & ) const ;
-	std::string parseTo( const std::string & ) const ;
+	std::pair<std::string,std::string> parse( const std::string & ) const ;
+	std::pair<std::string,std::string> parseFrom( const std::string & ) const ;
+	std::pair<std::string,std::string> parseTo( const std::string & ) const ;
 	std::string parseMailbox( const std::string & ) const ;
 	std::string parsePeerName( const std::string & ) const ;
-	std::string parse( const std::string & ) const ;
-	std::string receivedLine() const ;
 	Verifier::Status verify( const std::string & , const std::string & ) const ;
 
 private:
 	Sender & m_sender ;
-	ProtocolMessage & m_pmessage ;
 	Verifier & m_verifier ;
-	Fsm m_fsm ;
-	std::string m_thishost ;
-	std::string m_peer_name ;
+	ProtocolMessage & m_pmessage ;
+	Text & m_text ;
 	GNet::Address m_peer_address ;
+	Fsm m_fsm ;
+	std::string m_peer_name ;
 	bool m_authenticated ;
 	SaslServer m_sasl ;
+	bool m_with_vrfy ;
+} ;
+
+// Class: GSmtp::ServerProtocolText
+// Description: A default implementation for the
+// ServerProtocol::Text interface.
+//
+class GSmtp::ServerProtocolText : public GSmtp::ServerProtocol::Text
+{
+public:
+	ServerProtocolText( const std::string & ident , const std::string & thishost ,
+		const GNet::Address & peer_address ) ;
+			// Constructor.
+
+	virtual std::string greeting() const ;
+		// From ServerProtocol::Text.
+
+	virtual std::string hello( const std::string & peer_name_from_helo ) const ;
+		// From ServerProtocol::Text.
+
+	virtual std::string received( const std::string & peer_name_from_helo ) const ;
+		// From ServerProtocol::Text.
+
+	static std::string receivedLine( const std::string & peer_name_from_helo , const std::string & peer_address ,
+		const std::string & thishost ) ;
+			// Returns a standard "Received:" line.
+
+private:
+	std::string m_ident ;
+	std::string m_thishost ;
+	GNet::Address m_peer_address ;
 } ;
 
 #endif

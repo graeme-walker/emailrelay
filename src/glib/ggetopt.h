@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -54,12 +54,12 @@ public:
 			// specification string. Uses specifications like
 			// "p/port/defines the port number/1/port|v/verbose/shows more logging/0/".
 			// made up of the following parts:
-			//    <single-character-switch-letter>
-			//    <multi-character-switch-name>
-			//    <switch-description>
-			//    <value-type> -- 0 is none, and 1 is a string
-			//    <value-description>
-			//    <level>
+			//    'single-character-switch-letter'
+			//    'multi-character-switch-name'
+			//    'switch-description'
+			//    'value-type' (0 is none, and 1 is a string)
+			//    'value-description'
+			//    'level'
 			//
 			// If the switch-description field is empty or
 			// if the level is zero then the switch is hidden.
@@ -124,7 +124,7 @@ public:
 			// prefix(es). The two prefixes are simply concatenated.
 
 	void showErrors( std::ostream & stream ) const ;
-		// An overload which uses Arg::prefix() as <prefix_1>.
+		// An overload which uses Arg::prefix() as 'prefix_1'.
 
 	void show( std::ostream & stream , std::string prefix ) const ;
 		// For debugging.
