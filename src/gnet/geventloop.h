@@ -27,7 +27,7 @@
 #include "gdef.h"
 #include "gnet.h"
 #include "geventhandler.h"
-#include "gcredentials.h"
+#include "gexception.h"
 #include "gdatetime.h"
 #include "gdescriptor.h"
 #include <list>
@@ -36,7 +36,7 @@
 namespace GNet
 {
 	class EventLoop ;
-} ;
+}
 
 // Class: GNet::EventLoop
 // Description: An abstract base class for a
@@ -56,6 +56,9 @@ namespace GNet
 //
 class GNet::EventLoop
 {
+public:
+	G_EXCEPTION( NoInstance , "no event loop instance" ) ;
+
 protected:
 	EventLoop() ;
 		// Constructor.
@@ -69,6 +72,10 @@ public:
 		// Returns a reference to an instance
 		// of the class, if any. Asserts if none.
 		// Does not do any instantiation itself.
+		// Precondition: exists()
+
+	static bool exists() ;
+		// Returns true if an instance exists.
 
 	virtual ~EventLoop() ;
 		// Destructor.
@@ -78,6 +85,9 @@ public:
 
 	virtual void run() = 0 ;
 		// Runs the main event loop.
+
+	virtual bool running() const = 0 ;
+		// Returns true if called from within run().
 
 	virtual void quit() = 0 ;
 		// Causes run() to return (once the call stack
@@ -113,7 +123,7 @@ public:
 		// from the list of exception sources.
 		// See also Socket::dropExceptionHandler().
 
-	virtual void setTimeout( const G::credentials<TimerList> & , G::DateTime::EpochTime t ) = 0 ;
+	virtual void setTimeout( G::DateTime::EpochTime t ) = 0 ;
 		// Used by GNet::TimerList. Sets the time at which
 		// TimerList::doTimeouts() is to be called.
 		// A parameter of zero is used to cancel the

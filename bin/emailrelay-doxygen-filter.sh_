@@ -23,6 +23,10 @@
 #
 
 awk="gawk"
+if test "`echo a | ${awk} '{print}'`" != "a"
+then
+	awk="nawk"
+fi 2>/dev/null
 
 # PreFilter()
 # Removes banner comments (including legalese) from the top of the file.

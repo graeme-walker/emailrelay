@@ -13,18 +13,17 @@ The "emailrelay" program supports the following command-line usage:
 	emailrelay [<switch> [<switch> ...]]
 
 where <switch> is:
-
 # --admin (-a)
   Enables the administration interface and specifies its listening port number.
 
 # --as-client (-q)
-  Equivalent to "--log --no-syslog --no-daemon --dont-serve --forward --forward-to".
+  Runs as a client, forwarding spooled mail to <host>: equivalent to "--log --no-syslog --no-daemon --dont-serve --forward --forward-to".
 
 # --as-proxy (-y)
-  Equivalent to "--log --close-stderr --immediate --forward-to".
+  Runs as a proxy: equivalent to "--log --close-stderr --immediate --forward-to".
 
 # --as-server (-d)
-  Equivalent to "--log --close-stderr".
+  Runs as a server: equivalent to "--log --close-stderr".
 
 # --client-auth (-C)
   Enables authentication with remote server, using the given secrets file.
@@ -35,14 +34,20 @@ where <switch> is:
 # --connection-timeout (-U)
   Sets the timeout (in seconds) when connecting to a remote server (default is 40).
 
+# --debug (-g)
+  Generates debug-level logging (if compiled-in).
+
 # --domain (-D)
   Sets an override for the host's fully qualified domain name.
 
+# --dont-listen (-X)
+  Dont listen for smtp connections (usually used with --admin).
+
 # --dont-serve (-x)
-  Stops the process acting as a server (usually used with --forward).
+  Dont act as a server (usually used with --forward).
 
 # --filter (-z)
-  Defines a mail pre-processor.
+  Defines a mail processor program.
 
 # --forward (-f)
   Forwards stored mail on startup (requires --forward-to).
@@ -56,8 +61,11 @@ where <switch> is:
 # --immediate (-m)
   Forwards each message as soon as it is received (requires --forward-to).
 
+# --interface (-I)
+  Listen on a specific interface.
+
 # --log (-l)
-  Writes log information on standard error (if open) and syslog (if not disabled).
+  Writes log information on standard error and syslog.
 
 # --log-time (-L)
   Adds a timestamp to the logging output.
@@ -84,13 +92,16 @@ where <switch> is:
   Enables authentication of remote clients, using the given secrets file.
 
 # --spool-dir (-s)
-  Specifies the spool directory (default is "/usr/local/var/spool/emailrelay").
+  Specifies the spool directory (default is "/var/spool/emailrelay").
 
 # --user (-u)
   Names the effective user to switch to when started as root (default is "daemon").
 
 # --verbose (-v)
-  Generates more verbose logging (if compiled-in and logging enabled and stderr open).
+  Generates more verbose output (works with --help and --log).
+
+# --verifier (-Z)
+  Defines an external address verifier program.
 
 # --version (-V)
   Displays version information and exits.
@@ -181,6 +192,29 @@ SMTP issues
   re-encode 8-bit messages into 7-bit messages if the next-hop server
   does not.
 
+Address validation
+------------------
+An address supplied to the SMTP commands "RCPT" and "VRFY" is normally accepted
+if it contains an at sign, or if it is some sort of local "postmaster" address
+(as described above). However, this behaviour can be modified by using an external
+verifier program, using the "--verifier" command-line switch.
+
+The verifier program is passed a command-line containing the full address, the
+user-name part of the address, the host-name part, the local host's fully
+qualified domain name, and the current "MAIL" command's "FROM:" address or the
+empty string for the "VRFY" command.
+
+For valid local mailbox addresses the verifier is expected to write two lines to
+the standard output -- the full name associated with the mailbox, and the
+canonical mailbox name -- and then exit with a value of zero. For valid non-local
+addresses the first line of output should be empty, the second line should be
+copied from the first command-line argument, and the exit value should be one.
+For invalid addresses the exit value should be greater than one, and anything
+written to the standard output is taken as the failure reason.
+
+(Only the few few thousand characters are read from the verifier's standard
+output stream; any more is thrown away.)
+
 Administration interface
 ------------------------
 If enabled, the server will provide a network interface for performing
@@ -198,31 +232,31 @@ functionality of storage daemon and forwarding client. This might be useful
 in systems which are low on memory: the memory footprint of "telnet" or
 "emailrelay-poke" will be much smaller than "emailrelay --as-client".
 
-Mail pre-processing
--------------------
-The "--filter" command-line switch allows you to specify a pre-processor program
+Mail processing
+---------------
+The "--filter" command-line switch allows you to specify a mail processor program
 which operates on mail messages as they pass through the E-MailRelay system. The
-pre-processor program is run as soon as the mail message has been stored in the
+mail processor program is run as soon as the mail message has been stored in the
 spool directory, with the full path of the content file specified on the command
 line.
 
 This can be combined with the "--immediate" (or "--as-proxy") switch to implement
-personal mail pre-processing, without replacing or reconfiguring the system's
+personal mail processing, without replacing or reconfiguring the system's
 default MTA.
 
-For example, the following command will start a proxy server on port 10025
-which pre-processes mail using the specified filter program, and then
-forwards the mail on to the system's default MTA (on port 25):
+For example, the following command will start a proxy server on port 10025 which
+processes mail using the specified filter program, and then forwards the mail on
+to the system's default MTA (on port 25):
 
 	emailrelay --as-proxy localhost:smtp --port 10025 --no-syslog \
 	  --filter ${HOME}/.emailrelay/filter \
 	  --spool-dir ${HOME}/.emailrelay/spool
 
-The pre-processor program should terminate with an exit code of zero to indicate
+The mail processor program should terminate with an exit code of zero to indicate
 success. An exit code of 100 can be used to cancel all further processing of the
 message, and any other non-zero exit code is used to indicate an error.
 
-For example, the following pre-processor shell script examines the client's
+For example, the following mail processor shell script examines the client's
 IP address and conditionally dumps the message into "sendmail" (using the
 sendmail command-line interface rather than SMTP):
 
@@ -239,14 +273,14 @@ sendmail command-line interface rather than SMTP):
 	fi
 	exit 0
 
-An example pre-processor script which does simple rot-13 masking of messages is
+An example mail processor script which does simple rot-13 masking of messages is
 also provided in the distribution ("share/emailrelay/emailrelay-process.sh").
 This could be used as a template for a more sophisticated message encryption
 system.
 
 Security issues
 ---------------
-A major security concern is the use of an external mail pre-processor (using the
+A major security concern is the use of an external mail processor (using the
 "--filter" switch), and so the following precautions are taken:
 
 # effective userid
@@ -261,13 +295,13 @@ A major security concern is the use of an external mail pre-processor (using the
 
 # execution environment
 
-  The pre-processor runs with an almost empty set of environment variables ("PATH"
+  The mail processor runs with an almost empty set of environment variables ("PATH"
   and "IFS"), and with no open file descriptors other than "stdin"/"stdout"/"stderr"
   open onto "/dev/null".
 
 # configuration
 
-  The pre-processor filename has to be configured using a full path, so there is
+  The mail processor filename has to be configured using a full path, so there is
   no dependence on the current working directory or the PATH environment variable.
 
 Security issues which relate to the SMTP protocol itself are beyond the scope of
@@ -284,7 +318,7 @@ Some other points are:
 * Strings are dynamically allocated, so buffer overflow/truncation issues are avoided.
 * By default connections to the SMTP and administrative ports will be rejected if they come from remote machines.
 * No configuration parameters can be changed through the administrative interface.
-* No exec(), system() or popen() calls are used other than execve() to spawn the mail pre-processor.
+* No exec(), system() or popen() calls are used other than execve() to spawn the mail processor.
 * The submit utility is installed as set-group-id with group ownership of "daemon".
 
 Authentication
@@ -339,7 +373,7 @@ least make sure that the secrets file has tight permissions, and that the
 passwords in it are not also used for anything important (such as root access).
 
 On the server side authentication is advertised in the response to the SMTP
-"EHLO" command if the "--auth-server" command line switch is used, but
+"EHLO" command if the "--auth-server" command-line switch is used, but
 authentication by the client is optional. If the client does authenticate then
 the authenticated user-id is stored with the message and then passed on to a
 next-hop server using an "AUTH=userid" parameter on the SMTP "MAIL FROM"
@@ -362,80 +396,99 @@ from a particular IP address is allowed. This type of POP-before-SMTP
 authentication can be done outside the E-MailRelay system by POP/IMAP utilities
 such as "fetchmail".
 
-Installation directories
-------------------------
+Application notes
+-----------------
+# *Mutt* [http://www.mutt.org]
+
+  Mutt can be configured to use the E-MailRelay 'submit' program rather than
+  "sendmail" with an entry in the ".muttrc" file like this:
+
+	set sendmail="/usr/local/libexec/emailrelay-submit"
+
+# *Spam Assassin* [http://spamassassin.taint.org]
+
+  The E-MailRelay server can use Spam Assasin to mark potential spam by having
+  a small shell script which calls spamassassin's "spamc" program installed
+  as the E-MailRelay mail processor (using the "--filter" command-line switch).
+
+  The shell script would look something like this:
+
+	#!/bin/sh
+	tmp="`basename $0`.$$.tmp"
+	cat ${1} | spamc > ${tmp} && mv ${tmp} ${1}
+
+Files and directories
+---------------------
 By default "make install" installs files in the following locations:
-* /usr/local/libexec/emailrelay-poke
-* /usr/local/libexec/emailrelay-notify.sh
-* /usr/local/libexec/emailrelay-deliver.sh
-* /usr/local/libexec/emailrelay-resubmit.sh
 * /usr/local/libexec/emailrelay
+* /usr/local/libexec/emailrelay-deliver.sh
+* /usr/local/libexec/emailrelay-notify.sh
+* /usr/local/libexec/emailrelay-poke
 * /usr/local/libexec/emailrelay-process.sh
-* /usr/local/sbin/emailrelay
-* /usr/local/sbin/emailrelay-passwd
-* /usr/local/sbin/emailrelay-submit
-* /usr/local/var/spool/emailrelay/*
-* /usr/local/share/emailrelay/doc/developer.txt
-* /usr/local/share/emailrelay/doc/reference.txt
-* /usr/local/share/emailrelay/doc/userguide.txt
-* /usr/local/share/emailrelay/doc/windows.txt
-* /usr/local/share/emailrelay/doc/readme.html
-* /usr/local/share/emailrelay/doc/developer.html
-* /usr/local/share/emailrelay/doc/reference.html
-* /usr/local/share/emailrelay/doc/userguide.html
-* /usr/local/share/emailrelay/doc/windows.html
-* /usr/local/share/emailrelay/doc/emailrelay-man.html
-* /usr/local/share/emailrelay/doc/index.html
-* /usr/local/share/emailrelay/doc/changelog.html
-* /usr/local/share/emailrelay/doc/emailrelay.css
-* /usr/local/share/emailrelay/doc/NEWS
-* /usr/local/share/emailrelay/doc/README
-* /usr/local/share/emailrelay/doc/changelog.gz
-* /usr/local/share/emailrelay/doc/doxygen/*
-* /usr/local/man/man1/emailrelay.1.gz
+* /usr/local/libexec/emailrelay-resubmit.sh
 * /usr/local/man/man1/emailrelay-passwd.1.gz
 * /usr/local/man/man1/emailrelay-poke.1.gz
 * /usr/local/man/man1/emailrelay-submit.1.gz
+* /usr/local/man/man1/emailrelay.1.gz
+* /usr/local/sbin/emailrelay
+* /usr/local/sbin/emailrelay-passwd
+* /usr/local/sbin/emailrelay-submit
+* /usr/local/share/emailrelay/doc/NEWS
+* /usr/local/share/emailrelay/doc/README
+* /usr/local/share/emailrelay/doc/changelog.gz
+* /usr/local/share/emailrelay/doc/changelog.html
+* /usr/local/share/emailrelay/doc/developer.html
+* /usr/local/share/emailrelay/doc/developer.txt
+* /usr/local/share/emailrelay/doc/emailrelay.css
+* /usr/local/share/emailrelay/doc/index.html
+* /usr/local/share/emailrelay/doc/readme.html
+* /usr/local/share/emailrelay/doc/reference.html
+* /usr/local/share/emailrelay/doc/reference.txt
+* /usr/local/share/emailrelay/doc/userguide.html
+* /usr/local/share/emailrelay/doc/userguide.txt
+* /usr/local/share/emailrelay/doc/windows.html
+* /usr/local/share/emailrelay/doc/windows.txt
+* /usr/local/var/spool/emailrelay/emailrelay.*.content
+* /usr/local/var/spool/emailrelay/emailrelay.*.envelope
 
 This directory structure is constrained by the GNU/"autoconf" conventions rather
 than the Filesystem Hierarchy Standard (FHS).
 
 To force FHS compliance you can use the "--enable-fhs" switch when running
 "configure". This results in the following file locations:
+* /etc/init.d/emailrelay
 * /usr/lib/emailrelay/emailrelay-poke
 * /usr/sbin/emailrelay
 * /usr/sbin/emailrelay-passwd
 * /usr/sbin/emailrelay-submit
-* /usr/share/doc/emailrelay/examples/emailrelay-notify.sh
-* /usr/share/doc/emailrelay/examples/emailrelay-deliver.sh
-* /usr/share/doc/emailrelay/examples/emailrelay-resubmit.sh
-* /usr/share/doc/emailrelay/examples/emailrelay-process.sh
-* /usr/share/doc/emailrelay/developer.txt
-* /usr/share/doc/emailrelay/reference.txt
-* /usr/share/doc/emailrelay/userguide.txt
-* /usr/share/doc/emailrelay/windows.txt
-* /usr/share/doc/emailrelay/readme.html
-* /usr/share/doc/emailrelay/developer.html
-* /usr/share/doc/emailrelay/reference.html
-* /usr/share/doc/emailrelay/userguide.html
-* /usr/share/doc/emailrelay/windows.html
-* /usr/share/doc/emailrelay/emailrelay-man.html
-* /usr/share/doc/emailrelay/index.html
-* /usr/share/doc/emailrelay/changelog.html
-* /usr/share/doc/emailrelay/emailrelay.css
 * /usr/share/doc/emailrelay/NEWS
 * /usr/share/doc/emailrelay/README
 * /usr/share/doc/emailrelay/changelog.gz
-* /usr/share/doc/emailrelay/doxygen/*
-* /usr/share/man/man1/emailrelay.1.gz
+* /usr/share/doc/emailrelay/changelog.html
+* /usr/share/doc/emailrelay/developer.html
+* /usr/share/doc/emailrelay/developer.txt
+* /usr/share/doc/emailrelay/emailrelay.css
+* /usr/share/doc/emailrelay/examples/emailrelay-deliver.sh
+* /usr/share/doc/emailrelay/examples/emailrelay-notify.sh
+* /usr/share/doc/emailrelay/examples/emailrelay-process.sh
+* /usr/share/doc/emailrelay/examples/emailrelay-resubmit.sh
+* /usr/share/doc/emailrelay/index.html
+* /usr/share/doc/emailrelay/readme.html
+* /usr/share/doc/emailrelay/reference.html
+* /usr/share/doc/emailrelay/reference.txt
+* /usr/share/doc/emailrelay/userguide.html
+* /usr/share/doc/emailrelay/userguide.txt
+* /usr/share/doc/emailrelay/windows.html
+* /usr/share/doc/emailrelay/windows.txt
 * /usr/share/man/man1/emailrelay-passwd.1.gz
 * /usr/share/man/man1/emailrelay-poke.1.gz
 * /usr/share/man/man1/emailrelay-submit.1.gz
-* /var/spool/emailrelay/*
-* /etc/init.d/emailrelay
+* /usr/share/man/man1/emailrelay.1.gz
+* /var/spool/emailrelay/emailrelay.*.content
+* /var/spool/emailrelay/emailrelay.*.envelope
 
 For finer control of the directory structure the following variables
-can be specified on the "configure" command line (but note that the
+can be specified on the "configure" command-line (but note that the
 "--enable-fhs" will override them):
 * e_sbindir
 * e_libexecdir
@@ -451,12 +504,26 @@ and create the E-MailRelay spool directory as "/tmp/spool" rather than
 "/usr/local/var/spool/emailrelay".
 
 The default spool directory path which is built into the executables and scripts
-comes from "configure", via the makefiles. So if you re-run "configure" with a
-different spool directory you should also do a "make clean" in at least
-"src/main" and "bin".
+comes from "configure", via the makefiles. So after running "configure" with a
+different spool directory do a "make clean" in at least "src/main" and "bin".
+
+Even though the "--enable-fhs" switch overrides all other directory specifiers
+during the build process, it is still possible to change the installation
+root directory using "make install DESTDIR=<root>" or "DESTDIR=<root> make -e install".
+However this will not affect the default spool directory path built into the
+scripts and executables; the spool directory path will have to be explicitly
+defined at run-time.
+
+For example, building with "configure --enable-fhs ; make ; make install DESTDIR=/root"
+would create a spool directory "/root/var/spool/emailrelay", but the server
+run as "/root/usr/sbin/emailrelay --as-server" would use a expect a spool directory
+of "/var/spool/emailrelay". This could be fixed by either adding
+"--spool-dir /root/var/spool/emailrelay" to the server command-line, or by
+creating the "/var/spool/emailrelay" directory manually.
 
 The "emailrelay" script in "init.d" creates a pid file in "/var/run" if the
 directory exists, or in "/tmp" otherwise.
+
 
 
 Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.

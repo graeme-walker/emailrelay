@@ -29,6 +29,7 @@
 #include "gstr.h"
 #include "garg.h"
 #include "gmd5.h"
+#include "legal.h"
 #include <iostream>
 
 int main( int argc , char * argv [] )
@@ -40,11 +41,8 @@ int main( int argc , char * argv [] )
 		{
 			std::cerr
 				<< "usage: " << arg.prefix() << std::endl
-				<< "  This software is provided without warranty of any kind." << std::endl
-				<< "  You may redistribure copies of this program under " << std::endl
-				<< "  the terms of the GNU General Public License." << std::endl
-				<< "  For more information refer to the file named COPYING." << std::endl
-        			<< "    Copyright (C) 2002 Graeme Walker" << std::endl ;
+				<< Main::Legal::warranty("  ","\n")
+				<< "    " << Main::Legal::copyright() << std::endl ;
 			return EXIT_FAILURE ;
 		}
 

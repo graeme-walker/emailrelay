@@ -31,6 +31,7 @@
 #include "geventloop.h"
 #include "garg.h"
 #include "gdaemon.h"
+#include "gpidfile.h"
 #include "gfilestore.h"
 #include "gnewfile.h"
 #include "gadminserver.h"
@@ -45,19 +46,54 @@
 #include <iostream>
 #include <exception>
 
+namespace Main
+{
+	class FileStore ;
+	class Monitor ;
+}
+
+// Class: Main::FileStore
+// Description: A derivation of GSmtp::FileStore which is used to
+// do event plumbing into Main::Run.
+//
+class Main::FileStore : public GSmtp::FileStore
+{
+	private: Run & m_run ;
+	public: FileStore( Run & run , const G::Path & path ) : GSmtp::FileStore(path) , m_run(run) {}
+	private: virtual void onEvent() { m_run.raiseStoreEvent() ; }
+} ;
+
+// Class: Main::Monitor
+// Description: A derivation of GNet::Monitor which is used to do
+// event plumbing into Main::Run.
+//
+class Main::Monitor : public GNet::Monitor
+{
+	private: Run & m_run ;
+	public: Monitor( Run & run ) : m_run(run) {}
+	private: virtual void onEvent( const std::string & s1 , const std::string & s2 )
+		{ m_run.raiseNetworkEvent( s1 , s2 ) ; }
+} ;
+
+Main::Run * Main::Run::m_this = NULL ;
+
 //static
 std::string Main::Run::versionNumber()
 {
-	return "0.9.9" ;
+	return "1.0.0" ;
 }
 
 Main::Run::Run( const G::Arg & arg ) :
 	m_arg(arg)
 {
+	if( m_this == NULL )
+		m_this = this ;
 }
 
 Main::Run::~Run()
 {
+	if( m_this == this )
+		m_this = NULL ;
 }
 
 Main::Configuration Main::Run::cfg() const
@@ -89,7 +125,10 @@ bool Main::Run::prepare()
 {
 	bool do_run = false ;
 
-	if( cl().contains("help") )
+	if( !runnable() )
+	{
+	}
+	else if( cl().contains("help") )
 	{
 		cl().showHelp( false ) ;
 	}
@@ -114,6 +153,8 @@ bool Main::Run::prepare()
 		do_run = true ;
 	}
 
+	// early singletons...
+	//
 	// (prefix,output,log,verbose-log,debug,level,timestamp,strip-context)
 	m_log_output <<= new G::LogOutput( m_arg.prefix() , cfg().log() , cfg().log() ,
 		cfg().verbose() , cfg().debug() , true ,
@@ -154,15 +195,11 @@ void Main::Run::runCore()
 
 	// daemonising
 	//
-	G::Daemon::PidFile pid_file ;
-	G::Process::setUmask() ;
-	if( cfg().daemon() )
-	{
-		closeFiles() ; // before opening any sockets or message-store streams
-		if( cfg().usePidFile() )
-			pid_file = G::Daemon::PidFile( G::Path(cfg().pidFile()) ) ;
-		G::Daemon::detach( pid_file ) ;
-	}
+	G::PidFile pid_file ;
+	G::Process::Umask::set( G::Process::Umask::Tightest ) ;
+	if( cfg().daemon() ) closeFiles() ; // before opening any sockets or message-store streams
+	if( cfg().usePidFile() ) pid_file.init( G::Path(cfg().pidFile()) ) ;
+	if( cfg().daemon() ) G::Daemon::detach( pid_file ) ;
 
 	// release root privileges
 	//
@@ -170,7 +207,7 @@ void Main::Run::runCore()
 
 	// message store singleton
 	//
-	GSmtp::FileStore store( cfg().spoolDir() ) ;
+	Main::FileStore store( *this , cfg().spoolDir() ) ;
 	if( cfg().useFilter() )
 		GSmtp::NewFile::setPreprocessor( G::Path(cfg().filter()) ) ;
 
@@ -187,7 +224,12 @@ void Main::Run::runCore()
 
 	// network monitor singleton
 	//
-	GNet::Monitor monitor ;
+	Main::Monitor monitor( *this ) ;
+
+	// timeout configuration
+	//
+	GSmtp::Client::responseTimeout( cfg().responseTimeout() ) ;
+	GSmtp::Client::connectionTimeout( cfg().connectionTimeout() ) ;
 
 	// run as forwarding agent
 	//
@@ -205,20 +247,31 @@ void Main::Run::runCore()
 	{
 		doServing( pid_file , *event_loop.get() ) ;
 	}
+
+	// clean up
+	//
+	m_client <<= 0 ;
 }
 
-void Main::Run::doServing( G::Daemon::PidFile & pid_file ,
+void Main::Run::doServing( G::PidFile & pid_file ,
 	GNet::EventLoop & event_loop )
 {
-	GSmtp::Server server( cfg().port() ,
-		cfg().allowRemoteClients() , smtpIdent() ,
-		cfg().immediate() ? cfg().serverAddress() : std::string() ) ;
+	std::auto_ptr<GSmtp::Server> smtp_server ;
+	if( cfg().doSmtp() )
+	{
+		GSmtp::Server::AddressList interfaces ;
+		if( cfg().interface_().length() )
+			interfaces.push_back( GNet::Address(cfg().interface_(),cfg().port()) ) ;
+
+		smtp_server <<= new GSmtp::Server( cfg().port() , interfaces ,
+			cfg().allowRemoteClients() , smtpIdent() ,
+			cfg().immediate() ? cfg().serverAddress() : std::string() ,
+			GSmtp::Verifier(cfg().verifier()) ) ;
+	}
 
 	std::auto_ptr<GSmtp::AdminServer> admin_server ;
 	if( cfg().doAdmin() )
 	{
-		GSmtp::Client::responseTimeout( cfg().responseTimeout() ) ;
-		GSmtp::Client::connectionTimeout( cfg().connectionTimeout() ) ;
 		admin_server <<= new GSmtp::AdminServer( cfg().adminPort() ,
 			cfg().allowRemoteClients() , cfg().serverAddress() ) ;
 	}
@@ -229,14 +282,14 @@ void Main::Run::doServing( G::Daemon::PidFile & pid_file ,
 	}
 
 	closeMoreFiles() ;
+	if( smtp_server.get() ) smtp_server->report() ;
+	if( admin_server.get() ) admin_server->report() ;
 	event_loop.run() ;
 }
 
 void Main::Run::doForwarding( GSmtp::MessageStore & store , GNet::EventLoop & event_loop )
 {
 	const bool quit_on_disconnect = true ;
-	GSmtp::Client::responseTimeout( cfg().responseTimeout() ) ;
-	GSmtp::Client::connectionTimeout( cfg().connectionTimeout() ) ;
 	GSmtp::Client client( store , *this , quit_on_disconnect ) ;
 	std::string error = client.init( cfg().serverAddress() ) ;
 	if( error.length() )
@@ -248,7 +301,7 @@ void Main::Run::doForwarding( GSmtp::MessageStore & store , GNet::EventLoop & ev
 
 const Main::CommandLine & Main::Run::cl() const
 {
-	// lazy evaluation so that the constructor does not throw
+	// lazy evaluation so that the constructor doesnt throw
 	if( m_cl.get() == NULL )
 	{
 		const_cast<Run*>(this)->m_cl <<= new CommandLine( m_arg , versionNumber() ) ;
@@ -263,13 +316,66 @@ void Main::Run::clientDone( std::string reason )
 		throw G::Exception( reason ) ;
 }
 
-void Main::Run::clientStatusChange( const std::string & s1 , const std::string & s2 )
+void Main::Run::clientEvent( const std::string & s1 , const std::string & s2 )
 {
-	onStatusChange( s1 , s2 ) ;
+	onEvent( "client" , s1 , s2 ) ;
 }
 
-void Main::Run::onStatusChange( const std::string & , const std::string & )
+void Main::Run::raiseStoreEvent()
+{
+	onEvent( "store" , "update" , std::string() ) ;
+}
+
+void Main::Run::raiseNetworkEvent( const std::string & s1 , const std::string & s2 )
+{
+	onEvent( "network" , s1 , s2 ) ;
+}
+
+void Main::Run::onEvent( const std::string & , const std::string & , const std::string & )
 {
 	; // default implementation does nothing
+}
+
+bool Main::Run::runnable() const
+{
+	return true ; // default implementation
+}
+
+//static
+bool Main::Run::startForwarding( GSmtp::Client::ClientCallback & callback , const std::string & to )
+{
+	const char * reason =
+		m_this == NULL ?
+			"no instance" :
+			m_this->startForwarding( &callback , to ) ;
+
+	if( reason != NULL )
+	{
+		G_DEBUG( "Main::Run::startForwarding: doing nothing: " << reason ) ;
+		return false ;
+	}
+	else
+	{
+		return true ;
+	}
+}
+
+const char * Main::Run::startForwarding( GSmtp::Client::ClientCallback * callback , const std::string & to )
+{
+	if( !GSmtp::MessageStore::exists() ) return "no message store instance" ;
+	if( !GNet::EventLoop::exists() ) return "no event loop instance" ;
+	if( !GNet::EventLoop::instance().running() ) return "not running the event loop" ;
+	if( GSmtp::MessageStore::instance().empty() ) return "nothing to do" ;
+	if( m_client.get() != NULL && m_client->busy() ) return "busy" ;
+
+	std::string address( to ) ;
+	if( address.empty() )
+		address = cfg().serverAddress() ;
+
+	m_client <<= new GSmtp::Client( GSmtp::MessageStore::instance() , *callback , false ) ;
+	std::string error = m_client->init( address ) ;
+	if( error.length() )
+		throw G::Exception( error + ": " + address ) ;
+	return NULL ;
 }
 

@@ -34,7 +34,7 @@ namespace GNet
 	class Request ;
 	class HostRequest ;
 	class ServiceRequest ;
-} ;
+}
 
 // Class: GNet::Request
 // Description: A base class for making

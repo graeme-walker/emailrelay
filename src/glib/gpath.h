@@ -32,7 +32,7 @@
 namespace G
 {
 	class Path ;
-} ;
+}
 
 // Class: G::Path
 // Description: A Path object represents a file system
@@ -86,7 +86,7 @@ public:
 		// eg. c:foo\bar.exe -> c:foo
 		// eg. c:\foo\bar.exe -> c:\foo
 		// eg. c:bar.exe -> c:
-		// eg. c:\file -> c:\
+		// eg. c:\file -> c:\                              .
 		// eg. c:\ -> <empty>
 		// eg. c: -> <empty>
 		// eg. \foo\bar.exe -> \foo
@@ -105,8 +105,8 @@ public:
 	
 	void removeExtension() ;
 		// Modifies the path by removing any extension.
-		// However, the extension returned by extension()
-		// is unchanged.
+		// However, the extension returned by extension() is
+		// unchanged.
 		
 	void setExtension( const std::string & extension ) ;
 		// Replaces the extension. Any leading dot in the
@@ -177,6 +177,6 @@ namespace G
 		path.streamOut( stream ) ;
 		return stream ;
 	}
-} ;
+}
 
 #endif

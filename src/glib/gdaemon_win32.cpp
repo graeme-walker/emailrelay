@@ -26,12 +26,6 @@
 #include "gprocess.h"
 
 //static
-void G::Daemon::detach( const Path & )
-{
-	detach() ;
-}
-
-//static
 void G::Daemon::detach( PidFile & )
 {
 	detach() ;

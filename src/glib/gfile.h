@@ -33,7 +33,7 @@ namespace G
 {
 	class File ;
 	class DirectoryIteratorImp ;
-} ;
+}
 
 // Class: G::File
 // Description: A simple static class for dealing with files.

@@ -34,7 +34,7 @@ namespace GNet
 {
 	class Address ;
 	class AddressImp ;
-} ;
+}
 
 // Class: GNet::Address
 //
@@ -99,6 +99,12 @@ public:
 		// Throws an exception if an invalid string.
 		//
 		// See also validString().
+
+	Address( const std::string & host_or_ip , unsigned int port ) ;
+		// Constructor taking a host-name/ip-address and
+		// a port number.
+		//
+		// Throws an exception if an invalid string.
 
 	~Address() ;
 		// Destructor.

@@ -24,8 +24,9 @@ man_files_out=emailrelay.1.gz emailrelay-passwd.1.gz emailrelay-poke.1.gz emailr
 html_files_in=doxygen_header.html
 html_files_thru=index.html $(stylesheet)
 html_files_out=readme.html developer.html reference.html userguide.html windows.html emailrelay-man.html changelog.html
+png_files=gsmtp-classes.png gnet-classes.png
 
-EXTRA_DIST = $(man_files_in) $(txt_files) $(html_files_in) $(html_files_thru)
+EXTRA_DIST = $(man_files_in) $(txt_files) $(html_files_in) $(html_files_thru) $(png_files)
 noinst_SCRIPTS = .dox
 e_man1_DATA = $(man_files_out)
 e_doc_DATA = $(txt_files) $(html_files_out) $(html_files_thru)
@@ -45,7 +46,7 @@ converter_helper3=$(top_builddir)/bin/expand.sh
 converter_helper3_src=$(top_srcdir)/bin/expand.sh_
 
 .txt.html:
-	$(converter) -a "$(AWK)" $< $(stylesheet) > $*.html
+	$(converter) -a "$(AWK)" $(top_srcdir)/doc/$*.txt $(stylesheet) > $*.html
 
 $(filter): $(filter_src)
 	cp $(filter_src) $(filter)
@@ -71,7 +72,7 @@ $(converter_helper3): $(converter_helper3_src)
 	if test "$(HAVE_DOXYGEN)" = "yes" ; then cat $(top_srcdir)/src/main/doxygen.cfg | sed "s:__TOP_SRC__:$(top_srcdir):g" | sed "s:__TOP_BUILD__:$(top_builddir):g" | doxygen - && touch .dox ; else echo no doxygen ; fi
 
 emailrelay-man.html: emailrelay.1
-	if test "$(HAVE_MAN2HTML)" = "yes" ; then man2html $< > emailrelay-man.html ; fi
+	if test "$(HAVE_MAN2HTML)" = "yes" ; then man2html emailrelay.1 > emailrelay-man.html ; fi
 
 developer.html reference.html userguide.html: $(converter)
 
@@ -82,21 +83,22 @@ changelog.html: $(top_srcdir)/ChangeLog $(converter)
 	$(converter) -a "$(AWK)" $(top_srcdir)/ChangeLog $(stylesheet) > changelog.html
 
 emailrelay.1.gz : emailrelay.1
-	if test -n "$(GZIP)" ; then $(GZIP) -c $< > emailrelay.1.gz ; fi
+	if test -n "$(GZIP)" ; then $(GZIP) -c $(top_srcdir)/doc/emailrelay.1 > emailrelay.1.gz ; fi
 
 emailrelay-passwd.1.gz : emailrelay-passwd.1
-	if test -n "$(GZIP)" ; then $(GZIP) -c $< > emailrelay-passwd.1.gz ; fi
+	if test -n "$(GZIP)" ; then $(GZIP) -c $(top_srcdir)/doc/emailrelay-passwd.1 > emailrelay-passwd.1.gz ; fi
 
 emailrelay-submit.1.gz : emailrelay-submit.1
-	if test -n "$(GZIP)" ; then $(GZIP) -c $< > emailrelay-submit.1.gz ; fi
+	if test -n "$(GZIP)" ; then $(GZIP) -c $(top_srcdir)/doc/emailrelay-submit.1 > emailrelay-submit.1.gz ; fi
 
 emailrelay-poke.1.gz: emailrelay-poke.1
-	if test -n "$(GZIP)" ; then $(GZIP) -c $< > emailrelay-poke.1.gz ; fi
+	if test -n "$(GZIP)" ; then $(GZIP) -c $(top_srcdir)/doc/emailrelay-poke.1 > emailrelay-poke.1.gz ; fi
 
-install-data-local:
+install-data-local: install-e_docDATA install-e_man1DATA
 	$(mkinstalldirs) $(DESTDIR)$(e_docdir)/doxygen
 	if test "$(HAVE_DOXYGEN)" = "yes" ; then for file in doxygen/* ; do $(INSTALL) $$file $(DESTDIR)$(e_docdir)/$$file ; done ; fi
 
 uninstall-local:
-	-rm -f $(DESTDIR)$(e_docdir)/html/* 2>/dev/null
+	-rmdir $(DESTDIR)$(e_docdir)/doxygen 2>/dev/null
+	-rmdir $(DESTDIR)$(e_docdir) 2>/dev/null
 

@@ -40,26 +40,24 @@
 
 		#if ! HAVE_GMTIME_R
 			#include <ctime>
-			namespace std
+			inline struct tm * gmtime_r( const time_t * tp , struct tm * tm_p )
 			{
-				inline struct tm * gmtime_r( const time_t * tp , struct tm * tm_p )
-				{
-					* tm_p = * gmtime( tp ) ;
-					return tm_p ;
-				}
-			} ;
+				* tm_p = * gmtime( tp ) ;
+				return tm_p ;
+			}
 		#endif
 
 		#if ! HAVE_LOCALTIME_R
 			#include <ctime>
-			namespace std
+			inline struct tm * localtime_r( const time_t * tp , struct tm * tm_p )
 			{
-				inline struct tm * localtime_r( const time_t * tp , struct tm * tm_p )
-				{
-					* tm_p = * localtime( tp ) ;
-					return tm_p ;
-				}
-			} ;
+				* tm_p = * localtime( tp ) ;
+				return tm_p ;
+			}
+		#endif
+
+		#if ! HAVE_SOCKLEN_T
+			typedef int socklen_t ;
 		#endif
 
 		#if ! defined( G_UNIX )
@@ -119,7 +117,7 @@
 	#include <fstream>
 	#include <sstream>
 	#include <string>
-	#include <xlocale>
+	//#include <xlocale>
 	#include <limits>
 	#include <memory>
 	#include <exception>
@@ -141,6 +139,7 @@
 		typedef int ssize_t ;
 		typedef int uid_t ;
 		typedef int gid_t ;
+		typedef unsigned int pid_t ;
 	#endif
 
 	// STL portability macros (no longer necessary)
@@ -155,7 +154,7 @@
 
 	// Modify compiler error handling
 	//
-	#if G_COMPILER_IS_MICROSOFT
+	#ifdef G_COMPILER_IS_MICROSOFT
 		#pragma warning( disable : 4100 ) // unused formal parameter
 		#pragma warning( disable : 4355 ) // 'this' in initialiser list
 		#pragma warning( disable : 4511 ) // cannot create default copy ctor

@@ -33,7 +33,7 @@
 namespace GNet
 {
 	class LineBuffer ;
-} ;
+}
 
 // Class: GNet::LineBuffer
 // Description: A class which does line buffering. Raw

@@ -37,7 +37,7 @@ namespace GNet
 	class StreamSocket ;
 	class DatagramSocket ;
 	class AcceptPair ;
-} ;
+}
 
 // Class: GNet::Socket
 //

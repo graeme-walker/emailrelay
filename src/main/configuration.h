@@ -33,7 +33,7 @@ namespace Main
 {
 	class Configuration ;
 	class CommandLine ;
-} ;
+}
 
 // Class: Main::Configuration
 // Description: An interface for returning application configuration
@@ -54,7 +54,10 @@ public:
 			// string.
 
 	unsigned int port() const ;
-		// Returns the main port number.
+		// Returns the main listening port number.
+
+	std::string interface_() const ;
+		// Returns the listening interface.
 
 	unsigned int adminPort() const ;
 		// Returns the admin port number.
@@ -87,10 +90,13 @@ public:
 		// Returns true if running as a client.
 
 	bool doServing() const ;
-		// Returns true if running as a server.
+		// Returns true if running as a server (SMTP, admin or COM).
+
+	bool doSmtp() const ;
+		// Returns true if listening for smtp connections.
 
 	bool doAdmin() const ;
-		// Returns true if enabling the admin interface.
+		// Returns true if listening for admin connections.
 
 	bool allowRemoteClients() const ;
 		// Returns true if allowing remote clients to connect.
@@ -137,11 +143,17 @@ public:
 		// Returns the name of an unprivileged user. This is only
 		// used if running with a real user-id of root.
 
+	G::Path verifier() const ;
+		// Returns the path of an external address verifier program.
+
 private:
 	const CommandLine & m_cl ;
 
 private:
 	static std::string yn( bool ) ;
+	static std::string any( const std::string & ) ;
+	std::string na() const ;
+	std::string na( const std::string & ) const ;
 } ;
 
 #endif

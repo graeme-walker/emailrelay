@@ -32,7 +32,7 @@ std::string GNet::Local::hostname()
 	if( 0 != ::gethostname( buffer , sizeof(buffer)-1U ) )
 	{
 		int error = ::WSAGetLastError() ;
-		throw Error( std::stringstream() << "gethostname() (" << error << ")" ) ;
+		throw Error( std::ostringstream() << "gethostname() (" << error << ")" ) ;
 	}
 	return std::string(buffer) ;
 }
@@ -49,7 +49,7 @@ GNet::Address GNet::Local::canonicalAddress()
 			Resolver::resolve( hostname() , "0" ) ;
 
 		if( rc.second.length() != 0U )
-			throw Error( std::stringstream() << "resolve: " << rc.second ) ;
+			throw Error( std::ostringstream() << "resolve: " << rc.second ) ;
 
 		result = rc.first.address ;
 	}
@@ -68,7 +68,7 @@ std::string GNet::Local::fqdnImp()
 			Resolver::resolve( hostname() , "0" ) ;
 
 		if( rc.second.length() != 0U )
-			throw Error( std::stringstream() << "resolve: " << rc.second ) ;
+			throw Error( std::ostringstream() << "resolve: " << rc.second ) ;
 
 		result = rc.first.canonical_name ;
 

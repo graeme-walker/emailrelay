@@ -32,7 +32,7 @@ namespace GNet
 {
 	class Resolver ;
 	class ResolverImp ;
-} ;
+}
 
 // Class: GNet::Resolver
 // Description: A class for asynchronous TCP name-to-address

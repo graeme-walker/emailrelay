@@ -119,6 +119,9 @@ public:
 		// Exception: Overflow
 		// Exception: InvalidFormat
 
+	static std::string fromInt( int i ) ;
+		// Converts int 'i' to a string.
+
 	static std::string fromUInt( unsigned int ) ;
 		// Converts from unsigned int to a decimal string.
 
@@ -133,6 +136,14 @@ public:
 		// Replaces all uppercase characters in string 's' by
 		// lowercase characters.
 		
+	static std::string upper( const std::string &s ) ;
+		// Returns a copy of 's' in which all lowercase characters
+		// have been replaced by uppercase characters.
+		
+	static std::string lower( const std::string &s ) ;
+		// Returns a copy of 's' in which all uppercase characters
+		// have been replaced by lowercase characters.
+
 	static std::string toPrintableAscii( char c , char escape = '\\' ) ;
 		// Returns a printable, 7-bit-ascii string representing the given
 		// character. Typical return values include "\\", "\n",

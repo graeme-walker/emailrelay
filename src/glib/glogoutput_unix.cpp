@@ -46,7 +46,7 @@ namespace
 	
 		return m ;
 	}
-} ;
+}
 
 void G::LogOutput::rawOutput( G::Log::Severity severity , const char *message )
 {

@@ -79,6 +79,7 @@ POST_UNINSTALL = :
 AR = @AR@
 AWK = @AWK@
 CC = @CC@
+COMPILER_VERSION = @COMPILER_VERSION@
 CXX = @CXX@
 GZIP = @GZIP@
 HAVE_DOXYGEN = @HAVE_DOXYGEN@
@@ -96,11 +97,11 @@ e_man1dir = @e_man1dir@
 e_sbindir = @e_sbindir@
 e_spooldir = @e_spooldir@
 
-EXTRA_DIST = garg_win32.cpp 	gdaemon_win32.cpp 	gdatetime_win32.cpp 	gdirectory_win32.cpp 	gfs_win32.cpp 	glogoutput_win32.cpp 	gprocess_win32.cpp 	gfile_win32.cpp 	md5c.c 	md5.h
+EXTRA_DIST =  	garg_win32.cpp 	gcleanup_win32.cpp 	gdaemon_win32.cpp 	gdatetime_win32.cpp 	gdirectory_win32.cpp 	gfs_win32.cpp 	glogoutput_win32.cpp 	gprocess_win32.cpp 	gfile_win32.cpp 	gregistry_win32.cpp 	gregistry.h 	md5c.c 	md5.h
 
-INCLUDES = -I$(top_srcdir)/lib/gcc2.95
+INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION)
 noinst_LIBRARIES = libglib.a
-libglib_a_SOURCES =  	garg.cpp 	garg.h 	garg_unix.cpp 	gassert.h 	gconvert.h 	gcredentials.h 	gdaemon.h 	gdaemon.cpp 	gdaemon_unix.cpp 	gdate.cpp 	gdate.h 	gdatetime.cpp 	gdatetime.h 	gdatetime_unix.cpp 	gdebug.h 	gdef.h 	gdirectory.cpp 	gdirectory.h 	gdirectory_unix.cpp 	gexception.cpp 	gexception.h 	gfile.cpp 	gfile.h 	gfile_unix.cpp 	gfs.h 	gfs_unix.cpp 	ggetopt.cpp 	ggetopt.h 	glog.cpp 	glog.h 	glogoutput.cpp 	glogoutput.h 	glogoutput_unix.cpp 	gmd5.cpp 	gmd5.h 	gmemory.h 	gnoncopyable.h 	gpath.cpp 	gpath.h 	gprocess.h 	gprocess_unix.cpp 	groot.cpp 	groot.h 	gstatemachine.h 	gstr.cpp 	gstr.h 	gstrings.h 	gtime.cpp 	gtime.h
+libglib_a_SOURCES =  	garg.cpp 	garg.h 	garg_unix.cpp 	gassert.h 	gconvert.h 	gcleanup.h 	gcleanup_unix.cpp 	gdaemon.h 	gdaemon_unix.cpp 	gdate.cpp 	gdate.h 	gdatetime.cpp 	gdatetime.h 	gdatetime_unix.cpp 	gdebug.h 	gdef.h 	gdirectory.cpp 	gdirectory.h 	gdirectory_unix.cpp 	gexception.cpp 	gexception.h 	gfile.cpp 	gfile.h 	gfile_unix.cpp 	gfs.h 	gfs_unix.cpp 	ggetopt.cpp 	ggetopt.h 	glog.cpp 	glog.h 	glogoutput.cpp 	glogoutput.h 	glogoutput_unix.cpp 	gmd5.cpp 	gmd5.h 	gmemory.h 	gnoncopyable.h 	gpath.cpp 	gpath.h 	gpidfile.cpp 	gpidfile.h 	gprocess.h 	gprocess_unix.cpp 	groot.cpp 	groot.h 	gsetter.h 	gstatemachine.h 	gstr.cpp 	gstr.h 	gstrings.h 	gtime.cpp 	gtime.h
 
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../../config.h
@@ -113,11 +114,11 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 libglib_a_LIBADD = 
-libglib_a_OBJECTS =  garg.o garg_unix.o gdaemon.o gdaemon_unix.o gdate.o \
-gdatetime.o gdatetime_unix.o gdirectory.o gdirectory_unix.o \
+libglib_a_OBJECTS =  garg.o garg_unix.o gcleanup_unix.o gdaemon_unix.o \
+gdate.o gdatetime.o gdatetime_unix.o gdirectory.o gdirectory_unix.o \
 gexception.o gfile.o gfile_unix.o gfs_unix.o ggetopt.o glog.o \
-glogoutput.o glogoutput_unix.o gmd5.o gpath.o gprocess_unix.o groot.o \
-gstr.o gtime.o
+glogoutput.o glogoutput_unix.o gmd5.o gpath.o gpidfile.o \
+gprocess_unix.o groot.o gstr.o gtime.o
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 CXXLD = $(CXX)
@@ -227,97 +228,93 @@ distdir: $(DISTFILES)
 	  fi; \
 	done
 garg.o: garg.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
-	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
-	../../lib/gcc2.95/limits garg.h gpath.h gstrings.h gstr.h \
-	gexception.h gdebug.h glogoutput.h glog.h gassert.h
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/limits garg.h \
+	gpath.h gstrings.h gstr.h gexception.h gdebug.h glogoutput.h \
+	glog.h gassert.h
 garg_unix.o: garg_unix.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
-	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits garg.h \
-	gdebug.h glogoutput.h glog.h gassert.h
-gdaemon.o: gdaemon.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
-	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
-	../../lib/gcc2.95/limits gdaemon.h gexception.h gpath.h \
-	gstrings.h groot.h gprocess.h gnoncopyable.h
+	../../lib/gcc2.95/limits garg.h gdebug.h glogoutput.h glog.h \
+	gassert.h
+gcleanup_unix.o: gcleanup_unix.cpp gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/limits gcleanup.h gpath.h gstrings.h \
+	gexception.h gprocess.h groot.h gnoncopyable.h glog.h
 gdaemon_unix.o: gdaemon_unix.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
-	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gdaemon.h \
-	gexception.h gpath.h gstrings.h gprocess.h
+	../../lib/gcc2.95/limits gdaemon.h gexception.h gpidfile.h \
+	gpath.h gstrings.h gprocess.h
 gdate.o: gdate.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
-	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
-	../../lib/gcc2.95/limits gdate.h gdatetime.h gexception.h \
-	gdebug.h glogoutput.h glog.h gassert.h
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/limits gdate.h \
+	gdatetime.h gexception.h gdebug.h glogoutput.h glog.h gassert.h
 gdatetime.o: gdatetime.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
-	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gdatetime.h \
-	gexception.h gstr.h gstrings.h gassert.h glogoutput.h glog.h
+	../../lib/gcc2.95/limits gdatetime.h gexception.h gstr.h \
+	gstrings.h gassert.h glogoutput.h glog.h
 gdatetime_unix.o: gdatetime_unix.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
-	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gdatetime.h \
-	gexception.h
+	../../lib/gcc2.95/limits gdatetime.h gexception.h
 gdirectory.o: gdirectory.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
-	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gdirectory.h \
-	gpath.h gstrings.h gexception.h gfs.h glog.h
+	../../lib/gcc2.95/limits gdirectory.h gpath.h gstrings.h \
+	gexception.h gfs.h glog.h
 gdirectory_unix.o: gdirectory_unix.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
-	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gdirectory.h \
-	gpath.h gstrings.h gexception.h gfs.h gfile.h gdebug.h \
-	glogoutput.h glog.h gassert.h
+	../../lib/gcc2.95/limits gdirectory.h gpath.h gstrings.h \
+	gexception.h gfs.h gfile.h gdebug.h glogoutput.h glog.h \
+	gassert.h
 gexception.o: gexception.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
-	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gexception.h
+	../../lib/gcc2.95/limits gexception.h
 gfile.o: gfile.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
-	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
-	../../lib/gcc2.95/limits gfile.h gpath.h gstrings.h \
-	gexception.h gprocess.h glog.h
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/limits gfile.h \
+	gpath.h gstrings.h gexception.h gprocess.h glog.h
 gfile_unix.o: gfile_unix.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
-	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gfile.h \
-	gpath.h gstrings.h gexception.h gprocess.h
+	../../lib/gcc2.95/limits gfile.h gpath.h gstrings.h \
+	gexception.h gprocess.h
 gfs_unix.o: gfs_unix.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
-	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gfs.h
+	../../lib/gcc2.95/limits gfs.h
 ggetopt.o: ggetopt.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
-	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
-	../../lib/gcc2.95/limits glog.h gstrings.h gstr.h gexception.h \
-	ggetopt.h garg.h gassert.h glogoutput.h gdebug.h
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/limits glog.h \
+	gstrings.h gstr.h gexception.h ggetopt.h garg.h gassert.h \
+	glogoutput.h gdebug.h
 glog.o: glog.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
-	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
-	../../lib/gcc2.95/limits glog.h glogoutput.h
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/limits glog.h \
+	glogoutput.h
 glogoutput.o: glogoutput.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
-	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits glogoutput.h \
-	glog.h
+	../../lib/gcc2.95/limits glogoutput.h glog.h
 glogoutput_unix.o: glogoutput_unix.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
-	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits glogoutput.h \
-	glog.h
+	../../lib/gcc2.95/limits glogoutput.h glog.h
 gmd5.o: gmd5.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
-	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
-	../../lib/gcc2.95/limits gmd5.h gexception.h gstr.h gstrings.h \
-	gassert.h glogoutput.h glog.h md5.h md5c.c
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/limits gmd5.h \
+	gexception.h gstr.h gstrings.h gassert.h glogoutput.h glog.h \
+	md5.h md5c.c
 gpath.o: gpath.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
-	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
-	../../lib/gcc2.95/limits gpath.h gstrings.h gfs.h gstr.h \
-	gexception.h gdebug.h glogoutput.h glog.h gassert.h
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/limits gpath.h \
+	gstrings.h gfs.h gstr.h gexception.h gdebug.h glogoutput.h \
+	glog.h gassert.h
+gpidfile.o: gpidfile.cpp gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/limits gpidfile.h gexception.h gpath.h \
+	gstrings.h gprocess.h gcleanup.h gfile.h gdebug.h glogoutput.h \
+	glog.h gassert.h
 gprocess_unix.o: gprocess_unix.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
-	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gprocess.h \
-	gexception.h gpath.h gstrings.h gassert.h glogoutput.h glog.h \
-	gfs.h
+	../../lib/gcc2.95/limits gprocess.h gexception.h gpath.h \
+	gstrings.h gassert.h glogoutput.h glog.h gfs.h
 groot.o: groot.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
-	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
-	../../lib/gcc2.95/limits groot.h gprocess.h gexception.h \
-	gpath.h gstrings.h gnoncopyable.h gdebug.h glogoutput.h glog.h \
-	gassert.h
-gstr.o: gstr.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
-	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
-	../../lib/gcc2.95/limits gstr.h gexception.h gstrings.h \
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/limits groot.h \
+	gprocess.h gexception.h gpath.h gstrings.h gnoncopyable.h \
 	gdebug.h glogoutput.h glog.h gassert.h
+gstr.o: gstr.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/limits gstr.h \
+	gexception.h gstrings.h gdebug.h glogoutput.h glog.h gassert.h
 gtime.o: gtime.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
-	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
-	../../lib/gcc2.95/limits gtime.h gexception.h gdatetime.h \
-	gassert.h glogoutput.h glog.h
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/limits gtime.h \
+	gexception.h gdatetime.h gassert.h glogoutput.h glog.h
 
 info-am:
 info: info-am

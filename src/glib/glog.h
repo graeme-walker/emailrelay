@@ -29,7 +29,7 @@
 namespace G
 {
 	class Log ;
-} ;
+}
 
 // Class: G::Log
 // Description: A static class for doing iostream-based logging.
@@ -82,7 +82,7 @@ namespace G
 	{
 		return stream ;
 	}
-} ;
+}
 
 namespace G
 {
@@ -93,7 +93,7 @@ namespace G
 			G::Log::onEnd( end.m_s ) ;
 		return stream ;
 	}
-} ;
+}
 
 namespace G
 {
@@ -103,7 +103,7 @@ namespace G
 		G::Log::setFile( file ) ;
 		G::Log::setLine( line ) ;
 	}
-} ;
+}
 
 // Macros: G_LOG, G_LOG_S, G_DEBUG, G_WARNING, G_ERROR
 // The debug macro is for debugging during development. The log macro
@@ -113,7 +113,7 @@ namespace G
 // then warning/error messages should also get raised by some another
 // independent means.
 //
-#define G_LOG_OUTPUT( expr , severity ) { G::Log::stream() << G::Log::Line(__FILE__,__LINE__) << expr << G::Log::end(severity) ; }
+#define G_LOG_OUTPUT( expr , severity ) do { G::Log::stream() << G::Log::Line(__FILE__,__LINE__) << expr << G::Log::end(severity) ; } while(0)
 #if defined(_DEBUG) && ! defined(G_NO_DEBUG)
 #define G_DEBUG( expr ) G_LOG_OUTPUT( expr , G::Log::s_Debug )
 #else

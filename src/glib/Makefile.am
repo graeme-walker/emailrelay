@@ -16,7 +16,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # 
-EXTRA_DIST=garg_win32.cpp \
+EXTRA_DIST=\
+	garg_win32.cpp \
+	gcleanup_win32.cpp \
 	gdaemon_win32.cpp \
 	gdatetime_win32.cpp \
 	gdirectory_win32.cpp \
@@ -24,9 +26,11 @@ EXTRA_DIST=garg_win32.cpp \
 	glogoutput_win32.cpp \
 	gprocess_win32.cpp \
 	gfile_win32.cpp \
+	gregistry_win32.cpp \
+	gregistry.h \
 	md5c.c \
 	md5.h
-INCLUDES = -I$(top_srcdir)/lib/gcc2.95
+INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION)
 noinst_LIBRARIES = libglib.a
 libglib_a_SOURCES = \
 	garg.cpp \
@@ -34,9 +38,9 @@ libglib_a_SOURCES = \
 	garg_unix.cpp \
 	gassert.h \
 	gconvert.h \
-	gcredentials.h \
+	gcleanup.h \
+	gcleanup_unix.cpp \
 	gdaemon.h \
-	gdaemon.cpp \
 	gdaemon_unix.cpp \
 	gdate.cpp \
 	gdate.h \
@@ -68,10 +72,13 @@ libglib_a_SOURCES = \
 	gnoncopyable.h \
 	gpath.cpp \
 	gpath.h \
+	gpidfile.cpp \
+	gpidfile.h \
 	gprocess.h \
 	gprocess_unix.cpp \
 	groot.cpp \
 	groot.h \
+	gsetter.h \
 	gstatemachine.h \
 	gstr.cpp \
 	gstr.h \

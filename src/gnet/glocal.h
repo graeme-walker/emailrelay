@@ -32,7 +32,7 @@
 namespace GNet
 {
 	class Local ;
-} ;
+}
 
 // Class: GNet::Local
 // Description: A static class for getting information

@@ -26,6 +26,7 @@
 #include "gresolve.h"
 #include "glog.h"
 #include <sys/utsname.h>
+#include <cstdlib> // getenv
 
 std::string GNet::Local::hostname()
 {
@@ -38,6 +39,17 @@ std::string GNet::Local::hostname()
 	size_t pos = name.find('.') ;
 	if( pos != std::string::npos )
 		name = name.substr( 0U , pos ) ;
+
+	// pathalogically "uname -n" can be empty, so
+	// allow "export HOSTNAME=localhost" as a
+	// workround
+	//
+	if( name.empty() )
+	{
+		static const char * p = std::getenv( "HOSTNAME" ) ;
+		static std::string s( p ? p : "" ) ;
+		name = s ;
+	}
 
 	return name ;
 }

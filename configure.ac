@@ -20,8 +20,8 @@ dnl ===
 dnl
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(src/main/gsmtp.h)
-AM_INIT_AUTOMAKE(emailrelay,0.9.9)
+AC_INIT(src/gsmtp/gsmtp.h)
+AM_INIT_AUTOMAKE(emailrelay,1.0.0)
 AM_CONFIG_HEADER(config.h)
 
 dnl ===
@@ -37,6 +37,7 @@ AC_CHECK_PROGS(AR,ar gar)
 AC_CHECK_PROGS(GZIP,gzip)
 AC_CHECK_PROG(HAVE_DOXYGEN,doxygen,yes)
 AC_CHECK_PROG(HAVE_MAN2HTML,man2html,yes)
+ACLOCAL_COMPILER_VERSION
 
 dnl ===
 dnl check for libraries...
@@ -55,11 +56,9 @@ AC_CHECK_HEADERS(unistd.h)
 AC_CHECK_HEADERS(sys/time.h)
 AC_CHECK_FUNCS(glob)
 AC_LANG_CPLUSPLUS
-dnl check for *_r() declarations -- using ac_check_funcs
-dnl is no good here since they may be in the library but
-dnl not the header (depending on preprocessor switches)
-AC_EGREP_HEADER(localtime_r,time.h,[AC_DEFINE(HAVE_LOCALTIME_R,1,[have reentrant localtime])])
-AC_EGREP_HEADER(gmtime_r,time.h,[AC_DEFINE(HAVE_GMTIME_R,1,[have reentrant gmtime])])
+ACLOCAL_TYPE_SOCKLEN_T
+ACLOCAL_CHECK_GMTIME_R
+ACLOCAL_CHECK_LOCALTIME_R
 
 dnl ===
 dnl directory tweaking...
@@ -89,5 +88,5 @@ SET_MAKE=""
 dnl ===
 dnl generate files...
 dnl
-AC_OUTPUT(Makefile src/Makefile src/glib/Makefile src/gnet/Makefile src/main/Makefile src/win32/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile bin/Makefile doc/Makefile)
+AC_OUTPUT(Makefile src/Makefile src/glib/Makefile src/gnet/Makefile src/gsmtp/Makefile src/main/Makefile src/win32/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile bin/Makefile doc/Makefile)
 

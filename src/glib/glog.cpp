@@ -28,7 +28,7 @@
 namespace G
 {
 	class LogImp ;
-} ;
+}
 
 // Class: LogImp
 // Description: An implementation class used by Log.
@@ -36,22 +36,22 @@ namespace G
 class G::LogImp
 {
 public:
-	static std::stringstream &s() ;
+	static std::ostringstream &s() ;
 	static bool active() ;
 	static void empty() ;
 	static const char *m_file ;
 	static int m_line ;
-	static std::stringstream *m_ss ;
+	static std::ostringstream *m_ss ;
 } ;
 
 const char *G::LogImp::m_file = NULL ;
-std::stringstream *G::LogImp::m_ss = NULL ;
+std::ostringstream *G::LogImp::m_ss = NULL ;
 int G::LogImp::m_line = 0 ;
 
-std::stringstream &G::LogImp::s()
+std::ostringstream & G::LogImp::s()
 {
 	if( m_ss == NULL )
-		m_ss = new std::stringstream ;
+		m_ss = new std::ostringstream ;
 	return *m_ss ;
 }
 
@@ -59,7 +59,7 @@ void G::LogImp::empty()
 {
 	delete m_ss ;
 	m_ss = NULL ;
-	m_ss = new std::stringstream ;
+	m_ss = new std::ostringstream ;
 }
 
 bool G::LogImp::active()
@@ -86,16 +86,7 @@ G::Log::End G::Log::end( G::Log::Severity severity )
 
 G::Log::Stream & G::Log::stream()
 {
-	if( G::LogImp::active() )
-	{
-		return G::LogImp::s() ;
-	}
-	else
-	{
-		static char buffer[3] ;
-		static std::stringstream dummy( buffer , sizeof(buffer) ) ;
-		return dummy ;
-	}
+	return G::LogImp::s() ;
 }
 
 void G::Log::onEnd( G::Log::Severity severity )
@@ -104,10 +95,9 @@ void G::Log::onEnd( G::Log::Severity severity )
 	{
 		G::LogOutput::output( severity , G::LogImp::m_file , G::LogImp::m_line ,
 			G::LogImp::s().str().c_str() ) ;
-
-		// empty the stream
-		G::LogImp::empty() ;
 	}
+
+	G::LogImp::empty() ; // empty the stream
 	G::LogImp::m_file = NULL ;
 	G::LogImp::m_line = 0 ;
 }

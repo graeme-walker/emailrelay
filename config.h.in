@@ -6,14 +6,17 @@
 /* Define if you have the `glob' function. */
 #undef HAVE_GLOB
 
-/* have reentrant gmtime */
+/* Define if gmtime_r in time.h */
 #undef HAVE_GMTIME_R
 
-/* have reentrant localtime */
+/* Define if localtime_r in time.h */
 #undef HAVE_LOCALTIME_R
 
 /* Define if you have the <ndir.h> header file, and it defines `DIR'. */
 #undef HAVE_NDIR_H
+
+/* Define if socklen_t type definition in sys/socket.h */
+#undef HAVE_SOCKLEN_T
 
 /* Define if you have the <sys/dir.h> header file, and it defines `DIR'. */
 #undef HAVE_SYS_DIR_H

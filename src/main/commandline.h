@@ -35,7 +35,7 @@
 namespace Main
 {
 	class CommandLine ;
-} ;
+}
 
 // Class: Main::CommandLine
 // Description: A class which deals with the command-line interface
@@ -64,9 +64,6 @@ public:
 
 	bool hasSemanticError() const ;
 		// Returns true if the command line has logical errors (eg. conflicting switches).
-
-	void showUsage( bool error_stream = false ) const ;
-		// Writes usage info.
 
 	void showHelp( bool error_stream = false ) const ;
 		// Writes help text.
@@ -99,6 +96,7 @@ private:
 	static std::string switchSpec() ;
 	static std::string osSwitchSpec() ; // o/s-specific
 	unsigned int ttyColumns() const ; // o/s-specific
+	void showUsage( bool e ) const ;
 	void showExtraHelp( bool error_stream ) const ;
 
 private:
@@ -113,8 +111,10 @@ private:
 		public: std::ostream & s() ;
 		public: ~Show() ;
 		private: static Show * m_this ;
-		private: std::stringstream m_ss ;
-		private: bool m_e ;
+		private: class Imp ;
+		private: Imp * m_imp ;
+		private: Show( const Show & ) ; // not implemented
+		private: void operator=( const Show & ) ; // not implemented
 	} ;
 } ;
 

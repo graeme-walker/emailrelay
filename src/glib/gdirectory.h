@@ -35,7 +35,7 @@ namespace G
 	class DirectoryIteratorImp ;
 	class Directory ;
 	class DirectoryIterator ;
-} ;
+}
 
 // Class: G::Directory
 // Description: An encapsulation of a file system directory

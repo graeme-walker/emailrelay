@@ -29,7 +29,7 @@
 namespace G
 {
 	class noncopyable ;
-} ;
+}
 
 // Class: G::noncopyable
 // Description: A noncopyable base class (a la boost).

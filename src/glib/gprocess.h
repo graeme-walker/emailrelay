@@ -27,6 +27,7 @@
 #include "gdef.h"
 #include "gexception.h"
 #include "gpath.h"
+#include "gstrings.h"
 #include <iostream>
 #include <sys/types.h>
 #include <string>
@@ -34,7 +35,7 @@
 namespace G
 {
 	class Process ;
-} ;
+}
 
 // Class: G::Process
 // Description: A static interface for doing things with processes.
@@ -52,18 +53,19 @@ public:
 	G_EXCEPTION( UidError , "cannot set uid" ) ;
 	G_EXCEPTION( GidError , "cannot set gid" ) ;
 	G_EXCEPTION( Insecure , "refusing to exec() while the user-id is zero" ) ;
+	G_EXCEPTION( InvalidId , "invalid process-id string" ) ;
+	G_EXCEPTION( PipeError , "pipe error" ) ;
 
 	enum Who { Parent , Child } ;
 	class IdImp ;
 	class Id // Process-id class.
 	{
 		public: Id() ;
-		public: ~Id() ;
-		public: Id( const Id & other ) ;
-		public: Id & operator=( const Id & rhs ) ;
-		public: bool operator==( const Id & other ) const ;
+		public: explicit Id( std::istream & ) ;
+		public: explicit Id( const char * pid_file_path ) ; // (re-entrant ctor)
 		public: std::string str() const ;
-		private: IdImp * m_imp ;
+		public: bool operator==( const Id & ) const ;
+		private: pid_t m_pid ;
 		friend class Process ;
 	} ;
 	struct Identity // Used by G::Process::beSpecial().
@@ -74,6 +76,17 @@ public:
 		explicit Identity( const std::string & login_name ) ;
 		std::string str() const ;
 	} ;
+	class Umask // Used to temporarily modify the process umask.
+	{
+		public: enum Mode { Readable , Tighter , Tightest } ;
+		public: explicit Umask( Mode ) ;
+		public: ~Umask() ;
+		public: static void set( Mode ) ;
+		private: Umask( const Umask & ) ; // not implemented
+		private: void operator=( const Umask & ) ; // not implemented
+		private: class UmaskImp ;
+		private: UmaskImp * m_imp ;
+	} ;
 	class NoThrow // An overload discriminator for Process.
 		{} ;
 
@@ -82,9 +95,6 @@ public:
 
 	static void closeStderr() ;
 		// Closes stderr.
-
-	static void setUmask( bool tightest = true ) ;
-		// Sets a tight umask.
 
 	static void cd( const Path & dir ) ;
 		// Changes directory.
@@ -98,12 +108,15 @@ public:
 
 	static Who fork( Id & child ) ;
 		// Forks a child process. Returns the child
-		// pid to the parent.
+		// pid by reference to the parent.
 
-	static int spawn( Identity nobody , const Path & exe , const std::string & arg , int error_return = 127 ) ;
-		// Runs a command in an unprivileged child process. Returns the
-		// child process's exit code, or 'error_return' on error.
-		// The identity should have come from beOrdinary().
+	static int spawn( Identity nobody , const Path & exe , const Strings & args ,
+		std::string * pipe_result_p = NULL , int error_return = 127 ) ;
+			// Runs a command in an unprivileged child process. Returns the
+			// child process's exit code, or 'error_return' on error.
+			// If the 'pipe_result_p' pointer is supplied then a pipe
+			// is used to read the first bit of whatever the child process
+			// writes to stdout. The identity should have come from beOrdinary().
 
 	static int errno_() ;
 		// Returns the process's current 'errno' value.
@@ -112,6 +125,8 @@ public:
 		// Aquires special privileges (either root
 		// or suid). The parameter must have come from
 		// a previous call to beOrdinary().
+		//
+		// See also class G::Root.
 
 	static Identity beOrdinary( Identity nobody , bool change_group = true ) ;
 		// Revokes special privileges (root or suid).
@@ -122,13 +137,16 @@ public:
 		// parameter is ignored. Returns the old
 		// identity, which can be passed to
 		// beSpecial().
+		//
+		// See also class G::Root.
 
 private:
 	Process() ;
 	static int wait( const Id & child ) ;
 	static int wait( const Id & child , int error_return ) ;
-	static void execCore( const Path & , const std::string & ) ;
+	static void execCore( const Path & , const Strings & ) ;
 	static void beNobody( Identity ) ;
+	static void closeFiles( int ) ;
 } ;
 
 namespace G
@@ -140,11 +158,18 @@ namespace G
 	}
 
 	inline
+	std::istream & operator>>( std::istream & stream , G::Process::Id & id )
+	{
+		id = G::Process::Id( stream ) ;
+		return stream ;
+	}
+
+	inline
 	std::ostream & operator<<( std::ostream & stream , const G::Process::Identity & identity )
 	{
 		return stream << identity.str() ;
 	}
-} ;
+}
 
 #endif
 

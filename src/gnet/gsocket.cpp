@@ -288,14 +288,14 @@ void GNet::Socket::dropExceptionHandler()
 
 std::string GNet::Socket::asString() const
 {
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss << m_socket ;
 	return ss.str() ;
 }
 
 std::string GNet::Socket::reasonString() const
 {
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss << m_reason ;
 	return ss.str() ;
 }

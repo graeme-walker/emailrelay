@@ -77,16 +77,24 @@ void G::Arg::parse( HINSTANCE hinstance , const std::string & command_line )
 	setPrefix() ;
 }
 
-bool G::Arg::contains( const std::string & sw , size_t sw_args ) const
+void G::Arg::reparse( const std::string & command_line )
 {
-	return find( sw , sw_args , NULL ) ;
+	while( m_array.size() > 1U )
+		m_array.pop_back() ;
+	G::Str::splitIntoTokens( command_line , m_array , " \t" ) ;
 }
 
-bool G::Arg::find( const std::string & sw , size_t sw_args , size_t * index_p ) const
+bool G::Arg::contains( const std::string & sw , size_t sw_args , bool cs ) const
+{
+	return find( cs , sw , sw_args , NULL ) ;
+}
+
+bool G::Arg::find( bool cs , const std::string & sw , size_t sw_args ,
+	size_t * index_p ) const
 {
 	for( size_t i = 1 ; i < m_array.size() ; i++ ) // start from v[1]
 	{
-		if( sw == m_array[i] && (i+sw_args) < m_array.size() )
+		if( match(cs,sw,m_array[i]) && (i+sw_args) < m_array.size() )
 		{
 			if( index_p != NULL )
 				*index_p = i ;
@@ -96,10 +104,19 @@ bool G::Arg::find( const std::string & sw , size_t sw_args , size_t * index_p ) 
 	return false ;
 }
 
+//static
+bool G::Arg::match( bool cs , const std::string & s1 , const std::string & s2 )
+{
+	return
+		cs ?
+			s1 == s2 :
+			Str::upper(s1) == Str::upper(s2) ;
+}
+
 void G::Arg::remove( const std::string & sw , size_t sw_args )
 {
 	size_t i = 0U ;
-	const bool found = find( sw , sw_args , &i ) ;
+	const bool found = find( true , sw , sw_args , &i ) ;
 	if( found )
 		removeAt( i , sw_args ) ;
 }
@@ -119,7 +136,7 @@ void G::Arg::removeAt( size_t sw_index , size_t sw_args )
 size_t G::Arg::index( const std::string & sw , size_t sw_args ) const
 {
 	size_t i = 0U ;
-	const bool found = find( sw , sw_args , &i ) ;
+	const bool found = find( true , sw , sw_args , &i ) ;
 	return found ? i : 0U ;
 }
 

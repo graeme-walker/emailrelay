@@ -36,7 +36,7 @@ namespace GNet
 {
 	class Client ;
 	class ClientImp ;
-} ;
+}
 
 // Class: GNet::Client
 // Description: An application-level class for making an outgoing connection

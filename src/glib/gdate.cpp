@@ -86,7 +86,7 @@ void G::Date::init( const G::DateTime::BrokenDownTime & tm )
 
 std::string G::Date::string( Format format ) const
 {
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	if( format == yyyy_mm_dd_slash )
 		ss << m_year << "/" << m_month << "/" << m_day ;
 	else
@@ -104,7 +104,7 @@ int G::Date::monthday() const
 
 std::string G::Date::monthdayString() const
 {
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss << m_day ;
 	return ss.str() ;
 }
@@ -173,7 +173,7 @@ int G::Date::year() const
 
 std::string G::Date::yearString() const
 {
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss << m_year ;
 	return ss.str() ;
 }

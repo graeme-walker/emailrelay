@@ -70,7 +70,6 @@ Main()
 	BEGIN {
 		if( full )
 		{
-			colour = "#ffffff"
 			dtd_name = "-//W3C//DTD HTML 4.01//EN"
 			dtd_ref = "http://www.w3.org/TR/html4/strict.dtd"
 			printf( "<!DOCTYPE HTML PUBLIC \"%s\" \"%s\">\n" , dtd_name , dtd_ref )
@@ -81,7 +80,7 @@ Main()
 			if( length(stylesheet) )
 				printf( "  <link rel=\"stylesheet\" href=\"%s\" type=\"text/css\">\n" , stylesheet )
 			printf( " </head>\n" )
-			printf( " <body bgcolor=\"%s\">\n" , colour )
+			printf( " <body>\n" )
 			printf( "  <!-- index:0::::%s -->\n" , title )
 			printf( " <div class=\"div-main\">\n" )
 		}
@@ -161,37 +160,37 @@ Main()
 	
 		# item-outer
 		else if( match(type,"^item-outer,1[:,]") )
-			printf( "    <ul>\n     <li>%s</li>\n" , etail )
+			printf( "    <ul>\n     <li>%s\n" , etail )
 		else if( match(type,"^item-outer[:,]") )
-			printf( "     <li>%s</li>\n" , etail )
+			printf( "     </li>\n     <li>%s\n" , etail )
 		else if( match(type,"^item-outer-end[:,]") )
-			printf( "    </ul>\n" , etail )
+			printf( "     </li>\n    </ul>\n" , etail )
 	
 		# item-inner
 		else if( match(type,"^item-inner,1[:,]") )
-			printf( "       <ul>\n        <li>%s</li>\n" , etail )
+			printf( "      <ul>\n       <li>%s</li>\n" , etail )
 		else if( match(type,"^item-inner[:,]") )
-			printf( "        <li>%s</li>\n" , etail )
+			printf( "       <li>%s</li>\n" , etail )
 		else if( match(type,"^item-inner-end[:,]") )
-			printf( "       </ul>\n" , etail )
+			printf( "      </ul>\n" , etail )
 	
 		# item-name
 		else if( match(type,"^item-name,1[:,]") )
 			printf( "    <dl>\n     <dt>%s</dt>\n" , etail )
 		else if( match(type,"^item-name[:,]") )
-			printf( "    <dt>%s</dt>\n" , etail )
+			printf( "     <dt>%s</dt>\n" , etail )
 		else if( match(type,"^item-name-end[:,]") )
 			printf( "    </dl>\n" , etail )
 	
 		# item-detail
 		else if( match(type,"^item-detail,1[:,]") )
-			printf( "      <dd>\n       <p>\n         %s\n" , etail )
+			printf( "      <dd>\n       %s\n" , etail )
 		else if( match(type,"^item-detail[:,]") )
-			printf( "         %s\n" , etail )
+			printf( "       %s\n" , etail )
 		else if( match(type,"^item-detail-end[:,]") )
-			printf( "       </p>\n      </dd>\n" )
+			printf( "      </dd>\n" )
 		else if( match(type,"^item-detail-blank[:,]") )
-			printf( "       </p>\n       <p>\n" )
+			printf( "       <p class=\"p-break\"></p>\n" )
 
 		# code
 		else if( match(type,"^code,1[:,]") )
@@ -239,7 +238,7 @@ Main()
 
 		# image
 		else if( match(type,"^image[:,]") )
-			printf( "<img src=\"%s\">\n" , tail )
+			printf( "<img src=\"%s\" alt=\"%s\">\n" , tail , "image" )
 
 		# blank
 		else if( match(type,"^blank[:,]") )

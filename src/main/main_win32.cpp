@@ -20,60 +20,69 @@
 //
 // main_win32.cpp
 //
+// This file contains all the GUI code
+// for the Windows executable. (There's too much
+// in here, but at least it keeps it out of sight
+// when in a unix mindset.)
+//
 
 #include "gdef.h"
 #include "gsmtp.h"
-#include "run.h"
-#include "configuration.h"
 #include "commandline.h"
+#include "configuration.h"
 #include "legal.h"
 #include "resource.h"
-#include "gtray.h"
+#include "run.h"
 #include "gappbase.h"
-#include "gdialog.h"
-#include "gcontrol.h"
-#include "gmonitor.h"
-#include "gpump.h"
-#include "gstr.h"
-#include "gexception.h"
-#include "gmemory.h"
-#include "glog.h"
 #include "gassert.h"
+#include "gcontrol.h"
+#include "gdialog.h"
+#include "gexception.h"
+#include "glog.h"
+#include "gmd5.h"
+#include "gmemory.h"
+#include "gmessagestore.h"
+#include "gmonitor.h"
+#include "gnoncopyable.h"
+#include "gpump.h"
+#include "gregistry.h"
+#include "gstoredmessage.h"
+#include "gstr.h"
+#include "gtray.h"
+#include <algorithm>
+#include <list>
 
 namespace
 {
-	class Callback
-	{
-		public: virtual void callback() = 0 ;
-	} ;
+	class App ;
 
 	class Form : public GGui::Dialog
 	{
 	public:
-		Form( GGui::ApplicationBase & , Callback & ,
-			const Main::Configuration & cfg , bool confirm ) ;
+		Form( App & , const Main::Configuration & cfg , bool confirm ) ;
 		void close() ;
 	private:
 		virtual bool onInit() ;
 		virtual void onNcDestroy() ;
-		virtual void onClose() ;
 		virtual void onCommand( unsigned int id ) ;
 		std::string text() const ;
 	private:
-		GGui::ApplicationBase & m_app ;
-		Callback & m_callback ;
+		App & m_app ;
 		GGui::EditBox m_edit_box ;
 		Main::Configuration m_cfg ;
 		bool m_confirm ;
 	} ;
 
-	class App : public GGui::ApplicationBase , private Callback
+	class App : public GGui::ApplicationBase
 	{
 	public:
 		G_EXCEPTION( Error , "application error" ) ;
 		App( HINSTANCE h , HINSTANCE p , const char * name ) ;
 		void init( const Main::Configuration & cfg ) ;
 		void setStatus( const std::string & , const std::string & ) ;
+		bool confirm() ;
+		void formOk() ;
+		void formDone() ;
 	private:
 		void doOpen() ;
 		void doClose() ;
@@ -85,9 +94,9 @@ namespace
 		virtual bool onClose() ;
 		virtual void onTrayDoubleClick() ;
 		virtual void onTrayRightMouseButtonDown() ;
-		virtual void callback() ;
 		virtual void onDimension( int & , int & ) ;
 		virtual bool onSysCommand( SysCommand ) ;
+		virtual LRESULT onUser( WPARAM , LPARAM ) ;
 	private:
 		std::auto_ptr<GGui::Tray> m_tray ;
 		std::auto_ptr<Form> m_form ;
@@ -95,6 +104,7 @@ namespace
 		bool m_quit ;
 		bool m_use_tray ;
 		unsigned int m_icon ;
+		bool m_external_gui ;
 	} ;
 
 	class Menu
@@ -103,7 +113,7 @@ namespace
 		G_EXCEPTION( Error , "menu error" ) ;
 		explicit Menu( unsigned int resource_id ) ;
 		~Menu() ;
-		int popup( const GGui::WindowBase & w , int sub_pos = 0 ) ;
+		int popup( const GGui::WindowBase & w , bool with_open , bool with_close ) ;
 	private:
 		HMENU m_hmenu ;
 		HMENU m_hmenu_popup ;
@@ -113,18 +123,22 @@ namespace
 
 	class Run : public Main::Run
 	{
-		public: Run( App & app , const G::Arg & ) ;
-		protected: void onStatusChange( const std::string & , const std::string & ) ;
-		private: App & m_app ;
+	public:
+		Run( App & app , const G::Arg & ) ;
+	protected:
+		virtual void onEvent( const std::string & , const std::string & , const std::string & ) ;
+		virtual bool runnable() const ;
+	private:
+		App & m_app ;
+		bool m_runnable ;
 	} ;
 } ;
 
 // ===
 
-Form::Form( GGui::ApplicationBase & app , Callback & cb , const Main::Configuration & cfg , bool confirm ) :
+Form::Form( App & app , const Main::Configuration & cfg , bool confirm ) :
 	GGui::Dialog(app) ,
 	m_app(app) ,
-	m_callback(cb) ,
 	m_cfg(cfg) ,
 	m_edit_box(*this,IDC_EDIT1) ,
 	m_confirm(confirm)
@@ -141,7 +155,7 @@ std::string Form::text() const
 {
 	const std::string crlf( "\r\n" ) ;
 
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss
 		<< "E-MailRelay V" << Main::Run::versionNumber() << crlf << crlf
 		<< "Configuration..." << crlf
@@ -155,15 +169,10 @@ std::string Form::text() const
 	}
 
 	ss
-		<< crlf << Main::Legal::warranty(crlf)
+		<< crlf << Main::Legal::warranty("",crlf)
 		<< crlf << Main::Legal::copyright() ;
 
 	return ss.str() ;
-}
-
-void Form::onClose()
-{
-	end() ;
 }
 
 void Form::close()
@@ -173,18 +182,15 @@ void Form::close()
 
 void Form::onNcDestroy()
 {
-	m_callback.callback() ;
+	m_app.formDone() ;
 }
 
 void Form::onCommand( unsigned int id )
 {
-	if( id == IDOK ) // always true?
+	if( id == IDOK && ( !m_confirm || m_app.confirm() ) )
 	{
-		bool really = true ;
-		if( m_confirm )
-			really = m_app.messageBoxQuery( "Really quit?" ) ;
-		if( really )
-			end() ;
+		m_app.formOk() ;
+		end() ;
 	}
 }
 
@@ -194,7 +200,8 @@ App::App( HINSTANCE h , HINSTANCE p , const char * name ) :
 	GGui::ApplicationBase( h , p , name ) ,
 	m_use_tray(false) ,
 	m_quit(false) ,
-	m_icon(0U)
+	m_icon(0U) ,
+	m_external_gui(false)
 {
 }
 
@@ -205,17 +212,9 @@ void App::init( const Main::Configuration & cfg )
 	m_icon = m_cfg->icon() % 4U ;
 }
 
-void App::callback()
-{
-	m_form <<= 0 ;
-	if( m_use_tray )
-		hide() ;
-	else
-		close() ;
-}
-
 void App::onDimension( int & dx , int & dy )
 {
+	G_ASSERT( m_form.get() != NULL ) ;
 	if( m_form.get() )
 	{
 		// (force main window's internal size to be
@@ -258,94 +257,103 @@ bool App::onCreate()
 	return true ;
 }
 
+void App::onTrayRightMouseButtonDown()
+{
+	Menu menu( IDR_MENU1 ) ;
+	bool form_is_open = m_form.get() != NULL ;
+	bool with_open = m_external_gui || !form_is_open ;
+	bool with_close = m_external_gui || form_is_open ;
+	int id = menu.popup( *this , with_open , with_close ) ;
+
+	// make it asychronous to prevent "RPC_E_CANTCALLOUT_ININPUTSYNCCALL" --
+	// see App::onUser()
+	::PostMessage( handle() , wm_user() , 0 , static_cast<LPARAM>(id) ) ;
+}
+
 void App::onTrayDoubleClick()
 {
-	doOpen() ;
+	// make it asychronous to prevent "RPC_E_CANTCALLOUT_ININPUTSYNCCALL" --
+	// see App::onUser()
+	::PostMessage( handle() , wm_user() , 0 , static_cast<LPARAM>(IDM_OPEN) ) ;
+}
+
+LRESULT App::onUser( WPARAM , LPARAM lparam )
+{
+	int id = static_cast<int>(lparam) ;
+	if( id == IDM_OPEN ) doOpen() ;
+	if( id == IDM_CLOSE ) doClose() ;
+	if( id == IDM_QUIT ) doQuit() ;
+	return 0L ;
 }
 
 void App::doOpen()
 {
-	if( m_form.get() == NULL )
+	if( !m_external_gui )
 	{
-		m_form <<= new Form( *this , *this , *m_cfg.get() , !m_use_tray ) ;
-		if( ! m_form->runModeless(IDD_DIALOG1) )
-			throw Error( "cannot run dialog box" ) ;
-	}
-	resize( externalSize() ) ; // no-op in itself, but uses onDimension()
-	show() ;
-}
+		if( m_form.get() == NULL )
+		{
+			m_form <<= new Form( *this , *m_cfg.get() , !m_use_tray ) ;
+			if( ! m_form->runModeless(IDD_DIALOG1) )
+				throw Error( "cannot run dialog box" ) ;
+		}
 
-void App::onTrayRightMouseButtonDown()
-{
-	Menu menu( IDR_MENU1 ) ;
-	int id = menu.popup( *this ) ;
-	if( id == IDM_OPEN )
-		doOpen() ;
-	else if( id == IDM_CLOSE )
-		doClose() ;
-	else
-		doQuit() ;
+		resize( externalSize() ) ; // no-op in itself, but uses onDimension()
+		show() ;
+	}
 }
 
 void App::doQuit()
 {
 	m_quit = true ;
-	close() ;
-}
-
-void App::doClose()
-{
-	if( m_form.get() )
-	{
-		m_form->close() ;
-		hide() ;
-	}
+	close() ; // triggers onClose(), but without doClose()
 }
 
 bool App::onClose()
 {
-	if( m_use_tray )
-	{
-		if( m_quit ) // if called as a result of doQuit()
-		{
-			return true ;
-		}
-		else
-		{
-			doClose() ;
-			return false ; // false <= keep running
-		}
-	}
-	else
-	{
-		return true ;
-	}
+	// (this is triggered by close() or using the system close menu item)
+
+	bool really_quit = m_quit || ( !m_use_tray && confirm() ) ;
+	if( !really_quit ) doClose() ;
+	return really_quit ;
+}
+
+bool App::confirm()
+{
+	return messageBoxQuery("Really quit?") ;
+}
+
+void App::doClose()
+{
+	hide() ;
+
+	// (close the form so that it gets recreated each time with current data)
+	if( m_form.get() != NULL )
+		m_form->close() ;
+}
+
+void App::formOk()
+{
+	// (this is triggered by clicking the OK button)
+	m_use_tray ? doClose() : doQuit() ;
+}
+
+void App::formDone()
+{
+	// (this is called from Form::onNcDestroy)
+	m_form <<= 0 ;
 }
 
 bool App::onSysCommand( SysCommand sc )
 {
-	if( sc == scMaximise || sc == scSize )
-		return true ; // true <= processed as no-op => dont change
-	else
-		return false ;
+	// true <= processed as no-op => dont change size
+	return sc == scMaximise || sc == scSize ;
 }
 
 void App::setStatus( const std::string & s1 , const std::string & s2 )
 {
-	// simple implementation for now...
-
-	std::string s0( title() ) ;
-	std::string message( s0 ) ;
-	if( !s1.empty() )
-	{
-		message.append( ": " ) ;
-		message.append( s1 ) ;
-	}
-	if( !s2.empty() )
-	{
-		message.append( ": " ) ;
-		message.append( s2 ) ;
-	}
+	std::string message( title() ) ;
+	if( !s1.empty() ) message.append( std::string(": ")+s1 ) ;
+	if( !s2.empty() ) message.append( std::string(": ")+s2 ) ;
 	::SetWindowText( handle() , message.c_str() ) ;
 }
 
@@ -359,8 +367,11 @@ Menu::Menu( unsigned int id )
 		throw Error() ;
 }
 
-int Menu::popup( const GGui::WindowBase & w , int sub_pos )
+int Menu::popup( const GGui::WindowBase & w , bool with_open , bool with_close )
 {
+	const int open_pos = 0 ;
+	const int close_pos = 1 ;
+
 	POINT p ;
 	::GetCursorPos( &p ) ;
 	::SetForegroundWindow( w.handle() ) ;
@@ -368,13 +379,21 @@ int Menu::popup( const GGui::WindowBase & w , int sub_pos )
 	// TrackPopup() only works with a sub-menu, although
 	// you would never guess from the documentation
 	//
-	m_hmenu_popup = ::GetSubMenu( m_hmenu , sub_pos ) ;
+	m_hmenu_popup = ::GetSubMenu( m_hmenu , 0 ) ;
 
 	// make the "open" menu item bold
 	//
-	const int default_pos = 0 ;
-	::SetMenuDefaultItem( m_hmenu_popup , default_pos , TRUE ) ;
+	::SetMenuDefaultItem( m_hmenu_popup , open_pos , TRUE ) ;
 
+	// optionally grey-out menu items
+	//
+	if( !with_open )
+		::EnableMenuItem( m_hmenu_popup , open_pos , MF_BYPOSITION | MF_GRAYED ) ;
+	if( !with_close )
+		::EnableMenuItem( m_hmenu_popup , close_pos , MF_BYPOSITION | MF_GRAYED ) ;
+
+	// display the menu
+	//
 	BOOL rc = ::TrackPopupMenuEx( m_hmenu_popup ,
 		TPM_RETURNCMD , p.x , p.y , w.handle() , NULL ) ;
 	return static_cast<int>(rc) ; // BOOL->int!, only in Microsoft wonderland
@@ -390,13 +409,20 @@ Menu::~Menu()
 
 Run::Run( App & app , const G::Arg & arg ) :
 	Main::Run(arg) ,
-	m_app(app)
+	m_app(app) ,
+	m_runnable(true)
 {
 }
 
-void Run::onStatusChange( const std::string & s1 , const std::string & s2 )
+void Run::onEvent( const std::string & category , const std::string & s1 , const std::string & s2 )
 {
-	m_app.setStatus( s1 , s2 ) ;
+	if( category == "client" )
+		m_app.setStatus( s1 , s2 ) ;
+}
+
+bool Run::runnable() const
+{
+	return m_runnable ;
 }
 
 // ===

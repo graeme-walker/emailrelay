@@ -94,7 +94,7 @@ The standard installation of E-MailRelay (using "make install") puts most of
 the files into the right places, but it does not set things up so that the
 daemon starts at boot time, or that e-mail gets forwarded automatically when
 you connect to the Internet. You have to do those bits yourself because of the
-differences between the various GNU/Linux distributions.
+differences between the various operating systems and distributions.
 
 Many systems, including the most popular GNU/Linux distributions, use the
 System-V mechanism for starting daemons at boot time. The directory
@@ -105,6 +105,10 @@ links point back into the start/stop script in the parent directory, using a
 "S" prefix for the starting link, and a "K" prefix for the stopping link. The
 numeric part of the link name determines the order in which the links are
 called.
+
+If you cannot use a GUI front-end as provided by GNOME and KDE, or a
+command-line utility like "insserv", "chkconfig" or "/usr/lib/lsb/install_initd",
+then you can follow the steps below to set up the necessary symbolic links.
 
 Before you start you will need to know where your "init.d" directory can be
 found and what your default run level is:
@@ -137,8 +141,6 @@ daemons compete for the standard SMTP listening port):
 	$ cd /etc/init.d/rc5.d
 	$ rm *sendmail
 
-(There are also KDE and GNOME GUIs which you can use to do the latter steps.)
-
 Triggering onward delivery
 --------------------------
 This section assumes that you are using "pppd" to establish your dial-up
@@ -160,7 +162,7 @@ If you find "sendmail -q" then it should be sufficient to replace it with this:
 where you substitute your ISP's SMTP server address for <myisp>.
 
 Or if your "ip-up" calls out to "ip-up.local" then create a two-line
-"ip-up.local" script:
+"ip-up.local" script like this:
 
 	$ cd /etc/ppp
 	$ cat << EOF > ip-up.local

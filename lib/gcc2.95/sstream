@@ -20,7 +20,7 @@
 //
 // sstream
 //
-// Forwards compatibility from ostrstream to std::stringstream.
+// Forwards compatibility from ostrstream to std::ostringstream.
 //
 
 #ifndef G_STD_SSTREAM_H
@@ -31,30 +31,31 @@
 
 namespace std
 {
-	class stringstream : public ostrstream
+	class ostringstream : public ostrstream
 	{
 	public:
-		stringstream() ;
-		stringstream( char * , size_t ) ;
+		ostringstream() ;
+		ostringstream( char * , size_t ) ;
 		std::string str() const ;
 	} ;
+	typedef ostringstream stringstream ;
 } ;
 
 inline
-std::stringstream::stringstream()
+std::ostringstream::ostringstream()
 {
 }
 
 inline
-std::stringstream::stringstream( char * p , size_t n ) :
+std::ostringstream::ostringstream( char * p , size_t n ) :
 	ostrstream(p,static_cast<int>(n))
 {
 }
 
 inline
-std::string std::stringstream::str() const
+std::string std::ostringstream::str() const
 {
-	std::stringstream * This = const_cast<std::stringstream*>(this) ;
+	std::ostringstream * This = const_cast<std::ostringstream*>(this) ;
 	ostrstream * base = This ;
 	(*base) << '\0' ;
 	char * p = base->str() ;

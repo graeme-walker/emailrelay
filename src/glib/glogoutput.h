@@ -30,7 +30,7 @@
 namespace G
 {
 	class LogOutput ;
-} ;
+}
 
 // Class: G::LogOutput
 // Description: Controls and implements low-level logging output, as used by the Log interface.

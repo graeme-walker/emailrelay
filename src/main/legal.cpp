@@ -33,14 +33,14 @@ std::string Main::Legal::copyright()
 }
 
 //static
-std::string Main::Legal::warranty( const std::string & eol )
+std::string Main::Legal::warranty( const std::string & prefix , const std::string & eol )
 {
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss
-		<< "This software is provided without warranty of any kind." << eol
-		<< "You may redistribure copies of this program under " << eol
-		<< "the terms of the GNU General Public License." << eol
-		<< "For more information refer to the file named COPYING." << eol ;
+		<< prefix << "This software is provided without warranty of any kind." << eol
+		<< prefix << "You may redistribure copies of this program under " << eol
+		<< prefix << "the terms of the GNU General Public License." << eol
+		<< prefix << "For more information refer to the file named COPYING." << eol ;
 	return ss.str() ;
 }
 

@@ -43,9 +43,18 @@ GNet::EventLoop::~EventLoop()
 		m_this = NULL ;
 }
 
+//static
 GNet::EventLoop & GNet::EventLoop::instance()
 {
+	if( m_this == NULL )
+		throw NoInstance() ;
 	G_ASSERT( m_this != NULL ) ;
 	return *m_this ;
+}
+
+//static
+bool GNet::EventLoop::exists()
+{
+	return m_this != NULL ;
 }
 

@@ -29,7 +29,7 @@
 namespace G
 {
 	class FileSystem ;
-} ;
+}
 
 // Class: G::FileSystem
 // Description: Provides information about the

@@ -44,11 +44,11 @@ Tout Convert( const Tin & in )
 	Tout out = in ;
 	Tin copy = out ;
 	if( in != copy )
-		throw ConvertOverflow( std::stringstream() << in ) ;
+		throw ConvertOverflow( std::ostringstream() << in ) ;
 	return out ;
 }
 
-} ;
+}
 
 #endif
 

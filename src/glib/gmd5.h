@@ -31,7 +31,7 @@
 namespace G
 {
 	class Md5 ;
-} ;
+}
 
 // Class: G::Md5
 // Description: MD5 class.

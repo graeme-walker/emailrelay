@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "CommonRelease"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GR /GX /O2 /I "../../lib/msvc6.0" /I "../gnet" /I "../glib" /I "../win32" /D "NDEBUG" /D "_LIB" /D "WIN32" /D "_MBCS" /D "G_WIN32" /YX"gdef.h" /FD /c
+# ADD CPP /nologo /W3 /GR /GX /O2 /I "../../lib/msvc6.0" /I "../gsmtp" /I "../gnet" /I "../glib" /I "../win32" /D "NDEBUG" /D "_LIB" /D "WIN32" /D "_MBCS" /D "G_WIN32" /YX"gdef.h" /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "CommonDebug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GR /GX /ZI /Od /I "../../lib/msvc6.0" /I "../gnet" /I "../glib" /I "../win32" /D "_DEBUG" /D "_LIB" /D "WIN32" /D "_MBCS" /D "G_WIN32" /YX"gdef.h" /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GR /GX /ZI /Od /I "../../lib/msvc6.0" /I "../gsmtp" /I "../gnet" /I "../glib" /I "../win32" /D "_DEBUG" /D "_LIB" /D "WIN32" /D "_MBCS" /D "G_WIN32" /YX"gdef.h" /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -89,7 +89,7 @@ SOURCE=..\gnet\gaddress_ipv4.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gadminserver.cpp
+SOURCE=..\gsmtp\gadminserver.cpp
 # End Source File
 # Begin Source File
 
@@ -109,7 +109,11 @@ SOURCE=..\glib\garg_win32.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gbase64.cpp
+SOURCE=..\gsmtp\gbase64.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\glib\gcleanup_win32.cpp
 # End Source File
 # Begin Source File
 
@@ -121,7 +125,7 @@ SOURCE=..\gnet\gclient_win32.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gclientprotocol.cpp
+SOURCE=..\gsmtp\gclientprotocol.cpp
 # End Source File
 # Begin Source File
 
@@ -134,10 +138,6 @@ SOURCE=..\win32\gcontrol.cpp
 # Begin Source File
 
 SOURCE=..\win32\gcracker.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=..\glib\gdaemon.cpp
 # End Source File
 # Begin Source File
 
@@ -173,15 +173,15 @@ SOURCE=..\glib\gdirectory_win32.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\gnet\gevent_win32.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=..\gnet\geventhandler.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=..\gnet\geventloop.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\gnet\geventloop_win32.cpp
 # End Source File
 # Begin Source File
 
@@ -201,7 +201,7 @@ SOURCE=..\glib\gfile_win32.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gfilestore.cpp
+SOURCE=..\gsmtp\gfilestore.cpp
 # End Source File
 # Begin Source File
 
@@ -241,11 +241,11 @@ SOURCE=..\glib\gmd5.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gmessagestore.cpp
+SOURCE=..\gsmtp\gmessagestore.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gmessagestore_win32.cpp
+SOURCE=..\gsmtp\gmessagestore_win32.cpp
 # End Source File
 # Begin Source File
 
@@ -253,11 +253,11 @@ SOURCE=..\gnet\gmonitor.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gnewfile.cpp
+SOURCE=..\gsmtp\gnewfile.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gnewmessage.cpp
+SOURCE=..\gsmtp\gnewmessage.cpp
 # End Source File
 # Begin Source File
 
@@ -265,19 +265,23 @@ SOURCE=..\glib\gpath.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\glib\gpidfile.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\glib\gprocess_win32.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gprotocolmessage.cpp
+SOURCE=..\gsmtp\gprotocolmessage.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gprotocolmessageforward.cpp
+SOURCE=..\gsmtp\gprotocolmessageforward.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gprotocolmessagestore.cpp
+SOURCE=..\gsmtp\gprotocolmessagestore.cpp
 # End Source File
 # Begin Source File
 
@@ -286,6 +290,10 @@ SOURCE=..\win32\gpump.cpp
 # Begin Source File
 
 SOURCE=..\win32\gpump_dialog.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\glib\gregistry_win32.cpp
 # End Source File
 # Begin Source File
 
@@ -309,7 +317,7 @@ SOURCE=..\glib\groot.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gsasl_native.cpp
+SOURCE=..\gsmtp\gsasl_native.cpp
 # End Source File
 # Begin Source File
 
@@ -317,7 +325,7 @@ SOURCE=..\win32\gscmap.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gsecrets.cpp
+SOURCE=..\gsmtp\gsecrets.cpp
 # End Source File
 # Begin Source File
 
@@ -325,15 +333,15 @@ SOURCE=..\gnet\gserver.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gserverprotocol.cpp
+SOURCE=..\gsmtp\gserverprotocol.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gsmtpclient.cpp
+SOURCE=..\gsmtp\gsmtpclient.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gsmtpserver.cpp
+SOURCE=..\gsmtp\gsmtpserver.cpp
 # End Source File
 # Begin Source File
 
@@ -345,11 +353,11 @@ SOURCE=..\gnet\gsocket_win32.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gstoredfile.cpp
+SOURCE=..\gsmtp\gstoredfile.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gstoredmessage.cpp
+SOURCE=..\gsmtp\gstoredmessage.cpp
 # End Source File
 # Begin Source File
 
@@ -369,7 +377,7 @@ SOURCE=..\win32\gtray.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=gverifier.cpp
+SOURCE=..\gsmtp\gverifier.cpp
 # End Source File
 # Begin Source File
 
@@ -385,11 +393,7 @@ SOURCE=..\win32\gwinhid.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\gnet\gwinsock.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=gxtext.cpp
+SOURCE=..\gsmtp\gxtext.cpp
 # End Source File
 # Begin Source File
 

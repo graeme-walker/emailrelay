@@ -143,7 +143,7 @@ public:
 		// Sets the current state. Returns the old state.
 
 private:
-	struct Transition
+	struct Transition // A private structure used by G::StateMachine<>.
 	{
 		State from ;
 		State to ;
@@ -216,7 +216,7 @@ State StateMachine<T,State,Event,Arg>::apply( T & t , Event event , const Arg & 
 	// look up in the multimap keyed on current-state + event
 	//
 	State state = m_state ;
-	Map::iterator p = m_map.find(event) ;
+	typename Map::iterator p = m_map.find(event) ;
 	for( ; p != m_map.end() && (*p).first == event ; ++p )
 	{
 		if( (*p).second.from == m_any || (*p).second.from == m_state )
@@ -248,7 +248,7 @@ State StateMachine<T,State,Event,Arg>::apply( T & t , Event event , const Arg & 
 	return m_any ;
 }
 
-} ; // namespace
+} // namespace
 
 #endif
 

@@ -34,7 +34,7 @@
 namespace G
 {
 	class DirectoryIteratorImp ;
-} ;
+}
 
 bool G::Directory::valid( bool for_creation ) const
 {
@@ -96,7 +96,7 @@ public:
 private:
 	void operator=( const DirectoryIteratorImp & ) ;
 	DirectoryIteratorImp( const DirectoryIteratorImp & ) ;
-	static int onError( const char * path , int errno ) ;
+	static int onError( const char * path , int errno_ ) ;
 } ;
 
 // ===
@@ -172,14 +172,13 @@ G::DirectoryIteratorImp::DirectoryIteratorImp( const Directory &dir ,
 
 	int flags = 0 | GLOB_ERR ;
 	int error  = ::glob( wild_path.pathCstr() , flags , onError , &m_glob ) ;
-	if( error )
+	if( error || m_glob.gl_pathv == NULL )
 	{
 		G_DEBUG( "G::DirectoryIteratorImp::ctor: glob() error: " << error ) ;
 		m_error = true ;
 	}
 	else
 	{
-		G_ASSERT( m_glob.gl_pathv != NULL ) ;
 		G_ASSERT( m_glob.gl_pathc == 0 || m_glob.gl_pathv[0] != NULL ) ;
 	}
 }

@@ -83,7 +83,7 @@ unsigned int G::Time::seconds() const
 std::string G::Time::hhmmss( const char * sep )
 {
 	if( sep == NULL ) sep = "" ;
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss << (m_hh/10U) << (m_hh%10U) << sep << (m_mm/10U) << (m_mm%10U) << sep << (m_ss/10U) << (m_ss%10U) ;
 	return ss.str() ;
 }
@@ -91,7 +91,7 @@ std::string G::Time::hhmmss( const char * sep )
 std::string G::Time::hhmm( const char * sep )
 {
 	if( sep == NULL ) sep = "" ;
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss << (m_hh/10U) << (m_hh%10U) << sep << (m_mm/10U) << (m_mm%10U) ;
 	return ss.str() ;
 }

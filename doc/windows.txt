@@ -18,6 +18,7 @@ In summary, the Windows installation process is as follows:
 * Create a spool directory under "<windir>\spool", eg.  "c:\win98\spool\emailrelay".
 * Configure your e-mail client (eg. Outlook) to use SMTP on the local machine for outgoing e-mail.
 * Run the forwarding client from the taskbar/desktop shortcut once connected to the Internet.
+* Optionally register the server as a COM component using the "-regserver" command-line switch.
 
 These steps are explained in more detail below.
 
@@ -68,29 +69,37 @@ Once the server is configured the next step is to create an icon on the desktop
 you are connected to the Internet.
 
 You can do this by simply dragging the E-MailRelay executable file from the
-"Program Files\emailrelay" folder onto the desktop. Then right click on the
-new icon and select "Properties" from the pop-up menu.
+"Program Files\emailrelay" folder onto the desktop. Then right click on the new
+icon and select "Properties" from the pop-up menu.
 
 Again the "Target" box should contain the path of the E-MailRelay executable,
-and you should add configuration options at the end, separated by a space.
-As a minumum you will need to add "--as-client myisp:smtp", where "myisp"
-is replaced with the hostname of your ISP's SMTP server.
+and you should add configuration options at the end, separated by a space. As a
+minumum you will need to add "--as-client myisp:smtp", where "myisp" is replaced
+with the hostname of your ISP's SMTP server.
 
 Preparation
 -----------
-To complete the installation you should create a spool directory to hold
-your e-mail messages while you are off-line. By default E-MailRelay will
-look for a directory "<windir>\spool\emailrelay", where "<windir>" is the
-path of your main windows directory, typically "c:\win98" for Windows 98.
+To complete the installation you should create a spool directory to hold your
+e-mail messages while you are off-line. By default E-MailRelay will look for a
+directory "<windir>\spool\emailrelay", where "<windir>" is the path of your main
+windows directory, typically "c:\win98" for Windows 98.
 
-Finally you will need to configure your e-mail client program to use
-the local E-MailRelay server for outgoing mail. Where it asks for the
-name of the SMTP server for outgoing mail you should tell it to use
-"localhost" or "127.0.0.1".
+Finally you will need to configure your e-mail client program to use the local
+E-MailRelay server for outgoing mail. Where it asks for the name of the SMTP
+server for outgoing mail you should tell it to use "localhost" or "127.0.0.1".
+
+COM registration
+----------------
+The server can be optionally registered as a COM component by running the
+executable with the "-regserver" command line switch. The COM interface may
+allow stored messages to be forwarded to any remote server, so consider the
+security implications before doing the COM registration. Refer to the reference
+guide for more details.
 
 Uninstall
 ---------
-There are no DLLs or registry entries to clean up: just delete the files under
+If you have ever registered the executable as a COM component, then deregister it
+using the "-unregserver" command-line switch. Then just delete the files under
 "Program Files\emailrelay" and "<windir>\spool\emailrelay", and remove any
 taskbar, desktop or "Start->Programs->StartUp" shortcuts.
 

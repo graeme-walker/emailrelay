@@ -43,6 +43,7 @@ public:
 	explicit AddressImp( unsigned int port ) ; // (not in_port_t -- see validPort(), setPort() etc)
 	explicit AddressImp( const servent & s ) ;
 	explicit AddressImp( const std::string & s ) ;
+	AddressImp( const std::string & s , unsigned int port ) ;
 	AddressImp( unsigned int port , Address::Localhost ) ;
 	AddressImp( const hostent & h , unsigned int port ) ;
 	AddressImp( const hostent & h , const servent & s ) ;
@@ -78,6 +79,8 @@ private:
 	address_type m_inet ;
 	static char m_port_separator ;
 } ;
+
+// ===
 
 char GNet::AddressImp::m_port_separator = ':' ;
 
@@ -141,12 +144,24 @@ GNet::AddressImp::AddressImp( const AddressImp & other )
 	m_inet = other.m_inet ;
 }
 
+GNet::AddressImp::AddressImp( const std::string & s , unsigned int port )
+{
+	init() ;
+
+	std::string reason ;
+	if( ! setAddress( s + m_port_separator + "0" , reason ) )
+		throw Address::BadString( reason + ": " + s ) ;
+
+	setPort( port ) ;
+}
+
 GNet::AddressImp::AddressImp( const std::string & s )
 {
 	init() ;
+
 	std::string reason ;
 	if( ! setAddress( s , reason ) )
-		throw Address::BadString( s ) ;
+		throw Address::BadString( reason + ": " + s ) ;
 }
 
 bool GNet::AddressImp::setAddress( const std::string & display_string , std::string & reason )
@@ -187,7 +202,7 @@ void GNet::AddressImp::setHost( const hostent & h )
 
 std::string GNet::AddressImp::displayString() const
 {
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss << hostString() ;
 	ss << m_port_separator << port() ;
 	return ss.str() ;
@@ -195,7 +210,7 @@ std::string GNet::AddressImp::displayString() const
 
 std::string GNet::AddressImp::hostString() const
 {
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss << ::inet_ntoa(m_inet.sin_addr) ;
 	return ss.str() ;
 }
@@ -347,7 +362,7 @@ GNet::Address::Address( const servent & s ) :
 {
 }
 
-GNet::Address::Address( const sockaddr *addr , int len ) :
+GNet::Address::Address( const sockaddr * addr , int len ) :
 	m_imp( new AddressImp(addr,len) )
 {
 }
@@ -359,6 +374,11 @@ GNet::Address::Address( const Address & other ) :
 
 GNet::Address::Address( const std::string & s ) :
 	m_imp( new AddressImp(s) )
+{
+}
+
+GNet::Address::Address( const std::string & s , unsigned int port ) :
+	m_imp( new AddressImp(s,port) )
 {
 }
 

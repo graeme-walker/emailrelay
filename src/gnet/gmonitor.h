@@ -26,6 +26,7 @@
 
 #include "gdef.h"
 #include "gnet.h"
+#include "gnoncopyable.h"
 #include "gclient.h"
 #include "gserver.h"
 #include <iostream>
@@ -34,13 +35,13 @@ namespace GNet
 {
 	class Monitor ;
 	class MonitorImp ;
-} ;
+}
 
 // Class: GNet::Monitor
 // Description: A singleton for monitoring Client and ServerPeer connections.
 // See also: GNet::Client, GNet::ServerPeer
 //
-class GNet::Monitor
+class GNet::Monitor : public G::noncopyable
 {
 public:
 	Monitor() ;
@@ -69,9 +70,11 @@ public:
 		const std::string & eol = std::string("\n") ) ;
 			// Reports itself onto a stream.
 
-private:
-	Monitor( const Monitor & ) ; // not implemented
-	void operator=( const Monitor & ) ; // not implemented
+protected:
+	virtual void onEvent( const std::string & , const std::string & ) ;
+		// Called when the monitor's state has
+		// changed. The default implementation
+		// does nothing.
 
 private:
 	static Monitor * m_this ;

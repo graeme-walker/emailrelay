@@ -79,7 +79,7 @@ std::string GGui::WindowHidden::windowClassName()
 	// created from it
 
 	WNDPROC wndproc = windowProcedure() ;
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss << "GGui::WindowHidden." << (unsigned long)wndproc ;
 	return ss.str() ;
 }

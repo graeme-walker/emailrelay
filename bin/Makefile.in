@@ -79,6 +79,7 @@ POST_UNINSTALL = :
 AR = @AR@
 AWK = @AWK@
 CC = @CC@
+COMPILER_VERSION = @COMPILER_VERSION@
 CXX = @CXX@
 GZIP = @GZIP@
 HAVE_DOXYGEN = @HAVE_DOXYGEN@
@@ -232,7 +233,8 @@ install-data: install-data-am
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 install: install-am
-uninstall-am: uninstall-e_initSCRIPTS uninstall-e_examplesDATA
+uninstall-am: uninstall-e_initSCRIPTS uninstall-e_examplesDATA \
+		uninstall-local
 uninstall: uninstall-am
 all-am: Makefile $(SCRIPTS) $(DATA)
 all-redirect: all-am
@@ -274,10 +276,10 @@ maintainer-clean: maintainer-clean-am
 uninstall-e_examplesDATA install-e_examplesDATA tags distdir \
 check-TESTS info-am info dvi-am dvi check check-am installcheck-am \
 installcheck install-exec-am install-exec install-data-local \
-install-data-am install-data install-am install uninstall-am uninstall \
-all-redirect all-am all installdirs mostlyclean-generic \
-distclean-generic clean-generic maintainer-clean-generic clean \
-mostlyclean distclean maintainer-clean
+install-data-am install-data install-am install uninstall-local \
+uninstall-am uninstall all-redirect all-am all installdirs \
+mostlyclean-generic distclean-generic clean-generic \
+maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 
 
 .sh_.sh:
@@ -288,11 +290,14 @@ emailrelay: emailrelay.sh
 	cp emailrelay.sh emailrelay
 	chmod ugo+x emailrelay
 
-install-data-local:
+install-data-local: install-e_examplesDATA install-e_initSCRIPTS
 	chmod ugo+x $(DESTDIR)$(e_examplesdir)/emailrelay-notify.sh
 	chmod ugo+x $(DESTDIR)$(e_examplesdir)/emailrelay-resubmit.sh
 	chmod ugo+x $(DESTDIR)$(e_examplesdir)/emailrelay-deliver.sh
 	chmod ugo+x $(DESTDIR)$(e_examplesdir)/emailrelay-process.sh
+
+uninstall-local:
+	-rmdir $(DESTDIR)$(e_examplesdir) 2>/dev/null
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

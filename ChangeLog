@@ -1,6 +1,19 @@
 E-MailRelay Change Log
 ======================
 
+0.9.9 -> 1.0.0
+--------------
+* Briefer "--help" output; works with "--verbose".
+* Option to listen on a specific network interface ("--interface").
+* Option for an external address verifier program ("--verifier").
+* Some Linux Standard Base stuff added to the "init.d" script.
+* Pid files world-readable and deleted on abnormal termination.
+* Compiles with gcc 3.0 and intel 6.0.
+* Autoconf tweak for MacOS X.
+* Corrected the "Received:" typo [bug-id 572236].
+* EHLO response parsing is now case-insensitive [bug-id 561522].
+* Fewer missing-secrets warnings [bug-id 564987].
+
 0.9.8 -> 0.9.9
 --------------
 * More flexible logging options ("--verbose" and "--debug" work better).

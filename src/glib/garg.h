@@ -31,7 +31,7 @@
 namespace G
 {
 	class Arg ;
-} ;
+}
 
 // Class: G::Arg
 // Description: A class which holds a represention of the
@@ -57,8 +57,14 @@ public:
 		//
 		// Parses the given command line, splitting
 		// it up into an array of tokens.
-		// The program name is automatically
+		// The full exe name is automatically
 		// added as the first token (cf. argv[0]).
+
+	void reparse( const std::string & command_line ) ;
+		// Reinitialises the object with the given
+		// command-line. The command-line should not
+		// contain the program name: the v(0) value
+		// and prefix() are unchanged.
 		
 	~Arg() ;
 		// Destructor.
@@ -81,11 +87,12 @@ public:
 		// be used in main() outside of the outermost try
 		// block.
 
-	bool contains( const std::string & sw , size_t sw_args = 0U ) const ;
-		// Returns true if the command line
-		// contains the given switch with enough
-		// command line arguments left to satisfy
-		// the given number of switch arguments.
+	bool contains( const std::string & sw ,
+		size_t sw_args = 0U , bool case_sensitive = true ) const ;
+			// Returns true if the command line
+			// contains the given switch with enough
+			// command line arguments left to satisfy
+			// the given number of switch arguments.
 
 	size_t index( const std::string & sw , size_t sw_args = 0U ) const ;
 		// Returns the index of the given switch.
@@ -109,8 +116,9 @@ public:
 
 private:
 	static std::string moduleName( HINSTANCE h ) ;
-	bool find( const std::string & sw , size_t sw_args , size_t *index_p ) const ;
+	bool find( bool , const std::string & , size_t , size_t * ) const ;
 	void setPrefix() ;
+	static bool match( bool , const std::string & , const std::string & ) ;
 
 private:
 	typedef std::vector<std::string GAllocator(std::string) > Array ;

@@ -83,7 +83,8 @@ static void process( const G::Path & path , std::istream & stream ,
 
 	// add "To:" lines to the envelope
 	//
-	GSmtp::Verifier verifier ;
+	G::Path verifier_exe ;
+	GSmtp::Verifier verifier( verifier_exe ) ;
 	for( G::Strings::const_iterator to_p = to_list.begin() ; to_p != to_list.end() ; ++to_p )
 	{
 		std::string to = *to_p ;
@@ -128,9 +129,9 @@ static void process( const G::Path & path , std::istream & stream ,
 static void run( const G::Arg & arg )
 {
 	G::GetOpt getopt( arg ,
-		"s/spool-dir/specifies the spool directory/1/dir|"
-		"f/from/sets the envelope sender/1/name|"
-		"h/help/shows this help/0/" ) ;
+		"s/spool-dir/specifies the spool directory/1/dir/1|"
+		"f/from/sets the envelope sender/1/name/1|"
+		"h/help/shows this help/0//1" ) ;
 
 	if( getopt.hasErrors() )
 	{
@@ -139,10 +140,10 @@ static void run( const G::Arg & arg )
 	else if( getopt.contains("help") )
 	{
 		std::ostream & stream = std::cerr ;
-		getopt.showUsage( stream , arg.prefix() , " <to-address> [<to-address> ...]" ) ;
+		getopt.showUsage( stream , arg.prefix() , std::string(" <to-address> [<to-address> ...]") ) ;
 		stream
 			<< std::endl
-			<< Main::Legal::warranty()
+			<< Main::Legal::warranty("","\n")
 			<< std::endl
 			<< Main::Legal::copyright()
 			<< std::endl ;

@@ -27,12 +27,6 @@
 #include <cstdlib> // getenv
 
 static HANDLE source() ;
-#if ! defined(RegisterEventSource)
-static void RegisterEventSource( const char * , const char * ) {}
-static void DeregisterEventSource( HANDLE ) {}
-static void ReportEvent( HANDLE , DWORD , int , DWORD , const char * ,
-	size_t , int , const char ** , const char * ) {}
-#endif
 
 void G::LogOutput::cleanup()
 {
@@ -90,9 +84,7 @@ void G::LogOutput::rawOutput( G::Log::Severity severity , const char *message )
 
 void G::LogOutput::init()
 {
-  #if defined(RegisterEventSource)
 	m_handle = ::source() ;
-  #endif
 }
 
 static HANDLE source()

@@ -3,15 +3,12 @@ E-MailRelay Developer guide
 
 Module structure
 ----------------
-There are two C++ libraries in the E-MailRelay code: "glib" provides low-level
+There are three C++ libraries in the E-MailRelay code: "glib" provides low-level
 classes for file-system abstraction, date and time representation, string
-utility functions, logging, command line parsing etc., and "gnet" provides
-network classes using the Berkley socket and Winsock APIs. Both libraries
-are portable between POSIX-like systems (eg. Linux) and Windows.
-
-The application-level classes are implemented within the "GSmtp" and "Main"
-namespaces. The key interfaces in the "GSmtp" namespace are "ClientProtocol",
-"ServerProtocol" and "MessageStore".
+utility functions, logging, command line parsing etc., "gnet" provides network
+classes using the Berkley socket and Winsock APIs, and "gsmtp" contains SMTP and
+message-store classes. All three libraries are portable between POSIX-like
+systems (eg. Linux) and Windows.
 
 Under Windows there is an additional library for event handling. Windows has
 historically built network event processing on top of the GUI event system,
@@ -38,8 +35,8 @@ another for immediate forwarding ("ProtocolMessageForward").
 The protocol and message-store functionality are brought together by the
 high-level "GSmtp::Server" and "GSmtp::Client" classes.
 
-Simplified class diagrams for the *GNet* [graphics/gnet-classes.png] and
-*GSmtp* [graphics/gsmtp-classes.png] namespaces are available.
+Simplified class diagrams for the *GNet* [gnet-classes.png] and
+*GSmtp* [gsmtp-classes.png] namespaces are available.
 
 Directory structure
 -------------------
@@ -56,6 +53,10 @@ Directory structure
 # src/gnet
 
   A network library using Berkley sockets or Winsock.
+
+# src/gsmtp
+
+  An SMTP library.
 
 # src/win32
 
@@ -87,9 +88,9 @@ For a quick bottom-up tour of the code take a look at the following headers:
 * src/gnet/gaddress.h
 * src/gnet/gsocket.h
 * src/gnet/gserver.h
-* src/main/gmessagestore.h
-* src/main/gserverprotocol.h
-* src/main/gsmtpserver.h
+* src/smtp/gmessagestore.h
+* src/smtp/gserverprotocol.h
+* src/smtp/gsmtpserver.h
 
 Portability
 -----------

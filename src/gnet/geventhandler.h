@@ -26,7 +26,6 @@
 
 #include "gdef.h"
 #include "gnet.h"
-#include "gcredentials.h"
 #include "gdatetime.h"
 #include "gdescriptor.h"
 #include <list>
@@ -38,7 +37,7 @@ namespace GNet
 	class EventHandlerListItem ;
 	class EventHandlerList ;
 	class TimerList ;
-} ;
+}
 
 // Class: GNet::EventHandler
 // Description: A pseudo-abstract base class for classes
@@ -99,7 +98,7 @@ namespace GNet
 {
 	typedef std::list< EventHandlerListItem GAllocator(EventHandlerListItem) >
 		EventHandlerListImp ;
-} ;
+}
 
 // Class: GNet::EventHandlerList
 // Description: A class which can be used in the implemention

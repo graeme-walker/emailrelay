@@ -23,20 +23,36 @@
 
 #include "gdef.h"
 #include "gprocess.h"
+#include "gexception.h"
+#include "gstr.h"
 #include "glog.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <process.h>
 #include <direct.h>
 #include <io.h>
+#include <fcntl.h>
 
 namespace G
 {
 	const int STDERR_FILENO = 2 ;
 	const int SC_OPEN_MAX = 256 ; // 32 in limits.h !?
+	class Pipe ;
 } ;
 
-// ===
+class G::Pipe
+{
+public:
+	G_EXCEPTION( Error , "pipe error" ) ;
+	explicit Pipe( bool active ) ;
+	~Pipe() ;
+	int fd() const ;
+	std::string read() ;
+private:
+	bool m_active ;
+	int m_fds[2] ;
+	int m_fd_writer ;
+} ;
 
 class G::Process::IdImp
 {
@@ -46,41 +62,85 @@ public:
 
 // ===
 
-G::Process::Id::Id() : m_imp(NULL)
+G::Pipe::Pipe( bool active ) :
+	m_active(active) ,
+	m_fd_writer(-1)
 {
-	m_imp = new IdImp ;
-	m_imp->m_pid = static_cast<unsigned int>(::_getpid()) ; // or ::GetCurrentProcessId()
+	m_fds[0] = m_fds[1] = -1 ;
+	if( m_active )
+	{
+		int rc = ::_pipe( m_fds , 256 , _O_BINARY | _O_NOINHERIT ) ;
+		if( rc < 0 ) throw Error() ;
+		m_fd_writer = ::_dup( m_fds[1] ) ; // inherited
+		::_close( m_fds[1] ) ;
+		m_fds[1] = -1 ;
+	}
 }
 
-G::Process::Id::~Id()
+G::Pipe::~Pipe()
 {
-	delete m_imp ;
+	if( m_active )
+	{
+		::_close( m_fds[0] ) ;
+		::_close( m_fds[1] ) ;
+		::_close( m_fd_writer ) ;
+	}
 }
 
-G::Process::Id::Id( const Id & other ) :
-	m_imp(NULL)
+int G::Pipe::fd() const
 {
-	m_imp = new IdImp ;
-	m_imp->m_pid = other.m_imp->m_pid ;
+	return m_fd_writer ;
 }
 
-G::Process::Id & G::Process::Id::operator=( const Id & rhs )
+std::string G::Pipe::read()
 {
-	m_imp->m_pid = rhs.m_imp->m_pid ;
-	return *this ;
+	if( ! m_active ) return std::string() ;
+	::_close( m_fd_writer ) ;
+	char buffer[4096] ;
+	int rc = m_fds[0] == -1 ? 0 : ::_read( m_fds[0] , buffer , sizeof(buffer) ) ;
+	if( rc < 0 ) throw Error() ;
+	return std::string( buffer , rc ) ;
+}
+
+// ===
+
+G::Process::Id::Id()
+{
+	m_pid = static_cast<unsigned int>(::_getpid()) ; // or ::GetCurrentProcessId()
+}
+
+G::Process::Id::Id( const char * path ) :
+	m_pid(0)
+{
+	std::ifstream file( path ? path : "" ) ;
+	file >> m_pid ;
+	if( !file.good() )
+		m_pid = 0 ;
+}
+
+G::Process::Id::Id( std::istream & stream )
+{
+	stream >> m_pid ;
+	if( !stream.good() )
+		throw Process::InvalidId() ;
 }
 
 std::string G::Process::Id::str() const
 {
-	std::stringstream ss ;
-	ss << m_imp->m_pid ;
+	std::ostringstream ss ;
+	ss << m_pid ;
 	return ss.str() ;
 }
 
 bool G::Process::Id::operator==( const Id & rhs ) const
 {
-	return m_imp->m_pid == rhs.m_imp->m_pid ;
+	return m_pid == rhs.m_pid ;
 }
+
+// not implemented...
+//G::Process::Id::Id( const char * pid_file_path ) {}
+
+// ===
 
 void G::Process::closeFiles( bool keep_stderr )
 {
@@ -90,12 +150,6 @@ void G::Process::closeFiles( bool keep_stderr )
 		if( !keep_stderr || fd != STDERR_FILENO )
 			::_close( fd ) ;
 	}
-}
-
-void G::Process::setUmask( bool )
-{
-	// _umask() is available but not very useful
-	; // no-op
 }
 
 void G::Process::closeStderr()
@@ -115,21 +169,33 @@ bool G::Process::cd( const Path & dir , NoThrow )
 	return 0 == ::_chdir( dir.str().c_str() ) ;
 }
 
-int G::Process::spawn( Identity , const Path & exe , const std::string & arg ,
-	int error_return )
+int G::Process::spawn( Identity , const Path & exe , const Strings & args_ ,
+	std::string * pipe_result_p , int error_return )
 {
 	// open file descriptors are inherited across ::_spawn() --
 	// no fcntl() is available to set close-on-exec -- but see
 	// also ::CreateProcess()
 
-	const char * argv [3U] ;
-	argv[0U] = exe.pathCstr() ;
-	argv[1U] = arg.c_str() ;
-	argv[2U] = NULL ;
+	Strings args( args_ ) ; // non-const copy
+	Pipe pipe( pipe_result_p != NULL ) ;
+	if( pipe_result_p != NULL )
+		args.push_front( Str::fromInt(pipe.fd()) ) ; // kludge -- child must write on specific fd passed as argv[1]
+
+	char ** argv = new char* [ args.size() + 2U ] ;
+	argv[0U] = const_cast<char*>( exe.pathCstr() ) ;
+	unsigned int argc = 1U ;
+	for( Strings::const_iterator arg_p = args.begin() ; arg_p != args.end() ; ++arg_p , argc++ )
+		argv[argc] = const_cast<char*>(arg_p->c_str()) ;
+	argv[argc] = NULL ;
 
 	const int mode = _P_WAIT ;
 	::_flushall() ;
 	int rc = ::_spawnv( mode , exe.str().c_str() , argv ) ;
+	delete [] argv ;
+
+	if( pipe_result_p != NULL )
+		*pipe_result_p = pipe.read() ;
+
 	return rc < 0 ? error_return : rc ;
 }
 
@@ -169,5 +235,21 @@ G::Process::Identity::Identity( const std::string & ) :
 std::string G::Process::Identity::str() const
 {
 	return "0/0" ;
+}
+
+// ===
+
+G::Process::Umask::Umask( G::Process::Umask::Mode ) :
+	m_imp(0)
+{
+}
+
+G::Process::Umask::~Umask()
+{
+}
+
+void G::Process::Umask::set( G::Process::Umask::Mode )
+{
+	// not implemented
 }
 

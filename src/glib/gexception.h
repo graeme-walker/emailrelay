@@ -31,7 +31,7 @@
 namespace G
 {
 	class Exception ;
-} ;
+}
 
 // Class: G::Exception
 // Description: A general-purpose exception class derived from std::exception
@@ -52,10 +52,10 @@ public:
 	explicit Exception( const std::string & what ) ;
 		// Constructor.
 
-	virtual ~Exception() ;
+	virtual ~Exception() throw() ;
 		// Destructor.
 
-	virtual const char * what() const ;
+	virtual const char * what() const throw() ;
 		// Override from std::exception.
 
 	void prepend( const char * context ) ;
@@ -79,7 +79,7 @@ public:
 		// This method allows a derived-class exception
 		// to be constructed and thrown on one
 		// line using iostream formatting.
-		// Eg. throw Error( std::stringstream() << a << b ) ;
+		// Eg. throw Error( std::ostringstream() << a << b ) ;
 } ;
 
 #define G_EXCEPTION( class_name , description ) class class_name : public G::Exception { public: class_name() { m_what = description ; } public: explicit class_name ( std::ostream & stream ) { m_what = description ; append(stream) ; } public: explicit class_name( const char * more ) { m_what = description ; append(more) ; } public: explicit class_name( const std::string & more ) { m_what = description ; append(more) ; } }

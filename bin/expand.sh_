@@ -26,14 +26,21 @@
 # Only does one sustitution per line. Directives which start the line are
 # multi-line. Those within a line are one-line, expanded in-place.
 #
-# The "-t" switch can be used to suppress expansion of files
-# with an extension of ".html".
+# The "-t" switch can be used to suppress expansion where the included
+# file has an extension of ".html".
 #
-# Bugs: Does not do nested expansion. Only supports one include statement
-# per line.
+# In edit mode (--edit) the exit value is 0 (shell true) if the file is 
+# modified. This allows for recursive expansion using a shell while loop.
 #
-# usage: expand.sh [-a <awk>] [-t]
+# usage: expand.sh [-a <awk>] [-t] { --edit <file> | [<file> ...] }
 #
+
+Usage()
+{
+	echo usage: `basename $0` '[-a <awk>] [-t] { --edit <file> | [<file> ...] }' >&2
+}
+
+tmp="/tmp/`basename $0`.$$.tmp"
 
 awk="gawk"
 if test "${1}" = "-a"
@@ -50,40 +57,64 @@ then
 	expand_html="0"
 fi
 
-${awk} -v expand_html="${expand_html}" -v cat="${awk} '{print}'" '
-{
-	line = $0
-	if( match(line,"#include#[^#]*#") )
-	{
-		rstart = RSTART
-		directive = substr(line,RSTART,RLENGTH)
-		path = substr(line,RSTART+9,RLENGTH-10)
+edit="0"
+if test "${1}" = "--edit"
+then
+	shift
+	edit="1"
+	if test $# -ne 1 ; then Usage ; exit 1 ; fi
+fi
 
-		if( !expand_html && match(path,".html$") )
+Expand()
+{
+	${awk} -v expand_html="${expand_html}" -v cat="${awk} '{print}'" '
+	BEGIN { modified = 0 }
+	{
+		line = $0
+		if( match(line,"#include#[^#]*#") )
 		{
-			print line
-		}
-		else
-		{
-			head = substr(line,1,rstart-1)
-			if( match(head,"^[[:space:]]*$") )
+			rstart = RSTART
+			directive = substr(line,RSTART,RLENGTH)
+			path = substr(line,RSTART+9,RLENGTH-10)
+
+			if( !expand_html && match(path,".html$") )
 			{
-				system( cat "  " path )
+				print line
 			}
 			else
 			{
-				getline text <path
-				if( length(text) == 0 )
-					printf( "expand.sh: warning: line %d: empty text sustitution for %s\n" , NR , path ) >"/dev/fd/2"
-				sub( directive , text , line )
-				print line
+				modified = 1
+				head = substr(line,1,rstart-1)
+				if( match(head,"^[[:space:]]*$") )
+				{
+					system( cat "  " path )
+				}
+				else
+				{
+					getline text <path
+					if( length(text) == 0 )
+						printf( "expand.sh: warning: line %d: empty text sustitution for %s\n" , NR , path ) >"/dev/fd/2"
+					sub( directive , text , line )
+					print line
+				}
 			}
 		}
+		else
+		{
+			print line
+		}
 	}
-	else
-	{
-		print line
-	}
+	END { exit ! modified }
+	' $@
 }
-' $@
+
+if test "${edit}" -eq 1
+then
+	# (use cp rather than mv here to protect read-only files)
+	Expand $@ > "${tmp}" && cp "${tmp}" "${1}"
+	rc=$? ; rm -f "${tmp}" 2>/dev/null ; exit "${rc}"
+else
+	Expand $@
+	true
+fi
 

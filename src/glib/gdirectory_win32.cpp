@@ -281,7 +281,7 @@ std::string G::DirectoryIteratorImp::modificationTimeString() const
 	const DWORD & hi = m_context.ftLastWriteTime.dwHighDateTime ;
 	const DWORD & lo = m_context.ftLastWriteTime.dwLowDateTime ;
 
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss << hi << std::setw(8) << std::setfill('0') << lo ;
 	return ss.str() ;
 }

@@ -37,9 +37,12 @@ emailrelay: emailrelay.sh
 	cp emailrelay.sh emailrelay
 	chmod ugo+x emailrelay
 
-install-data-local:
+install-data-local: install-e_examplesDATA install-e_initSCRIPTS
 	chmod ugo+x $(DESTDIR)$(e_examplesdir)/emailrelay-notify.sh
 	chmod ugo+x $(DESTDIR)$(e_examplesdir)/emailrelay-resubmit.sh
 	chmod ugo+x $(DESTDIR)$(e_examplesdir)/emailrelay-deliver.sh
 	chmod ugo+x $(DESTDIR)$(e_examplesdir)/emailrelay-process.sh
+
+uninstall-local:
+	-rmdir $(DESTDIR)$(e_examplesdir) 2>/dev/null
 

@@ -81,7 +81,7 @@ std::string GNet::EventHandlerList::asString() const
 
 std::string GNet::EventHandlerList::asString( const EventHandlerListImp & list ) const
 {
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	const char * sep = "" ;
 	for( List::const_iterator p = list.begin() ; p != list.end() ; ++p )
 	{

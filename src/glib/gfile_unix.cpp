@@ -54,7 +54,7 @@ std::string G::File::sizeString( const Path & path )
 	if( 0 != ::stat( path.pathCstr() , &statbuf ) )
 		return std::string() ;
 
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss << statbuf.st_size ;
 	return ss.str() ;
 }

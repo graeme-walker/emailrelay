@@ -36,7 +36,7 @@ namespace G
 //
 typedef std::list<std::string GAllocator(std::string) > Strings ;
 
-} ;
+}
 
 #endif
 

@@ -38,11 +38,11 @@ G::Exception::Exception( const std::string & what ) :
 {
 }
 
-G::Exception::~Exception()
+G::Exception::~Exception() throw()
 {
 }
 
-const char * G::Exception::what() const
+const char * G::Exception::what() const throw()
 {
 	return m_what.c_str() ;
 }

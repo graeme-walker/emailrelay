@@ -34,12 +34,19 @@
 // usage: poke [<port> [<send-string>]]
 //
 
+#if defined(G_WINDOWS) || defined(G_WIN32) || defined(_WIN32) || defined(WIN32)
+#include <windows.h>
+#include <io.h>
+#define write _write
+#define STDOUT_FILENO 1
+#else
 #include <unistd.h>
-#include <stdlib.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#endif
+#include <stdlib.h>
 #include <string.h>
 
 int main( int argc , char * argv [] )
@@ -81,12 +88,12 @@ int main( int argc , char * argv [] )
 		return EXIT_FAILURE ;
 
 	/* send the string */
-	rc = write( fd , buffer , strlen(buffer) ) ;
+	rc = send( fd , buffer , strlen(buffer) , 0 ) ;
 	if( rc != (int)strlen(buffer) ) 
 		return EXIT_FAILURE ;
 
 	/* read the reply */
-	rc = read( fd , buffer , sizeof(buffer)-1U) ;
+	rc = recv( fd , buffer , sizeof(buffer)-1U , 0 ) ;
 	if( rc <= 0 ) 
 		return EXIT_FAILURE ;
 

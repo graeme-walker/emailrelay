@@ -59,7 +59,7 @@ Auth()
 
 Content()
 {
-	echo "To:" ${USER}@localhost
+	echo "To:" ${USER}@`uname -n`
 	echo "Subject: test message from process" $$
 	echo "From: tester"
 	echo ""
@@ -75,7 +75,7 @@ Envelope()
 	echo "X-MailRelay-Content: 8bit"
 	echo "X-MailRelay-From: me"
 	echo "X-MailRelay-ToCount: 1"
-	echo "X-MailRelay-To-Remote:" ${USER}@localhost
+	echo "X-MailRelay-To-Remote:" ${USER}@`uname -n`
 	echo "X-MailRelay-Authentication: anon"
 	echo "X-MailRelay-Client: 127.0.0.1"
 	echo "X-MailRelay-End: 1"

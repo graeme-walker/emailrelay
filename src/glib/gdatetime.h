@@ -32,7 +32,7 @@
 namespace G
 {
 	class DateTime ;
-} ;
+}
 
 // Class: G::DateTime
 // Description: A low-level static class used by Date and Time.

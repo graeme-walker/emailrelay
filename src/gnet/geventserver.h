@@ -32,7 +32,7 @@ namespace GNet
 {
 	class EventServer ;
 	class EventServerImp ;
-} ;
+}
 
 // Class: GNet::EventServer
 // Description: A simple derivation from Server which

@@ -28,8 +28,8 @@
 #include "gnet.h"
 #include "gsocket.h"
 #include "gconnection.h"
-#include "gselect.h"
 #include "gevent.h"
+#include <utility>
 #include <list>
 #include <memory>
 #include <string>
@@ -38,7 +38,7 @@ namespace GNet
 {
 	class Server ;
 	class ServerPeer ;
-} ;
+}
 
 // Class: GNet::Server
 // Description: An application-level class for implementing a
@@ -64,13 +64,17 @@ public:
 		// Default constructor. Initialise with init().
 
 	void init( unsigned int listening_port ) ;
-		// Iniailisation after default construction.
+		// Initilisation after default construction.
 
 	void init( const Address & listening_address ) ;
-		// Iniailisation after default construction.
+		// Initilisation after default construction.
 
 	virtual ~Server() ;
 		// Destructor.
+
+	std::pair<bool,Address> address() const ;
+		// Returns the listening address. Pair.first
+		// is false if not properly init()ialised.
 
 protected:
 	virtual ServerPeer * newPeer( StreamSocket * socket ,

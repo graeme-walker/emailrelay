@@ -27,33 +27,42 @@
 #include "gstr.h"
 #include <iostream>
 
-Main::CommandLine::Show * Main::CommandLine::Show::m_this = NULL ;
+// Class: Main::CommandLine::ShowImp
+// Description: A private implementation class used by Main::CommandLine::Show.
+//
+class Main::CommandLine::Show::Imp
+{
+public:
+	bool m_e ;
+	explicit Imp( bool b ) : m_e(b) {}
+} ;
 
 //static
 std::string Main::CommandLine::osSwitchSpec()
 {
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss
-		<< "l!log!writes log information on standard error (if open) and syslog (if not disabled)!0!|"
-		<< "t!no-daemon!does not detach from the terminal!0!|"
-		<< "u!user!names the effective user to switch to when started as root (default is \"daemon\")!1!username|"
-		<< "n!no-syslog!disables syslog output!0!"
+		<< "l!log!writes log information on standard error and syslog!0!!2|"
+		<< "t!no-daemon!does not detach from the terminal!0!!3|"
+		<< "u!user!names the effective user to switch to when started as root (default is \"daemon\")!1!username!3|"
+		<< "n!no-syslog!disables syslog output!0!!3"
 		;
 	return ss.str() ;
 }
 
 Main::CommandLine::Show::Show( bool e ) :
-	m_e(e)
+	m_imp( new Imp(e) )
 {
 }
 
 std::ostream & Main::CommandLine::Show::s()
 {
-	return m_e ? std::cerr : std::cout ;
+	return m_imp->m_e ? std::cerr : std::cout ;
 }
 
 Main::CommandLine::Show::~Show()
 {
+	delete m_imp ;
 }
 
 unsigned int Main::CommandLine::ttyColumns() const

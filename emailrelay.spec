@@ -1,11 +1,13 @@
 Summary: Simple e-mail message transfer agent using SMTP
 Name: emailrelay
-Version: 0.9.9
+Version: 1.0.0
 Release: 1
 Copyright: GPL
 Group: System Environment/Daemons
-Source: http://emailrelay.sourceforge.net/.../emailrelay-src-0.9.9.tar.gz
+Source: http://emailrelay.sourceforge.net/.../emailrelay-src-1.0.0.tar.gz
 BuildRoot: /tmp/emailrelay-install
+
+%define prefix /usr
 
 %description
 E-MailRelay is a simple SMTP store-and-forward message transfer agent (MTA).
@@ -17,8 +19,8 @@ than to a local postmaster. Because of this functional simplicity it is
 extremely easy to configure, typically only requiring the address of the 
 next-hop SMTP server to be put on the command line.
 
-C++ source code is available for Linux, FreeBSD and Windows. Distribution is
-under the GNU General Public License.
+C++ source code is available for Linux, FreeBSD (etc) and Windows. 
+Distribution is under the GNU General Public License.
 
 %prep
 %setup
@@ -30,43 +32,49 @@ make HAVE_DOXYGEN=no HAVE_MAN2HTML=no
 %install
 make install destdir=$RPM_BUILD_ROOT DESTDIR=$RPM_BUILD_ROOT HAVE_DOXYGEN=no HAVE_MAN2HTML=no
 
+%post
+test -f /usr/lib/lsb/install_initd && cd /etc/init.d && /usr/lib/lsb/install_initd emailrelay
+
+%preun
+test $1 -eq 0 && test -f /usr/lib/lsb/remove_initd && cd /etc/init.d && /usr/lib/lsb/remove_initd emailrelay
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
 
-/usr/lib/emailrelay/emailrelay-poke
-/usr/sbin/emailrelay
-/usr/sbin/emailrelay-passwd
-/usr/sbin/emailrelay-submit
-/usr/share/doc/emailrelay/examples/emailrelay-process.sh
-/usr/share/doc/emailrelay/examples/emailrelay-notify.sh
-/usr/share/doc/emailrelay/examples/emailrelay-deliver.sh
-/usr/share/doc/emailrelay/examples/emailrelay-resubmit.sh
-/usr/share/doc/emailrelay/developer.txt
-/usr/share/doc/emailrelay/reference.txt
-/usr/share/doc/emailrelay/userguide.txt
-/usr/share/doc/emailrelay/windows.txt
-/usr/share/doc/emailrelay/readme.html
-/usr/share/doc/emailrelay/developer.html
-/usr/share/doc/emailrelay/reference.html
-/usr/share/doc/emailrelay/userguide.html
-/usr/share/doc/emailrelay/windows.html
-/usr/share/doc/emailrelay/index.html
-/usr/share/doc/emailrelay/changelog.html
-/usr/share/doc/emailrelay/emailrelay.css
-/usr/share/doc/emailrelay/NEWS
-/usr/share/doc/emailrelay/README
-/usr/share/doc/emailrelay/changelog.gz
-/usr/share/doc/emailrelay/doxygen
-/usr/share/man/man1/emailrelay.1.gz
-/usr/share/man/man1/emailrelay-passwd.1.gz
-/usr/share/man/man1/emailrelay-poke.1.gz
-/usr/share/man/man1/emailrelay-submit.1.gz
 /etc/init.d/emailrelay
+%{prefix}/lib/emailrelay/emailrelay-poke
+%{prefix}/sbin/emailrelay
+%{prefix}/sbin/emailrelay-passwd
+%{prefix}/sbin/emailrelay-submit
+%{prefix}/share/doc/emailrelay/NEWS
+%{prefix}/share/doc/emailrelay/README
+%{prefix}/share/doc/emailrelay/changelog.gz
+%{prefix}/share/doc/emailrelay/changelog.html
+%{prefix}/share/doc/emailrelay/developer.html
+%{prefix}/share/doc/emailrelay/developer.txt
+%{prefix}/share/doc/emailrelay/emailrelay.css
+%{prefix}/share/doc/emailrelay/examples/emailrelay-deliver.sh
+%{prefix}/share/doc/emailrelay/examples/emailrelay-notify.sh
+%{prefix}/share/doc/emailrelay/examples/emailrelay-process.sh
+%{prefix}/share/doc/emailrelay/examples/emailrelay-resubmit.sh
+%{prefix}/share/doc/emailrelay/index.html
+%{prefix}/share/doc/emailrelay/readme.html
+%{prefix}/share/doc/emailrelay/reference.html
+%{prefix}/share/doc/emailrelay/reference.txt
+%{prefix}/share/doc/emailrelay/userguide.html
+%{prefix}/share/doc/emailrelay/userguide.txt
+%{prefix}/share/doc/emailrelay/windows.html
+%{prefix}/share/doc/emailrelay/windows.txt
+%{prefix}/share/man/man1/emailrelay-passwd.1.gz
+%{prefix}/share/man/man1/emailrelay-poke.1.gz
+%{prefix}/share/man/man1/emailrelay-submit.1.gz
+%{prefix}/share/man/man1/emailrelay.1.gz
+/var/spool/emailrelay/
 
 %changelog
 
-* Mon Sep 24 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
+* Wed Jul 3 2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 - Initial version.
 

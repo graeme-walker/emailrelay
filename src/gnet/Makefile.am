@@ -17,15 +17,15 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # 
 
-EXTRA_DIST=gclient_win32.cpp \
+EXTRA_DIST=\
+	gclient_win32.cpp \
 	gdescriptor_win32.cpp \
-	gevent_win32.cpp \
+	geventloop_win32.cpp \
 	glocal_win32.cpp \
 	grequest.cpp \
 	gresolve_win32.cpp \
-	gsocket_win32.cpp \
-	gwinsock.cpp
-INCLUDES = -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib 
+	gsocket_win32.cpp
+INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib 
 noinst_LIBRARIES = libgnet.a
 libgnet_a_SOURCES = gaddress_ipv4.cpp \
 	gclient.cpp \
@@ -33,8 +33,8 @@ libgnet_a_SOURCES = gaddress_ipv4.cpp \
 	gconnection.cpp \
 	gdescriptor_unix.cpp \
 	geventloop.cpp \
+	geventloop_unix.cpp \
 	geventhandler.cpp \
-	gevent_unix.cpp \
 	geventserver.cpp \
 	glinebuffer.cpp \
 	glocal_unix.cpp \
@@ -43,7 +43,6 @@ libgnet_a_SOURCES = gaddress_ipv4.cpp \
 	gresolve.cpp \
 	gresolve_ipv4.cpp \
 	gresolve_unix.cpp \
-	gselect.cpp \
 	gserver.cpp \
 	gsocket.cpp \
 	gsocket_unix.cpp \
@@ -62,8 +61,6 @@ libgnet_a_SOURCES = gaddress_ipv4.cpp \
 	gnet.h \
 	grequest.h \
 	gresolve.h \
-	gselect.h \
 	gserver.h \
 	gsocket.h \
-	gtimer.h \
-	gwinsock.h
+	gtimer.h

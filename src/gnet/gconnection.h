@@ -31,7 +31,7 @@
 namespace GNet
 {
 	class Connection ;
-} ;
+}
 
 // Class: GNet::Connection
 // Description: An interface which provides address information

@@ -26,11 +26,11 @@
 
 std::tm * G::DateTime::gmtime_r( const std::time_t * t , std::tm * p )
 {
-	return std::gmtime_r(t,p) ;
+	return ::gmtime_r(t,p) ;
 }
 
 std::tm * G::DateTime::localtime_r( const std::time_t * t , std::tm * p )
 {
-	return std::localtime_r(t,p) ;
+	return ::localtime_r(t,p) ;
 }
 

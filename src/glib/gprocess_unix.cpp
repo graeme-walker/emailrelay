@@ -34,6 +34,38 @@
 #include <pwd.h> // getpwnam()
 #include <unistd.h> // setuid() etc
 
+namespace
+{
+	void noCloseOnExec( int fd )
+	{
+		::fcntl( fd , F_SETFD , 0 ) ;
+	}
+}
+
+namespace G
+{
+	class Pipe ;
+}
+
+// Class: G::Pipe
+// Description: A private implementation class used by G::Process.
+//
+class G::Pipe
+{
+public:
+	explicit Pipe( bool active ) ;
+	~Pipe() ;
+	void inChild() ; // writer
+	void inParent() ; // reader
+	int fd() const ;
+	void dup() ; // onto stdout
+	std::string read() ; // size-limited
+private:
+	G_EXCEPTION( Error , "pipe error" ) ;
+	int m_fds[2] ;
+	int m_fd ;
+} ;
+
 // Class: G::Process::IdImp
 // Description: A private implementation class used by G::Process.
 //
@@ -59,23 +91,24 @@ bool G::Process::cd( const Path & dir , NoThrow )
 }
 
 //static
-void G::Process::setUmask( bool tightest )
-{
-	mode_t new_mode = tightest ? 0177 : 0117 ; // tightest => -rw-------
-	(void) ::umask( new_mode ) ;
-}
-
-//static
 void G::Process::closeStderr()
 {
 	::close( STDERR_FILENO ) ;
 	::open( G::FileSystem::nullDevice() , O_WRONLY ) ;
-	::fcntl( STDERR_FILENO , F_SETFD , 0 ) ; // close-on-exec false
+	noCloseOnExec( STDERR_FILENO ) ;
 }
 
 //static
 void G::Process::closeFiles( bool keep_stderr )
 {
+	closeFiles( keep_stderr ? STDERR_FILENO : -1 ) ;
+}
+
+//static
+void G::Process::closeFiles( int keep )
+{
+	G_ASSERT( keep == -1 || keep >= STDERR_FILENO ) ;
+
 	int n = 256U ;
 	long rc = ::sysconf( _SC_OPEN_MAX ) ;
 	if( rc > 0L )
@@ -83,10 +116,8 @@ void G::Process::closeFiles( bool keep_stderr )
 
 	for( int fd = 0 ; fd < n ; fd++ )
 	{
-		if( !keep_stderr || fd != STDERR_FILENO )
-		{
+		if( fd != keep )
 			::close( fd ) ;
-		}
 	}
 
 	// reopen standard fds to prevent accidental use
@@ -95,13 +126,13 @@ void G::Process::closeFiles( bool keep_stderr )
 	//
 	::open( G::FileSystem::nullDevice() , O_RDONLY ) ;
 	::open( G::FileSystem::nullDevice() , O_WRONLY ) ;
-	if( !keep_stderr )
+	if( keep != STDERR_FILENO )
 	{
 		::open( G::FileSystem::nullDevice() , O_WRONLY ) ;
-		::fcntl( STDERR_FILENO , F_SETFD , 0 ) ; // close-on-exec false
 	}
-	::fcntl( STDIN_FILENO , F_SETFD , 0 ) ; // close-on-exec false
-	::fcntl( STDOUT_FILENO , F_SETFD , 0 ) ; // close-on-exec false
+	noCloseOnExec( STDIN_FILENO ) ;
+	noCloseOnExec( STDOUT_FILENO ) ;
+	noCloseOnExec( STDERR_FILENO ) ;
 }
 
 G::Process::Who G::Process::fork()
@@ -117,7 +148,7 @@ G::Process::Who G::Process::fork( Id & child_pid )
 	if( ok )
 	{
 		if( rc != 0 )
-			child_pid.m_imp->m_pid = rc ;
+			child_pid.m_pid = rc ;
 	}
 	else
 	{
@@ -132,7 +163,7 @@ int G::Process::wait( const Id & child_pid )
 	for(;;)
 	{
 		G_DEBUG( "G::Process::wait: waiting" ) ;
-		int rc = ::waitpid( child_pid.m_imp->m_pid , &status , 0 ) ;
+		int rc = ::waitpid( child_pid.m_pid , &status , 0 ) ;
 		if( rc == -1 && errno_() == EINTR )
 		{
 			; // signal in parent -- keep waiting
@@ -140,7 +171,9 @@ int G::Process::wait( const Id & child_pid )
 		else if( rc == -1 )
 		{
 			int error = errno_() ;
-			throw WaitError( std::stringstream() << "errno=" << error ) ;
+			std::ostringstream ss ;
+			ss << "errno=" << error ;
+			throw WaitError( ss.str() ) ;
 		}
 		else
 		{
@@ -152,7 +185,9 @@ int G::Process::wait( const Id & child_pid )
 	if( ! WIFEXITED(status) )
 	{
 		// uncaught signal or stopped
-		throw ChildError( std::stringstream() << "status=" << status ) ;
+		std::ostringstream ss ;
+		ss << "status=" << status ;
+		throw ChildError( ss.str() ) ;
 	}
 
 	const int exit_status = WEXITSTATUS(status) ;
@@ -177,7 +212,8 @@ int G::Process::errno_()
 	return errno ; // not ::errno or std::errno for gcc2.95
 }
 
-int G::Process::spawn( Identity nobody , const G::Path & exe , const std::string & arg , int error_return )
+int G::Process::spawn( Identity nobody , const Path & exe , const Strings & args ,
+	std::string * pipe_result_p , int error_return )
 {
 	if( exe.isRelative() )
 		throw InvalidPath( exe.str() ) ;
@@ -185,28 +221,36 @@ int G::Process::spawn( Identity nobody , const G::Path & exe , const std::string
 	if( ::geteuid() == 0U || nobody.uid == 0U )
 		throw Insecure() ;
 
+	Pipe pipe( pipe_result_p != NULL ) ;
 	Id child_pid ;
 	if( fork(child_pid) == Child )
 	{
-		beNobody( nobody ) ;
-		G_ASSERT( ::getuid() != 0U && ::geteuid() != 0U ) ;
-		closeFiles() ;
-		execCore( exe , arg ) ;
+		try
+		{
+			beNobody( nobody ) ;
+			G_ASSERT( ::getuid() != 0U && ::geteuid() != 0U ) ;
+			pipe.inChild() ;
+			closeFiles( pipe.fd() ) ;
+			pipe.dup() ; // dup() onto stdout
+			execCore( exe , args ) ;
+		}
+		catch(...)
+		{
+		}
 		::_exit( error_return ) ;
+		return error_return ; // pacify the compiler
 	}
 	else
 	{
-		return wait( child_pid , error_return ) ;
+		pipe.inParent() ;
+		int exit_status = wait( child_pid , error_return ) ;
+		if( pipe_result_p != NULL ) *pipe_result_p = pipe.read() ;
+		return exit_status ;
 	}
 }
 
-void G::Process::execCore( const G::Path & exe , const std::string & arg )
+void G::Process::execCore( const G::Path & exe , const Strings & args )
 {
-	char * argv[3U] ;
-	argv[0U] = const_cast<char*>( exe.pathCstr() ) ;
-	argv[1U] = arg.empty() ? static_cast<char*>(NULL) : const_cast<char*>(arg.c_str()) ;
-	argv[2U] = NULL ;
-
 	char * env[3U] ;
 	std::string path( "PATH=/usr/bin:/bin" ) ; // no "."
 	std::string ifs( "IFS= \t\n" ) ;
@@ -214,9 +258,17 @@ void G::Process::execCore( const G::Path & exe , const std::string & arg )
 	env[1U] = const_cast<char*>( ifs.c_str() ) ;
 	env[2U] = NULL ;
 
-	::execve( exe.str().c_str() , argv , env ) ;
+	char ** argv = new char* [ args.size() + 2U ] ;
+	argv[0U] = const_cast<char*>( exe.pathCstr() ) ;
+	unsigned int argc = 1U ;
+	for( Strings::const_iterator arg_p = args.begin() ; arg_p != args.end() ; ++arg_p , argc++ )
+		argv[argc] = const_cast<char*>(arg_p->c_str()) ;
+	argv[argc] = NULL ;
 
+	::execve( exe.str().c_str() , argv , env ) ;
 	const int error = errno_() ;
+	delete [] argv ;
+
 	G_WARNING( "G::Process::exec: execve() returned: errno=" << error << ": " << exe ) ;
 }
 
@@ -232,8 +284,8 @@ void G::Process::beSpecial( Identity identity , bool change_group )
 	Identity old_identity ;
 	(void) ::seteuid( identity.uid ) ;
 	if( change_group) (void) ::setegid( identity.gid ) ;
-	(void) old_identity.str() ; // pacify the compiler
-	G_DEBUG( "G::Process::beSpecial: " << old_identity << " -> " << Identity() ) ;
+	//G_DEBUG( "G::Process::beSpecial: " << old_identity << " -> " << Identity() ) ;
+	old_identity.uid = 0 ; // pacify the compiler
 }
 
 G::Process::Identity G::Process::beOrdinary( Identity nobody , bool change_group )
@@ -252,7 +304,7 @@ G::Process::Identity G::Process::beOrdinary( Identity nobody , bool change_group
 		if( ::seteuid( ::getuid() ) ) throw UidError() ;
 		if( change_group && ::setegid( ::getgid() ) ) throw GidError() ;
 	}
-	G_DEBUG( "G::Process::beOrdinary: " << special_identity << " -> " << Identity() ) ;
+	//G_DEBUG( "G::Process::beOrdinary: " << special_identity << " -> " << Identity() ) ;
 	return special_identity ;
 }
 
@@ -269,40 +321,42 @@ void G::Process::beNobody( Identity nobody )
 
 // ===
 
-G::Process::Id::Id() : m_imp(NULL)
+G::Process::Id::Id()
 {
-	m_imp = new IdImp ;
-	m_imp->m_pid = ::getpid() ;
+	m_pid = ::getpid() ;
 }
 
-G::Process::Id::~Id()
+G::Process::Id::Id( const char * path ) :
+	m_pid(0)
 {
-	delete m_imp ;
+	// reentrant implementation suitable for a signal handler...
+	int fd = ::open( path ? path : "" , O_RDONLY ) ;
+	char buffer[10] ;
+	ssize_t rc = ::read( fd , buffer , sizeof(buffer) ) ;
+	for( const char * p = buffer ; rc > 0 && *p >= '0' && *p <= '9' ; p++ , rc-- )
+	{
+		m_pid *= 10 ;
+		m_pid += ( *p - '0' ) ;
+	}
 }
 
-G::Process::Id::Id( const Id & other ) :
-	m_imp(NULL)
+G::Process::Id::Id( std::istream & stream )
 {
-	m_imp = new IdImp ;
-	m_imp->m_pid = other.m_imp->m_pid ;
-}
-
-G::Process::Id & G::Process::Id::operator=( const Id & rhs )
-{
-	m_imp->m_pid = rhs.m_imp->m_pid ;
-	return *this ;
+	stream >> m_pid ;
+	if( !stream.good() )
+		throw Process::InvalidId() ;
 }
 
 std::string G::Process::Id::str() const
 {
-	std::stringstream ss ;
-	ss << m_imp->m_pid ;
+	std::ostringstream ss ;
+	ss << m_pid ;
 	return ss.str() ;
 }
 
-bool G::Process::Id::operator==( const Id & rhs ) const
+bool G::Process::Id::operator==( const Id & other ) const
 {
-	return m_imp->m_pid == rhs.m_imp->m_pid ;
+	return m_pid == other.m_pid ;
 }
 
 // ===
@@ -322,7 +376,7 @@ G::Process::Identity::Identity( const std::string & name ) :
 		::passwd * pw = ::getpwnam( name.c_str() ) ;
 		if( pw == NULL )
 			throw Process::NoSuchUser(name) ;
-		G_DEBUG( "G::Process::Identity: " << name << "=" << pw->pw_uid << "/" << pw->pw_gid ) ;
+		//G_DEBUG( "G::Process::Identity: " << name << "=" << pw->pw_uid << "/" << pw->pw_gid ) ;
 		uid = pw->pw_uid ;
 		gid = pw->pw_gid ;
 	}
@@ -330,8 +384,95 @@ G::Process::Identity::Identity( const std::string & name ) :
 
 std::string G::Process::Identity::str() const
 {
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss << uid << "/" << gid ;
 	return ss.str() ;
+}
+
+// ===
+
+class G::Process::Umask::UmaskImp
+{
+public:
+	mode_t m_old_mode ;
+} ;
+
+G::Process::Umask::Umask( Mode mode ) :
+	m_imp(new UmaskImp)
+{
+	m_imp->m_old_mode =
+		::umask( mode==Readable?0133:(mode==Tighter?0117:0177) ) ;
+}
+
+G::Process::Umask::~Umask()
+{
+	(void) ::umask( m_imp->m_old_mode ) ;
+	delete m_imp ;
+}
+
+//static
+void G::Process::Umask::set( Mode mode )
+{
+	// Tightest: -rw-------
+	// Tighter:  -rw-rw----
+	// Readable: -rw-r--r--
+	::umask( mode==Readable?0133:(mode==Tighter?0117:0177) ) ;
+}
+
+// ===
+
+G::Pipe::Pipe( bool active ) :
+	m_fd(-1)
+{
+	m_fds[0] = m_fds[1] = -1 ;
+	if( active && ::pipe( m_fds ) < 0 )
+		throw Error() ;
+	G_DEBUG( "G::Pipe::ctor: " << m_fds[0] << " " << m_fds[1] ) ;
+}
+
+G::Pipe::~Pipe()
+{
+	if( m_fds[0] >= 0 ) ::close( m_fds[0] ) ;
+	if( m_fds[1] >= 0 ) ::close( m_fds[1] ) ;
+}
+
+void G::Pipe::inChild()
+{
+	::close( m_fds[0] ) ;
+	m_fds[0] = -1 ;
+	m_fd = m_fds[1] ; // writer
+}
+
+void G::Pipe::inParent()
+{
+	::close( m_fds[1] ) ;
+	m_fds[1] = -1 ;
+	m_fd = m_fds[0] ; // reader
+}
+
+int G::Pipe::fd() const
+{
+	return m_fd ;
+}
+
+void G::Pipe::dup()
+{
+	if( m_fd != -1 && m_fd != STDOUT_FILENO )
+	{
+		if( ::dup2(m_fd,STDOUT_FILENO) != STDOUT_FILENO )
+			throw Error() ;
+		::close( m_fd ) ;
+		m_fd = -1 ;
+		m_fds[1] = -1 ;
+		noCloseOnExec( STDOUT_FILENO ) ;
+	}
+}
+
+std::string G::Pipe::read()
+{
+	char buffer[4096] ;
+	int rc = m_fd == -1 ? 0 : ::read( m_fd , buffer , sizeof(buffer) ) ;
+	if( rc < 0 ) throw Error("read") ;
+	return std::string(buffer,rc) ;
 }
 

@@ -31,7 +31,7 @@
 namespace G
 {
 	class Root ;
-} ;
+}
 
 // Class: G::Root
 // Description: A class which aquires special privileges.

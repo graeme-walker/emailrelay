@@ -39,12 +39,12 @@ namespace
 	const int c_retries = 10 ; // number of retries when using a priviledged local port number
 	const int c_port_start = 512 ;
 	const int c_port_end = 1024 ;
-} ;
+}
 
 namespace GNet
 {
 	class ClientResolver ;
-} ;
+}
 
 // Class: GNet::ClientResolver
 // Description: A resolver class which calls ClientImp::resolveCon() when done.

@@ -104,7 +104,7 @@ Main()
 			is_author = 0
 			is_html = 0
 			is_code = match( line , "^" tab )
-			is_item_outer = match( line , "^+ " ) 
+			is_item_outer = match( line , "^\\+ " ) 
 			is_item_inner = match( line , "^  - " ) 
 		}
 
@@ -119,7 +119,7 @@ Main()
 		}
 		else if( is_image )
 		{
-			sub( "^<<" , "" , line )
+			sub( "^[[:space:]]*<<" , "" , line )
 			sub( ">>[[:space:]]*$" , "" , line )
 			tagOutputRaw( line , "image" )
 		}
@@ -148,7 +148,7 @@ Main()
 		}
 		else if( is_item_outer )
 		{
-			sub( "^+ " , "" , line )
+			sub( "^\\+ " , "" , line )
 			tagOutput( line , "item-outer" )
 		}
 		else if( is_item_inner )
@@ -213,14 +213,15 @@ Main()
 #
 Number()
 {
-	${awk} -v item_tag="${1}" -v ignore_1="${2}" -v ignore_2="${3}" -v ignore_3="${4}" '
+	${awk} -v item_tag="${1}" -v ignore_1="${2}" -v ignore_2="${3}" -v ignore_3="${4}" -v ignore_4="${5}" '
 	function ignore_line( line )
 	{
 		i_0 = match( line , "^ignore" )
 		i_1 = length(ignore_1) && match( line , "^" ignore_1 "[:,]" )
 		i_2 = length(ignore_2) && match( line , "^" ignore_2 "[:,]" )
 		i_3 = length(ignore_3) && match( line , "^" ignore_3 "[:,]" )
-		return i_0 || i_1 || i_2 || i_3
+		i_4 = length(ignore_3) && match( line , "^" ignore_4 "[:,]" )
+		return i_0 || i_1 || i_2 || i_3 || i_4
 	}
 	BEGIN {
 		n = 1
@@ -327,8 +328,8 @@ Cat ${file} | \
 	Number "item-outer" "item-inner" "blank" | \
 	Number "item-inner" "blank" | \
 	Number "item-numbered" | \
-	Number "item-name" "item-detail" "blank" "item-detail-blank" | \
-	Number "item-detail" "item-detail-blank" | \
+	Number "item-name" "item-detail" "blank" "item-detail-blank" "code" | \
+	Number "item-detail" "item-detail-blank" "code" | \
 	Number "code" "blank" "image" | \
 	Number "footer" "blank" "image" | \
 	Number "citation" "blank" | \

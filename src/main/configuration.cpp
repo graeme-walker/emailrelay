@@ -41,30 +41,47 @@ std::string Main::Configuration::yn( bool b )
 	return b ? std::string("yes") : std::string("no") ;
 }
 
+std::string Main::Configuration::na() const
+{
+	return "<none>" ;
+}
+
+std::string Main::Configuration::na( const std::string & s ) const
+{
+	return s.empty() ? na() : s ;
+}
+
+//static
+std::string Main::Configuration::any( const std::string & s )
+{
+	return s.empty() ? std::string("<any>") : s ;
+}
+
 std::string Main::Configuration::str( const std::string & p , const std::string & eol ) const
 {
-	const std::string na( "n/a" ) ;
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss
-		<< p << "listening port: " << (doServing()?G::Str::fromUInt(port()):na) << eol
-		<< p << "downstream server address: " << (doForwarding()?serverAddress():na) << eol
+		<< p << "listening port: " << (doServing()?G::Str::fromUInt(port()):na()) << eol
+		<< p << "listening interface: " << (doServing()?any(interface_()):na()) << eol
+		<< p << "next server address: " << (doForwarding()?serverAddress():na()) << eol
 		<< p << "spool directory: " << spoolDir() << eol
 		<< p << "immediate forwarding? " << yn(immediate()) << eol
-		<< p << "pre-processor: " << (useFilter()?filter():na) << eol
-		<< p << "admin port: " << (doAdmin()?G::Str::fromUInt(adminPort()):na) << eol
+		<< p << "mail processor: " << (useFilter()?filter():na()) << eol
+		//<< p << "address verifier: " << na(verifier().str()) << eol
+		<< p << "admin port: " << (doAdmin()?G::Str::fromUInt(adminPort()):na()) << eol
 		<< p << "run as daemon? " << yn(daemon()) << eol
-		<< p << "log to stderr/syslog? " << yn(log()) << eol
 		<< p << "verbose logging? " << yn(verbose()) << eol
 		<< p << "debug logging? " << yn(debug()) << eol
-		//<< p << "use syslog? " << yn(syslog()) << eol
+		<< p << "log to stderr/syslog? " << yn(log()) << eol
+		<< p << "use syslog? " << yn(syslog()) << eol
 		<< p << "close stderr? " << yn(closeStderr()) << eol
 		<< p << "allow remote clients? " << yn(allowRemoteClients()) << eol
-		<< p << "pid file: " << (usePidFile()?pidFile():na) << eol
-		<< p << "client secrets file: " << clientSecretsFile() << eol
-		<< p << "server secrets file: " << serverSecretsFile() << eol
+		<< p << "pid file: " << (usePidFile()?pidFile():na()) << eol
+		<< p << "client secrets file: " << na(clientSecretsFile()) << eol
+		<< p << "server secrets file: " << na(serverSecretsFile()) << eol
 		<< p << "connect timeout: " << connectionTimeout() << "s" << eol
 		<< p << "response timeout: " << responseTimeout() << "s" << eol
-		<< p << "domain override: " << fqdn() << eol
+		<< p << "domain override: " << na(fqdn()) << eol
 		;
 	return ss.str() ;
 }
@@ -102,6 +119,11 @@ unsigned int Main::Configuration::port() const
 {
 	return m_cl.contains("port") ?
 		G::Str::toUInt(m_cl.value("port")) : 25U ;
+}
+
+std::string Main::Configuration::interface_() const
+{
+	return m_cl.contains("interface") ? m_cl.value("interface") : std::string() ;
 }
 
 unsigned int Main::Configuration::adminPort() const
@@ -155,6 +177,11 @@ bool Main::Configuration::doForwarding() const
 bool Main::Configuration::doServing() const
 {
 	return !m_cl.contains("dont-serve") && !m_cl.contains("as-client") ;
+}
+
+bool Main::Configuration::doSmtp() const
+{
+	return !m_cl.contains("dont-listen") ;
 }
 
 bool Main::Configuration::allowRemoteClients() const
@@ -230,5 +257,10 @@ std::string Main::Configuration::fqdn() const
 std::string Main::Configuration::nobody() const
 {
 	return m_cl.contains("user") ? m_cl.value("user") : std::string("daemon") ;
+}
+
+G::Path Main::Configuration::verifier() const
+{
+	return m_cl.contains("verifier") ? G::Path(m_cl.value("verifier")) : G::Path() ;
 }
 

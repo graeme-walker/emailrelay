@@ -32,7 +32,7 @@
 namespace G
 {
 	class Time ;
-} ;
+}
 
 // Class: G::Time
 // Description: A simple time-of-day (hh/mm/ss) class.

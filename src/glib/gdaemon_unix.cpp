@@ -26,20 +26,9 @@
 #include "gprocess.h"
 
 //static
-void G::Daemon::detach( const Path & pid_file )
-{
-	PidFile::check( pid_file ) ;
-	PidFile::test( pid_file ) ;
-
-	detach() ;
-
-	PidFile::create( pid_file ) ;
-}
-
-//static
 void G::Daemon::detach( PidFile & pid_file )
 {
-	PidFile::check( pid_file.m_path ) ;
+	pid_file.check() ; // absolute path
 	detach() ;
 }
 

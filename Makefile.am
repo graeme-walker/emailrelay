@@ -21,4 +21,6 @@ SUBDIRS = src bin lib doc
 e_doc_DATA = NEWS README changelog.gz
 CLEANFILES = changelog.gz
 changelog.gz: ChangeLog
-	if test -n "$(GZIP)" ; then $(GZIP) -c $< > changelog.tmp && mv changelog.tmp changelog.gz ; fi
+	if test -n "$(GZIP)" ; then $(GZIP) -c $(top_srcdir)/ChangeLog > changelog.tmp && mv changelog.tmp changelog.gz ; fi
+uninstall-local:
+	-rmdir $(DESTDIR)$(e_docdir) 2>/dev/null

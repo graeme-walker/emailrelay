@@ -36,7 +36,7 @@ namespace GNet
 
 	Descriptor Descriptor__invalid() ;
 		// Returns an invalid network descriptor.
-} ;
+}
 
 #endif
 

@@ -28,14 +28,14 @@
 #include "gnet.h"
 #include "gdatetime.h"
 #include "gexception.h"
-#include <set>
+#include <list>
 
 namespace GNet
 {
 	class Timer ;
 	class TimeoutHandler ;
 	class TimerList ;
-} ;
+}
 
 // Class: GNet::TimeoutHandler
 // Description: An interface used by GNet::Timer.
@@ -148,8 +148,9 @@ private:
 
 private:
 	static TimerList * m_this ;
-	typedef std::set<Timer* GLessAllocator(Timer*,Timer*) > Set ;
-	Set m_set ;
+	typedef std::list<Timer*> List ;
+	List m_list ;
+	bool m_changed ;
 } ;
 
 

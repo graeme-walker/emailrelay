@@ -23,6 +23,7 @@
 
 #include "gdef.h"
 #include "gsmtp.h"
+#include "gaddress.h"
 #include "legal.h"
 #include "configuration.h"
 #include "commandline.h"
@@ -34,33 +35,38 @@
 std::string Main::CommandLine::switchSpec()
 {
 	std::string dir = GSmtp::MessageStore::defaultDirectory().str() ;
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss
 		<< osSwitchSpec() << "|"
-		<< "C!client-auth!enables authentication with remote server, using the given secrets file!1!file|"
-		<< "L!log-time!adds a timestamp to the logging output!0!|"
-		<< "S!server-auth!enables authentication of remote clients, using the given secrets file!1!file|"
-		<< "y!as-proxy!equivalent to \"--log --close-stderr --immediate --forward-to\"!1!host:port|"
-		<< "e!close-stderr!closes the standard error stream after start-up!0!|"
-		<< "a!admin!enables the administration interface and specifies its listening port number!1!admin-port|"
-		<< "x!dont-serve!stops the process acting as a server (usually used with --forward)!0!|"
-		<< "z!filter!defines a mail pre-processor!1!program|"
-		<< "D!domain!sets an override for the host's fully qualified domain name!1!fqdn|"
-		<< "f!forward!forwards stored mail on startup (requires --forward-to)!0!|"
-		<< "o!forward-to!specifies the remote smtp server (required by --forward and --admin)!1!host:port|"
-		<< "h!help!displays help text and exits!0!|"
-		<< "T!response-timeout!sets the response timeout (in seconds) when talking to a remote server (default is 1800)!1!time|"
-		<< "U!connection-timeout!sets the timeout (in seconds) when connecting to a remote server (default is 40)!1!time|"
-		<< "m!immediate!forwards each message as soon as it is received (requires --forward-to)!0!|"
-		<< "i!pid-file!records the daemon process-id in the given file!1!pid-file|"
-		<< "p!port!specifies the smtp listening port number!1!port|"
-		<< "r!remote-clients!allows remote clients to connect!0!|"
-		<< "s!spool-dir!specifies the spool directory (default is \"" << dir << "\")!1!dir|"
-		<< "v!verbose!generates more verbose logging!0!|"
-		<< "g!debug!generates debug-level logging (if compiled-in)!0!|"
-		<< "V!version!displays version information and exits!0!|"
-		<< "q!as-client!equivalent to \"--log --no-syslog --no-daemon --dont-serve --forward --forward-to\"!" << "1!host:port|"
-		<< "d!as-server!equivalent to \"--log --close-stderr\"!0!"
+		<< "q!as-client!runs as a client, forwarding spooled mail to <host>: equivalent to \"--log --no-syslog --no-daemon --dont-serve --forward --forward-to\"!" << "1!host:port!1|"
+		<< "d!as-server!runs as a server: equivalent to \"--log --close-stderr\"!0!!1|"
+		<< "y!as-proxy!runs as a proxy: equivalent to \"--log --close-stderr --immediate --forward-to\"!1!host:port!1|"
+		<< "v!verbose!generates more verbose output (works with --help and --log)!0!!1|"
+		<< "h!help!displays help text and exits!0!!1|"
+		<< ""
+		<< "p!port!specifies the smtp listening port number!1!port!2|"
+		<< "r!remote-clients!allows remote clients to connect!0!!2|"
+		<< "s!spool-dir!specifies the spool directory (default is \"" << dir << "\")!1!dir!2|"
+		<< "V!version!displays version information and exits!0!!2|"
+		<< ""
+		<< "g!debug!generates debug-level logging (if compiled-in)!0!!3|"
+		<< "C!client-auth!enables authentication with remote server, using the given secrets file!1!file!3|"
+		<< "L!log-time!adds a timestamp to the logging output!0!!3|"
+		<< "S!server-auth!enables authentication of remote clients, using the given secrets file!1!file!3|"
+		<< "e!close-stderr!closes the standard error stream after start-up!0!!3|"
+		<< "a!admin!enables the administration interface and specifies its listening port number!1!admin-port!3|"
+		<< "x!dont-serve!dont act as a server (usually used with --forward)!0!!3|"
+		<< "X!dont-listen!dont listen for smtp connections (usually used with --admin)!0!!3|"
+		<< "z!filter!defines a mail processor program!1!program!3|"
+		<< "D!domain!sets an override for the host's fully qualified domain name!1!fqdn!3|"
+		<< "f!forward!forwards stored mail on startup (requires --forward-to)!0!!3|"
+		<< "o!forward-to!specifies the remote smtp server (required by --forward and --admin)!1!host:port!3|"
+		<< "T!response-timeout!sets the response timeout (in seconds) when talking to a remote server (default is 1800)!1!time!3|"
+		<< "U!connection-timeout!sets the timeout (in seconds) when connecting to a remote server (default is 40)!1!time!3|"
+		<< "m!immediate!forwards each message as soon as it is received (requires --forward-to)!0!!3|"
+		<< "I!interface!listen on a specific interface!1!ip-address!3|"
+		<< "i!pid-file!records the daemon process-id in the given file!1!pid-file!3|"
+		<< "Z!verifier!!1!program!3|"
 		;
 	return ss.str() ;
 }
@@ -90,8 +96,17 @@ bool Main::CommandLine::hasUsageErrors() const
 void Main::CommandLine::showUsage( bool e ) const
 {
 	Show show( e ) ;
-	unsigned int columns = ttyColumns() ;
-	m_getopt.showUsage( show.s() , m_arg.prefix() , "" , 33U , columns ) ;
+
+	G::GetOpt::Level level = G::GetOpt::Level(2U) ;
+	if( m_getopt.contains("verbose") )
+		level = G::GetOpt::levelDefault() ;
+	else
+		show.s() << "abbreviated " ;
+
+	size_t tab_stop = 33U ;
+	size_t columns = ttyColumns() ;
+	m_getopt.showUsage( show.s() , m_arg.prefix() , "" ,
+		level , tab_stop , columns ) ;
 }
 
 bool Main::CommandLine::contains( const std::string & name ) const
@@ -131,8 +146,22 @@ std::string Main::CommandLine::semanticError() const
 		m_getopt.contains("immediate") ||
 		m_getopt.contains("admin") ) )
 	{
-		return "usage error: the --forward, --immediate and --admin "
-			"switches require --forward-to" ;
+		return "the --forward, --immediate and --admin switches require --forward-to" ;
+	}
+
+	if( m_getopt.contains("verbose") && ! (
+		m_getopt.contains("help") ||
+		m_getopt.contains("log") ||
+		m_getopt.contains("as-server") ||
+		m_getopt.contains("as-client") ||
+		m_getopt.contains("as-proxy") ) )
+	{
+		return "the --verbose switch must be used with --log, --help, --as-client, --as-server or --as-proxy" ;
+	}
+
+	if( m_getopt.contains("interface") && ( m_getopt.contains("dont-serve") || m_getopt.contains("as-client") ) )
+	{
+		return "the --interface switch cannot be used with --as-client or --dont-serve" ;
 	}
 
 	return std::string() ;
@@ -146,7 +175,7 @@ bool Main::CommandLine::hasSemanticError() const
 void Main::CommandLine::showSemanticError( bool e ) const
 {
 	Show show( e ) ;
-	show.s() << m_arg.prefix() << ": " << semanticError() << std::endl ;
+	show.s() << m_arg.prefix() << ": usage error: " << semanticError() << std::endl ;
 }
 
 void Main::CommandLine::showUsageErrors( bool e ) const
@@ -169,7 +198,7 @@ void Main::CommandLine::showShortHelp( bool e ) const
 	const std::string & exe = m_arg.prefix() ;
 	show.s()
 		<< std::string(exe.length()+2U,' ')
-		<< "try \"" << exe << " --help\" for more information" << std::endl ;
+		<< "try \"" << exe << " --help --verbose\" for more information" << std::endl ;
 }
 
 void Main::CommandLine::showHelp( bool e ) const
@@ -189,20 +218,30 @@ void Main::CommandLine::showExtraHelp( bool e ) const
 
 	show.s() << std::endl ;
 
-	show.s()
-		<< "To start a 'storage' daemon in background..." << std::endl
-		<< "   " << exe << " --as-server" << std::endl
-		<< std::endl ;
+	if( m_getopt.contains("verbose") )
+	{
+		show.s()
+			<< "To start a 'storage' daemon in background..." << std::endl
+			<< "   " << exe << " --as-server" << std::endl
+			<< std::endl ;
 
-	show.s()
-		<< "To forward stored mail to \"mail.myisp.co.uk\"..."  << std::endl
-		<< "   " << exe << " --as-client mail.myisp.co.uk:smtp" << std::endl
-		<< std::endl ;
+		show.s()
+			<< "To forward stored mail to \"mail.myisp.co.uk\"..."  << std::endl
+			<< "   " << exe << " --as-client mail.myisp.co.uk:smtp" << std::endl
+			<< std::endl ;
 
-	show.s()
-		<< "To run as a proxy (on port 10025) to a local server (on port 25)..." << std::endl
-		<< "   " << exe << " --port 10025 --as-proxy localhost:25" << std::endl
-		<< std::endl ;
+		show.s()
+			<< "To run as a proxy (on port 10025) to a local server (on port 25)..." << std::endl
+			<< "   " << exe << " --port 10025 --as-proxy localhost:25" << std::endl
+			<< std::endl ;
+	}
+	else
+	{
+		show.s()
+			<< "For complete usage information run \"" << exe
+			<< " --help --verbose\"" << std::endl
+			<< std::endl ;
+	}
 }
 
 void Main::CommandLine::showNoop( bool e ) const
@@ -227,7 +266,7 @@ void Main::CommandLine::showCopyright( bool e ) const
 void Main::CommandLine::showWarranty( bool e ) const
 {
 	Show show( e ) ;
-	show.s() << Legal::warranty() ;
+	show.s() << Legal::warranty("","\n") ;
 }
 
 void Main::CommandLine::showVersion( bool e ) const

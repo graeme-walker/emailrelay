@@ -30,7 +30,6 @@
 #include <climits>
 #include <string>
 #include <sstream>
-#include <xlocale>
 
 bool G::Str::replace( std::string &s , const std::string &from ,
 	const std::string &to , size_t *pos_p )
@@ -214,16 +213,23 @@ unsigned short G::Str::toUShort( const std::string &s , bool limited )
 	return ushort_val ;
 }
 
+std::string G::Str::fromInt( int i )
+{
+	std::ostringstream ss ;
+	ss << i ;
+	return ss.str() ;
+}
+
 std::string G::Str::fromUInt( unsigned int n )
 {
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss << n ;
 	return ss.str() ;
 }
 
 std::string G::Str::fromULong( unsigned long ul )
 {
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	ss << ul ;
 	return ss.str() ;
 }
@@ -236,12 +242,26 @@ void G::Str::toLower( std::string &s )
 	}
 }
 
+std::string G::Str::lower( const std::string &s )
+{
+	std::string result = s ;
+	toLower( result ) ;
+	return result ;
+}
+
 void G::Str::toUpper( std::string &s )
 {
 	for( std::string::iterator p = s.begin() ; p != s.end() ; ++p )
 	{
 		*p = ::toupper( *p ) ;
 	}
+}
+
+std::string G::Str::upper( const std::string &s )
+{
+	std::string result = s ;
+	toUpper( result ) ;
+	return result ;
 }
 
 std::string G::Str::toPrintableAscii( char c , char escape )
@@ -334,7 +354,7 @@ std::string G::Str::wrap( std::string text , const std::string & prefix_1 ,
 	const std::string & prefix_2 , size_t width )
 {
 	std::string ws( " \t\n" ) ;
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	for( bool first_line = true ; text.length() ; first_line = false )
 	{
 		const size_t prefix_length =

@@ -35,7 +35,7 @@
 namespace G
 {
 	class GetOpt ;
-} ;
+}
 
 // Class: G::GetOpt
 // Description: A command line switch parser.
@@ -45,6 +45,8 @@ class G::GetOpt
 {
 public:
 	typedef std::vector<std::string GAllocator(std::string) > StringArray ;
+	struct Level // Used by G::GetOpt for extra type safety.
+		{ unsigned int level ; explicit Level(unsigned int l) : level(l) {} } ;
 	G_EXCEPTION( InvalidSpecification , "invalid options specification string" ) ;
 
 	GetOpt( const Arg & arg , const std::string & spec ,
@@ -58,9 +60,12 @@ public:
 			//    <switch-description>
 			//    <value-type> -- 0 is none, and 1 is a string
 			//    <value-description>
+			//    <level>
 			//
-			// If the switch-description field is empty
-			// then the switch is hidden.
+			// If the switch-description field is empty or
+			// if the level is zero then the switch is hidden.
+			// By convention main-stream switches should have
+			// a level of 1, and obscure ones level 2 and above.
 
 	Arg args() const ;
 		// Returns all the non-switch command-line arguments.
@@ -71,28 +76,39 @@ public:
 	static size_t wrapDefault() ;
 		// Returns a default word-wrapping width.
 
+	static size_t tabDefault() ;
+		// Returns a default tab-stop.
+
+	static Level levelDefault() ;
+		// Returns the default level.
+
 	std::string usageSummary( const std::string & exe , const std::string & args ,
-		size_t wrap_width = wrapDefault() ) const ;
+		Level level = levelDefault() , size_t wrap_width = wrapDefault() ) const ;
 			// Returns a one-line usage summary, as
 			// "usage: <exe> <usageSummarySwitches()> <args>"
 
-	std::string usageSummarySwitches() const ;
+	std::string usageSummarySwitches( Level level = levelDefault() ) const ;
 		// Returns the one-line summary of switches. Does _not_
 		// include the usual "usage: <exe>" prefix
 		// or non-switch arguments.
 
-	std::string usageHelp( size_t tab_stop = 30U , size_t wrap_width = wrapDefault() ) const ;
-		// Returns a multi-line string giving help on each switch.
+	std::string usageHelp( Level level = levelDefault() ,
+		size_t tab_stop = tabDefault() , size_t wrap_width = wrapDefault() ,
+		bool level_exact = false ) const ;
+			// Returns a multi-line string giving help on each switch.
 
 	void showUsage( std::ostream & stream , const std::string & exe ,
-		const std::string & args , size_t tab_stop = 30U ,
+		const std::string & args , Level level = levelDefault() ,
+		size_t tab_stop = tabDefault() ,
 		size_t wrap_width = wrapDefault() ) const ;
 			// Streams out multi-line usage text using
 			// usageSummary() and usageHelp().
 
-	void showUsage( std::ostream & stream , const std::string & args ) const ;
+	void showUsage( std::ostream & stream , const std::string & args , bool verbose ) const ;
 		// Streams out multi-line usage text using
-		// usageSummary() and usageHelp().
+		// usageSummary() and usageHelp(). Shows
+		// only level one switches if 'verbose'
+		// is false.
 
 	bool hasErrors() const ;
 		// Returns true if there are errors.
@@ -126,7 +142,7 @@ public:
 		// value-based switch.
 
 private:
-	struct SwitchSpec
+	struct SwitchSpec // A private implementation structure used by G::GetOpt.
 	{
 		char c ;
 		std::string name ;
@@ -134,11 +150,12 @@ private:
 		bool valued ;
 		bool hidden ;
 		std::string value_description ;
+		unsigned int level ;
 		SwitchSpec(char c_,const std::string &name_,const std::string &description_,
-			bool v_,const std::string &vd_) :
+			bool v_,const std::string &vd_,unsigned int level_) :
 				c(c_) , name(name_) , description(description_) ,
-				valued(v_) , hidden(description_.empty()) ,
-				value_description(vd_) {}
+				valued(v_) , hidden(description_.empty()||level_==0U) ,
+				value_description(vd_) , level(level_) {}
 	} ;
 	typedef std::map<std::string,SwitchSpec GLessAllocator(char,SwitchSpec) > SwitchSpecMap ;
 	typedef std::pair<bool,std::string> Value ;
@@ -147,7 +164,8 @@ private:
 	void operator=( const GetOpt & ) ;
 	GetOpt( const GetOpt & ) ;
 	void parseSpec( const std::string & spec , char , char , char ) ;
-	void addSpec( const std::string & sort_key , char c , const std::string & name , const std::string & , bool valued , const std::string & ) ;
+	void addSpec( const std::string & , char c , const std::string & ,
+		const std::string & , bool , const std::string & , unsigned int ) ;
 	size_t parseArgs( const Arg & args_in ) ;
 	bool isOldSwitch( const std::string & arg ) const ;
 	bool isNewSwitch( const std::string & arg ) const ;
@@ -166,10 +184,11 @@ private:
 	void remove( size_t n ) ;
 	bool valid( const std::string & ) const ;
 	bool valid( char c ) const ;
-	std::string usageSummaryPartOne() const ;
-	std::string usageSummaryPartTwo() const ;
-	std::string usageHelpCore( const std::string & , size_t , size_t ) const ;
+	std::string usageSummaryPartOne( Level ) const ;
+	std::string usageSummaryPartTwo( Level ) const ;
+	std::string usageHelpCore( const std::string & , Level , size_t , size_t , bool ) const ;
 	static size_t widthLimit( size_t ) ;
+	static bool visible( SwitchSpecMap::const_iterator , Level , bool ) ;
 
 private:
 	SwitchSpecMap m_spec_map ;

@@ -20,55 +20,30 @@
 # force symbol stripping on 'make install'
 AM_INSTALL_PROGRAM_FLAGS=-s
 
-EXTRA_DIST=commandline_win32.cpp main_win32.cpp gmessagestore_win32.cpp emailrelay.dsw emailrelay.dsp common.dsp submit.dsp passwd.dsp icon-32.ico icon2.ico icon3.ico icon4.ico doxygen.cfg emailrelay.rc resource.h gsasl_cyrus.cpp messages.mc
-INCLUDES = -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet -DG_SPOOLDIR=\"$(e_spooldir)\"
+EXTRA_DIST=\
+	commandline_win32.cpp \
+	common.dsp \
+	doxygen.cfg \
+	doxygen.h \
+	emailrelay.dsp \
+	emailrelay.dsw \
+	emailrelay.rc \
+	icon-32.ico \
+	icon2.ico \
+	icon3.ico \
+	icon4.ico \
+	main_win32.cpp \
+	messages.mc \
+	passwd.dsp \
+	poke.dsp \
+	resource.h \
+	submit.dsp
 
-noinst_LIBRARIES = libgsmtp.a
+INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet -I$(top_srcdir)/src/gsmtp -DG_SPOOLDIR=\"$(e_spooldir)\"
+
 e_sbin_PROGRAMS = emailrelay emailrelay-submit emailrelay-passwd
 e_libexec_PROGRAMS = emailrelay-poke
 e_spool_DATA = 
-
-libgsmtp_a_SOURCES = \
-	gadminserver.cpp \
-	gadminserver.h \
-	gbase64.cpp \
-	gbase64.h \
-	gclientprotocol.cpp \
-	gclientprotocol.h \
-	gfilestore.cpp \
-	gfilestore.h \
-	gmessagestore.cpp \
-	gmessagestore.h \
-	gmessagestore_unix.cpp \
-	gnewfile.cpp \
-	gnewfile.h \
-	gnewmessage.cpp \
-	gnewmessage.h \
-	gprotocolmessage.cpp \
-	gprotocolmessage.h \
-	gprotocolmessageforward.cpp \
-	gprotocolmessageforward.h \
-	gprotocolmessagestore.cpp \
-	gprotocolmessagestore.h \
-	gsasl_native.cpp \
-	gsasl.h \
-	gsecrets.cpp \
-	gsecrets.h \
-	gserverprotocol.cpp \
-	gserverprotocol.h \
-	gsmtp.h \
-	gsmtpclient.cpp \
-	gsmtpclient.h \
-	gsmtpserver.cpp \
-	gsmtpserver.h \
-	gstoredfile.cpp \
-	gstoredfile.h \
-	gstoredmessage.cpp \
-	gstoredmessage.h \
-	gverifier.cpp \
-	gverifier.h \
-	gxtext.cpp \
-	gxtext.h
 
 emailrelay_SOURCES = \
 	main_unix.cpp \
@@ -83,23 +58,23 @@ emailrelay_SOURCES = \
 	commandline.h
 
 emailrelay_LDADD = \
-	$(top_builddir)/src/main/libgsmtp.a \
+	$(top_builddir)/src/gsmtp/libgsmtp.a \
 	$(top_builddir)/src/glib/libglib.a \
 	$(top_builddir)/src/gnet/libgnet.a
 
 emailrelay_poke_SOURCES = poke.c
 emailrelay_poke_LDADD =
 
-emailrelay_passwd_SOURCES = passwd.cpp
+emailrelay_passwd_SOURCES = passwd.cpp legal.cpp
 emailrelay_passwd_LDADD = $(top_builddir)/src/glib/libglib.a
 
 emailrelay_submit_SOURCES = submit.cpp legal.cpp
 emailrelay_submit_LDADD = \
-	$(top_builddir)/src/main/libgsmtp.a \
+	$(top_builddir)/src/gsmtp/libgsmtp.a \
 	$(top_builddir)/src/glib/libglib.a \
 	$(top_builddir)/src/gnet/libgnet.a
 
-install-data-local:
+install-data-local: install-e_sbinPROGRAMS install-e_spoolDATA install-e_libexecPROGRAMS
 	-chgrp daemon $(DESTDIR)$(e_spooldir)
 	-chmod 775 $(DESTDIR)$(e_spooldir)
 	-chgrp daemon $(DESTDIR)$(e_sbindir)/emailrelay-submit
@@ -107,4 +82,7 @@ install-data-local:
 
 install-exec-local:
 
+uninstall-local:
+	-rmdir $(DESTDIR)$(e_spooldir) 2>/dev/null
+	-rmdir $(DESTDIR)$(e_libexecdir) 2>/dev/null
 

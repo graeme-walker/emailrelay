@@ -30,6 +30,8 @@ namespace std
 	using ::rand ;
 	using ::srand ;
 	using ::getenv ;
+	using ::free ;
+	using ::malloc ;
 } ;
 
 #endif

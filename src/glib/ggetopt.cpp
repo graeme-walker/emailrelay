@@ -28,6 +28,7 @@
 #include "ggetopt.h"
 #include "gassert.h"
 #include "gdebug.h"
+#include <sstream>
 
 G::GetOpt::GetOpt( const Arg & args_in , const std::string & spec ,
 	char sep_major , char sep_minor , char escape ) :
@@ -46,18 +47,25 @@ void G::GetOpt::parseSpec( const std::string & spec , char sep_major , char sep_
 
 	for( Strings::iterator p = outer.begin() ; p != outer.end() ; ++p )
 	{
+		if( (*p).empty() ) continue ;
 		StringArray inner ;
 		std::string ws_minor( 1U , sep_minor ) ;
 		G::Str::splitIntoFields( *p , inner , ws_minor , escape ) ;
-		if( inner.size() != 5U )
-			throw InvalidSpecification(std::stringstream() << "\"" << *p << "\" (" << ws_minor << ")") ;
+		if( inner.size() != 6U )
+		{
+			std::ostringstream ss ;
+			ss << "\"" << *p << "\" (" << ws_minor << ")" ;
+			throw InvalidSpecification( ss.str() ) ;
+		}
 		bool valued = G::Str::toUInt( inner[3U] ) != 0U ;
-		addSpec( inner[1U] , inner[0U].at(0U) , inner[1U] , inner[2U] , valued , inner[4U] ) ;
+		unsigned int level = G::Str::toUInt( inner[5U] ) ;
+		addSpec( inner[1U] , inner[0U].at(0U) , inner[1U] , inner[2U] , valued , inner[4U] , level ) ;
 	}
 }
 
 void G::GetOpt::addSpec( const std::string & sort_key , char c , const std::string & name ,
-	const std::string & description , bool valued , const std::string & value_description )
+	const std::string & description , bool valued , const std::string & value_description ,
+	unsigned int level )
 {
 	if( c == '\0' )
 		throw InvalidSpecification() ;
@@ -65,17 +73,22 @@ void G::GetOpt::addSpec( const std::string & sort_key , char c , const std::stri
 	const bool debug = true ;
 	if( debug )
 	{
-		G_DEBUG( "G::GetOpt::addSpec: "
+		std::ostringstream ss ;
+		ss
+			<< "G::GetOpt::addSpec: "
 			<< "sort-key=" << sort_key << ": "
 			<< "char=" << c << ": "
 			<< "name=" << name << ": "
 			<< "description=" << description << ": "
 			<< "valued=" << (valued?"true":"false") << ": "
-			<< "value-description=" << value_description ) ;
+			<< "value-description=" << value_description << ": "
+			<< "level=" << level ;
+		G_DEBUG( ss.str() ) ;
 	}
 
 	std::pair<SwitchSpecMap::iterator,bool> rc =
-		m_spec_map.insert( std::make_pair(sort_key,SwitchSpec(c,name,description,valued,value_description)) ) ;
+		m_spec_map.insert( std::make_pair( sort_key ,
+			SwitchSpec(c,name,description,valued,value_description,level) ) ) ;
 
 	if( ! rc.second )
 		throw InvalidSpecification("duplication") ;
@@ -116,27 +129,40 @@ size_t G::GetOpt::wrapDefault()
 }
 
 //static
+size_t G::GetOpt::tabDefault()
+{
+	return 30U ;
+}
+
+//static
+G::GetOpt::Level G::GetOpt::levelDefault()
+{
+	return Level(99U) ;
+}
+
+//static
 size_t G::GetOpt::widthLimit( size_t w )
 {
 	return (w != 0U && w < 50U) ? 50U : w ;
 }
 
-void G::GetOpt::showUsage( std::ostream & stream , const std::string & args ) const
+void G::GetOpt::showUsage( std::ostream & stream , const std::string & args , bool verbose ) const
 {
-	showUsage( stream , m_args.prefix() , args ) ;
+	showUsage( stream , m_args.prefix() , args , verbose ? levelDefault() : Level(1U) ) ;
 }
 
 void G::GetOpt::showUsage( std::ostream & stream , const std::string & exe , const std::string & args ,
-	size_t tab_stop , size_t width ) const
+	Level level , size_t tab_stop , size_t width ) const
 {
 	stream
-		<< usageSummary(exe,args,width) << std::endl
-		<< usageHelp(tab_stop,width) ;
+		<< usageSummary(exe,args,level,width) << std::endl
+		<< usageHelp(level,tab_stop,width,false) ;
 }
 
-std::string G::GetOpt::usageSummary( const std::string & exe , const std::string & args , size_t width ) const
+std::string G::GetOpt::usageSummary( const std::string & exe , const std::string & args ,
+	Level level , size_t width ) const
 {
-	std::string s = std::string("usage: ") + exe + " " + usageSummarySwitches() + args ;
+	std::string s = std::string("usage: ") + exe + " " + usageSummarySwitches(level) + args ;
 	if( width != 0U )
 	{
 		return G::Str::wrap( s , "" , "  " , widthLimit(width) ) ;
@@ -147,19 +173,28 @@ std::string G::GetOpt::usageSummary( const std::string & exe , const std::string
 	}
 }
 
-std::string G::GetOpt::usageSummarySwitches() const
+std::string G::GetOpt::usageSummarySwitches( Level level ) const
 {
-	return usageSummaryPartOne() + usageSummaryPartTwo() ;
+	return usageSummaryPartOne(level) + usageSummaryPartTwo(level) ;
 }
 
-std::string G::GetOpt::usageSummaryPartOne() const
+//static
+bool G::GetOpt::visible( SwitchSpecMap::const_iterator p , Level level , bool exact )
+{
+	return
+		exact ?
+			( !(*p).second.hidden && (*p).second.level == level.level ) :
+			( !(*p).second.hidden && (*p).second.level <= level.level ) ;
+}
+
+std::string G::GetOpt::usageSummaryPartOne( Level level ) const
 {
 	// summarise the single-character switches, excluding those which take a value
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	bool first = true ;
 	for( SwitchSpecMap::const_iterator p = m_spec_map.begin() ; p != m_spec_map.end() ; ++p )
 	{
-		if( !(*p).second.valued && !(*p).second.hidden )
+		if( !(*p).second.valued && visible(p,level,false) )
 		{
 			if( first )
 				ss << "[-" ;
@@ -173,13 +208,13 @@ std::string G::GetOpt::usageSummaryPartOne() const
 	return s ;
 }
 
-std::string G::GetOpt::usageSummaryPartTwo() const
+std::string G::GetOpt::usageSummaryPartTwo( Level level ) const
 {
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	const char * sep = "" ;
 	for( SwitchSpecMap::const_iterator p = m_spec_map.begin() ; p != m_spec_map.end() ; ++p )
 	{
-		if( !(*p).second.hidden )
+		if( visible(p,level,false) )
 		{
 			ss << sep << "[" ;
 			if( (*p).second.name.length() )
@@ -203,17 +238,18 @@ std::string G::GetOpt::usageSummaryPartTwo() const
 	return ss.str() ;
 }
 
-std::string G::GetOpt::usageHelp( size_t tab_stop , size_t width ) const
+std::string G::GetOpt::usageHelp( Level level , size_t tab_stop , size_t width , bool exact ) const
 {
-	return usageHelpCore( "  " , tab_stop , widthLimit(width) ) ;
+	return usageHelpCore( "  " , level , tab_stop , widthLimit(width) , exact ) ;
 }
 
-std::string G::GetOpt::usageHelpCore( const std::string & prefix , size_t tab_stop , size_t width ) const
+std::string G::GetOpt::usageHelpCore( const std::string & prefix , Level level ,
+	size_t tab_stop , size_t width , bool exact ) const
 {
 	std::string result ;
 	for( SwitchSpecMap::const_iterator p = m_spec_map.begin() ; p != m_spec_map.end() ; ++p )
 	{
-		if( !(*p).second.hidden )
+		if( visible(p,level,exact) )
 		{
 			std::string line( prefix ) ;
 			line.append( "-" ) ;

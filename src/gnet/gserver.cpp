@@ -157,6 +157,14 @@ GNet::Server::~Server()
 {
 }
 
+std::pair<bool,GNet::Address> GNet::Server::address() const
+{
+	std::pair<bool,Address> result( false , Address::invalidAddress() ) ;
+	if( m_socket.get() != NULL )
+		result = m_socket->getLocalAddress() ;
+	return result ;
+}
+
 void GNet::Server::readEvent()
 {
 	// read-event-on-listening-port => new connection to accept

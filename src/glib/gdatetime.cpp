@@ -81,7 +81,7 @@ std::string G::DateTime::offsetString( Offset offset )
 	unsigned int hh = offset.second / 3600U ;
 	unsigned int mm = (offset.second / 60U) % 60 ;
 
-	std::stringstream ss ;
+	std::ostringstream ss ;
 	char sign = (offset.first || (hh==0&&mm==0)) ? '+' : '-' ;
 	ss << sign << (hh/10U) << (hh%10U) << (mm/10) << (mm%10) ;
 	return ss.str() ;

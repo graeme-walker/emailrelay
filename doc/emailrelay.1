@@ -58,13 +58,13 @@ server.
 Enables the administration interface and specifies its listening port number.
 .TP
 .B \-q,--as-client \fIhost:port\fR
-Equivalent to \fI--log\fR \fI--no-syslog\fR \fI--no-daemon\fR \fI--dont-serve\fR \fI--forward\fR \fI--forward-to\fR.
+Runs as a client, forwarding spooled mail to <host>: equivalent to \fI--log\fR \fI--no-syslog\fR \fI--no-daemon\fR \fI--dont-serve\fR \fI--forward\fR \fI--forward-to\fR.
 .TP
 .B \-y,--as-proxy \fIhost:port\fR
-Equivalent to \fI--log\fR \fI--close-stderr\fR \fI--immediate\fR \fI--forward-to\fR.
+Runs as a proxy: equivalent to \fI--log\fR \fI--close-stderr\fR \fI--immediate\fR \fI--forward-to\fR.
 .TP
 .B \-d,--as-server 
-Equivalent to \fI--log\fR \fI--close-stderr\fR.
+Runs as a server: equivalent to \fI--log\fR \fI--close-stderr\fR.
 .TP
 .B \-C,--client-auth \fIfile\fR
 Enables authentication with remote server, using the given secrets file.
@@ -75,14 +75,20 @@ Closes the standard error stream after start-up.
 .B \-U,--connection-timeout \fItime\fR
 Sets the timeout (in seconds) when connecting to a remote server (default is 40).
 .TP
+.B \-g,--debug 
+Generates debug-level logging (if compiled-in).
+.TP
 .B \-D,--domain \fIfqdn\fR
 Sets an override for the host's fully qualified domain name.
 .TP
+.B \-X,--dont-listen 
+Dont listen for smtp connections (usually used with \fI--admin\fR).
+.TP
 .B \-x,--dont-serve 
-Stops the process acting as a server (usually used with \fI--forward\fR).
+Dont act as a server (usually used with \fI--forward\fR).
 .TP
 .B \-z,--filter \fIprogram\fR
-Defines a mail pre-processor.
+Defines a mail processor program.
 .TP
 .B \-f,--forward 
 Forwards stored mail on startup (requires \fI--forward-to\fR).
@@ -96,8 +102,11 @@ Displays help text and exits.
 .B \-m,--immediate 
 Forwards each message as soon as it is received (requires \fI--forward-to\fR).
 .TP
+.B \-I,--interface \fIip-address\fR
+Listen on a specific interface.
+.TP
 .B \-l,--log 
-Writes log information on standard error (if open) and syslog (if not disabled).
+Writes log information on standard error and syslog.
 .TP
 .B \-L,--log-time 
 Adds a timestamp to the logging output.
@@ -124,68 +133,33 @@ Sets the response timeout (in seconds) when talking to a remote server (default 
 Enables authentication of remote clients, using the given secrets file.
 .TP
 .B \-s,--spool-dir \fIdir\fR
-Specifies the spool directory (default is \fI/usr/local/var/spool/emailrelay\fR).
+Specifies the spool directory (default is \fI/var/spool/emailrelay\fR).
 .TP
 .B \-u,--user \fIusername\fR
 Names the effective user to switch to when started as root (default is \fIdaemon\fR).
 .TP
 .B \-v,--verbose 
-Generates more verbose logging (if compiled-in and logging enabled and stderr open).
+Generates more verbose output (works with \fI--help\fR and \fI--log\fR).
+.TP
+.B \-Z,--verifier \fIprogram\fR
+Defines an external address verifier program.
 .TP
 .B \-V,--version 
 Displays version information and exits.
 .SH FILES
 GNU style...
 .br
-/usr/local/libexec/emailrelay-passwd
-.br
-/usr/local/libexec/emailrelay-poke
-.br
 /usr/local/libexec/emailrelay
-.br
-/usr/local/libexec/emailrelay-notify.sh
 .br
 /usr/local/libexec/emailrelay-deliver.sh
 .br
+/usr/local/libexec/emailrelay-notify.sh
+.br
+/usr/local/libexec/emailrelay-poke
+.br
 /usr/local/libexec/emailrelay-process.sh
 .br
-/usr/local/sbin/emailrelay-submit
-.br
-/usr/local/sbin/emailrelay
-.br
-/usr/local/share/emailrelay/doc/developer.txt
-.br
-/usr/local/share/emailrelay/doc/reference.txt
-.br
-/usr/local/share/emailrelay/doc/userguide.txt
-.br
-/usr/local/share/emailrelay/doc/windows.txt
-.br
-/usr/local/share/emailrelay/doc/readme.html
-.br
-/usr/local/share/emailrelay/doc/developer.html
-.br
-/usr/local/share/emailrelay/doc/reference.html
-.br
-/usr/local/share/emailrelay/doc/userguide.html
-.br
-/usr/local/share/emailrelay/doc/windows.html
-.br
-/usr/local/share/emailrelay/doc/emailrelay-man.html
-.br
-/usr/local/share/emailrelay/doc/index.html
-.br
-/usr/local/share/emailrelay/doc/changelog.html
-.br
-/usr/local/share/emailrelay/doc/emailrelay.css
-.br
-/usr/local/share/emailrelay/doc/NEWS
-.br
-/usr/local/share/emailrelay/doc/README
-.br
-/usr/local/share/emailrelay/doc/changelog.gz
-.br
-/usr/local/man/man1/emailrelay.1.gz
+/usr/local/libexec/emailrelay-resubmit.sh
 .br
 /usr/local/man/man1/emailrelay-passwd.1.gz
 .br
@@ -193,51 +167,59 @@ GNU style...
 .br
 /usr/local/man/man1/emailrelay-submit.1.gz
 .br
-/usr/local/var/spool/emailrelay/emailrelay.*.envelope
+/usr/local/man/man1/emailrelay.1.gz
+.br
+/usr/local/sbin/emailrelay
+.br
+/usr/local/sbin/emailrelay-passwd
+.br
+/usr/local/sbin/emailrelay-submit
+.br
+/usr/local/share/emailrelay/doc/NEWS
+.br
+/usr/local/share/emailrelay/doc/README
+.br
+/usr/local/share/emailrelay/doc/changelog.gz
+.br
+/usr/local/share/emailrelay/doc/changelog.html
+.br
+/usr/local/share/emailrelay/doc/developer.html
+.br
+/usr/local/share/emailrelay/doc/developer.txt
+.br
+/usr/local/share/emailrelay/doc/emailrelay.css
+.br
+/usr/local/share/emailrelay/doc/index.html
+.br
+/usr/local/share/emailrelay/doc/readme.html
+.br
+/usr/local/share/emailrelay/doc/reference.html
+.br
+/usr/local/share/emailrelay/doc/reference.txt
+.br
+/usr/local/share/emailrelay/doc/userguide.html
+.br
+/usr/local/share/emailrelay/doc/userguide.txt
+.br
+/usr/local/share/emailrelay/doc/windows.html
+.br
+/usr/local/share/emailrelay/doc/windows.txt
 .br
 /usr/local/var/spool/emailrelay/emailrelay.*.content
+.br
+/usr/local/var/spool/emailrelay/emailrelay.*.envelope
 .LP
 FHS style...
 .br
-/usr/lib/emailrelay-passwd
+/etc/init.d/emailrelay
 .br
-/usr/lib/emailrelay-poke
-.br
-/usr/sbin/emailrelay-submit
+/usr/lib/emailrelay/emailrelay-poke
 .br
 /usr/sbin/emailrelay
 .br
-/usr/share/doc/emailrelay/examples/emailrelay-notify.sh
+/usr/sbin/emailrelay-passwd
 .br
-/usr/share/doc/emailrelay/examples/emailrelay-deliver.sh
-.br
-/usr/share/doc/emailrelay/examples/emailrelay-process.sh
-.br
-/usr/share/doc/emailrelay/developer.txt
-.br
-/usr/share/doc/emailrelay/reference.txt
-.br
-/usr/share/doc/emailrelay/userguide.txt
-.br
-/usr/share/doc/emailrelay/windows.txt
-.br
-/usr/share/doc/emailrelay/readme.html
-.br
-/usr/share/doc/emailrelay/developer.html
-.br
-/usr/share/doc/emailrelay/reference.html
-.br
-/usr/share/doc/emailrelay/userguide.html
-.br
-/usr/share/doc/emailrelay/windows.html
-.br
-/usr/share/doc/emailrelay/emailrelay-man.html
-.br
-/usr/share/doc/emailrelay/index.html
-.br
-/usr/share/doc/emailrelay/changelog.html
-.br
-/usr/share/doc/emailrelay/emailrelay.css
+/usr/sbin/emailrelay-submit
 .br
 /usr/share/doc/emailrelay/NEWS
 .br
@@ -245,7 +227,37 @@ FHS style...
 .br
 /usr/share/doc/emailrelay/changelog.gz
 .br
-/usr/share/man/man1/emailrelay.1.gz
+/usr/share/doc/emailrelay/changelog.html
+.br
+/usr/share/doc/emailrelay/developer.html
+.br
+/usr/share/doc/emailrelay/developer.txt
+.br
+/usr/share/doc/emailrelay/emailrelay.css
+.br
+/usr/share/doc/emailrelay/examples/emailrelay-deliver.sh
+.br
+/usr/share/doc/emailrelay/examples/emailrelay-notify.sh
+.br
+/usr/share/doc/emailrelay/examples/emailrelay-process.sh
+.br
+/usr/share/doc/emailrelay/examples/emailrelay-resubmit.sh
+.br
+/usr/share/doc/emailrelay/index.html
+.br
+/usr/share/doc/emailrelay/readme.html
+.br
+/usr/share/doc/emailrelay/reference.html
+.br
+/usr/share/doc/emailrelay/reference.txt
+.br
+/usr/share/doc/emailrelay/userguide.html
+.br
+/usr/share/doc/emailrelay/userguide.txt
+.br
+/usr/share/doc/emailrelay/windows.html
+.br
+/usr/share/doc/emailrelay/windows.txt
 .br
 /usr/share/man/man1/emailrelay-passwd.1.gz
 .br
@@ -253,11 +265,11 @@ FHS style...
 .br
 /usr/share/man/man1/emailrelay-submit.1.gz
 .br
-/etc/init.d/emailrelay
-.br
-/var/spool/emailrelay/emailrelay.*.envelope
+/usr/share/man/man1/emailrelay.1.gz
 .br
 /var/spool/emailrelay/emailrelay.*.content
+.br
+/var/spool/emailrelay/emailrelay.*.envelope
 .SH SEE ALSO
 E-MailRelay user guide
 .br

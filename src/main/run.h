@@ -29,8 +29,10 @@
 #include "configuration.h"
 #include "commandline.h"
 #include "geventloop.h"
+#include "gtimer.h"
 #include "glogoutput.h"
 #include "gdaemon.h"
+#include "gpidfile.h"
 #include "garg.h"
 #include "gmessagestore.h"
 #include "gsmtpclient.h"
@@ -41,7 +43,7 @@
 namespace Main
 {
 	class Run ;
-} ;
+}
 
 // Class: Main::Run
 // Description: A top-level class for the process.
@@ -78,27 +80,53 @@ public:
 	static std::string versionNumber() ;
 		// Returns the application version number string.
 
+	static bool startForwarding( GSmtp::Client::ClientCallback & ,
+		const std::string & to ) ;
+			// Starts forwarding spooled email.
+			// Should be called from within run().
+			// Returns false if there is nothing to
+			// do or if nothing can be done. Throws
+			// on error. If true is returned then the
+			// callback object must remain valid
+			// until its clientDone() method is
+			// called.
+
+	void raiseStoreEvent() ;
+		// A pseudo-private method.
+
+	void raiseNetworkEvent( const std::string & , const std::string & ) ;
+		// A pseudo-private method.
+
 protected:
-	virtual void onStatusChange( const std::string & s1 , const std::string & s2 ) ;
-		// Called when the smtp client status changes.
+	virtual void onEvent( const std::string & category ,
+		const std::string & s1 , const std::string & s2 ) ;
+			// Overridable. Called when something changes.
+
+	virtual bool runnable() const ;
+		// Overridable. Allows derived classes to have prepare()
+		// return false. The default implementation
+		// returns true.
 
 private:
 	Run( const Run & ) ; // not implemented
 	void operator=( const Run & ) ; // not implemented
 	void runCore() ;
 	void doForwarding( GSmtp::MessageStore & , GNet::EventLoop & ) ;
-	void doServing( G::Daemon::PidFile & , GNet::EventLoop & ) ;
+	void doServing( G::PidFile & , GNet::EventLoop & ) ;
 	void closeFiles() ;
 	void closeMoreFiles() ;
 	std::string smtpIdent() const ;
 	void recordPid() ;
 	const CommandLine & cl() const ;
 	virtual void clientDone( std::string ) ; // from ClientCallback
-	virtual void clientStatusChange( const std::string & , const std::string & ) ; // from ClientCallback
+	virtual void clientEvent( const std::string & , const std::string & ) ; // from ClientCallback
+	const char * startForwarding( GSmtp::Client::ClientCallback * , const std::string & ) ;
 
 private:
+	static Run * m_this ;
 	std::auto_ptr<CommandLine> m_cl ;
 	std::auto_ptr<G::LogOutput> m_log_output ;
+	std::auto_ptr<GSmtp::Client> m_client ;
 	G::Arg m_arg ;
 } ;
 

@@ -26,6 +26,7 @@
 
 #include "gdef.h"
 #include "gexception.h"
+#include "gpidfile.h"
 #include "gpath.h"
 #include <sys/types.h>
 #include <string>
@@ -33,7 +34,7 @@
 namespace G
 {
 	class Daemon ;
-} ;
+}
 
 // Class: G::Daemon
 // Description: A class for deamonising the calling process.
@@ -46,19 +47,6 @@ class G::Daemon
 {
 public:
 	G_EXCEPTION( CannotFork , "cannot fork" ) ;
-	G_EXCEPTION( BadPidFile , "invalid pid file" ) ;
-	class PidFile // Used by G::Daemon::detach().
-	{
-		public: explicit PidFile( const Path & pid_file ) ;
-		public: PidFile() ;
-		public: void commit() ;
-		private: Path m_path ;
-		private: bool m_valid ;
-		friend class Daemon ;
-		private: static void check( const Path & ) ;
-		private: static void test( const Path & ) ;
-		private: static void create( const Path & ) ;
-	} ;
 
 	static void detach() ;
 		// Detaches from the parent environment.
@@ -66,24 +54,19 @@ public:
 		// _exit()ing the parent, and calling
 		// setsid() in the child.
 
-	static void detach( const Path & pid_file ) ;
-		// An overload which writes the new process-id
-		// to a file. The path must be absolute.
-		// Throws BadPidFile on error.
-
 	static void detach( PidFile & pid_file ) ;
 		// An overload which allows for a delayed write
-		// of the new process-id to a file. The path
-		// must be absolute.
+		// of the new process-id to a file.
 		//
 		// A delayed write is useful for network daemons
-		// which open a listening port. You do not want
-		// a second instance, which will fail on startup,
-		// to overwrite the pid file of the running
-		// server. In this situation call PidFile::commit()
-		// just before entering the event loop.
+		// which open a listening port. A second instance
+		// of the process will fail on startup, and should
+		// not overwrite the pid file of the running
+		// server. In this situation PidFile::commit()
+		// should be called just before entering the event
+		// loop.
 		//
-		// Throws BadPidFile on error.
+		// Throws PidFile::Error on error.
 
 private:
 	Daemon() ;

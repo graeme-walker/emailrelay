@@ -31,7 +31,7 @@
 namespace Main
 {
 	class Legal ;
-} ;
+}
 
 // Class: Main::Legal
 // Description: A static class providing warranty and copyright text.
@@ -39,7 +39,7 @@ namespace Main
 class Main::Legal
 {
 public:
-	static std::string warranty( const std::string & eol = std::string("\n") ) ;
+	static std::string warranty( const std::string & prefix , const std::string & eol ) ;
 		// Returns the warranty text.
 
 	static std::string copyright() ;
