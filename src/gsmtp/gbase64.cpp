@@ -88,17 +88,6 @@ std::string GSmtp::Base64::encode( const std::string & s_in , const std::string 
 		generate_6( n , i , result ) ;
 	}
 
-	// delete when tested...
-	if( decode(result) != s_in )
-	{
-		std::string decode_result = decode(result) ;
-		G_ERROR( "GSmtp::Base64::encode: mismatch: "
-			<< "in \"" << G::Str::toPrintableAscii(s_in) << "\", "
-			<< "encoded \"" << G::Str::toPrintableAscii(result) << "\", "
-			<< "decoded \"" << G::Str::toPrintableAscii(decode_result) << "\"" ) ;
-		G_ASSERT( !"encode/decode mismatch" ) ;
-	}
-
 	return result ;
 }
 
@@ -177,7 +166,7 @@ std::string GSmtp::Base64::decode( const std::string & s , bool & error )
 bool GSmtp::Base64::valid( const std::string & s )
 {
 	bool error = false ;
-	(void) decode( s , error ) ;
+	G_IGNORE decode( s , error ) ;
 	return !error ;
 }
 

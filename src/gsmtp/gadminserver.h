@@ -31,42 +31,37 @@
 #include "gserverprotocol.h"
 #include "gsmtpclient.h"
 #include <string>
+#include <list>
 #include <sstream>
 
 namespace GSmtp
 {
 	class AdminPeer ;
 	class AdminServer ;
-	class AdminClient ;
 }
-
-// Class: GSmtp::AdminClient
-// Description: A private implementation class.
-//
-class GSmtp::AdminClient : public GSmtp:: Client
-{
-public:
-	AdminClient( AdminPeer & admin_peer ) ;
-} ;
-
-// ===
 
 // Class: GSmtp::AdminPeer
 // Description: A derivation of ServerPeer for the administration interface.
 // See also: AdminServer
 //
-class GSmtp::AdminPeer : public GNet::ServerPeer , public GSmtp:: Client::ClientCallback
+class GSmtp::AdminPeer : public GNet::ServerPeer
 {
 public:
-	AdminPeer( GNet::StreamSocket * , GNet::Address , AdminServer & server , const std::string & ) ;
+	AdminPeer( GNet::Server::PeerInfo , AdminServer & server , const std::string & , bool ) ;
 		// Constructor.
+
+	virtual ~AdminPeer() ;
+		// Destructor.
+
+	void notify( const std::string & s0 , const std::string & s1 , const std::string & s2 ) ;
+		// Called when something happens.
 
 private:
 	AdminPeer( const AdminPeer & ) ;
 	void operator=( const AdminPeer & ) ;
 	virtual void onDelete() ; // from GNet::ServerPeer
 	virtual void onData( const char * , size_t ) ; // from GNet::ServerPeer
-	virtual void clientDone( std::string ) ; // from Client::ClientCallback
+	virtual void clientDone( std::string ) ; // Client::doneSignal()
 	bool processLine( const std::string & line ) ;
 	static bool is( const std::string & , const char * ) ;
 	void flush( const std::string & ) ;
@@ -80,8 +75,10 @@ private:
 private:
 	GNet::LineBuffer m_buffer ;
 	AdminServer & m_server ;
-	std::auto_ptr<GSmtp::AdminClient> m_client ;
+	std::auto_ptr<GSmtp::Client> m_client ;
 	std::string m_server_address ;
+	bool m_notifying ;
+	bool m_with_terminate ;
 } ;
 
 // Class: GSmtp::AdminServer
@@ -90,20 +87,60 @@ private:
 class GSmtp::AdminServer : public GNet::Server
 {
 public:
-	AdminServer( unsigned int port , bool allow_remote , const std::string & server_address ) ;
-		// Constructor.
+	AdminServer( MessageStore & store , const Secrets & client_secrets ,
+		const GNet::Address & listening_address , bool allow_remote ,
+		const std::string & server_address ,
+		unsigned int response_timeout , unsigned int connection_timeout ,
+		bool with_terminate ) ;
+			// Constructor. The 'store' and 'client-secrets' references
+			// are kept.
+
+	virtual ~AdminServer() ;
+		// Destructor.
 
 	void report() const ;
 		// Generates helpful diagnostics.
 
+	MessageStore & store() ;
+		// Returns a reference to the message store, as
+		// passed in to the constructor.
+
+	const Secrets & secrets() const ;
+		// Returns a reference to the secrets object, as
+		// passed in to the constructor. Note that this is
+		// a "client-side" secrets file, used to authenticate
+		// ourselves with a remote server.
+
+	unsigned int responseTimeout() const ;
+		// Returns the response timeout, as passed in to the
+		// constructor.
+
+	unsigned int connectionTimeout() const ;
+		// Returns the connection timeout, as passed in to the
+		// constructor.
+
+	void notify( const std::string & s0 , const std::string & s1 , const std::string & s2 ) ;
+		// Called when something happens which the admin
+		// user might be interested in.
+
+	void unregister( AdminPeer * ) ;
+		// Called from the AdminPeer destructor.
+
 private:
-	virtual GNet::ServerPeer * newPeer( GNet::StreamSocket * , GNet::Address ) ;
+	virtual GNet::ServerPeer * newPeer( GNet::Server::PeerInfo ) ;
 	AdminServer( const AdminServer & ) ;
 	void operator=( const AdminServer & ) ;
 
 private:
+	typedef std::list<AdminPeer*> PeerList ;
+	PeerList m_peers ;
+	MessageStore & m_store ;
+	const Secrets & m_secrets ;
 	bool m_allow_remote ;
 	std::string m_server_address ;
+	unsigned int m_response_timeout ;
+	unsigned int m_connection_timeout ;
+	bool m_with_terminate ;
 } ;
 
 #endif

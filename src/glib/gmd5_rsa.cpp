@@ -18,7 +18,7 @@
 //
 // ===
 //
-// gmd5.cpp
+// gmd5_rsa.cpp
 //
 
 #include "gdef.h"

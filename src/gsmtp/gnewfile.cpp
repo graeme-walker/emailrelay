@@ -41,7 +41,9 @@ G::Path GSmtp::NewFile::m_preprocessor ;
 GSmtp::NewFile::NewFile( const std::string & from , FileStore & store ) :
 	m_store(store),
 	m_from(from) ,
-	m_eight_bit(false)
+	m_eight_bit(false),
+	m_saved(false) ,
+	m_repoll(false)
 {
 	m_seq = store.newSeq() ;
 
@@ -54,7 +56,14 @@ GSmtp::NewFile::NewFile( const std::string & from , FileStore & store ) :
 
 GSmtp::NewFile::~NewFile()
 {
-	m_store.updated() ;
+	try
+	{
+		cleanup() ;
+		m_store.updated( m_repoll ) ;
+	}
+	catch(...)
+	{
+	}
 }
 
 void GSmtp::NewFile::addTo( const std::string & to , bool local )
@@ -126,10 +135,9 @@ bool GSmtp::NewFile::store( const std::string & auth_id , const std::string & cl
 	// commit the envelope, or rollback the content
 	//
 	FileWriter claim_writer ;
-	if( ! ok || ! G::File::rename(p0,p1,G::File::NoThrow() ) )
+	if( !ok || !commit(p0,p1) )
 	{
-		G_ASSERT( m_content_path.str().length() != 0U ) ;
-		G::File::remove( m_content_path , G::File::NoThrow() ) ;
+		rollback() ;
 		if( !cancelled )
 			throw GSmtp::MessageStore::StorageError( reason ) ;
 	}
@@ -137,29 +145,58 @@ bool GSmtp::NewFile::store( const std::string & auth_id , const std::string & cl
 	return cancelled ;
 }
 
+bool GSmtp::NewFile::commit( const G::Path & p0 , const G::Path & p1 )
+{
+	m_saved = G::File::rename( p0 , p1 , G::File::NoThrow() ) ;
+	return m_saved ;
+}
+
+void GSmtp::NewFile::rollback()
+{
+	G::File::remove( m_content_path , G::File::NoThrow() ) ;
+}
+
+void GSmtp::NewFile::cleanup()
+{
+	if( !m_saved )
+	{
+		FileWriter claim_writer ;
+		G::File::remove( m_content_path , G::File::NoThrow() ) ;
+	}
+}
+
 bool GSmtp::NewFile::preprocess( const G::Path & path , bool & cancelled )
 {
-	if( m_preprocess )
+	if( ! m_preprocess ) return true ;
+
+	int exit_code = preprocessCore( path ) ;
+
+	bool is_ok = exit_code == 0 ;
+	bool is_special = exit_code >= 100 && exit_code <= 107 ;
+	bool is_failure = !is_ok && !is_special ;
+
+	if( is_special && ((exit_code-100)&2) != 0 )
 	{
-		int exit_code = preprocessCore( path ) ;
-		if( exit_code == 100 )
-		{
-			// a special exit-code for pre-processors which
-			// do their own message handling -- the pre-processor
-			// should delete the files before returning this
-			// exit code
-			//
-			cancelled = true ;
-			G_LOG( "GSmtp::NewFile: message processing cancelled by preprocessor" ) ;
-			return false ;
-		}
-		else if( exit_code != 0 )
-		{
-			G_WARNING( "GSmtp::NewFile::preprocess: pre-processing failed: exit code " << exit_code ) ;
-			return false ;
-		}
+		m_repoll = true ;
 	}
-	return true ;
+
+	// ok, fail or cancel
+	//
+	if( is_special && ((exit_code-100)&1) == 0 )
+	{
+		cancelled = true ;
+		G_LOG( "GSmtp::NewFile: message processing cancelled by preprocessor" ) ;
+		return false ;
+	}
+	else if( is_failure )
+	{
+		G_WARNING( "GSmtp::NewFile::preprocess: pre-processing failed: exit code " << exit_code ) ;
+		return false ;
+	}
+	else
+	{
+		return true ;
+	}
 }
 
 int GSmtp::NewFile::preprocessCore( const G::Path & path )

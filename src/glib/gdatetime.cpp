@@ -27,9 +27,12 @@
 #include "gassert.h"
 #include <sstream>
 
-const time_t minute = 60U ;
-const time_t hour = 60U * minute ;
-const time_t day = 24U * hour ;
+namespace
+{
+	const std::time_t minute = 60U ;
+	const std::time_t hour = 60U * minute ;
+	const std::time_t day = 24U * hour ;
+}
 
 G::DateTime::EpochTime G::DateTime::now()
 {
@@ -42,8 +45,8 @@ G::DateTime::EpochTime G::DateTime::epochTime( const BrokenDownTime & bdt_in )
 	BrokenDownTime bdt( bdt_in ) ;
 	EpochTime start = std::mktime( &bdt ) ; // localtime
 
-	// iterate over all timezones
-	const time_t delta = minute * 30U ;
+	// iterate over all timezones -- brute force for now
+	const std::time_t delta = minute * 30U ;
 	for( EpochTime t = (start-day-delta) ; t <= (start+day+delta) ; t += delta )
 	{
 		if( equivalent( t , bdt_in ) )

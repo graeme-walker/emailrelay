@@ -35,9 +35,9 @@ class GNet::MonitorImp
 public:
 	typedef const Client * C_p ;
 	typedef const ServerPeer * S_p ;
-	typedef std::set<C_p GLessAllocator(C_p,C_p) > Clients ;
+	typedef std::set<C_p> Clients ;
 	typedef std::pair<Clients::iterator,bool> ClientInsertion ;
-	typedef std::set<S_p GLessAllocator(S_p,S_p) > ServerPeers ;
+	typedef std::set<S_p> ServerPeers ;
 	typedef std::pair<ServerPeers::iterator,bool> ServerPeerInsertion ;
 
 	explicit MonitorImp( Monitor & monitor ) ;
@@ -87,14 +87,14 @@ void GNet::Monitor::add( const Client & client )
 	MonitorImp::ClientInsertion rc = m_imp->m_clients.insert( &client ) ;
 	if( rc.second )
 		m_imp->m_client_adds++ ;
-	onEvent( "out" , "start" ) ;
+	m_signal.emit( "out" , "start" ) ;
 }
 
 void GNet::Monitor::remove( const Client & client )
 {
 	if( m_imp->m_clients.erase( &client ) )
 		m_imp->m_client_removes++ ;
-	onEvent( "out" , "end" ) ;
+	m_signal.emit( "out" , "end" ) ;
 }
 
 void GNet::Monitor::add( const ServerPeer & peer )
@@ -102,14 +102,14 @@ void GNet::Monitor::add( const ServerPeer & peer )
 	MonitorImp::ServerPeerInsertion rc = m_imp->m_server_peers.insert( & peer ) ;
 	if( rc.second )
 		m_imp->m_server_peer_adds++ ;
-	onEvent( "in" , "start" ) ;
+	m_signal.emit( "in" , "start" ) ;
 }
 
 void GNet::Monitor::remove( const ServerPeer & peer )
 {
 	if( m_imp->m_server_peers.erase( & peer ) )
 		m_imp->m_server_peer_removes++ ;
-	onEvent( "in" , "end" ) ;
+	m_signal.emit( "in" , "end" ) ;
 }
 
 void GNet::Monitor::report( std::ostream & s , const std::string & px , const std::string & eol )
@@ -135,14 +135,14 @@ void GNet::Monitor::report( std::ostream & s , const std::string & px , const st
 		{
 			s << px
 				<< "IN: "
-				<< (*p)->localAddress().second.displayString() << " -> "
+				<< (*p)->localAddress().second.displayString() << " <- "
 				<< (*p)->peerAddress().second.displayString() << eol ;
 		}
 	}
 }
 
-void GNet::Monitor::onEvent( const std::string & , const std::string & )
+G::Signal2<std::string,std::string> & GNet::Monitor::signal()
 {
-	; // default implementation
+	return m_signal ;
 }
 

@@ -52,7 +52,8 @@ void G::PidFile::create( const Path & pid_file )
 		G_DEBUG( "G::PidFile::create: \"" << pid_file << "\"" ) ;
 		Process::Umask readable(Process::Umask::Readable) ;
 		std::ofstream file( pid_file.str().c_str() ) ;
-		file << Process::Id() << std::endl ;
+		Process::Id pid ;
+		file << pid.str() << std::endl ;
 		if( !file.good() )
 			throw Error(std::string("cannot create file: ")+pid_file.str()) ;
 		Cleanup::add( cleanup , strdup_(pid_file.str().c_str()) ) ; // (leaks)

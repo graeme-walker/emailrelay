@@ -39,14 +39,14 @@ namespace GSmtp
 // Class: GSmtp::Secrets
 // Description: A simple interface to a store of secrets as used in
 // authentication.
-// See also: GSmtp::Sasl
+// See also: GSmtp::SaslClient, GSmtp::SaslServer
 //
 class GSmtp::Secrets
 {
 public:
 	G_EXCEPTION( OpenError , "cannot read secrets file" ) ;
 
-	explicit Secrets( const G::Path & path ) ;
+	explicit Secrets( const G::Path & path , const std::string & debug_name = std::string() ) ;
 		// Constructor.
 
 	~Secrets() ;
@@ -70,9 +70,13 @@ public:
 private:
 	void read( std::istream & ) ;
 	void process( std::string , std::string , std::string , std::string ) ;
+	Secrets( const Secrets & ) ; // not implemented
+	void operator=( const Secrets & ) ; // not implemented
 
 private:
-	typedef std::map<std::string,std::string GLessAllocator(std::string,std::string) > Map ;
+	typedef std::map<std::string,std::string> Map ;
+	G::Path m_path ;
+	std::string m_debug_name ;
 	bool m_valid ;
 	Map m_map ;
 } ;

@@ -26,9 +26,14 @@
 
 HINSTANCE GGui::ApplicationInstance::m_hinstance = 0 ;
 
-GGui::ApplicationInstance::ApplicationInstance( HINSTANCE hinstance )
+GGui::ApplicationInstance::ApplicationInstance( HINSTANCE h )
 {
-	m_hinstance = hinstance ;
+	hinstance( h ) ;
+}
+
+void GGui::ApplicationInstance::hinstance( HINSTANCE h )
+{
+	m_hinstance = h ;
 }
 
 HINSTANCE GGui::ApplicationInstance::hinstance()

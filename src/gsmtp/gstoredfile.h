@@ -43,7 +43,7 @@ namespace GSmtp
 // Description: A concete derived class implementing the
 // StoredMessage interface.
 //
-class GSmtp::StoredFile : public GSmtp:: StoredMessage
+class GSmtp::StoredFile : public GSmtp::StoredMessage
 {
 public:
 	G_EXCEPTION( InvalidFormat , "invalid format field in envelope" ) ;

@@ -38,7 +38,7 @@ namespace GSmtp
 }
 
 // Class: GSmtp::MessageStore
-// Description: A singleton class which allows SMTP messages
+// Description: A class which allows SMTP messages
 // (envelope+content) to be stored and retrieved.
 //
 // The implementation puts separate envelope and content
@@ -55,7 +55,6 @@ class GSmtp::MessageStore
 public:
 	G_EXCEPTION( WriteError , "error writing file" ) ;
 	G_EXCEPTION( StorageError , "error storing message" ) ;
-	G_EXCEPTION( NoInstance , "no message store instance" ) ;
 	G_EXCEPTION( FormatError , "format error" ) ;
 	class IteratorImp // A base class for MessageStore::Iterator implementations.
 	{
@@ -77,19 +76,10 @@ public:
 		public: Iterator & operator=( const Iterator & ) ;
 	} ;
 
-	static MessageStore & instance() ;
-		// Singleton access.
-
-	static bool exists() ;
-		// Returns true if an instance exists.
-
 	static G::Path defaultDirectory() ;
 		// Returns a default spool directory, such as
 		// "/usr/local/var/spool/emailrelay". (Typically
 		// has an os-specific implementation.)
-
-	MessageStore() ;
-		// Default constructor.
 
 	virtual ~MessageStore() ;
 		// Destructor.
@@ -125,11 +115,7 @@ public:
 		// or deleted (if they have no recipients).
 
 private:
-	MessageStore( const MessageStore & ) ;
-	void operator=( const MessageStore & ) ;
-
-private:
-	static MessageStore * m_this ;
+	void operator=( const MessageStore & ) ; // not implemented
 } ;
 
 #endif

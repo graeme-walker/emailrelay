@@ -37,7 +37,7 @@ namespace G
 // Description: A class which aquires special privileges.
 // The implementation uses G::Process.
 //
-class G::Root : private noncopyable
+class G::Root : private G::noncopyable
 {
 public:
 	explicit Root( bool change_group = true ) ;

@@ -46,7 +46,7 @@ namespace GNet
 // Description: A concrete implementation of GNet::EventLoop using
 // ::select() in the implementation.
 //
-class GNet::Select : public GNet:: EventLoop , public G::noncopyable
+class GNet::Select : public GNet::EventLoop , public G::noncopyable
 {
 public:
 	G_EXCEPTION( Error , "select() error" ) ;
@@ -62,6 +62,7 @@ public:
 	virtual void dropRead( Descriptor fd ) ;
 	virtual void dropWrite( Descriptor fd ) ;
 	virtual void dropException( Descriptor fd ) ;
+
 private:
 	void runOnce() ;
 	virtual void setTimeout( G::DateTime::EpochTime t ) ;
@@ -84,9 +85,10 @@ public:
 	EventHandlerList & m_list ;
 	explicit Lock( EventHandlerList & list ) ;
 	~Lock() ;
+
 private:
-	Lock( const Lock & ) ;
-	void operator=( const Lock & ) ;
+	Lock( const Lock & ) ; // not implemented
+	void operator=( const Lock & ) ; // not implemented
 } ;
 
 // Class: GNet::FdSet
@@ -100,7 +102,7 @@ public:
 	static void raiseEvents( fd_set * set , EventHandlerList & list ,
 		void (EventHandler::*method)() , const char * type ) ;
 private:
-	FdSet() ;
+	FdSet() ; // not implemented
 } ;
 
 // ===
@@ -123,6 +125,8 @@ GNet::Lock::~Lock()
 //static
 int GNet::FdSet::init( int n , fd_set * set , const EventHandlerList & list )
 {
+	// copy the event-handler-list into the fd-set
+
 	FD_ZERO( set ) ;
 	const EventHandlerList::Iterator end = list.end() ;
 	for( EventHandlerList::Iterator p = list.begin() ; p != end ; ++p )
@@ -139,6 +143,8 @@ int GNet::FdSet::init( int n , fd_set * set , const EventHandlerList & list )
 void GNet::FdSet::raiseEvents( fd_set * set , EventHandlerList & list ,
 	void (EventHandler::*method)() , const char * /*type*/ )
 {
+	// call the event-handler for fds in fd-set which are ISSET()
+
 	GNet::Lock lock( list ) ; // since event handlers may change the list while we iterate
 	const EventHandlerList::Iterator end = list.end() ;
 	for( EventHandlerList::Iterator p = list.begin() ; p != end ; ++p )
@@ -157,6 +163,7 @@ void GNet::FdSet::raiseEvents( fd_set * set , EventHandlerList & list ,
 
 GNet::EventLoop * GNet::EventLoop::create()
 {
+	// factory-method pattern
 	return new Select ;
 }
 
@@ -202,11 +209,15 @@ void GNet::Select::quit()
 
 void GNet::Select::runOnce()
 {
+	// build fd-sets from handler lists
+	//
 	int n = 1 ;
 	fd_set r ; n = FdSet::init( n , &r , m_read_list ) ;
 	fd_set w ; n = FdSet::init( n , &w , m_write_list ) ;
 	fd_set e ; n = FdSet::init( n , &e , m_exception_list ) ;
 
+	// get a timeout interval() from TimerList
+	//
 	Timeval timeout ;
 	Timeval * timeout_p = NULL ;
 	if( TimerList::instance(TimerList::NoThrow()) != NULL )
@@ -217,6 +228,8 @@ void GNet::Select::runOnce()
 		timeout_p = infinite ? NULL : &timeout ;
 	}
 
+	// debug
+	//
 	const bool debug = false ;
 	if( debug )
 	{
@@ -227,22 +240,25 @@ void GNet::Select::runOnce()
 			<< "timeout=" << (timeout_p?G::Str::fromUInt(timeout_p->tv_sec):std::string("infinite")) ) ;
 	}
 
+	// do the select()
+	//
 	int rc = ::select( n , &r , &w , &e , timeout_p ) ;
+	if( rc < 0 )
+		throw Error() ;
+
+	// call the event handlers
+	//
 	if( rc == 0 )
 	{
 		G_DEBUG( "GNet::Select::runOnce: select() timeout" ) ;
 		TimerList::instance().doTimeouts() ;
 	}
-	else if( rc > 0 )
+	else // rc > 0
 	{
 		G_DEBUG( "GNet::Select::runOnce: detected event(s) on " << rc << " fd(s)" ) ;
 		FdSet::raiseEvents( &r , m_read_list , & EventHandler::readEvent , "read" ) ;
 		FdSet::raiseEvents( &w , m_write_list , & EventHandler::writeEvent , "write" ) ;
 		FdSet::raiseEvents( &e , m_exception_list , & EventHandler::exceptionEvent , "exception" ) ;
-	}
-	else
-	{
-		throw Error() ;
 	}
 }
 

@@ -62,9 +62,10 @@ std::string G::File::sizeString( g_uint32_t hi , g_uint32_t lo )
 	std::string s ;
 	while( n != 0 )
 	{
-		size_t i = n % 10U ;
-		s.insert( 0U , 1U , '0' + i ) ;
-		n /= 10U ;
+		int i = static_cast<int>( n % 10 ) ;
+		char c = static_cast<char>( '0' + i ) ;
+		s.insert( 0U , 1U , c ) ;
+		n /= 10 ;
 	}
 	return s ;
 }

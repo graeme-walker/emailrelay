@@ -33,17 +33,18 @@
 #include "gassert.h"
 #include <string>
 
-GSmtp::ServerPeer::ServerPeer( GNet::StreamSocket * socket , GNet::Address peer_address ,
+GSmtp::ServerPeer::ServerPeer( GNet::Server::PeerInfo peer_info ,
 	Server & server , std::auto_ptr<ProtocolMessage> pmessage , const std::string & ident ,
-	const Verifier & verifier ) :
-		GNet::ServerPeer( socket , peer_address ) ,
+	const Secrets & server_secrets , const Verifier & verifier ) :
+		GNet::ServerPeer( peer_info ) ,
 		m_server( server ) ,
 		m_buffer( crlf() ) ,
 		m_verifier( verifier ) ,
 		m_pmessage( pmessage ) ,
-		m_protocol( *this, m_verifier, *m_pmessage.get(), thishost(), peer_address )
+		m_protocol( *this , m_verifier , *m_pmessage.get() , server_secrets ,
+			thishost(), peer_info.m_address )
 {
-	G_LOG_S( "GSmtp::ServerPeer: smtp connection from " << peer_address.displayString() ) ;
+	G_LOG_S( "GSmtp::ServerPeer: smtp connection from " << peer_info.m_address.displayString() ) ;
 	m_protocol.init( ident ) ;
 }
 
@@ -111,13 +112,22 @@ void GSmtp::ServerPeer::protocolDone()
 
 // ===
 
-GSmtp::Server::Server( unsigned int port , const AddressList & interfaces ,
-	bool allow_remote , const std::string & ident ,
-	const std::string & downstream_server , const Verifier & verifier ) :
-		m_ident( ident ) ,
+GSmtp::Server::Server( MessageStore & store ,
+	const Secrets & server_secrets , const Verifier & verifier ,
+	const std::string & ident , bool allow_remote ,
+	unsigned int port , const AddressList & interfaces ,
+	const std::string & downstream_server ,
+	unsigned int response_timeout , unsigned int connection_timeout ,
+	const Secrets & client_secrets ) :
+		m_store(store) ,
+		m_ident(ident) ,
 		m_allow_remote( allow_remote ) ,
-		m_downstream_server(downstream_server) ,
+		m_server_secrets(server_secrets) ,
 		m_verifier(verifier) ,
+		m_downstream_server(downstream_server) ,
+		m_response_timeout(response_timeout) ,
+		m_connection_timeout(connection_timeout) ,
+		m_client_secrets(client_secrets) ,
 		m_gnet_server_1( *this ) ,
 		m_gnet_server_2( *this ) ,
 		m_gnet_server_3( *this )
@@ -160,16 +170,14 @@ void GSmtp::Server::report() const
 	}
 }
 
-GNet::ServerPeer * GSmtp::Server::newPeer( GNet::StreamSocket * socket , GNet::Address peer_address )
+GNet::ServerPeer * GSmtp::Server::newPeer( GNet::Server::PeerInfo peer_info )
 {
-	std::auto_ptr<GNet::StreamSocket> socket_ptr(socket) ;
-
 	if( ! m_allow_remote &&
-		!peer_address.sameHost(GNet::Local::canonicalAddress()) &&
-		!peer_address.sameHost(GNet::Local::localhostAddress()) )
+		!peer_info.m_address.sameHost(GNet::Local::canonicalAddress()) &&
+		!peer_info.m_address.sameHost(GNet::Local::localhostAddress()) )
 	{
 		G_WARNING( "GSmtp::Server: configured to reject non-local connection: "
-			<< peer_address.displayString(false) << " is not one of "
+			<< peer_info.m_address.displayString(false) << " is not one of "
 			<< GNet::Local::canonicalAddress().displayString(false) << ","
 			<< GNet::Local::localhostAddress().displayString(false) ) ;
 		return NULL ;
@@ -179,10 +187,11 @@ GNet::ServerPeer * GSmtp::Server::newPeer( GNet::StreamSocket * socket , GNet::A
 
 	std::auto_ptr<ProtocolMessage> pmessage(
 		immediate ?
-			static_cast<ProtocolMessage*>(new ProtocolMessageForward(m_downstream_server)) :
-			static_cast<ProtocolMessage*>(new ProtocolMessageStore) ) ;
+			static_cast<ProtocolMessage*>(new ProtocolMessageForward(m_store,
+				m_client_secrets,m_downstream_server,m_response_timeout,m_connection_timeout)) :
+			static_cast<ProtocolMessage*>(new ProtocolMessageStore(m_store)) ) ;
 
-	return new ServerPeer( socket_ptr.release() , peer_address , *this , pmessage , m_ident , m_verifier ) ;
+	return new ServerPeer( peer_info , *this , pmessage , m_ident , m_server_secrets , m_verifier ) ;
 }
 
 // ===
@@ -192,8 +201,8 @@ GSmtp::ServerImp::ServerImp( GSmtp::Server & server ) :
 {
 }
 
-GNet::ServerPeer * GSmtp::ServerImp::newPeer( GNet::StreamSocket * socket , GNet::Address peer_address )
+GNet::ServerPeer * GSmtp::ServerImp::newPeer( GNet::Server::PeerInfo peer_info )
 {
-	return m_server.newPeer( socket , peer_address ) ;
+	return m_server.newPeer( peer_info ) ;
 }
 

@@ -27,11 +27,7 @@
 #include "glog.h"
 #include "gassert.h"
 #include "gdebug.h"
-
-#define G_DC 0 // 0 <= reduce dependencies for now
-#if G_DC
 #include "gdc.h"
-#endif
 
 LRESULT CALLBACK gcontrol_wndproc_export( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam ) ;
 
@@ -95,11 +91,30 @@ bool GGui::Control::subClass()
 	SubClassMap::Proc old = reinterpret_cast<SubClassMap::Proc>(
 		::GetWindowLong( handle() , GWL_WNDPROC ) ) ;
 
-	m_dialog.map().add( handle() , old , (void*)this ) ;
+	m_dialog.map().add( handle() , old , static_cast<void*>(this) ) ;
 	::SetWindowLong( handle() , GWL_WNDPROC,
 		reinterpret_cast<DWORD>(gcontrol_wndproc_export) ) ;
 	return true ;
 }
+
+LRESULT GGui::Control::wndProc( unsigned message , WPARAM wparam , LPARAM lparam , WNDPROC super_class )
+{
+	bool forward = true ;
+	LRESULT result = onMessage( message , wparam , lparam , super_class , forward ) ;
+
+	if( forward )
+		return (*super_class)( handle() , message , wparam , lparam ) ;
+	else
+		return result ;
+}
+
+LRESULT GGui::Control::onMessage( unsigned , WPARAM , LPARAM , WNDPROC , bool &forward )
+{
+	forward = true ;
+	return 0 ;
+}
+
+// ===
 
 LRESULT CALLBACK gcontrol_wndproc_export( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam )
 {
@@ -121,9 +136,9 @@ LRESULT CALLBACK gcontrol_wndproc_export( HWND hwnd , UINT message , WPARAM wpar
 	G_ASSERT( dialog->isValid() ) ;
 
 	// find the control object and the super-class window procedure
-	void *context = NULL ;
+	void * context = NULL ;
 	GGui::SubClassMap::Proc super_class = reinterpret_cast<GGui::SubClassMap::Proc>(dialog->map().find(hwnd,&context)) ;
-	GGui::Control *control = reinterpret_cast<GGui::Control*>(context) ;
+	GGui::Control * control = reinterpret_cast<GGui::Control*>(context) ;
 	G_ASSERT( control != NULL ) ;
 	G_ASSERT( control->handle() == hwnd ) ;
 	G_ASSERT( control->id() == ::GetDlgCtrlID(hwnd) ) ;
@@ -135,26 +150,24 @@ LRESULT CALLBACK gcontrol_wndproc_export( HWND hwnd , UINT message , WPARAM wpar
 	return control->wndProc( message , wparam , lparam , super_class ) ;
 }
 
-LRESULT GGui::Control::wndProc( unsigned message , WPARAM wparam , LPARAM lparam , WNDPROC super_class )
-{
-	bool forward = true ;
-	LRESULT result = onMessage( message , wparam , lparam , super_class , forward ) ;
+// ===
 
-	if( forward )
-		return (*super_class)( handle() , message , wparam , lparam ) ;
-	else
-		return result ;
+GGui::Control::NoRedraw::NoRedraw( Control & control ) :
+	m_control(control)
+{
+	m_control.m_no_redraw_count++ ;
+	if( m_control.m_no_redraw_count == 1 )
+		m_control.sendMessage( WM_SETREDRAW , false ) ;
 }
 
-LRESULT GGui::Control::onMessage( unsigned , WPARAM , LPARAM , WNDPROC , bool &forward )
+GGui::Control::NoRedraw::~NoRedraw()
 {
-	forward = true ;
-	return 0 ;
+	m_control.m_no_redraw_count-- ;
+	if( m_control.m_no_redraw_count == 0 )
+		m_control.sendMessage( WM_SETREDRAW , true ) ;
 }
 
-// =====================================
-// GGui::ListBox
-// -------------------------------------
+// ===
 
 GGui::ListBox::ListBox( Dialog &dialog , int id ) :
 	Control(dialog,id)
@@ -165,7 +178,7 @@ GGui::ListBox::~ListBox()
 {
 }
 
-void GGui::ListBox::set( const G::Strings &list ) // was putList()
+void GGui::ListBox::set( const G::Strings &list )
 {
 	if( list.size() == 0U )
 	{
@@ -183,14 +196,15 @@ void GGui::ListBox::set( const G::Strings &list ) // was putList()
 	for( G::Strings::const_iterator string_p = list.begin() ;
 		string_p != list.end() ; ++string_p )
 	{
-		sendMessage( LB_ADDSTRING , 0 , (LPARAM)(*string_p).c_str() ) ;
+		sendMessage( LB_ADDSTRING , 0 ,
+			reinterpret_cast<LPARAM>((*string_p).c_str()) ) ;
 	}
 }
 
 int GGui::ListBox::getSelection()
 {
 	LRESULT rc = sendMessage( LB_GETCURSEL ) ;
-	return rc == LB_ERR ? -1 : (int)rc ;
+	return rc == LB_ERR ? -1 : static_cast<int>(rc) ;
 }
 
 void GGui::ListBox::setSelection( int index )
@@ -211,7 +225,7 @@ std::string GGui::ListBox::getItem( int index ) const
 	if( buffer == NULL )
 		return std::string() ;
 
-    buffer[0] = '\0' ;
+	buffer[0] = '\0' ;
 	sendMessage( LB_GETTEXT , (WPARAM)index , (LPARAM)(LPCSTR)buffer ) ;
 	std::string s( buffer ) ;
 	delete [] buffer ;
@@ -229,9 +243,7 @@ unsigned GGui::ListBox::entries() const
 	return entries ;
 }
 
-// =============
-// GGui::EditBox
-// -------------
+// ===
 
 GGui::EditBox::EditBox( Dialog &dialog , int id ) :
 	Control( dialog , id ) ,
@@ -249,7 +261,7 @@ void GGui::EditBox::set( const std::string & text )
 	::SetWindowText( handle() , text.c_str() ) ;
 }
 
-void GGui::EditBox::set( const G::Strings & list ) // was putList()
+void GGui::EditBox::set( const G::Strings & list )
 {
 	if( list.size() == 0U )
 	{
@@ -287,7 +299,6 @@ unsigned GGui::EditBox::lines()
 	return lines ;
 }
 
-#if G_DC
 unsigned GGui::EditBox::linesInWindow()
 {
 	unsigned text_height = characterHeight() ;
@@ -297,7 +308,6 @@ unsigned GGui::EditBox::linesInWindow()
 	G_DEBUG( "GGui::EditBox::linesInWindow: " << result ) ;
 	return result ;
 }
-#endif
 
 void GGui::EditBox::scrollBack( int lines )
 {
@@ -346,7 +356,6 @@ unsigned GGui::EditBox::scrollRange()
 	return range ;
 }
 
-#if G_DC
 unsigned GGui::EditBox::characterHeight()
 {
 	if( m_character_height == 0 )
@@ -359,9 +368,7 @@ unsigned GGui::EditBox::characterHeight()
 	}
 	return m_character_height ;
 }
-#endif
 
-#if G_DC
 unsigned GGui::EditBox::windowHeight()
 {
 	RECT rect ;
@@ -369,11 +376,8 @@ unsigned GGui::EditBox::windowHeight()
 	G_ASSERT( rect.bottom >= rect.top ) ;
 	return (unsigned)( rect.bottom - rect.top ) ;
 }
-#endif
 
-// =====================================
-// GCheckBox
-// -------------------------------------
+// ===
 
 GGui::CheckBox::CheckBox( Dialog &dialog , int id ) :
 	Control(dialog,id)
@@ -394,9 +398,7 @@ void GGui::CheckBox::set( bool b )
 	::CheckDlgButton( dialog().handle() , id() , b ) ;
 }
 
-// =====================================
-// GButton
-// -------------------------------------
+// ===
 
 GGui::Button::Button( Dialog &dialog , int id ) :
 	Control(dialog,id)

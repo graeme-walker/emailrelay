@@ -1,6 +1,21 @@
 E-MailRelay Change Log
 ======================
 
+1.0.2 -> 1.1.0
+--------------
+* In proxy mode unexpected client-side disconnects and timeouts do not leave ".bad" files [see also bug-id 659039].
+* By default proxy mode does not interpret addresses for local delivery ("--postmaster").
+* Polling option added ("--poll") to rescan the spool directory periodically.
+* New special exit code (103) for the pre-processor to trigger immediate polling; 100 to 107 now reserved.
+* Orphaned zero-length content files are deleted properly if the server-side dialogue is cut short.
+* The "--interface" switch applies to the "--admin" interface too.
+* Improved internal event architecture using slot/signal design pattern, and fewer singleton classes.
+* Event notification available through the administration interface.
+* New "--hidden" switch for Windows.
+* Syslog output includes process-id.
+* Support for Sun WorkShop 5.0 added.
+* Documentation overhaul.
+
 1.0.0 -> 1.0.2
 --------------
 * Support for trusted IP addresses, allowing certain clients to avoid authentication.
@@ -39,7 +54,7 @@ E-MailRelay Change Log
 * More flexible logging options ("--verbose" and "--debug" work better).
 * File Hierarchy Standard (FHS) option for "configure" ("--enable-fhs").
 * FHS-compatible RPMs.
-* Spool files writeable by preprocessor when server started as root.
+* Spool files writeable by pre-processor when server started as root.
 * Default directories in executables and scripts come from "configure".
 * The "init.d" script is renamed "emailrelay" (was "emailrelay.sh").
 * Man pages are gzipped when installed.
@@ -52,7 +67,7 @@ E-MailRelay Change Log
 
 0.9.7 -> 0.9.8
 --------------
-* Fix for running preprocessor ("--filter") as root.
+* Fix for running pre-processor ("--filter") as root.
 * Ignore bogus "AUTH=LOGIN" lines in EHLO response.
 * Submit utility improved to work with mutt.
 * Installation of submit man page.
@@ -101,7 +116,7 @@ Windows fixes and improvements...
 0.9.2 -> 0.9.3
 --------------
 * Proxy mode ("--immediate" and "--as-proxy").
-* Message preprocessing ("--filter").
+* Message pre-processing ("--filter").
 * Message store classes better separated using abstract interfaces.
 * Improved notification script, with MIME encoding.
 * Builds with old 2.91 version of gcc.

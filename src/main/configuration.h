@@ -120,7 +120,10 @@ public:
 		// Returns the pre-processor's path.
 
 	unsigned int icon() const ;
-		// Returns the icon selector.
+		// Returns the icon selector (win32).
+
+	bool hidden() const ;
+		// Returns true if the main window is hidden (win32).
 
 	unsigned int responseTimeout() const ;
 		// Returns the client-side protocol timeout value.
@@ -145,6 +148,24 @@ public:
 
 	G::Path verifier() const ;
 		// Returns the path of an external address verifier program.
+
+	bool deliverToPostmaster() const ;
+		// Returns true if the internal address verifier should accept
+		// local postmaster addresses for local delivery.
+
+	bool rejectLocalMailboxes() const ;
+		// Returns true if the internal address verifier should reject
+		// local mailbox addresses.
+
+	bool doPolling() const ;
+		// Returns true if doing client polling.
+
+	unsigned int pollingTimeout() const ;
+		// Returns the polling timeout.
+
+	bool withTerminate() const ;
+		// Returns true if the admin interface should support the
+		// terminate command.
 
 private:
 	const CommandLine & m_cl ;

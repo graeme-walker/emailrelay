@@ -48,7 +48,8 @@ std::string Main::CommandLine::osSwitchSpec()
 		<< "l!log!writes log information on standard error and event log!0!!2|"
 		<< "t!no-daemon!use an ordinary window, not the system tray!0!!3|"
 		<< "n!no-syslog!dont use the event log!0!!3|"
-		<< "I!icon!selects the application icon!1!0^|1^|2^|3!3"
+		<< "I!icon!selects the application icon!1!0^|1^|2^|3!3|"
+		<< "H!hidden!hides the application window (requires --no-daemon)!0!!3"
 		;
 
 	return ss.str() ;

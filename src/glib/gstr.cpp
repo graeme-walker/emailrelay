@@ -115,7 +115,7 @@ bool G::Str::isUShort( const std::string & s )
 {
 	try
 	{
-		(void) toUShort(s) ;
+		G_IGNORE toUShort(s) ;
 	}
 	catch( Overflow & )
 	{
@@ -132,7 +132,7 @@ bool G::Str::isUInt( const std::string & s )
 {
 	try
 	{
-		(void) toUInt(s) ;
+		G_IGNORE toUInt(s) ;
 	}
 	catch( Overflow & )
 	{
@@ -149,7 +149,7 @@ bool G::Str::isULong( const std::string & s )
 {
 	try
 	{
-		(void) toULong(s) ;
+		G_IGNORE toULong(s) ;
 	}
 	catch( Overflow & )
 	{
@@ -238,7 +238,7 @@ void G::Str::toLower( std::string &s )
 {
 	for( std::string::iterator p = s.begin() ; p != s.end() ; ++p )
 	{
-		*p = ::tolower( *p ) ;
+		*p = static_cast<char>( ::tolower(*p) ) ;
 	}
 }
 
@@ -253,7 +253,7 @@ void G::Str::toUpper( std::string &s )
 {
 	for( std::string::iterator p = s.begin() ; p != s.end() ; ++p )
 	{
-		*p = ::toupper( *p ) ;
+		*p = static_cast<char>( ::toupper(*p) ) ;
 	}
 }
 

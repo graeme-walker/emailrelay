@@ -28,6 +28,12 @@
 #include "glog.h"
 #include <signal.h>
 
+extern "C"
+{
+	void gcleanup_unix_handler_( int signum ) ;
+	typedef void (*Handler)( int ) ;
+}
+
 namespace G
 {
 	class CleanupImp ;
@@ -40,14 +46,13 @@ class G::CleanupImp
 {
 public:
 	static void add( void (*fn)(const char*) , const char * ) ;
+	static void installDefault( int ) ;
+	static void callHandlers() ;
 
 private:
 	static void init() ;
-	static void install( int , void (*fn)(int) ) ;
+	static void install( int , Handler ) ;
 	static void installHandler( int ) ;
-	static void installDefault( int ) ;
-	static void callHandlers() ;
-	static void handler_( int ) ;
 	static bool ignored( int ) ;
 
 private:
@@ -104,7 +109,7 @@ void G::CleanupImp::installHandler( int signum )
 	if( ignored(signum) )
 		G_DEBUG( "G::CleanupImp::installHandler: signal " << signum << " is ignored" ) ;
 	else
-		install( signum , handler_ ) ;
+		install( signum , gcleanup_unix_handler_ ) ;
 }
 
 void G::CleanupImp::installDefault( int signum )
@@ -121,7 +126,7 @@ bool G::CleanupImp::ignored( int signum )
 	return action.sa_handler == SIG_IGN ;
 }
 
-void G::CleanupImp::install( int signum , void (*fn)(int) )
+void G::CleanupImp::install( int signum , Handler fn )
 {
 	static struct sigaction zero_action ;
 	struct sigaction action( zero_action ) ;
@@ -139,12 +144,13 @@ void G::CleanupImp::callHandlers()
 	}
 }
 
-void G::CleanupImp::handler_( int signum )
+extern "C"
+void gcleanup_unix_handler_( int signum )
 {
 	try
 	{
-		callHandlers() ;
-		installDefault( signum ) ;
+		G::CleanupImp::callHandlers() ;
+		G::CleanupImp::installDefault( signum ) ;
 		::raise( signum ) ;
 	}
 	catch(...)

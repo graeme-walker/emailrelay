@@ -49,7 +49,7 @@ namespace GNet
 // application's main message queue, and these messages have
 // to be passed on the the WinSock layer.
 //
-class GNet::Winsock : public EventLoop
+class GNet::Winsock : public GNet::EventLoop
 {
 public:
 	Winsock() ;

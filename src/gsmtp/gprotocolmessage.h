@@ -26,6 +26,7 @@
 
 #include "gdef.h"
 #include "gsmtp.h"
+#include "gslot.h"
 #include "gstrings.h"
 #include "gverifier.h"
 #include <string>
@@ -47,19 +48,18 @@ namespace GSmtp
 class GSmtp::ProtocolMessage
 {
 public:
-	class Callback // A callback interface used by ProtocolMessage::process().
-	{
-		public: virtual ~Callback() ;
-		public: virtual void processDone( bool success , unsigned long id , const std::string & reason ) = 0 ;
-			// Signals that ProtocolMessage::process() has completed.
-			// As a special case, if success is true and id is zero then
-			// the message processing was cancelled.
-
-		private: void operator=( const Callback & ) ; // not implemented
-	} ;
 
 	virtual ~ProtocolMessage() ;
 		// Destructor.
+
+	virtual G::Signal3<bool,unsigned long,std::string> & doneSignal() = 0 ;
+		// Returns a signal which is raised once process() has
+		// completed.
+		//
+		// The signal parameters are 'success', 'id' and 'reason'.
+		//
+		// As a special case, if success is true and id is zero then
+		// the message processing was cancelled.
 
 	virtual void clear() = 0 ;
 		// Clears the message state and terminates
@@ -93,13 +93,13 @@ public:
 	virtual std::string from() const = 0 ;
 		// Returns the setFrom() string.
 
-	virtual void process( Callback & callback , const std::string & authenticated_client_id ,
+	virtual void process( const std::string & authenticated_client_id ,
 		const std::string & peer_ip_address ) = 0 ;
 			// Starts asynchronous processing of the
 			// message. Once processing is complete the
-			// message state is cleared and the callback
-			// is triggered. The callback may be called
-			// before process() returns.
+			// message state is cleared and the doneSignal()
+			// is raised. The signal may be raised before
+			// process() returns.
 			//
 			// The client-id parameter is used to propogate
 			// authentication information from the SMTP

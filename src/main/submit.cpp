@@ -29,6 +29,9 @@
 // * the envelope "From" field can be specified on the command-line
 // * the envelope "From" field is defaulted from the header "From:" line
 // * the header "From:" line is defaulted from the envelope "From" field
+//
+// usage: submit [--spool-dir <spool-dir>] [--from <envelope-from>] [--help] [<to> ...]
+//
 
 #include "gdef.h"
 #include "gnet.h"
@@ -84,7 +87,7 @@ static void process( const G::Path & path , std::istream & stream ,
 	// add "To:" lines to the envelope
 	//
 	G::Path verifier_exe ;
-	GSmtp::Verifier verifier( verifier_exe ) ;
+	GSmtp::Verifier verifier( verifier_exe , false , false ) ;
 	for( G::Strings::const_iterator to_p = to_list.begin() ; to_p != to_list.end() ; ++to_p )
 	{
 		std::string to = *to_p ;

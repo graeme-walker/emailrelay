@@ -35,9 +35,9 @@ GGui::WindowHidden::WindowHidden( HINSTANCE hinstance ) :
 
 	if( !m_registered )
 	{
-		bool success = registerWindowClass( window_class_name.c_str() ,
+		bool success = registerWindowClass( window_class_name ,
 			hinstance , classStyle() , classIcon() , classCursor() ,
-			classBrush() , /*menu-name*/ NULL ) ;
+			classBrush() ) ;
 
 		G_ASSERT( success || !"GGui::WindowHidden: window class registration error" ) ;
 
@@ -45,9 +45,9 @@ GGui::WindowHidden::WindowHidden( HINSTANCE hinstance ) :
 	}
 
 	{
-		bool success = create( window_class_name.c_str() ,
-			"" , // title
-			WS_POPUP , // window style
+		bool success = create( window_class_name ,
+			std::string() , // title
+			windowStyleHidden() , // window style
 			0 , 0 , 10 , 10 , // x,y,dx,dy
 			0 , // parent
 			0 , // menu
@@ -80,7 +80,7 @@ std::string GGui::WindowHidden::windowClassName()
 
 	WNDPROC wndproc = windowProcedure() ;
 	std::ostringstream ss ;
-	ss << "GGui::WindowHidden." << (unsigned long)wndproc ;
+	ss << "GGui::WindowHidden." << reinterpret_cast<unsigned long>(wndproc) ;
 	return ss.str() ;
 }
 

@@ -282,8 +282,8 @@ void G::Process::beSpecial( Identity identity , bool change_group )
 	// gcc requires -D_BSD_SOURCE for seteuid()
 	//
 	Identity old_identity ;
-	(void) ::seteuid( identity.uid ) ;
-	if( change_group) (void) ::setegid( identity.gid ) ;
+	G_IGNORE ::seteuid( identity.uid ) ;
+	if( change_group) G_IGNORE ::setegid( identity.gid ) ;
 	//G_DEBUG( "G::Process::beSpecial: " << old_identity << " -> " << Identity() ) ;
 	old_identity.uid = 0 ; // pacify the compiler
 }
@@ -391,7 +391,7 @@ std::string G::Process::Identity::str() const
 
 // ===
 
-class G::Process::Umask::UmaskImp
+class G::Process::Umask::UmaskImp // A private implementation class used by G::Process::Umask.
 {
 public:
 	mode_t m_old_mode ;
@@ -406,7 +406,7 @@ G::Process::Umask::Umask( Mode mode ) :
 
 G::Process::Umask::~Umask()
 {
-	(void) ::umask( m_imp->m_old_mode ) ;
+	G_IGNORE ::umask( m_imp->m_old_mode ) ;
 	delete m_imp ;
 }
 

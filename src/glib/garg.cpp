@@ -126,7 +126,7 @@ void G::Arg::removeAt( size_t sw_index , size_t sw_args )
 	G_ASSERT( sw_index > 0U && sw_index < m_array.size() ) ;
 	if( sw_index > 0U && sw_index < m_array.size() )
 	{
-		Array::iterator p = m_array.begin() + sw_index ;
+		StringArray::iterator p = m_array.begin() + sw_index ;
 		p = m_array.erase( p ) ;
 		for( size_t i = 0U ; i < sw_args && p != m_array.end() ; i++ )
 			p = m_array.erase( p ) ;

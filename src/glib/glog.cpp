@@ -31,7 +31,7 @@ namespace G
 }
 
 // Class: LogImp
-// Description: An implementation class used by Log.
+// Description: An implementation class used by G::Log.
 //
 class G::LogImp
 {

@@ -80,7 +80,7 @@ unsigned int G::Time::seconds() const
 	return m_ss ;
 }
 
-std::string G::Time::hhmmss( const char * sep )
+std::string G::Time::hhmmss( const char * sep ) const
 {
 	if( sep == NULL ) sep = "" ;
 	std::ostringstream ss ;
@@ -88,11 +88,19 @@ std::string G::Time::hhmmss( const char * sep )
 	return ss.str() ;
 }
 
-std::string G::Time::hhmm( const char * sep )
+std::string G::Time::hhmm( const char * sep ) const
 {
 	if( sep == NULL ) sep = "" ;
 	std::ostringstream ss ;
 	ss << (m_hh/10U) << (m_hh%10U) << sep << (m_mm/10U) << (m_mm%10U) ;
 	return ss.str() ;
 }
+
+std::string G::Time::ss() const
+{
+	std::ostringstream ss ;
+	ss << (m_ss/10U) << (m_ss%10U) ;
+	return ss.str() ;
+}
+
 

@@ -30,6 +30,7 @@
 #include "gserver.h"
 #include "glinebuffer.h"
 #include "gverifier.h"
+#include "gmessagestore.h"
 #include "gserverprotocol.h"
 #include "gprotocolmessage.h"
 #include "gexception.h"
@@ -50,12 +51,12 @@ namespace GSmtp
 // Instances are created on the heap by Server (only).
 // See also: GSmtp::Server
 //
-class GSmtp::ServerPeer : public GNet::ServerPeer , private GSmtp:: ServerProtocol::Sender
+class GSmtp::ServerPeer : public GNet::ServerPeer , private GSmtp::ServerProtocol::Sender
 {
 public:
-	ServerPeer( GNet::StreamSocket * socket , GNet::Address address ,
-		Server & server , std::auto_ptr<ProtocolMessage> pmessage ,
-		const std::string & ident , const Verifier & verifier ) ;
+	ServerPeer( GNet::Server::PeerInfo , Server & server ,
+		std::auto_ptr<ProtocolMessage> pmessage ,
+		const std::string & ident , const Secrets & , const Verifier & verifier ) ;
 			// Constructor.
 
 private:
@@ -86,7 +87,7 @@ public:
 	explicit ServerImp( GSmtp::Server & ) ;
 		// Constructor.
 
-	virtual GNet::ServerPeer * newPeer( GNet::StreamSocket * , GNet::Address ) ;
+	virtual GNet::ServerPeer * newPeer( GNet::Server::PeerInfo ) ;
 		// ServerPeer factory method.
 
 private:
@@ -106,22 +107,33 @@ public:
 	typedef std::list<GNet::Address> AddressList ;
 	G_EXCEPTION( Overflow , "too many interface addresses" ) ;
 
-	Server( unsigned int port , const AddressList & interfaces ,
-		bool allow_remote , const std::string & ident ,
+	Server( MessageStore & store ,
+		const Secrets & server_secrets , const Verifier & verifier ,
+		const std::string & ident , bool allow_remote ,
+		unsigned int port , const AddressList & interfaces ,
 		const std::string & downstream_server_address ,
-		const Verifier & verifier ) ;
+		unsigned int response_timeout ,
+		unsigned int connection_timeout ,
+		const Secrets & client_secrets ) ;
 			// Constructor. Listens on the given port number
 			// using INET_ANY if 'interfaces' is empty, or
 			// on specific interfaces otherwise. Currently
 			// only three interface addresses are supported.
 			//
 			// If the 'downstream-server-address' parameter is
-			// given then all messages are forwarded immediately.
+			// given then all messages are forwarded immediately,
+			// using the specified client-side timeout values
+			// and client-side secrets.
+			//
+			// If the 'downstream-server-address' parameter is
+			// empty then the timeout values are ignored.
+			//
+			// The 'store' and 'secrets' references are kept.
 
 	void report() const ;
 		// Generates helpful diagnostics after construction.
 
-	GNet::ServerPeer * newPeer( GNet::StreamSocket * , GNet::Address ) ;
+	GNet::ServerPeer * newPeer( GNet::Server::PeerInfo ) ;
 		// ServerPeer factory method used by ServerImp.
 
 private:
@@ -129,10 +141,15 @@ private:
 	ServerImp & imp( size_t n ) ;
 
 private:
+	MessageStore & m_store ;
 	std::string m_ident ;
 	bool m_allow_remote ;
-	std::string m_downstream_server ;
+	const Secrets & m_server_secrets ;
 	Verifier m_verifier ;
+	std::string m_downstream_server ;
+	unsigned int m_response_timeout ;
+	unsigned int m_connection_timeout ;
+	const Secrets & m_client_secrets ;
 	ServerImp m_gnet_server_1 ;
 	ServerImp m_gnet_server_2 ;
 	ServerImp m_gnet_server_3 ;

@@ -26,6 +26,11 @@
 #include "gdebug.h"
 #include "glog.h"
 
+GGui::SubClassMap::SubClassMap() :
+	m_high_water(0U)
+{
+}
+
 GGui::SubClassMap::~SubClassMap()
 {
 }

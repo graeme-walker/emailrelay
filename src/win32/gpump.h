@@ -29,14 +29,16 @@
 namespace GGui
 {
 	class Pump ;
-} ;
+}
 
 // Class: GGui::Pump
 //
 // Description: A static class which implements a
-// Windows message pump. Uses GDialog::dialogMessage()
+// Windows message pump. Uses GGui::Dialog::dialogMessage()
 // in its implementation in order to support modeless
 // dialog boxes.
+//
+// See also: GGui::Cracker, GGui::Dialog, GGui::ApplicationInstance
 //
 class GGui::Pump
 {
@@ -52,7 +54,8 @@ public:
 
 	static void quit() ;
 		// Causes run() to return (once the call stack
-		// has unwound).
+		// has unwound). Use this in preference to
+		// ::PostQuitMessage().
 
 private:
 	static bool dialogMessage( MSG & ) ; // links gpump.cpp to gdialog.cpp (or not)

@@ -29,7 +29,7 @@
 namespace GGui
 {
 	class ApplicationInstance ;
-} ;
+}
 
 // Class: GGui::ApplicationInstance
 //
@@ -37,33 +37,36 @@ namespace GGui
 // instance handle, as obtained from WinMain().
 //
 // Other low-level classes in this library use this
-// class to obtain the application instance handle,
-// rather than calling GApplication::instance().
+// interface to obtain the application instance handle,
+// rather than some higher-level mechanism.
 //
 // Programs which need a message pump, but want to
 // avoid the overhead of the full GUI application
-// must use this class as an absolute minimum.
-// However, they should probably use the GApplicationBase
-// class, which also minimises the dependencies on
-// the framework.
+// framework must, as an absolute minimum, use this
+// class to set the application instance handle.
 //
-// See also: ApplicationBase
+// See also: GGui::ApplicationBase
 //
 class GGui::ApplicationInstance
 {
+protected:
+	explicit ApplicationInstance( HINSTANCE h ) ;
+		// Protected constructor which calls
+		// hinstance(h).
+		//
+		// (Providing a constructor can simplify
+		// early initialisation.)
+
 public:
-	explicit ApplicationInstance( HINSTANCE hinstance ) ;
-		// Constructor. (Setting the static value
-		// through a constructor is a bit klunky
-		// but it makes it easy to retrofit this
-		// class to the original version of
-		// GApplication.)
+	static void hinstance( HINSTANCE h ) ;
+		// Sets the instance handle which is
+		// subsequently returned by hinstance().
 
 	static HINSTANCE hinstance() ;
 		// Returns the instance handle that was
 		// passed to the constructor. Returns
-		// zero if no GApplicationInstance
-		// object has been created.
+		// zero hinstance(h) has never been
+		// called.
 
 private:
 	static HINSTANCE m_hinstance ;

@@ -60,7 +60,7 @@ namespace GSmtp
 //
 // See also: ProtocolMessage, RFC2821
 //
-class GSmtp::ServerProtocol : private GSmtp:: ProtocolMessage::Callback
+class GSmtp::ServerProtocol
 {
 public:
 	class Sender // An interface used by ServerProtocol to send protocol replies.
@@ -72,7 +72,7 @@ public:
 	} ;
 
 	ServerProtocol( Sender & sender , Verifier & verifier , ProtocolMessage & pmessage ,
-		const std::string & thishost , GNet::Address peer_address ) ;
+		const Secrets & secrets , const std::string & thishost , GNet::Address peer_address ) ;
 			// Constructor.
 			//
 			// The Verifier interface is used to verify recipient
@@ -142,7 +142,7 @@ private:
 	std::string commandWord( const std::string & line ) const ;
 	std::string commandLine( const std::string & line ) const ;
 	static std::string crlf() ;
-	virtual void processDone( bool , unsigned long , const std::string & ) ; // from ProtocolMessage
+	void processDone( bool , unsigned long , std::string ) ; // ProtocolMessage::doneSignal()
 	bool isEndOfText( const std::string & ) const ;
 	bool isEscaped( const std::string & ) const ;
 	void doNoop( const std::string & , bool & ) ;
@@ -172,13 +172,13 @@ private:
 	void sendRcptReply() ;
 	void sendDataReply() ;
 	void sendCompletionReply( bool ok , const std::string & ) ;
+	void sendAuthRequired() ;
 	void sendNoRecipients() ;
 	void sendMissingParameter() ;
 	void sendVerified( const std::string & ) ;
 	void sendNotVerified( const std::string & ) ;
 	void sendWillAccept( const std::string & ) ;
 	void sendAuthDone( bool ok ) ;
-	void sendAuthRequired() ;
 	void sendOk() ;
 	std::string parseFrom( const std::string & ) const ;
 	std::string parseTo( const std::string & ) const ;

@@ -82,6 +82,7 @@ std::string Main::Configuration::str( const std::string & p , const std::string 
 		<< p << "connect timeout: " << connectionTimeout() << "s" << eol
 		<< p << "response timeout: " << responseTimeout() << "s" << eol
 		<< p << "domain override: " << na(fqdn()) << eol
+		<< p << "polling period: " << (pollingTimeout()?(G::Str::fromUInt(pollingTimeout())+"s"):na()) << eol
 		;
 	return ss.str() ;
 }
@@ -179,6 +180,16 @@ bool Main::Configuration::doServing() const
 	return !m_cl.contains("dont-serve") && !m_cl.contains("as-client") ;
 }
 
+bool Main::Configuration::doPolling() const
+{
+	return m_cl.contains("poll") ;
+}
+
+unsigned int Main::Configuration::pollingTimeout() const
+{
+	return m_cl.contains("poll") ? G::Str::toUInt(m_cl.value("poll")) : 0U ;
+}
+
 bool Main::Configuration::doSmtp() const
 {
 	return !m_cl.contains("dont-listen") ;
@@ -225,6 +236,11 @@ unsigned int Main::Configuration::icon() const
 	return n ;
 }
 
+bool Main::Configuration::hidden() const
+{
+	return m_cl.contains("hidden") ;
+}
+
 std::string Main::Configuration::clientSecretsFile() const
 {
 	return m_cl.contains("client-auth") ? m_cl.value("client-auth") : std::string() ;
@@ -263,4 +279,24 @@ G::Path Main::Configuration::verifier() const
 {
 	return m_cl.contains("verifier") ? G::Path(m_cl.value("verifier")) : G::Path() ;
 }
+
+bool Main::Configuration::deliverToPostmaster() const
+{
+	return
+		m_cl.contains("postmaster") ||
+		m_cl.contains("as-server") ;
+}
+
+bool Main::Configuration::rejectLocalMailboxes() const
+{
+	return
+		m_cl.contains("postmaster") ||
+		m_cl.contains("as-server") ;
+}
+
+bool Main::Configuration::withTerminate() const
+{
+	return m_cl.contains("admin-terminate") ;
+}
+
 

@@ -24,8 +24,7 @@
 #include "gdef.h"
 #include "gdate.h"
 #include "gdebug.h"
-#include <sys/types.h>
-#include <time.h>
+#include <ctime>
 #include <iomanip>
 
 //static
@@ -43,6 +42,11 @@ int G::Date::yearLowerLimit()
 G::Date::Date()
 {
 	init( G::DateTime::utc(G::DateTime::now()) ) ;
+}
+
+G::Date::Date( G::DateTime::EpochTime t )
+{
+	init( G::DateTime::utc(t) ) ;
 }
 
 G::Date::Date( G::DateTime::EpochTime t , const LocalTime & )
@@ -88,12 +92,21 @@ std::string G::Date::string( Format format ) const
 {
 	std::ostringstream ss ;
 	if( format == yyyy_mm_dd_slash )
-		ss << m_year << "/" << m_month << "/" << m_day ;
+	{
+		ss << yyyy() << "/" << mm() << "/" << dd() ;
+	}
+	else if( format == yyyy_mm_dd )
+	{
+		ss << yyyy() << mm() << dd() ;
+	}
+	else if( format == mm_dd )
+	{
+		ss << mm() << dd() ;
+	}
 	else
-		ss
-			<< m_year
-			<< std::setw(2) << std::setfill('0') << m_month
-			<< std::setw(2) << std::setfill('0') << m_day ;
+	{
+		G_ASSERT( !"enum error" ) ;
+	}
 	return ss.str() ;
 }
 
@@ -102,10 +115,17 @@ int G::Date::monthday() const
 	return m_day ;
 }
 
-std::string G::Date::monthdayString() const
+std::string G::Date::dd() const
 {
 	std::ostringstream ss ;
-	ss << m_day ;
+	ss << std::setw(2) << std::setfill('0') << m_day ;
+	return ss.str() ;
+}
+
+std::string G::Date::mm() const
+{
+	std::ostringstream ss ;
+	ss << std::setw(2) << std::setfill('0') << m_month ;
 	return ss.str() ;
 }
 
@@ -132,7 +152,7 @@ G::Date::Weekday G::Date::weekday() const
 	return m_weekday ;
 }
 
-std::string G::Date::weekdayString( bool brief ) const
+std::string G::Date::weekdayName( bool brief ) const
 {
 	if( weekday() == sunday ) return brief ? "Sun" : "Sunday" ;
 	if( weekday() == monday ) return brief ? "Mon" : "Monday" ;
@@ -149,7 +169,7 @@ G::Date::Month G::Date::month() const
 	return Month(m_month) ;
 }
 
-std::string G::Date::monthString( bool brief ) const
+std::string G::Date::monthName( bool brief ) const
 {
 	if( month() == january ) return brief ? "Jan" : "January" ;
 	if( month() == february ) return brief ? "Feb" : "February" ;
@@ -171,10 +191,10 @@ int G::Date::year() const
 	return m_year ;
 }
 
-std::string G::Date::yearString() const
+std::string G::Date::yyyy() const
 {
 	std::ostringstream ss ;
-	ss << m_year ;
+	ss << std::setw(4) << std::setfill('0') << m_year ;
 	return ss.str() ;
 }
 

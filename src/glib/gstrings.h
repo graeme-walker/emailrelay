@@ -24,8 +24,10 @@
 #ifndef G_STRINGS_H
 #define G_STRINGS_H
 
+#include "gdef.h"
 #include <string>
 #include <list>
+#include <vector>
 
 namespace G
 {
@@ -34,7 +36,12 @@ namespace G
 // Description: A std::list of std::strings.
 // See also: Str
 //
-typedef std::list<std::string GAllocator(std::string) > Strings ;
+typedef std::list<std::string> Strings ;
+
+// Typedef: StringArray
+// Description: A std::vector of std::strings.
+//
+typedef std::vector<std::string> StringArray ;
 
 }
 

@@ -30,6 +30,7 @@
 #include "gdatetime.h"
 #include "gexception.h"
 #include "gnoncopyable.h"
+#include "gslot.h"
 #include "groot.h"
 #include "gpath.h"
 #include <memory>
@@ -47,7 +48,7 @@ namespace GSmtp
 // interface, dealing in flat files. Passes out unique sequence
 // numbers, filesystem paths and i/o streams to NewMessageImp.
 //
-class GSmtp::FileStore : public GSmtp:: MessageStore
+class GSmtp::FileStore : public GSmtp::MessageStore
 {
 public:
 	G_EXCEPTION( InvalidDirectory , "invalid spool directory" ) ;
@@ -102,13 +103,15 @@ public:
 		// implemented by this class. If n is -1 then
 		// it returns the previous format (etc.).
 
-	void updated() ;
-		// Called by associated classes to trigger onEvent().
+	void updated( bool action = false ) ;
+		// Called by associated classes to raise the signal().
 
-protected:
-	virtual void onEvent() ;
-		// Called when something might have changed. The
-		// default implementation does nothing.
+	G::Signal1<bool> & signal() ;
+		// Provides a signal which is activated when something might
+		// have changed in the file store.
+		//
+		// The signal parameter is used to indicate that some
+		// action is requested.
 
 private:
 	static void checkPath( const G::Path & dir ) ;
@@ -125,6 +128,7 @@ private:
 	bool m_optimise ;
 	bool m_empty ; // mutable
 	unsigned long m_pid_modifier ;
+	G::Signal1<bool> m_signal ;
 } ;
 
 // Class: GSmtp::FileReader

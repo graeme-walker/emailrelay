@@ -33,8 +33,10 @@
 #include "gassert.h"
 #include "glog.h"
 
-GSmtp::Verifier::Verifier( const G::Path & path ) :
-	m_path(path)
+GSmtp::Verifier::Verifier( const G::Path & path , bool deliver_to_postmaster , bool reject_local ) :
+	m_path(path) ,
+	m_deliver_to_postmaster(deliver_to_postmaster) ,
+	m_reject_local(reject_local)
 {
 }
 
@@ -71,7 +73,9 @@ GSmtp::Verifier::Status GSmtp::Verifier::verifyInternal( const std::string & add
 	const std::string & host , const std::string & fqdn ) const
 {
 	Status status ;
-	if( user == "POSTMASTER" && ( host.empty() || host == "LOCALHOST" || host == fqdn ) )
+	bool is_postmaster = user == "POSTMASTER" && ( host.empty() || host == "LOCALHOST" || host == fqdn ) ;
+	bool is_local = host.empty() || host == "LOCALHOST" ;
+	if( is_postmaster && m_deliver_to_postmaster )
 	{
 		// accept 'postmaster' for local delivery
 		status.is_valid = true ;
@@ -79,12 +83,12 @@ GSmtp::Verifier::Status GSmtp::Verifier::verifyInternal( const std::string & add
 		status.full_name = "Local postmaster <postmaster@localhost>" ;
 		status.address = "postmaster" ;
 	}
-	else if( host.empty() || host == "LOCALHOST" )
+	else if( is_local && m_reject_local )
 	{
 		// reject local addressees
 		status.is_valid = false ;
 		status.is_local = true ;
-		status.reason = "invalid local mailbox (not postmaster)" ;
+		status.reason = "invalid local mailbox" ;
 	}
 	else
 	{
@@ -117,7 +121,7 @@ GSmtp::Verifier::Status GSmtp::Verifier::verifyExternal( const std::string & add
 	int rc = G::Process::spawn( G::Root::nobody() , m_path , args , &response ) ;
 
 	G::Str::trim( response , "\r\n\t" ) ;
-	G_LOG( "GSmtp::Verifier: " << rc << ": \"" << response << "\"" ) ;
+	G_LOG( "GSmtp::Verifier: " << rc << ": \"" << G::Str::toPrintableAscii(response) << "\"" ) ;
 	G::Strings response_parts ;
 	G::Str::splitIntoFields( response , response_parts , "\n" ) ;
 

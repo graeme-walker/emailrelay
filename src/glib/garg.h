@@ -25,6 +25,7 @@
 #define G_ARG_H
 
 #include "gdef.h"
+#include "gstrings.h"
 #include <vector>
 #include <string>
 
@@ -121,8 +122,7 @@ private:
 	static bool match( bool , const std::string & , const std::string & ) ;
 
 private:
-	typedef std::vector<std::string GAllocator(std::string) > Array ;
-	Array m_array ;
+	StringArray m_array ;
 	std::string m_prefix ;
 } ;
 

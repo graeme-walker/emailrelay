@@ -37,13 +37,14 @@ namespace GGui
 	class EditBox ;
 	class CheckBox ;
 	class Button ;
-} ;
+}
 
 // Class: GGui::Control
 // Description: A base class for dialog box control objects.
 // Normally a dialog box object (derived from Dialog) will
 // have Control-derived objects embedded within it to
-// represent some of the dialog box controls.
+// represent some of the dialog box controls. Supports
+// sub-classing.
 // See also: EditBox, ListBox, CheckBox, Button
 //
 class GGui::Control
@@ -58,17 +59,7 @@ public:
 		private: NoRedraw( const NoRedraw & ) ;
 	} ;
 	
-private:
-	friend class Control::NoRedraw ;
-	unsigned m_no_redraw_count ;
-	bool m_valid ;
-	Dialog & m_dialog ;
-	int m_id ;
-	HWND m_hwnd ;
-	
-public:
-
-	Control( Dialog &dialog , int id ) ;
+	Control( Dialog & dialog , int id ) ;
 		// Constructor. The lifetime of the Control
 		// object should not exceed that of the given
 		// dialog box; normally the control object
@@ -107,7 +98,7 @@ public:
 		
 protected:	
 	virtual LRESULT onMessage( unsigned message , WPARAM wparam ,
-		LPARAM lparam , WNDPROC super_class , bool &forward ) ;
+		LPARAM lparam , WNDPROC super_class , bool & forward ) ;
 			// Overridable. Called on receipt of a window message
 			// sent to a sub-classed control.
 			//
@@ -131,32 +122,25 @@ protected:
 			// the super-class behaviour.
 
 private:
-	Control( const Control & ) ;
-	void operator=( const Control & ) ;
+	Control( const Control & ) ; // not implemented
+	void operator=( const Control & ) ; // not implemented
+
+private:
+	friend class Control::NoRedraw ;
+	unsigned m_no_redraw_count ;
+	bool m_valid ;
+	Dialog & m_dialog ;
+	int m_id ;
+	HWND m_hwnd ;
 } ;
-
-inline GGui::Control::NoRedraw::NoRedraw( Control &control ) :
-	m_control(control)
-{
-	m_control.m_no_redraw_count++ ;
-	if( m_control.m_no_redraw_count == 1 )
-		m_control.sendMessage( WM_SETREDRAW , false ) ;
-}
-
-inline GGui::Control::NoRedraw::~NoRedraw()
-{
-	m_control.m_no_redraw_count-- ;
-	if( m_control.m_no_redraw_count == 0 )
-		m_control.sendMessage( WM_SETREDRAW , true ) ;
-}
 
 // Class: GGui::ListBox
 // Description: A list box class.
 //
-class GGui::ListBox : public Control
+class GGui::ListBox : public GGui::Control
 {
 public:
-	ListBox( Dialog &dialog , int id ) ;
+	ListBox( Dialog & dialog , int id ) ;
 		// Constructor.
 		
 	virtual ~ListBox() ;
@@ -182,20 +166,17 @@ public:
 		// Returns the number of list box entries.
 
 private:
-	void operator=( const ListBox & ) ;
-	ListBox( const ListBox & ) ;
+	void operator=( const ListBox & ) ; // not implemented
+	ListBox( const ListBox & ) ; // not implemented
 } ;
 
 // Class: GGui::EditBox
 // Description: An edit box class.
 //
-class GGui::EditBox : public Control
+class GGui::EditBox : public GGui::Control
 {
-private:
-	unsigned m_character_height ;
-	
 public:
-	EditBox( Dialog &dialog , int id ) ;
+	EditBox( Dialog & dialog , int id ) ;
 		// Constructor.
 	
 	virtual ~EditBox() ;
@@ -244,19 +225,22 @@ public:
 		// See also SBM_SETRANGE.
 
 private:
-	unsigned windowHeight() /*not const*/ ;
-	unsigned characterHeight() /*not const*/ ;
-	EditBox( const EditBox & ) ;
-	void operator=( const EditBox & ) ;
+	unsigned windowHeight() ; // not const
+	unsigned characterHeight() ; // not const
+	EditBox( const EditBox & ) ; // not implemented
+	void operator=( const EditBox & ) ; // not implemented
+
+private:
+	unsigned m_character_height ;
 } ;
 
 // Class: GGui::CheckBox
 // Description: A check box class.
 //
-class GGui::CheckBox : public Control
+class GGui::CheckBox : public GGui::Control
 {
 public:
-	CheckBox( Dialog &dialog , int id ) ;
+	CheckBox( Dialog & dialog , int id ) ;
 		// Constructor.
 	
 	virtual ~CheckBox() ;
@@ -269,17 +253,17 @@ public:
 		// Sets the state of a boolean check box.
 
 private:
-	void operator=( const CheckBox ) ;
-	CheckBox( const CheckBox & ) ;
+	void operator=( const CheckBox ) ; // not implemented
+	CheckBox( const CheckBox & ) ; // not implemented
 } ;
 	
 // Class: GGui::Button
 // Description: A button class.
 //
-class GGui::Button : public Control
+class GGui::Button : public GGui::Control
 {
 public:
-	Button( Dialog &dialog , int id ) ;
+	Button( Dialog & dialog , int id ) ;
 		// Constructor.
 	
 	virtual ~Button() ;
@@ -296,8 +280,8 @@ public:
 		// Disables the button, greying it.
 
 private:
-	void operator=( const Button & ) ;
-	Button( const Button & ) ;
+	void operator=( const Button & ) ; // not implemented
+	Button( const Button & ) ; // not implemented
 } ;
 	
 #endif

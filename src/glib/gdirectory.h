@@ -92,7 +92,7 @@ private:
 // Class: G::DirectoryIterator
 // Description: An iterator for Directory.
 // The iteration model is
-/// while(iter.more()) { (void)iter.file() ; }
+/// while(iter.more()) { (void)iter.filePath() ; }
 //
 class G::DirectoryIterator
 {

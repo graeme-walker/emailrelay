@@ -1,5 +1,5 @@
 #!/bin/sh
-# 
+#
 # Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software; you can redistribute it and/or
@@ -18,7 +18,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # 
 # ===
-#
+# 
 # emailrelay
 # 
 # A shell-script wrapper for E-MailRelay designed for

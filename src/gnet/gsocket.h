@@ -267,7 +267,7 @@ public:
 // Class: GNet::StreamSocket
 // Description: A derivation of Socket for a stream socket.
 //
-class GNet::StreamSocket : public GNet:: Socket
+class GNet::StreamSocket : public GNet::Socket
 {
 public:
 	StreamSocket() ;
@@ -309,7 +309,7 @@ private:
 // Description: A derivation of Socket for a connectionless
 // datagram socket.
 //
-class GNet::DatagramSocket : public GNet:: Socket
+class GNet::DatagramSocket : public GNet::Socket
 {
 public:
 	DatagramSocket();

@@ -157,6 +157,10 @@ SOURCE=..\glib\gdatetime_win32.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\win32\gdc.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\gnet\gdescriptor_win32.cpp
 # End Source File
 # Begin Source File
@@ -237,7 +241,7 @@ SOURCE=..\glib\glogoutput_win32.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\glib\gmd5.cpp
+SOURCE=..\glib\gmd5_rsa.cpp
 # End Source File
 # Begin Source File
 
@@ -337,6 +341,10 @@ SOURCE=..\gsmtp\gserverprotocol.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\glib\gslot.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\gsmtp\gsmtpclient.cpp
 # End Source File
 # Begin Source File
@@ -403,6 +411,10 @@ SOURCE=legal.cpp
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=..\glib\gslot.h
+# End Source File
 # End Group
 # End Target
 # End Project

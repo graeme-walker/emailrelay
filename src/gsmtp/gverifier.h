@@ -26,8 +26,8 @@
 
 #include "gdef.h"
 #include "gsmtp.h"
-#include "gpath.h"
 #include "gaddress.h"
+#include "gpath.h"
 #include <string>
 
 namespace GSmtp
@@ -53,10 +53,19 @@ public:
 		std::string reason ;
 	} ;
 
-	explicit Verifier( const G::Path & exe ) ;
-		// Constructor.
+	Verifier( const G::Path & exe , bool deliver_to_postmaster , bool reject_local ) ;
+		// Constructor. If an executable path is given (ie. not
+		// G::Path()) then it is used for external verification.
+		// Otherwise the internal verifier is used, controlled
+		// by the two boolean flags. The deliver-to-postmaster
+		// flag enables the special treatment of local "postmaster"
+		// addresses, as dictated by the RFC. If reject-local
+		// is true then local mailbox addresses (ie. without
+		// an at-sign) are rejected. If reject-local is false
+		// then all addresses are treated as remote, and no
+		// local delivery is attempted.
 
-        Status verify( const std::string & rcpt_to_parameter ,
+	Status verify( const std::string & rcpt_to_parameter ,
 		const std::string & mail_from_parameter , const GNet::Address & client_ip ,
 		const std::string & auth_mechanism , const std::string & auth_extra ) const ;
 			// Checks a recipient address returning
@@ -91,6 +100,8 @@ private:
 
 private:
 	G::Path m_path ;
+	bool m_deliver_to_postmaster ;
+	bool m_reject_local ;
 } ;
 
 #endif

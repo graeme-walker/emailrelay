@@ -28,23 +28,26 @@
 
 namespace
 {
+	int decode( G::LogOutput::SyslogFacility facility )
+	{
+		if( facility == G::LogOutput::User ) return LOG_USER ;
+		if( facility == G::LogOutput::Daemon ) return LOG_DAEMON ;
+		if( facility == G::LogOutput::Mail ) return LOG_MAIL ;
+		if( facility == G::LogOutput::Cron ) return LOG_CRON ;
+		// etc...
+		return LOG_USER ;
+	}
+	int decode( G::Log::Severity severity )
+	{
+		if( severity == G::Log::s_Warning ) return LOG_WARNING ;
+		if( severity == G::Log::s_Error ) return LOG_ERR ;
+		if( severity == G::Log::s_LogSummary ) return LOG_INFO ;
+		if( severity == G::Log::s_LogVerbose ) return LOG_INFO ;
+		return LOG_CRIT ;
+	}
 	int mode( G::LogOutput::SyslogFacility facility , G::Log::Severity severity )
 	{
-		int m = 0 ;
-
-		if( facility == G::LogOutput::User ) m |= LOG_USER ;
-		else if( facility == G::LogOutput::Daemon ) m |= LOG_DAEMON ;
-		else if( facility == G::LogOutput::Mail ) m |= LOG_MAIL ;
-		else if( facility == G::LogOutput::Cron ) m |= LOG_CRON ;
-		// etc...
-
-		if( severity == G::Log::s_Warning ) m |= LOG_WARNING ;
-		else if( severity == G::Log::s_Error ) m |= LOG_ERR ;
-		else if( severity == G::Log::s_LogSummary ) m |= LOG_INFO ;
-		else if( severity == G::Log::s_LogVerbose ) m |= LOG_INFO ;
-		else m |= LOG_CRIT ;
-	
-		return m ;
+		return decode(facility) | decode(severity) ;
 	}
 }
 
@@ -59,9 +62,13 @@ void G::LogOutput::rawOutput( G::Log::Severity severity , const char *message )
 
 void G::LogOutput::init()
 {
+	if( m_syslog )
+		::openlog( NULL , LOG_PID , decode(m_facility) ) ;
 }
 
 void G::LogOutput::cleanup()
 {
+	if( m_syslog )
+		::closelog() ;
 }
 

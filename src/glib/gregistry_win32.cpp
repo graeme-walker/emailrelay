@@ -259,6 +259,30 @@ std::string G::RegistryValue::getString( const std::string & defolt ,
 	}
 }
 
+g_uint32_t G::RegistryValue::getDword() const
+{
+	DWORD type = 0 ;
+	bool exists = true ;
+	std::string data = getData( type , exists ) ;
+	if( !exists ) throw MissingValue( m_key_name ) ;
+	if( type != REG_DWORD ) throw InvalidType( m_key_name ) ;
+	if( data.length() != 4U ) throw ValueError( m_key_name ) ;
+	g_uint32_t result = 0UL ;
+	for( int i = 3 ; i >= 0 ; i-- )
+	{
+		result *= 256UL ;
+		result += static_cast<unsigned char>(data[i]) ;
+	}
+	return result ;
+}
+
+bool G::RegistryValue::getBool() const
+{
+	g_uint32_t n = getDword() ;
+	if( n != 0UL && n != 1UL ) throw ValueError( m_key_name ) ;
+	return !!n ;
+}
+
 std::string G::RegistryValue::getData( g_uint32_t & type , bool & exists ) const
 {
 	exists = true ;
@@ -334,14 +358,25 @@ void G::RegistryValue::set( const char * p )
 
 void G::RegistryValue::set( const std::string & s )
 {
-	DWORD type = REG_SZ ;
+	set( REG_SZ , reinterpret_cast<const void*>(s.c_str()) , s.length()+1U ) ;
+}
 
-	LONG rc = ::RegSetValueEx( m_hkey.imp().m_key , m_key_name.c_str() , 0 ,
-		type , reinterpret_cast<const BYTE*>(s.c_str()) ,
-		s.length() + 1U ) ;
+void G::RegistryValue::set( bool b )
+{
+	g_uint32_t n = b ? 1UL : 0UL ;
+	set( n ) ;
+}
 
+void G::RegistryValue::set( g_uint32_t n )
+{
+	set( REG_DWORD , reinterpret_cast<const void*>(&n) , 4UL ) ;
+}
+
+void G::RegistryValue::set( g_uint32_t type , const void * vp , size_t n )
+{
+	const BYTE * p = reinterpret_cast<const BYTE*>(vp) ;
+	LONG rc = ::RegSetValueEx( m_hkey.imp().m_key , m_key_name.c_str() , 0 , type , p , n ) ;
 	if( rc != ERROR_SUCCESS )
 		throw ValueError( "RegSetValueEx" ) ;
 }
-
 

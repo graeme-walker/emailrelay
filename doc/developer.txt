@@ -137,12 +137,6 @@ Sometimes only small parts of the implementation are system-specific. In
 these cases there are three source files per header. For example, "gsocket.cpp",
 "gsocket_win32.cpp" and "gsocket_unix.cpp" in the "src/gnet" directory.
 
-Porting to other compilers
---------------------------
-If porting to a good ANSI C++ compiler then start by removing files from the
-"lib/gcc2.95" directory (or edit makefiles to remove the include path), and then
-review the following header files "src/glib/gdef.h" and "src/gnet/gnet.h".
-
 Compile-time features
 ---------------------
 The following features are available to source-code hackers:
@@ -174,7 +168,7 @@ directory.
 Style
 -----
 The commenting style used in header files is compatible with doxygen if passed
-through the simple awk-based preprocessor "emailrelay-doxygen-filter.sh". A
+through the simple awk-based pre-processor "emailrelay-doxygen-filter.sh". A
 "make" in the "doc" directory will run doxygen if it is found on your path.
 
 Patterns
@@ -183,7 +177,7 @@ Gang-of-four Design Patterns (ISBN 0-201-63361-2):
 
 + Factory method
 
-  - GNet::EventSources::create()
+  - GNet::EventLoop::create()
   - GNet::Server::newPeer()
   - GSmtp::MessageStore::newMessage()
 
@@ -197,8 +191,7 @@ Gang-of-four Design Patterns (ISBN 0-201-63361-2):
 
   - G::LogOutput
   - GGui::ApplicationInstance
-  - GNet::EventSources
-  - GSmtp::MessageStore
+  - GNet::EventLoop
 
 + Facade
 
@@ -226,19 +219,18 @@ Lakos' Large Scale C++ Software Design patterns (ISBN 0-201-63362-0):
   - GSmtp::ProtocolMessage
   - GSmtp::ServerProtocol::Sender
   - GSmtp::ClientProtocol::Sender
-  - GSmtp::ClientProtocol::Callback
-  - GSmtp::ProtocolMessage::Callback
-  - GSmtp::Client::ClientCallback
 
 Meyer's More Effective C++ patterns (ISBN 0-201-63371-X):
 
 + Reference counting (Item 29)
 
   - GSmtp::MessageStore::Iterator
+  - G::Slot0
 
 + Lazy evaluation (Item 17)
 
   - GNet::EventHandlerList::list()
+  - G::Date::weekday()
 
 Other patterns:
 
@@ -246,10 +238,20 @@ Other patterns:
 
   - GSmtp::ServerProtocol
 
++ Slot/signal
+
+  - G::Slot0
+  - G::Signal0
+
++ Exception-safe assignment using swap
+
+  - G::Slot0
+
 Idioms
 ------
 The "<<=" operator defined in "src/glib/gmemory.h" is used idiomatically
 to reassign a std::auto_ptr<>.
+
 
 
 

@@ -65,7 +65,7 @@ void G::LogOutput::rawOutput( G::Log::Severity severity , const char *message )
 		// (assume suitable string resources of 1001..1003)
 
 		DWORD id = 0x400003E9L ;
-		DWORD type = EVENTLOG_INFORMATION_TYPE ;
+		WORD type = EVENTLOG_INFORMATION_TYPE ;
 		if( severity == Log::s_Warning )
 		{
 			id = 0x800003EAL ;
@@ -78,7 +78,7 @@ void G::LogOutput::rawOutput( G::Log::Severity severity , const char *message )
 		}
 
 		const char * p[] = { message , NULL } ;
-		(void) ::ReportEvent( m_handle, type, 0, id, NULL, 1, 0, p, NULL ) ;
+		G_IGNORE ::ReportEvent( m_handle, type, 0, id, NULL, 1, 0, p, NULL ) ;
 	}
 }
 

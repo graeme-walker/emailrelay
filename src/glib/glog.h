@@ -61,7 +61,7 @@ public:
 		// Returns an End object which can be used to close off a quantum
 		// of logging. (The End::op<<() function calls G::Log::onEnd().)
 
-	static Stream &stream() ;
+	static Stream & stream() ;
 		// Returns a stream for streaming messages into.
 
 	static void onEnd( Severity s ) ;
@@ -77,8 +77,7 @@ private:
 namespace G
 {
 	inline
-	std::ostream &operator<<( std::ostream &stream ,
-		const G::Log::Line & )
+	std::ostream & operator<<( std::ostream & stream , const G::Log::Line & )
 	{
 		return stream ;
 	}
@@ -87,10 +86,9 @@ namespace G
 namespace G
 {
 	inline
-	std::ostream &operator<<( std::ostream &stream ,
-		const G::Log::End &end )
+	std::ostream & operator<<( std::ostream & stream , const G::Log::End & end )
 	{
-			G::Log::onEnd( end.m_s ) ;
+		G::Log::onEnd( end.m_s ) ;
 		return stream ;
 	}
 }
@@ -98,7 +96,7 @@ namespace G
 namespace G
 {
 	inline
-	G::Log::Line::Line( const char *file , int line )
+	G::Log::Line::Line( const char * file , int line )
 	{
 		G::Log::setFile( file ) ;
 		G::Log::setLine( line ) ;
@@ -113,7 +111,12 @@ namespace G
 // then warning/error messages should also get raised by some another
 // independent means.
 //
-#define G_LOG_OUTPUT( expr , severity ) do { G::Log::stream() << G::Log::Line(__FILE__,__LINE__) << expr << G::Log::end(severity) ; } while(0)
+// (The G_LOG_OUTPUT implementation uses separate statements because
+// some compilers dont do Koenig lookup with nested classes. They
+// look for ::operator<<() or G::X::operator<<() rather than
+// G::operator<<().)
+//
+#define G_LOG_OUTPUT( expr , severity ) do { G::Log::Stream & s_ = G::Log::stream() ; G::operator<<( s_ , G::Log::Line(__FILE__,__LINE__) ) ; s_ << expr ; G::operator<<( s_ , G::Log::end(severity) ) ; } while(0)
 #if defined(_DEBUG) && ! defined(G_NO_DEBUG)
 #define G_DEBUG( expr ) G_LOG_OUTPUT( expr , G::Log::s_Debug )
 #else

@@ -89,7 +89,7 @@ private:
 // Class: GNet::HostRequest
 // Description: A derivation of GNet::Request used for hostname lookup requests.
 //
-class GNet::HostRequest : public GNet:: Request
+class GNet::HostRequest : public GNet::Request
 {
 public:
 	HostRequest( std::string host_name , HWND hwnd , unsigned msg ) ;
@@ -111,7 +111,7 @@ private:
 // Class: GNet::ServiceRequest
 // Description: A derivation of GNet::Request used for service (port) lookup requests.
 //
-class GNet::ServiceRequest : public GNet:: Request
+class GNet::ServiceRequest : public GNet::Request
 {
 public:
 	ServiceRequest( std::string service_name , bool udp ,

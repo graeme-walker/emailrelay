@@ -36,70 +36,20 @@
 
 namespace GSmtp
 {
-	class Sasl ;
-	class SaslImp ;
 	class SaslClient ;
 	class SaslClientImp ;
 	class SaslServer ;
 	class SaslServerImp ;
 }
 
-// Class: GSmtp::Sasl
-// Description: A singleton class representing the SASL library.
-// The SASL challenge/response concept is described in RFC2222.
-// See also: GSmtp::SaslClient, GSmtp::SaslServer, RFC2554, RFC2222
-//
-class GSmtp::Sasl
-{
-public:
-	G_EXCEPTION( Error , "sasl library error" ) ;
-
-	Sasl( const std::string & application_name ,
-		const G::Path & client_secrets , const G::Path & server_secrets ) ;
-			// Constructor.
-
-	~Sasl() ;
-		// Destructor.
-
-	static Sasl & instance() ;
-		// Singleton access.
-
-	const Secrets & clientSecrets() const ;
-		// Returns a reference to the client-side secrets object.
-
-	const Secrets & serverSecrets() const ;
-		// Returns a reference to the server-side secrets object.
-
-	void check( const std::string & op , int rc , const char * more = NULL ) const ;
-		// Used by implementation classes to check function
-		// return codes.
-
-	std::string errorString( const std::string & op , int rc , const char * more = NULL ) const ;
-		// Used by implementation classes to interpret function
-		// return codes.
-
-private:
-	Sasl( const Sasl & ) ; // not implemented
-	void operator=( const Sasl & ) ; // not implemented
-	typedef std::map<int,std::string GLessAllocator(int,std::string) > Map ;
-	void insert( int , const std::string & ) ;
-	void initMap() ;
-	void initClient( const G::Path & ) ;
-	void initServer( const std::string & , const G::Path & ) ;
-
-private:
-	static Sasl * m_this ;
-	Map m_map ;
-	std::auto_ptr<Secrets> m_client_secrets ;
-	std::auto_ptr<Secrets> m_server_secrets ;
-} ;
-
 // Class: GSmtp::SaslServer
 // Description: A class for implementing the server-side SASL
-// challenge/response concept, as described in RFC2222.
+// challenge/response concept. SASL is described in RFC2222,
+// and the SMTP extension for authentication is described
+// in RFC2554.
 //
 // Usage:
-/// SaslServer sasl ;
+/// SaslServer sasl( secrets ) ;
 /// if( sasl.init("MD5") )
 /// {
 ///   client.send( sasl.initialChallenge() ) ;
@@ -119,8 +69,8 @@ private:
 class GSmtp::SaslServer
 {
 public:
-	SaslServer() ;
-		// Default constructor.
+	explicit SaslServer( const Secrets & ) ;
+		// Constructor. The reference is kept.
 
 	~SaslServer() ;
 		// Destructor.
@@ -160,7 +110,7 @@ public:
 	std::string mechanisms( char sep = ' ' ) const ;
 		// Returns a list of supported mechanisms.
 
-	bool trusted( GNet::Address ) ;
+	bool trusted( GNet::Address ) const ;
 		// Returns true if a trusted client that
 		// does not need to authenticate.
 
@@ -174,14 +124,16 @@ private:
 
 // Class: GSmtp::SaslClient
 // Description: A class for implementing the client-side SASL
-// challenge/response concept.
+// challenge/response concept. SASL is described in RFC2222,
+// and the SMTP extension for authentication is described
+// in RFC2554.
 // See also: GSmtp::SaslServer, RFC2222, RFC2554.
 //
 class GSmtp::SaslClient
 {
 public:
-	explicit SaslClient( const std::string & server_name ) ;
-		// Constructor.
+	SaslClient( const Secrets & secrets , const std::string & server_name ) ;
+		// Constructor. The secrets reference is kept.
 
 	~SaslClient() ;
 		// Destructor.

@@ -38,19 +38,59 @@ namespace GNet
 {
 	class Server ;
 	class ServerPeer ;
+	class ServerPeerHandle ;
 }
 
+// Class: GNet::ServerPeerHandle
+// Description: A structure used in the implementation of GNet::Server.
+// The server holds a list of handles which refer to all its peer objects.
+// When a peer object deletes itself it resets the handle, without changing
+// the server's list. The server uses its list to delete all peer objects
+// from within its destructor. The server does garbage collection occasionally,
+// deleting handles which have been reset.
+//
+class GNet::ServerPeerHandle
+{
+public:
+	ServerPeerHandle() ;
+		// Default constructor.
+
+	void set( ServerPeer * p ) ;
+		// Sets the pointer.
+
+	void reset() ;
+		// Resets the pointer.
+
+	ServerPeer * peer() ;
+		// Returns the pointer.
+
+	ServerPeer * old() ;
+		// Returns the pointer value before it was reset().
+		// Used in debugging.
+
+private:
+	ServerPeer * m_p ;
+	ServerPeer * m_old ;
+} ;
+
 // Class: GNet::Server
-// Description: An application-level class for implementing a
-// simple TCP server. The user must instantiate a separate
-// event-source object (such as GNet::Select) for event handling.
+// Description: A network server class which listens on a specific
+// port and spins off ServerPeer objects for each incoming connection.
 // See also: GNet::ServerPeer
 //
-class GNet::Server : public GNet:: EventHandler
+class GNet::Server : public GNet::EventHandler
 {
 public:
 	G_EXCEPTION( CannotBind , "cannot bind the listening port" ) ;
 	G_EXCEPTION( CannotListen , "cannot listen" ) ;
+
+	struct PeerInfo // A structure used in GNet::Server::newPeer().
+	{
+		std::auto_ptr<StreamSocket> m_socket ;
+		Address m_address ;
+		ServerPeerHandle * m_handle ;
+		PeerInfo() ;
+	} ;
 
 	explicit Server( unsigned int listening_port ) ;
 		// Constructor taking a port number. The server
@@ -77,22 +117,31 @@ public:
 		// is false if not properly init()ialised.
 
 protected:
-	virtual ServerPeer * newPeer( StreamSocket * socket ,
-		Address peer_address ) = 0 ;
-			// A factory method which new()s a ServerPeer-derived
-			// object. This method is called when a new connection
-			// comes into this server. The new ServerPeer object
-			// is used to represent the state of the client/server
-			// connection.
-			//
-			// The 'socket' parameter points to a socket
-			// object on the heap. Ownership is transferred.
-			//
-			// The implementation shoud pass the 'socket' and
-			// 'peer_address' parameters through to the ServerPeer
-			// base-class constructor.
-			//
-			// May return NULL.
+	virtual ServerPeer * newPeer( PeerInfo ) = 0 ;
+		// A factory method which new()s a ServerPeer-derived
+		// object. This method is called when a new connection
+		// comes into this server. The new ServerPeer object
+		// is used to represent the state of the client/server
+		// connection.
+		//
+		// The new ServerPeer object manages its own lifetime
+		// doing a "delete this" when the network connection
+		// disappears. But the Server also deletes remaining
+		// peers during its destruction.
+		//
+		// The 'socket' parameter points to a socket
+		// object on the heap. Ownership is transferred.
+		//
+		// The implementation shoud pass the 'PeerInfo'
+		// parameter through to the ServerPeer
+		// base-class constructor.
+		//
+		// May return NULL.
+
+	void serverCleanup() ;
+		// May be called from the derived class destructor
+		// in order to trigger early deletion of peer objects,
+		// before the derived part of the server disappears.
 
 private:
 	Server( const Server & ) ; // not implemented
@@ -100,9 +149,14 @@ private:
 	virtual void readEvent() ; // from EventHandler
 	virtual void writeEvent() ; // from EventHandler
 	virtual void exceptionEvent() ; // from EventHandler
+	void serverCleanupCore() ;
+	void collectGarbage() ;
 
 private:
+	typedef std::list<ServerPeerHandle> PeerList ;
 	std::auto_ptr<StreamSocket> m_socket ;
+	PeerList m_peer_list ;
+	bool m_cleaned_up ;
 } ;
 
 // Class: GNet::ServerPeer
@@ -112,26 +166,13 @@ private:
 // delete themselves when the connection is lost.
 // See also: GNet::Server, GNet::EventHandler
 //
-class GNet::ServerPeer : public GNet:: EventHandler , public GNet:: Connection
+class GNet::ServerPeer : public GNet::EventHandler , public GNet::Connection
 {
 public:
-	ServerPeer( StreamSocket * , Address ) ;
+	explicit ServerPeer( Server::PeerInfo ) ;
 		// Constructor. This constructor is
 		// only used from within the
 		// override of GServer::newPeer().
-
-	void up() ;
-		// Increases this object's internal reference
-		// count. See also down(). Reference counting
-		// is provided for the convenience of
-		// reference-counting wrappers, but is
-		// not used by this library.
-
-	bool down() ;
-		// Decreases this object's internal reference
-		// count. Returns true if the reference
-		// count is now zero.
-		// Usage: if(down()) doDelete()
 
 	void doDelete() ;
 		// Does "onDelete(); delete this".
@@ -149,12 +190,12 @@ public:
 	virtual std::pair<bool,Address> peerAddress() const ;
 		// Returns the peer address.
 
-protected:
 	virtual ~ServerPeer() ;
 		// Destructor. Note that objects will delete
 		// themselves when they detect that the
 		// connection has been lost -- see doDelete().
 
+protected:
 	virtual void onDelete() = 0 ;
 		// Called just before destruction. (Note
 		// that the object typically deletes itself.)
@@ -166,6 +207,11 @@ protected:
 		// Returns a reference to the client-server
 		// connection socket.
 
+	Server * server() ;
+		// Returns a pointer to the associated server
+		// object. Returns NULL if the server has
+		// been destroyed.
+
 private:
 	virtual void readEvent() ; // from EventHandler
 	virtual void exceptionEvent() ; // from EventHandler
@@ -173,9 +219,9 @@ private:
 	void operator=( const ServerPeer & ) ; // not implemented
 
 private:
-	unsigned int m_ref_count ;
 	Address m_address ;
-	StreamSocket * m_socket ;
+	std::auto_ptr<StreamSocket> m_socket ;
+	ServerPeerHandle * m_handle ;
 } ;
 
 #endif

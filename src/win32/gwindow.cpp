@@ -46,13 +46,16 @@ WNDPROC GGui::Window::windowProcedure()
 	return gwindow_wndproc_export ;
 }
 
-bool GGui::Window::registerWindowClass( const char *class_name ,
+bool GGui::Window::registerWindowClass( const std::string & class_name ,
 	HINSTANCE hinstance , UINT style ,
 	HICON icon , HCURSOR cursor ,
-	HBRUSH background , const char *menu_name )
+	HBRUSH background , UINT menu_resource_id )
 {
-	WNDCLASS c ;
+	G_DEBUG( "GGui::Window::registerWindowClass: \"" << class_name << "\"" ) ;
 
+	const char * menu_name = menu_resource_id ? MAKEINTRESOURCE(menu_resource_id) : NULL ;
+
+	WNDCLASS c ;
 	c.style = style ;
 	c.lpfnWndProc = gwindow_wndproc_export ;
 	c.cbClsExtra = 4 ; // reserved
@@ -62,25 +65,29 @@ bool GGui::Window::registerWindowClass( const char *class_name ,
 	c.hCursor = cursor ;
 	c.hbrBackground = background ;
 	c.lpszMenuName = menu_name ;
-	c.lpszClassName = class_name ;
+	c.lpszClassName = class_name.c_str() ;
 
 	return ::RegisterClass( &c ) != 0 ;
 }
 
-bool GGui::Window::create( const char *class_name ,
-	const char *title , DWORD style ,
+bool GGui::Window::create( const std::string & class_name ,
+	const std::string & title , DWORD style ,
 	int x , int y , int dx , int dy ,
 	HWND parent , HMENU menu , HINSTANCE hinstance )
 {
 	G_ASSERT( m_hwnd == NULL ) ;
+	G_DEBUG( "GGui::Window::create: \"" << class_name << "\", \"" << title << "\"" ) ;
 
-	if( title == NULL )
-		title = "" ;
+	DWORD extended_style = 0 ;
+	if( style == 0 )
+	{
+		style = windowStyleHidden() ;
+		extended_style = WS_EX_TOOLWINDOW ;
+	}
 
 	void *vp = reinterpret_cast<void*>(this) ;
-	m_hwnd = ::CreateWindow( class_name , title ,
-		style , x , y , dx , dy ,
-		parent , menu , hinstance , vp ) ;
+	m_hwnd = ::CreateWindowEx( extended_style , class_name.c_str() , title.c_str() ,
+		style , x , y , dx , dy , parent , menu , hinstance , vp ) ;
 
 	G_DEBUG( "GGui::Window::create: handle " << m_hwnd ) ;
 	return m_hwnd != NULL ;
@@ -123,7 +130,7 @@ GGui::Window * GGui::Window::instance( HWND hwnd )
 {
 	G_ASSERT( hwnd != NULL ) ;
 	LONG wl = ::GetWindowLong( hwnd , 0 ) ;
-	void far * vp = reinterpret_cast<void far *>(wl) ;
+	void * vp = reinterpret_cast<void*>(wl) ;
 	return reinterpret_cast<Window*>(vp) ;
 }
 
@@ -137,7 +144,7 @@ LRESULT GGui::Window::wndProc( HWND hwnd , UINT msg , WPARAM wparam , LPARAM lpa
 		Window *window = reinterpret_cast<Window *>(cs->lpCreateParams) ;
 		G_ASSERT( window != NULL ) ;
 		G_DEBUG( "GGui::Window::wndProc: WM_CREATE: this = " << window ) ;
-		void far * vp = reinterpret_cast<void far *>(window) ;
+		void * vp = reinterpret_cast<void*>(window) ;
 		LONG wl = reinterpret_cast<LONG>(vp) ;
 		::SetWindowLong( hwnd , 0 , wl ) ;
 		window->setHandle( hwnd ) ;
@@ -155,10 +162,11 @@ LRESULT GGui::Window::wndProc( HWND hwnd , UINT msg , WPARAM wparam , LPARAM lpa
 	}
 }
 
-LRESULT GGui::Window::sendUserString( HWND hwnd , const char *string )
+LRESULT GGui::Window::sendUserString( HWND hwnd , const char * string )
 {
 	G_ASSERT( string != NULL ) ;
-	return ::SendMessage( hwnd , Cracker::wm_user_other() , 0 , (LPARAM)(const char far *)string ) ;
+	return ::SendMessage( hwnd , Cracker::wm_user_other() , 0 ,
+		reinterpret_cast<LPARAM>(string) ) ;
 }
 
 LRESULT GGui::Window::onUserOther( WPARAM , LPARAM lparam )
@@ -231,6 +239,11 @@ DWORD GGui::Window::windowStylePopup()
 DWORD GGui::Window::windowStyleChild()
 {
 	return WS_CHILDWINDOW ;
+}
+
+DWORD GGui::Window::windowStyleHidden()
+{
+	return WS_POPUP ; // no WS_VISIBLE
 }
 
 UINT GGui::Window::classStyle( bool redraw )

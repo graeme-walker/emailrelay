@@ -41,7 +41,7 @@ namespace GSmtp
 // NewMessage interface. Writes itself to the i/o streams
 // supplied by MessageStoreImp.
 //
-class GSmtp::NewFile : public GSmtp:: NewMessage
+class GSmtp::NewFile : public GSmtp::NewMessage
 {
 public:
 	G_EXCEPTION( InvalidPath , "invalid path -- must be absolute" ) ;
@@ -79,6 +79,8 @@ private:
 	std::auto_ptr<std::ostream> m_content ;
 	G::Path m_content_path ;
 	bool m_eight_bit ;
+	bool m_saved ;
+	bool m_repoll ;
 	static bool m_preprocess ;
 	static G::Path m_preprocessor ;
 
@@ -90,6 +92,9 @@ private:
 	void deliver( const G::Strings & , const G::Path & , const G::Path & , const G::Path & ) ;
 	bool preprocess( const G::Path & , bool & ) ;
 	int preprocessCore( const G::Path & ) ;
+	bool commit( const G::Path & , const G::Path & ) ;
+	void rollback() ;
+	void cleanup() ;
 } ;
 
 #endif

@@ -1,5 +1,8 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Define if <ctime> requires <time.h> */
+#undef HAVE_BUGGY_CTIME
+
 /* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
    */
 #undef HAVE_DIRENT_H
@@ -83,3 +86,6 @@
 
 /* Version number of package */
 #undef VERSION
+
+/* Define to enable extra debug messages at compile-time */
+#undef _DEBUG

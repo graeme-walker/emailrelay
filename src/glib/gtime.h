@@ -44,17 +44,17 @@ public:
 	class LocalTime // An overload discriminator class for Time constructors.
 		{} ;
 
+	Time() ;
+		// Constructor, using UTC, for now.
+
 	explicit Time( const G::DateTime::BrokenDownTime & tm ) ;
 		// Constructor for the given broken-down time.
 
 	explicit Time( G::DateTime::EpochTime t ) ;
-		// Constructor for the given epoch time.
-
-	Time() ;
-		// Constructor for now.
+		// Constructor, using UTC, for the given epoch time.
 
 	Time( G::DateTime::EpochTime t , const LocalTime & ) ;
-		// Localtime constructor for the given epoch time.
+		// Constructor, using the local timezone, for the given epoch time.
 
 	explicit Time( const LocalTime & ) ;
 		// Localtime constructor for now.
@@ -68,11 +68,14 @@ public:
 	unsigned int seconds() const ;
 		// Returns the seconds (0 <= s <= 61 [sic]).
 
-	std::string hhmmss( const char * sep = NULL ) ;
+	std::string hhmmss( const char * sep = NULL ) const ;
 		// Returns a hhmmss string.
 
-	std::string hhmm( const char * sep = NULL ) ;
+	std::string hhmm( const char * sep = NULL ) const ;
 		// Returns a hhmm string.
+
+	std::string ss() const ;
+		// Returns the seconds as a two-digit decimal seconds.
 
 private:
 	unsigned int m_hh ;

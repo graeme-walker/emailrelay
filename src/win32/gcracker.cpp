@@ -37,6 +37,11 @@ GGui::Cracker::~Cracker()
 {
 }
 
+GGui::Cracker::Cracker( const Cracker & other ) :
+	WindowBase(other)
+{
+}
+
 GGui::Cracker & GGui::Cracker::operator=( const Cracker & other )
 {
 	WindowBase::operator=( other ) ;
@@ -51,7 +56,7 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 	{
 		case WM_PAINT:
 		{
-			G_DEBUG( "GCracker::onPaint" ) ;
+			G_DEBUG( "Cracker::onPaint" ) ;
 			bool done = onPaintMessage() ;
 			if( ! done )
 			{
@@ -65,7 +70,7 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 		
 		case WM_CLOSE:
 		{
-			G_DEBUG( "GCracker::onClose" ) ;
+			G_DEBUG( "Cracker::onClose" ) ;
 			if( onClose() )
 				::PostMessage( m_hwnd , WM_DESTROY , 0 , 0 ) ;
 			return 0 ;
@@ -73,58 +78,58 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 		
 		case WM_DESTROY:
 		{
-			G_DEBUG( "GCracker::onDestroy" ) ;
+			G_DEBUG( "Cracker::onDestroy" ) ;
 			onDestroy() ;
 			return 0 ;
 		}
 
 		case WM_NCDESTROY:
 		{
-			G_DEBUG( "GCracker::onNcDestroy" ) ;
+			G_DEBUG( "Cracker::onNcDestroy" ) ;
 			onNcDestroy() ;
 			return 0 ;
 		}
 
 		case WM_CTLCOLORMSGBOX:
 		{
-			return (LRESULT)onControlColour( (HDC)wparam ,
-				(HWND)lparam , CTLCOLOR_MSGBOX ) ;
+			return reinterpret_cast<LRESULT>( onControlColour( reinterpret_cast<HDC>(wparam) ,
+				reinterpret_cast<HWND>(lparam) , CTLCOLOR_MSGBOX ) ) ;
 		}
 
 		case WM_CTLCOLORDLG:
 		{
-			return (LRESULT)onControlColour( (HDC)wparam ,
-				(HWND)lparam , CTLCOLOR_DLG ) ;
+			return reinterpret_cast<LRESULT>( onControlColour( reinterpret_cast<HDC>(wparam) ,
+				reinterpret_cast<HWND>(lparam) , CTLCOLOR_DLG ) ) ;
 		}
 
 		case WM_CTLCOLOREDIT:
 		{
-			return (LRESULT)onControlColour( (HDC)wparam ,
-				(HWND)lparam , CTLCOLOR_EDIT ) ;
+			return reinterpret_cast<LRESULT>( onControlColour( reinterpret_cast<HDC>(wparam) ,
+				reinterpret_cast<HWND>(lparam) , CTLCOLOR_EDIT ) ) ;
 		}
 
 		case WM_CTLCOLORLISTBOX:
 		{
-			return (LRESULT)onControlColour( (HDC)wparam ,
-				(HWND)lparam , CTLCOLOR_LISTBOX ) ;
+			return reinterpret_cast<LRESULT>( onControlColour( reinterpret_cast<HDC>(wparam) ,
+				reinterpret_cast<HWND>(lparam) , CTLCOLOR_LISTBOX ) ) ;
 		}
 
 		case WM_CTLCOLORBTN:
 		{
-			return (LRESULT)onControlColour( (HDC)wparam ,
-				(HWND)lparam , CTLCOLOR_BTN ) ;
+			return reinterpret_cast<LRESULT>( onControlColour( reinterpret_cast<HDC>(wparam) ,
+				reinterpret_cast<HWND>(lparam) , CTLCOLOR_BTN ) ) ;
 		}
 
 		case WM_CTLCOLORSCROLLBAR:
 		{
-			return (LRESULT)onControlColour( (HDC)wparam ,
-				(HWND)lparam , CTLCOLOR_SCROLLBAR ) ;
+			return reinterpret_cast<LRESULT>( onControlColour( reinterpret_cast<HDC>(wparam) ,
+				reinterpret_cast<HWND>(lparam) , CTLCOLOR_SCROLLBAR ) ) ;
 		}
 
 		case WM_CTLCOLORSTATIC:
 		{
-			return (LRESULT)onControlColour( (HDC)wparam ,
-				(HWND)lparam , CTLCOLOR_STATIC ) ;
+			return reinterpret_cast<LRESULT>( onControlColour( reinterpret_cast<HDC>(wparam) ,
+				reinterpret_cast<HWND>(lparam) , CTLCOLOR_STATIC ) ) ;
 		}
 
 		case WM_SYSCOLORCHANGE:
@@ -176,14 +181,14 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 		
 		case WM_ERASEBKGND:
 		{
-			G_DEBUG( "GCracker::onEraseBackground" ) ;
+			G_DEBUG( "Cracker::onEraseBackground" ) ;
 			HDC hdc = reinterpret_cast<HDC>(wparam) ;
 			return onEraseBackground( hdc ) ;
 		}
 
 		case WM_DROPFILES:
 		{
-			G_DEBUG( "GCracker::onDrop" ) ;
+			G_DEBUG( "Cracker::onDrop" ) ;
 			HDROP hdrop = reinterpret_cast<HDROP>(wparam) ;
 			int count = ::DragQueryFile( hdrop , -1 , NULL , 0 ) ;
 			G::Strings list ;
@@ -192,7 +197,7 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 				static char buffer[512] ;
 				if( ::DragQueryFile( hdrop , i , buffer , sizeof(buffer) ) < sizeof(buffer) )
 				{
-					G_DEBUG( "GCracker::onDrop: \"" << buffer << "\"" ) ;
+					G_DEBUG( "Cracker::onDrop: \"" << buffer << "\"" ) ;
 					list.push_back( std::string(buffer) ) ;
 				}
 			}
@@ -219,7 +224,7 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 		
 		case WM_MOVE:
 		{
-			onMove( (int)LOWORD(lparam) , (int)HIWORD(lparam) ) ;
+			onMove( static_cast<int>(LOWORD(lparam)) , static_cast<int>(HIWORD(lparam)) ) ;
 			return 0 ;
 		}
 				
@@ -231,7 +236,7 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 
 			if( type == menu || type == accelerator )
 			{
-				G_DEBUG( "GCracker::onMenuCommand" ) ;
+				G_DEBUG( "Cracker::onMenuCommand" ) ;
 				onMenuCommand( wparam ) ;
 			}
 
@@ -240,7 +245,7 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 				HWND window = GET_WM_COMMAND_HWND( wparam , lparam ) ;
 				UINT id = GET_WM_COMMAND_ID( wparam , lparam ) ;
 				UINT message = type ;
-				G_DEBUG( "GCracker::onControlCommand" ) ;
+				G_DEBUG( "Cracker::onControlCommand" ) ;
 				onControlCommand( window , message , id ) ;
 			}
 			
@@ -308,13 +313,13 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 
 		case WM_GETMINMAXINFO:
 		{
-			MINMAXINFO far *f_p = (MINMAXINFO far *)lparam ;
-			G_ASSERT( f_p != NULL ) ;
-			int dx = f_p->ptMaxSize.x ;
-			int dy = f_p->ptMaxSize.y ;
+			MINMAXINFO * mmi_p = reinterpret_cast<MINMAXINFO*>(lparam) ;
+			G_ASSERT( mmi_p != NULL ) ;
+			int dx = mmi_p->ptMaxSize.x ;
+			int dy = mmi_p->ptMaxSize.y ;
 			onDimension( dx , dy ) ;
-			f_p->ptMaxTrackSize.x = f_p->ptMaxSize.x = dx ;
-			f_p->ptMaxTrackSize.y = f_p->ptMaxSize.y = dy ;
+			mmi_p->ptMaxTrackSize.x = mmi_p->ptMaxSize.x = dx ;
+			mmi_p->ptMaxTrackSize.y = mmi_p->ptMaxSize.y = dy ;
 			return 0 ;
 		}
 
@@ -366,7 +371,8 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 
 		case WM_INITMENUPOPUP:
 		{
-			onInitMenuPopup( (HMENU)wparam , (unsigned)LOWORD(lparam) ,
+			onInitMenuPopup( reinterpret_cast<HMENU>(wparam) ,
+				static_cast<unsigned int>(LOWORD(lparam)) ,
 				!!HIWORD(lparam) ) ;
 			return 0 ;
 		}
@@ -423,7 +429,7 @@ unsigned int GGui::Cracker::wm_winsock()
 //static
 unsigned int GGui::Cracker::wm_user_other()
 {
-	return WM_USER + 123U ;
+	return WM_USER+123U ;
 }
 
 // trivial default implementations of virtual functions...

@@ -104,8 +104,8 @@ private:
 	G::Arg m_arg ;
 	G::GetOpt m_getopt ;
 
-private:
-	class Show
+public:
+	class Show // A private implementation class used by Main::CommandLine.
 	{
 		public: explicit Show( bool e ) ;
 		public: std::ostream & s() ;

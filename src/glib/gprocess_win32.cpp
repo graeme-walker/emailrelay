@@ -169,6 +169,11 @@ bool G::Process::cd( const Path & dir , NoThrow )
 	return 0 == ::_chdir( dir.str().c_str() ) ;
 }
 
+int G::Process::errno_()
+{
+	return errno ;
+}
+
 int G::Process::spawn( Identity , const Path & exe , const Strings & args_ ,
 	std::string * pipe_result_p , int error_return )
 {
@@ -179,7 +184,9 @@ int G::Process::spawn( Identity , const Path & exe , const Strings & args_ ,
 	Strings args( args_ ) ; // non-const copy
 	Pipe pipe( pipe_result_p != NULL ) ;
 	if( pipe_result_p != NULL )
-		args.push_front( Str::fromInt(pipe.fd()) ) ; // kludge -- child must write on specific fd passed as argv[1]
+		args.push_front( Str::fromInt(pipe.fd()) ) ; // kludge -- child must write on fd passed as argv[1]
+
+	G_DEBUG( "G::Process::spawn: \"" << exe << "\": \"" << Str::join(args,"\",\"") << "\"" ) ;
 
 	char ** argv = new char* [ args.size() + 2U ] ;
 	argv[0U] = const_cast<char*>( exe.pathCstr() ) ;
@@ -191,7 +198,9 @@ int G::Process::spawn( Identity , const Path & exe , const Strings & args_ ,
 	const int mode = _P_WAIT ;
 	::_flushall() ;
 	int rc = ::_spawnv( mode , exe.str().c_str() , argv ) ;
+	int error = errno_() ;
 	delete [] argv ;
+	G_DEBUG( "G::Process::spawn: _spawnv(): rc=" << rc << ": errno=" << error ) ;
 
 	if( pipe_result_p != NULL )
 		*pipe_result_p = pipe.read() ;
@@ -211,7 +220,6 @@ void G::Process::beSpecial( Identity , bool )
 }
 
 // not implemented...
-// int G::Process::errno_()
 // Who G::Process::fork() {}
 // Who G::Process::fork( Id & child ) {}
 // void G::Process::exec( const Path & exe , const std::string & arg ) {}

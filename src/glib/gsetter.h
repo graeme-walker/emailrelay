@@ -33,10 +33,10 @@ namespace G
 }
 
 // Class: G::Setter
-// Description: A class to Manage a boolean flag
+// Description: A class to manage a boolean flag
 // while in scope.
 //
-class G::Setter : public G:: noncopyable
+class G::Setter : public G::noncopyable
 {
 public:
 	explicit Setter( bool & b ) ;

@@ -25,6 +25,7 @@
 #define G_GNET_MONITOR_H
 
 #include "gdef.h"
+#include "gslot.h"
 #include "gnet.h"
 #include "gnoncopyable.h"
 #include "gclient.h"
@@ -70,15 +71,19 @@ public:
 		const std::string & eol = std::string("\n") ) ;
 			// Reports itself onto a stream.
 
-protected:
-	virtual void onEvent( const std::string & , const std::string & ) ;
-		// Called when the monitor's state has
-		// changed. The default implementation
-		// does nothing.
+	G::Signal2<std::string,std::string> & signal() ;
+		// Provides a callback signal which can be connect()ed
+		// to a slot.
+		//
+		// The signal emits events with two
+		// string parameters: the first
+		// is "in" or "out", and the second
+		// is "start" or "stop".
 
 private:
 	static Monitor * m_this ;
 	MonitorImp * m_imp ;
+	G::Signal2<std::string,std::string> m_signal ;
 } ;
 
 #endif

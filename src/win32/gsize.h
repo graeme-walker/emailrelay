@@ -30,7 +30,7 @@
 namespace GGui
 {
 	class Size ;
-} ;
+}
 
 // Class: GGui::Size
 // Description: A structure representing the size of a rectangle (typically
@@ -74,6 +74,6 @@ namespace GGui
 		size.streamOut( stream ) ;
 		return stream ;
 	}
-} ;
+}
 
 #endif

@@ -30,7 +30,7 @@
 namespace GGui
 {
 	class WindowBase ;
-} ;
+}
 
 // Class: GGui::WindowBase
 // Description: A low-level window class which

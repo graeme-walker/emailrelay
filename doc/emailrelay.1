@@ -1,4 +1,3 @@
-.\" 
 .\" Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 .\" 
 .\" This program is free software; you can redistribute it and/or
@@ -64,7 +63,7 @@ Runs as a client, forwarding spooled mail to <host>: equivalent to \fI--log\fR \
 Runs as a proxy: equivalent to \fI--log\fR \fI--close-stderr\fR \fI--immediate\fR \fI--forward-to\fR.
 .TP
 .B \-d,--as-server 
-Runs as a server: equivalent to \fI--log\fR \fI--close-stderr\fR.
+Runs as a server: equivalent to \fI--log\fR \fI--close-stderr\fR \fI--postmaster\fR.
 .TP
 .B \-C,--client-auth \fIfile\fR
 Enables authentication with remote server, using the given secrets file.
@@ -120,8 +119,14 @@ Disables syslog output.
 .B \-i,--pid-file \fIpid-file\fR
 Records the daemon process-id in the given file.
 .TP
+.B \-O,--poll \fIperiod\fR
+Enables polling with the specified period (requires \fI--forward-to\fR).
+.TP
 .B \-p,--port \fIport\fR
 Specifies the smtp listening port number.
+.TP
+.B \-P,--postmaster 
+Deliver to postmaster and reject all other local mailbox addresses.
 .TP
 .B \-r,--remote-clients 
 Allows remote clients to connect.

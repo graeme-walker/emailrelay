@@ -29,7 +29,7 @@
 namespace GGui
 {
 	class SubClassMap ;
-} ;
+}
 
 // Class: GGui::SubClassMap
 // Description: A class for mapping sub-classed window handles
@@ -78,11 +78,5 @@ private:
 	Slot m_list[SlotsLimit] ;
 	unsigned int m_high_water ;
 } ;
-
-inline
-GGui::SubClassMap::SubClassMap() :
-	m_high_water(0U)
-{
-}
 
 #endif

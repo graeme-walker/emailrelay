@@ -45,7 +45,6 @@ class G::Str
 public:
 	G_EXCEPTION( Overflow , "conversion error: over/underflow" ) ;
 	G_EXCEPTION( InvalidFormat, "conversion error: invalid format" ) ;
-	typedef std::vector<std::string GAllocator(std::string) > StringArray ;
 
 	static bool replace( std::string &s ,
 		const std::string &from , const std::string &to ,
@@ -207,7 +206,7 @@ public:
 		bool discard_bogus_escapes = true ) ;
 			// Overload for vector<string>.
 
-	static std::string join( const G::Strings & strings , const std::string & sep ) ;
+	static std::string join( const Strings & strings , const std::string & sep ) ;
 		// Concatenates a set of strings.
 
 	static std::string join( const StringArray & strings , const std::string & sep ) ;

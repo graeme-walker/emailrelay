@@ -103,11 +103,23 @@ SOURCE=.\configuration.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\main_win32.cpp
+SOURCE=.\run.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\run.cpp
+SOURCE=.\winapp.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\winform.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\winmain.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\winmenu.cpp
 # End Source File
 # End Group
 # Begin Group "Header Files"

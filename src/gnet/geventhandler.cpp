@@ -151,9 +151,7 @@ void GNet::EventHandlerList::unlock()
 	m_lock-- ;
 	if( m_lock == 0U && m_copied )
 	{
-		G_DEBUG( "GNet::EventHandlerList::unlock: " << m_type << "-list: "
-			<< "commiting deferred changes: before=" << asString(m_list)
-			<< ": after=" << asString(m_copy) ) ;
+		//G_DEBUG( "GNet::EventHandlerList::unlock: " << m_type << "-list: commiting: " << asString(m_copy) ) ;
 		m_list = m_copy ;
 		m_copied = false ;
 	}

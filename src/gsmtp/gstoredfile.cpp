@@ -249,6 +249,7 @@ bool GSmtp::StoredFile::lock()
 		m_old_envelope_path = src ;
 		m_locked = true ;
 	}
+	m_store.updated() ;
 	return ok ;
 }
 
@@ -261,6 +262,7 @@ void GSmtp::StoredFile::unlock()
 		G::File::rename( m_envelope_path , m_old_envelope_path ) ;
 		m_envelope_path = m_old_envelope_path ;
 		m_locked = false ;
+		m_store.updated() ;
 	}
 }
 

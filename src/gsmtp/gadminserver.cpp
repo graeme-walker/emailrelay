@@ -29,25 +29,29 @@
 #include "gmessagestore.h"
 #include "gstoredmessage.h"
 #include "gmonitor.h"
+#include "gslot.h"
 #include "gstr.h"
 #include "gmemory.h"
+#include <algorithm> // std::find()
 
-GSmtp::AdminClient::AdminClient( AdminPeer & admin_peer ) :
-	Client(MessageStore::instance(),admin_peer,false)
-{
-}
-
-// ===
-
-GSmtp::AdminPeer::AdminPeer( GNet::StreamSocket * s , GNet::Address a , AdminServer & server ,
-	const std::string & server_address ) :
-		GNet::ServerPeer( s , a ) ,
+GSmtp::AdminPeer::AdminPeer( GNet::Server::PeerInfo peer_info , AdminServer & server ,
+	const std::string & server_address , bool with_terminate ) :
+		GNet::ServerPeer(peer_info) ,
 		m_buffer(crlf()) ,
 		m_server(server) ,
-		m_server_address(server_address)
+		m_server_address(server_address) ,
+		m_notifying(false) ,
+		m_with_terminate(with_terminate)
 {
-	G_LOG_S( "GSmtp::AdminPeer: admin connection from " << a.displayString() ) ;
+	G_LOG_S( "GSmtp::AdminPeer: admin connection from " << peer_info.m_address.displayString() ) ;
 	// dont prompt() here -- it confuses the poke program
+}
+
+GSmtp::AdminPeer::~AdminPeer()
+{
+	// only safe because AdminServer::dtor calls serverCleanup() -- otherwise
+	// the derived part of the server may already be destroyed
+	m_server.unregister( this ) ;
 }
 
 void GSmtp::AdminPeer::clientDone( std::string s )
@@ -91,6 +95,11 @@ bool GSmtp::AdminPeer::processLine( const std::string & line )
 		info() ;
 		prompt() ;
 	}
+	else if( is(line,"NOTIFY") )
+	{
+		m_notifying = true ;
+		prompt() ;
+	}
 	else if( is(line,"LIST") )
 	{
 		list() ;
@@ -101,7 +110,7 @@ bool GSmtp::AdminPeer::processLine( const std::string & line )
 		doDelete() ;
 		return false ;
 	}
-	else if( is(line,"TERMINATE") && false )
+	else if( is(line,"TERMINATE") && m_with_terminate )
 	{
 		if( GNet::EventLoop::exists() )
 			GNet::EventLoop::instance().quit() ;
@@ -135,7 +144,7 @@ bool GSmtp::AdminPeer::is( const std::string & line_in , const char * key )
 
 void GSmtp::AdminPeer::help()
 {
-	send( "commands: FLUSH, HELP, INFO, LIST, QUIT" ) ;
+	send( "commands: flush, help, info, list, notify, quit" ) ;
 }
 
 void GSmtp::AdminPeer::flush( const std::string & address )
@@ -146,10 +155,17 @@ void GSmtp::AdminPeer::flush( const std::string & address )
 	{
 		send( "error: still working" ) ;
 	}
+	else if( address.empty() )
+	{
+		send( "error: no remote server configured: use --forward-to" ) ;
+	}
 	else
 	{
-		m_client <<= new AdminClient( *this ) ;
-		std::string rc = m_client->init( address ) ;
+		const bool quit_on_disconnect = false ;
+		m_client <<= new Client( m_server.store() , m_server.secrets() ,
+			quit_on_disconnect , m_server.responseTimeout() ) ;
+		m_client->doneSignal().connect( G::slot(*this,&AdminPeer::clientDone) ) ;
+		std::string rc = m_client->startSending( address , m_server.connectionTimeout() ) ;
 		if( rc.length() != 0U )
 		{
 			send( std::string("error: ") + rc ) ;
@@ -173,6 +189,12 @@ void GSmtp::AdminPeer::send( std::string line )
 		doDelete() ; // onDelete() and "delete this"
 }
 
+void GSmtp::AdminPeer::notify( const std::string & s0 , const std::string & s1 , const std::string & s2 )
+{
+	if( m_notifying )
+		send( crlf() + "EVENT: " + s0 + ": " + s1 + ": " + s2 ) ;
+}
+
 void GSmtp::AdminPeer::info()
 {
 	std::ostringstream ss ;
@@ -190,15 +212,12 @@ void GSmtp::AdminPeer::info()
 void GSmtp::AdminPeer::list()
 {
 	std::ostringstream ss ;
-	if( MessageStore::exists() )
+	MessageStore::Iterator iter( m_server.store().iterator(false) ) ;
+	for(;;)
 	{
-		MessageStore::Iterator iter( MessageStore::instance().iterator(false) ) ;
-		for(;;)
-		{
-			std::auto_ptr<StoredMessage> message( iter.next() ) ;
-			if( message.get() == NULL ) break ;
-			ss << message->name() << crlf() ;
-		}
+		std::auto_ptr<StoredMessage> message( iter.next() ) ;
+		if( message.get() == NULL ) break ;
+		ss << message->name() << crlf() ;
 	}
 
 	std::string result = ss.str() ;
@@ -210,21 +229,74 @@ void GSmtp::AdminPeer::list()
 
 // ===
 
-GSmtp::AdminServer::AdminServer( unsigned int port , bool allow_remote , const std::string & address ) :
-	GNet::Server( port ) ,
-	m_allow_remote( allow_remote ) ,
-	m_server_address( address )
+GSmtp::AdminServer::AdminServer( MessageStore & store , const Secrets & secrets ,
+	const GNet::Address & listening_address , bool allow_remote ,
+	const std::string & address , unsigned int response_timeout ,
+	unsigned int connection_timeout , bool with_terminate ) :
+		GNet::Server( listening_address ) ,
+		m_store( store ) ,
+		m_secrets( secrets ) ,
+		m_allow_remote( allow_remote ) ,
+		m_server_address( address ) ,
+		m_response_timeout( response_timeout ) ,
+		m_connection_timeout( connection_timeout ) ,
+		m_with_terminate( with_terminate )
 {
-	G_DEBUG( "GSmtp::AdminServer: administrative interface listening on port " << port ) ;
+	G_DEBUG( "GSmtp::AdminServer: administrative interface listening on " << listening_address.displayString() ) ;
 }
 
-GNet::ServerPeer * GSmtp::AdminServer::newPeer( GNet::StreamSocket * s , GNet::Address a )
+GSmtp::AdminServer::~AdminServer()
 {
-	return new AdminPeer( s , a , *this , m_server_address ) ;
+	// early cleanup so peers can call unregister() safely
+	serverCleanup() ; // GNet::Server
+}
+
+GNet::ServerPeer * GSmtp::AdminServer::newPeer( GNet::Server::PeerInfo peer_info )
+{
+	AdminPeer * peer = new AdminPeer( peer_info , *this , m_server_address , m_with_terminate ) ;
+	m_peers.push_back( peer ) ;
+	return peer ;
 }
 
 void GSmtp::AdminServer::report() const
 {
 	// no-op
+}
+
+void GSmtp::AdminServer::notify( const std::string & s0 , const std::string & s1 , const std::string & s2 )
+{
+	for( PeerList::iterator p = m_peers.begin() ; p != m_peers.end() ; ++p )
+	{
+		G_DEBUG( "GSmtp::AdminServer::notify: " << (*p) << ": " << s0 << ": " << s1 ) ;
+		(*p)->notify( s0 , s1 , s2 ) ;
+	}
+}
+
+void GSmtp::AdminServer::unregister( AdminPeer * peer )
+{
+	G_DEBUG( "GSmtp::AdminServer::unregister: server=" << this << ": peer=" << peer ) ;
+	PeerList::iterator p = std::find( m_peers.begin() , m_peers.end() , peer ) ;
+	if( p != m_peers.end() )
+		m_peers.erase( p ) ;
+}
+
+GSmtp::MessageStore & GSmtp::AdminServer::store()
+{
+	return m_store ;
+}
+
+const GSmtp::Secrets & GSmtp::AdminServer::secrets() const
+{
+	return m_secrets ;
+}
+
+unsigned int GSmtp::AdminServer::responseTimeout() const
+{
+	return m_response_timeout ;
+}
+
+unsigned int GSmtp::AdminServer::connectionTimeout() const
+{
+	return m_connection_timeout ;
 }
 

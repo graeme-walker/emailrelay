@@ -76,7 +76,7 @@ private:
 	static bool same( const BrokenDownTime & , const BrokenDownTime & ) ;
 	static std::tm * gmtime_r( const std::time_t * , std::tm * ) ;
 	static std::tm * localtime_r( const std::time_t * , std::tm * ) ;
-	DateTime() ;
+	DateTime() ; // not implemented
 } ;
 
 #endif

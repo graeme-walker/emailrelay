@@ -23,13 +23,14 @@
 
 #include "gdef.h"
 #include "gappbase.h"
+#include "gappinst.h"
 #include "gwindow.h"
 #include "gpump.h"
 #include "gdebug.h"
 #include "glog.h"
 
 GGui::ApplicationBase::ApplicationBase( HINSTANCE current , HINSTANCE previous ,
-	const char *name ) :
+	const std::string & name ) :
 		ApplicationInstance(current) ,
 		m_previous(previous) ,
 		m_name(name)
@@ -55,7 +56,7 @@ void GGui::ApplicationBase::createWindow( int show_style , bool do_show )
 			CW_USEDEFAULT , CW_USEDEFAULT , // position (x,y)
 			CW_USEDEFAULT , CW_USEDEFAULT , // size
 			NULL , // parent window
-			NULL , // menu handle: 0 => use class's menu
+			NULL , // menu handle: NULL => use class's menu
 			hinstance() ) )
 	{
 		throw CreateError() ;
@@ -75,19 +76,22 @@ bool GGui::ApplicationBase::firstInstance() const
 
 void GGui::ApplicationBase::initFirst()
 {
-	UINT id = resource() ;
-	HICON icon = id ? ::LoadIcon(hinstance(),MAKEINTRESOURCE(id)) : 0 ;
+	G_DEBUG( "GGui::ApplicationBase::initFirst" ) ;
+
+	UINT icon_id = resource() ;
+	HICON icon = icon_id ? ::LoadIcon(hinstance(),MAKEINTRESOURCE(icon_id)) : 0 ;
 	if( icon == 0 )
 		icon = classIcon() ;
 
-	const char * menu = MAKEINTRESOURCE( id ) ;
+	UINT menu_id = resource() ;
+
 	bool ok = registerWindowClass( className() ,
 		hinstance() ,
 		classStyle() ,
 		icon ,
 		classCursor() ,
 		backgroundBrush() ,
-		menu ) ;
+		menu_id ) ;
 
 	if( !ok )
 		throw RegisterError( className() ) ;
@@ -111,14 +115,14 @@ void GGui::ApplicationBase::onDestroy()
 	GGui::Pump::quit() ;
 }
 
-const char * GGui::ApplicationBase::title() const
+std::string GGui::ApplicationBase::title() const
 {
-	return m_name.c_str() ;
+	return m_name ;
 }
 
-const char * GGui::ApplicationBase::className() const
+std::string GGui::ApplicationBase::className() const
 {
-	return m_name.c_str() ;
+	return m_name ;
 }
 
 HBRUSH GGui::ApplicationBase::backgroundBrush()

@@ -1,24 +1,30 @@
 Introduction
 ============
 
-   What follows are generic installation instructions for doing a standard GNU 
-"./configure; make; make install" installation from source under Linux, FreeBSD 
-etc. The Windows installation instructions are in a separate document.
+   What follows are generic installation instructions for doing a 
+GNU-style "./configure; make; make install-strip" installation from 
+source under Linux, FreeBSD etc. The Windows installation instructions
+are in a separate document.
 
-   A non-standard "configure" switch is available, "--enable-fhs", which overrides 
-all other directory modifiers, forcing compliance with the File Hierarchy Standard. 
-This switch is used in building the RPMs, and may become the default in future
-releases. 
+   The E-MailRelay "configure" script provides a few extra switches, 
+which are shown in the output of "./configure --help". The most 
+important of these is "--enable-fhs", which overrides all other 
+directory modifiers, forcing compliance with the File Hierarchy 
+Standard. This switch is used in building the RPMs, and may become the 
+default in future releases. 
 
-   There are also a set of variables which can be defined on the "configure" command 
-line for controlling all the installation directories in more detail, augmenting 
-the standard command-line switches like "--sbindir" and "--libexecdir". For more 
-information refer to the E-MailRelay reference document under 
-"Files and directories".
+   There are also a set of variables which can be defined on the 
+"configure" command line for controlling all the installation 
+directories in more detail, augmenting the standard command-line 
+switches like "--sbindir" and "--libexecdir". For more information 
+refer to the E-MailRelay reference document under "Files and directories".
 
-   The E-MailRelay user guide describes what needs to be done after the "make 
-install" in order to get the emailrelay daemon to start up at boot-time, 
-automatically forward e-mail and bounce failed mail.
+   If compiling with something other than "gcc" then check for any 
+compiler-specific help in the relevant lib/<compiler> directory.
+
+   The E-MailRelay user guide describes what needs to be done after the 
+"make install" in order to get the emailrelay daemon to start up at 
+boot-time, automatically forward e-mail and bounce failed mail.
 
 Basic Installation
 ==================

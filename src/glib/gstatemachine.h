@@ -152,7 +152,7 @@ private:
 		Transition(State s1,State s2,Action a,State s3) :
 			from(s1) , to(s2) , alt(s3) , action(a) {}
 	} ;
-	typedef std::multimap<Event,Transition GLessAllocator(Event,Transition) > Map ;
+	typedef std::multimap<Event,Transition> Map ;
 	Map m_map ;
 	State m_state ;
 	State m_end ;

@@ -27,30 +27,8 @@
 #include "glog.h"
 #include "gassert.h"
 
-GSmtp::MessageStore * GSmtp::MessageStore::m_this = NULL ;
-
-GSmtp::MessageStore::MessageStore()
-{
-	if( m_this == NULL )
-		m_this = this ;
-}
-
-GSmtp::MessageStore & GSmtp::MessageStore::instance()
-{
-	if( m_this == NULL )
-		throw NoInstance() ;
-	return * m_this ;
-}
-
 GSmtp::MessageStore::~MessageStore()
 {
-	if( m_this == this )
-		m_this = NULL ;
-}
-
-bool GSmtp::MessageStore::exists()
-{
-	return m_this != NULL ;
 }
 
 // ===

@@ -25,14 +25,14 @@
 #define G_APPBASE_H
 
 #include "gdef.h"
-#include "gappinst.h"
 #include "gwindow.h"
+#include "gappinst.h"
 #include "gexception.h"
 
 namespace GGui
 {
 	class ApplicationBase ;
-} ;
+}
 
 // Class: GGui::ApplicationBase
 //
@@ -52,13 +52,13 @@ namespace GGui
 //
 // See also: Application, ApplicationInstance, Pump
 //
-class GGui::ApplicationBase : public Window , public ApplicationInstance
+class GGui::ApplicationBase : public GGui::ApplicationInstance , public GGui::Window
 {
 public:
 	G_EXCEPTION( RegisterError, "cannot register application's window class" ) ;
 	G_EXCEPTION( CreateError , "cannot create application window" ) ;
 
-	ApplicationBase( HINSTANCE current, HINSTANCE previous, const char *name );
+	ApplicationBase( HINSTANCE current, HINSTANCE previous, const std::string & name );
 		// Constructor. Applications should declare
 		// a ApplicationBase object on the stack within
 		// WinMain(), and then call its createWindow() and
@@ -83,7 +83,7 @@ public:
 		// main window, resulting in onClose() being
 		// called.
 
-	virtual const char *title() const ;
+	virtual std::string title() const ;
 		// Overridable. Defines the main window's title.
 
 	bool messageBoxQuery( const std::string & message ) ; // not const
@@ -112,7 +112,7 @@ protected:
 		// application silent or change the type of
 		// beep.
 
-	virtual const char *className() const ;
+	virtual std::string className() const ;
 		// Overridable. Defines the main window's class
 		// name.
 
@@ -123,7 +123,6 @@ protected:
 
 	virtual DWORD windowStyle() const ;
 		// Overridable. Defines the main window's style.
-		// (Was called style().)
 
 	virtual DWORD classStyle() const ;
 		// Overridable. Defines the main window class style.
@@ -143,8 +142,8 @@ protected:
 		// implementation is called first.
 
 private:
-	ApplicationBase( const ApplicationBase &other ) ; // not implemented
-	void operator=( const ApplicationBase &other ) ; // not implemented
+	ApplicationBase( const ApplicationBase & other ) ; // not implemented
+	void operator=( const ApplicationBase & other ) ; // not implemented
 	static bool messageBoxCore( HWND , unsigned int ,
 		const std::string & , const std::string & ) ;
 	HWND messageBoxHandle() const ;
@@ -156,5 +155,4 @@ private:
 } ;
 
 #endif
-
 

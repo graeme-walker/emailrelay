@@ -44,7 +44,6 @@ namespace G
 class G::GetOpt
 {
 public:
-	typedef std::vector<std::string GAllocator(std::string) > StringArray ;
 	struct Level // Used by G::GetOpt for extra type safety.
 		{ unsigned int level ; explicit Level(unsigned int l) : level(l) {} } ;
 	G_EXCEPTION( InvalidSpecification , "invalid options specification string" ) ;
@@ -162,9 +161,9 @@ private:
 				valued(v_) , hidden(description_.empty()||level_==0U) ,
 				value_description(vd_) , level(level_) {}
 	} ;
-	typedef std::map<std::string,SwitchSpec GLessAllocator(char,SwitchSpec) > SwitchSpecMap ;
+	typedef std::map<std::string,SwitchSpec> SwitchSpecMap ;
 	typedef std::pair<bool,std::string> Value ;
-	typedef std::map<char,Value GLessAllocator(char,Value) > SwitchMap ;
+	typedef std::map<char,Value> SwitchMap ;
 
 	void operator=( const GetOpt & ) ;
 	GetOpt( const GetOpt & ) ;

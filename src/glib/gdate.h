@@ -27,8 +27,7 @@
 #include "gdef.h"
 #include "gdatetime.h"
 #include "gdebug.h"
-#include <sys/types.h>
-#include <time.h>
+#include <ctime>
 #include <string>
 
 namespace G
@@ -54,7 +53,7 @@ public:
 		august , september , october , november , december } ;
 
 	enum Format
-		{ yyyy_mm_dd_slash , yyyy_mm_dd } ;
+		{ yyyy_mm_dd_slash , yyyy_mm_dd , mm_dd } ;
 
 	static int yearUpperLimit() ;
 		// Returns the smallest supported year value.
@@ -73,6 +72,10 @@ public:
 	Date( const G::DateTime::BrokenDownTime & tm ) ;
 		// Constructor for the specified date.
 
+	explicit Date( G::DateTime::EpochTime t ) ;
+		// Constructor for the date in the UTC
+		// timezone as at the given epoch time.
+
 	Date( G::DateTime::EpochTime t , const LocalTime & ) ;
 		// Constructor for the date in the local
 		// timezone as at the given epoch time.
@@ -86,27 +89,34 @@ public:
 	Weekday weekday() const ;
 		// Returns the day of the week.
 
-	std::string weekdayString( bool brief = false ) const ;
+	std::string weekdayName( bool brief = false ) const ;
 		// Returns an english string representation of
 		// the day of the week.
+		// (Was weekdayString().)
 
 	int monthday() const ;
 		// Returns the day of the month.
 
-	std::string monthdayString() const ;
-		// Returns a string representation of the day of the month.
+	std::string dd() const ;
+		// Returns the day of the month as a two-digit decimal string.
+		// (Was monthdayString().)
 
 	Month month() const ;
 		// Returns the month.
 
-	std::string monthString( bool brief = false ) const ;
+	std::string monthName( bool brief = false ) const ;
 		// Returns the month as a string (in english).
+		// (Was monthString().)
+
+	std::string mm() const ;
+		// Returns the month as a two-digit decimal string.
 
 	int year() const ;
 		// Returns the year.
 
-	std::string yearString() const ;
-		// Returns the year as a string.
+	std::string yyyy() const ;
+		// Returns the year as a four-digit decimal string.
+		// (Was yearString().)
 
 	Date & operator++() ;
 		// Increments the date by one day.

@@ -96,7 +96,7 @@ GNet::EventHandlerListItem::EventHandlerListItem( Descriptor fd , EventHandler *
 
 namespace GNet
 {
-	typedef std::list< EventHandlerListItem GAllocator(EventHandlerListItem) >
+	typedef std::list<EventHandlerListItem>
 		EventHandlerListImp ;
 }
 

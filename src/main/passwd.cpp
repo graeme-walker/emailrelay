@@ -40,7 +40,9 @@ int main( int argc , char * argv [] )
 		if( argc != 1 )
 		{
 			std::cerr
+				<< arg.prefix() << ": too many command-line arguments" << std::endl
 				<< "usage: " << arg.prefix() << std::endl
+				<< std::endl
 				<< Main::Legal::warranty("  ","\n")
 				<< "    " << Main::Legal::copyright() << std::endl ;
 			return EXIT_FAILURE ;

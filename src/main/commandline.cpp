@@ -39,7 +39,7 @@ std::string Main::CommandLine::switchSpec()
 	ss
 		<< osSwitchSpec() << "|"
 		<< "q!as-client!runs as a client, forwarding spooled mail to <host>: equivalent to \"--log --no-syslog --no-daemon --dont-serve --forward --forward-to\"!" << "1!host:port!1|"
-		<< "d!as-server!runs as a server: equivalent to \"--log --close-stderr\"!0!!1|"
+		<< "d!as-server!runs as a server: equivalent to \"--log --close-stderr --postmaster\"!0!!1|"
 		<< "y!as-proxy!runs as a proxy: equivalent to \"--log --close-stderr --immediate --forward-to\"!1!host:port!1|"
 		<< "v!verbose!generates more verbose output (works with --help and --log)!0!!1|"
 		<< "h!help!displays help text and exits!0!!1|"
@@ -66,7 +66,10 @@ std::string Main::CommandLine::switchSpec()
 		<< "m!immediate!forwards each message as soon as it is received (requires --forward-to)!0!!3|"
 		<< "I!interface!listen on a specific interface!1!ip-address!3|"
 		<< "i!pid-file!records the daemon process-id in the given file!1!pid-file!3|"
-		<< "Z!verifier!defines an external program for validating recipient addresses!1!program!3|"
+		<< "O!poll!enables polling with the specified period (requires --forward-to)!1!period!3|"
+		<< "P!postmaster!deliver to postmaster and reject all other local mailbox addresses!0!!3|"
+		<< "Z!verifier!defines an external address verifier program!1!program!3|"
+		<< "Q!admin-terminate!!0!!0|"
 		;
 	return ss.str() ;
 }
@@ -102,7 +105,7 @@ void Main::CommandLine::showUsage( bool e ) const
 	if( m_getopt.contains("verbose") )
 		level = G::GetOpt::levelDefault() ;
 	else
-		introducer = std::string("abbreviated ") + G::GetOpt::introducerDefault() ;
+		introducer = std::string("abbreviated ") + introducer ;
 
 	size_t tab_stop = 33U ;
 	size_t columns = ttyColumns() ;
@@ -142,20 +145,26 @@ std::string Main::CommandLine::semanticError() const
 			"be absolute paths" ;
 	}
 
-	if( !m_getopt.contains("forward-to") && (
+	const bool forward_to =
+		m_getopt.contains("as-proxy") ||
+		m_getopt.contains("as-client") ||
+		m_getopt.contains("forward-to") ;
+
+	if( ! forward_to && (
 		m_getopt.contains("forward") ||
-		m_getopt.contains("immediate") ||
-		m_getopt.contains("admin") ) )
+		m_getopt.contains("poll") ||
+		m_getopt.contains("immediate") ) )
 	{
-		return "the --forward, --immediate and --admin switches require --forward-to" ;
+		return "the --forward, --immediate and --poll switches require --forward-to" ;
 	}
 
-	if( m_getopt.contains("verbose") && ! (
-		m_getopt.contains("help") ||
+	const bool log =
 		m_getopt.contains("log") ||
 		m_getopt.contains("as-server") ||
 		m_getopt.contains("as-client") ||
-		m_getopt.contains("as-proxy") ) )
+		m_getopt.contains("as-proxy") ;
+
+	if( m_getopt.contains("verbose") && ! ( m_getopt.contains("help") || log ) )
 	{
 		return "the --verbose switch must be used with --log, --help, --as-client, --as-server or --as-proxy" ;
 	}
@@ -163,6 +172,11 @@ std::string Main::CommandLine::semanticError() const
 	if( m_getopt.contains("interface") && ( m_getopt.contains("dont-serve") || m_getopt.contains("as-client") ) )
 	{
 		return "the --interface switch cannot be used with --as-client or --dont-serve" ;
+	}
+
+	if( cfg().daemon() && m_getopt.contains("hidden") ) // (win32)
+	{
+		return "the --hidden switch requires --no-daemon or --as-client" ;
 	}
 
 	return std::string() ;

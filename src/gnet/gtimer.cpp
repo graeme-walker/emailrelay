@@ -166,8 +166,8 @@ void GNet::TimerList::update( G::DateTime::EpochTime t_old ,
 	const std::string & op )
 {
 	G::DateTime::EpochTime t_new = soonest() ;
-	G_DEBUG( "GNet::TimerList::update: " << op << ": " << t_old << " -> " << t_new ) ;
-	(void) op.length() ; // pacify the compiler
+	//G_DEBUG( "GNet::TimerList::update: " << op << ": " << t_old << " -> " << t_new ) ;
+	G_IGNORE op.length() ; // pacify the compiler
 	if( t_old != t_new && EventLoop::exists() )
 	{
 		EventLoop::instance().setTimeout( t_new ) ;

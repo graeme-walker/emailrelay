@@ -33,14 +33,14 @@
 namespace GGui
 {
 	class Cracker ;
-} ;
+}
 
 // Class: GGui::Cracker
 // Description: The Cracker class encapsulates a typical
 // window procedure by 'cracking' Windows messages
 // into virtual functions.
 //
-class GGui::Cracker : public WindowBase
+class GGui::Cracker : public GGui::WindowBase
 {
 public:
 
@@ -317,11 +317,5 @@ private:
 	LRESULT doMouseButton( Fn fn , MouseButton , MouseButtonDirection ,
 		unsigned int , WPARAM , LPARAM ) ;
 } ;
-
-inline
-GGui::Cracker::Cracker( const Cracker & other ) :
-	WindowBase(other)
-{
-}
 
 #endif

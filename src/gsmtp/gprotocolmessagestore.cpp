@@ -30,7 +30,8 @@
 #include "gassert.h"
 #include "glog.h"
 
-GSmtp::ProtocolMessageStore::ProtocolMessageStore()
+GSmtp::ProtocolMessageStore::ProtocolMessageStore( MessageStore & store ) :
+	m_store(store)
 {
 }
 
@@ -54,7 +55,7 @@ bool GSmtp::ProtocolMessageStore::setFrom( const std::string & from )
 		G_ASSERT( m_msg.get() == NULL ) ;
 		clear() ; // just in case
 
-		std::auto_ptr<NewMessage> new_message( MessageStore::instance().newMessage(from) ) ;
+		std::auto_ptr<NewMessage> new_message( m_store.newMessage(from) ) ;
 		m_msg <<= new_message.release() ;
 
 		m_from = from ;
@@ -106,8 +107,7 @@ std::string GSmtp::ProtocolMessageStore::from() const
 	return m_msg.get() ? m_from : std::string() ;
 }
 
-void GSmtp::ProtocolMessageStore::process( Callback & callback , const std::string & auth_id ,
-	const std::string & client_ip )
+void GSmtp::ProtocolMessageStore::process( const std::string & auth_id , const std::string & client_ip )
 {
 	try
 	{
@@ -121,14 +121,19 @@ void GSmtp::ProtocolMessageStore::process( Callback & callback , const std::stri
 				id = m_msg->id() ;
 		}
 		clear() ;
-		callback.processDone( true , id , std::string() ) ;
+		m_signal.emit( true , id , std::string() ) ;
 	}
 	catch( std::exception & e )
 	{
 		G_ERROR( "GSmtp::ProtocolMessage::process: error: " << e.what() ) ;
 		clear() ;
-		callback.processDone( false , 0UL , e.what() ) ;
+		m_signal.emit( false , 0UL , e.what() ) ;
 	}
+}
+
+G::Signal3<bool,unsigned long,std::string> & GSmtp::ProtocolMessageStore::doneSignal()
+{
+	return m_signal ;
 }
 
 

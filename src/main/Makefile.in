@@ -14,24 +14,8 @@
 
 @SET_MAKE@
 
-# 
-# Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
-# 
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either
-# version 2 of the License, or (at your option) any later
-# version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-# 
+#
+#
 SHELL = @SHELL@
 
 srcdir = @srcdir@
@@ -109,7 +93,7 @@ e_sbindir = @e_sbindir@
 e_spooldir = @e_spooldir@
 install_sh = @install_sh@
 
-# force symbol stripping on 'make install'
+# force symbol stripping on 'make install' -- see also make 'install-strip'
 AM_INSTALL_PROGRAM_FLAGS = -s
 
 EXTRA_DIST = \
@@ -124,12 +108,18 @@ EXTRA_DIST = \
 	icon2.ico \
 	icon3.ico \
 	icon4.ico \
-	main_win32.cpp \
 	messages.mc \
 	passwd.dsp \
 	poke.dsp \
 	resource.h \
-	submit.dsp
+	submit.dsp \
+	winapp.cpp \
+	winapp.h \
+	winform.cpp \
+	winform.h \
+	winmain.cpp \
+	winmenu.cpp \
+	winmenu.h
 
 
 INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet -I$(top_srcdir)/src/gsmtp -DG_SPOOLDIR=\"$(e_spooldir)\"
@@ -139,7 +129,7 @@ e_libexec_PROGRAMS = emailrelay-poke
 e_spool_DATA = 
 
 emailrelay_SOURCES = \
-	main_unix.cpp \
+	main.cpp \
 	configuration.cpp \
 	configuration.h \
 	legal.cpp \
@@ -178,7 +168,7 @@ e_sbin_PROGRAMS = emailrelay$(EXEEXT) emailrelay-submit$(EXEEXT) \
 	emailrelay-passwd$(EXEEXT)
 PROGRAMS = $(e_libexec_PROGRAMS) $(e_sbin_PROGRAMS)
 
-am_emailrelay_OBJECTS = main_unix.$(OBJEXT) configuration.$(OBJEXT) \
+am_emailrelay_OBJECTS = main.$(OBJEXT) configuration.$(OBJEXT) \
 	legal.$(OBJEXT) run.$(OBJEXT) commandline.$(OBJEXT) \
 	commandline_unix.$(OBJEXT)
 emailrelay_OBJECTS = $(am_emailrelay_OBJECTS)
@@ -211,7 +201,7 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/commandline.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/commandline_unix.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/configuration.Po ./$(DEPDIR)/legal.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/main_unix.Po ./$(DEPDIR)/passwd.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/passwd.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/poke.Po ./$(DEPDIR)/run.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/submit.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
@@ -312,7 +302,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/commandline_unix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/configuration.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/legal.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main_unix.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/passwd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/poke.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/run.Po@am__quote@

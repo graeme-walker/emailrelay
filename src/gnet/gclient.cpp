@@ -49,7 +49,7 @@ namespace GNet
 // Class: GNet::ClientResolver
 // Description: A resolver class which calls ClientImp::resolveCon() when done.
 //
-class GNet::ClientResolver : public GNet:: Resolver
+class GNet::ClientResolver : public GNet::Resolver
 {
 private:
 	ClientImp & m_client_imp ;
@@ -75,7 +75,7 @@ GNet::ClientResolver::ClientResolver( ClientImp & imp ) :
 // Class: GNet::ClientImp
 // Description: A pimple-pattern implementation class for GClient.
 //
-class GNet::ClientImp : public GNet:: EventHandler
+class GNet::ClientImp : public GNet::EventHandler
 {
 private:
 	ClientResolver m_resolver ;

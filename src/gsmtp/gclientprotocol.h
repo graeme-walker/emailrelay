@@ -30,6 +30,7 @@
 #include "gmessagestore.h"
 #include "gsasl.h"
 #include "gsecrets.h"
+#include "gslot.h"
 #include "gstrings.h"
 #include "gtimer.h"
 #include "gexception.h"
@@ -149,32 +150,15 @@ public:
 			// Returns false if not all of the string
 			// was sent, either due to flow control
 			// or disconnection. After false is returned
-			// the user should call sendDone() once
-			// the full string has been sent.
+			// ClientProtocol::sendDone() should be called
+			// as soon as the full string has been sent.
 
 		private: void operator=( const Sender & ) ; // not implemented
 		public: virtual ~Sender() ;
 	} ;
 
-	class Callback // A callback interface used by ClientProtocol.
-	{
-		public: virtual void protocolDone( bool ok , bool abort , const std::string & reason ) = 0 ;
-			// Called once the protocol has finished with
-			// a given message. See ClientProtocol::start().
-			//
-			// If 'ok' is false then 'abort' indicates
-			// whether there is any point in trying to
-			// send more messages to the same server.
-			// The 'abort' parameter will be true if,
-			// for example, authentication failed -- if
-			// it failed for one message then it will
-			// fail for all the others.
-
-		private: void operator=( const Callback & ) ; // not implemented
-		public: virtual ~Callback() ;
-	} ;
-
-	ClientProtocol( Sender & sender , const std::string & thishost_name ,
+	ClientProtocol( Sender & sender , const Secrets & secrets ,
+		const std::string & thishost_name ,
 		unsigned int timeout , bool must_authenticate ) ;
 			// Constructor. The 'sender' and 'secrets' references
 			// are kept.
@@ -185,12 +169,25 @@ public:
 			// The 'thishost_name' parameter is used in the
 			// SMTP EHLO request.
 
+	G::Signal3<bool,bool,std::string> & doneSignal() ;
+		// Returns a signal which is raised once the protocol has
+		// finished with a given message. The signal parameters
+		// are 'ok', 'abort' and 'reason'.
+		//
+		// If 'ok' is false then 'abort' indicates
+		// whether there is any point in trying to
+		// send more messages to the same server.
+		// The 'abort' parameter will be true if,
+		// for example, authentication failed -- if
+		// it failed for one message then it will
+		// fail for all the others.
+
 	void start( const std::string & from , const G::Strings & to , bool eight_bit ,
 		std::string authentication , std::string server_name ,
-		std::auto_ptr<std::istream> content , Callback & callback ) ;
+		std::auto_ptr<std::istream> content ) ;
 			// Starts transmission of the given message.
 			//
-			// The 'callback' parameter is used to signal that the
+			// The doneSignal() is used to indicate that the
 			// message has been processed.
 			//
 			// The 'server_name' parameter is passed to the SASL
@@ -217,7 +214,7 @@ private:
 	static const std::string & crlf() ;
 	void applyEvent( const Reply & event ) ;
 	static bool parseReply( Reply & , const std::string & , std::string & ) ;
-	void doCallback( bool , bool , const std::string & ) ;
+	void raiseDoneSignal( bool , bool , const std::string & ) ;
 	G::Strings serverAuthMechanisms( const ClientProtocolReply & reply ) const ;
 	void onTimeout() ;
 
@@ -225,11 +222,11 @@ private:
 	enum State { sStart , sSentEhlo , sSentHelo , sAuth1 , sAuth2 , sSentMail ,
 		sSentRcpt , sSentData , sData , sDone , sEnd , sReset } ;
 	Sender & m_sender ;
+	const Secrets & m_secrets ;
 	std::string m_thishost ;
 	State m_state ;
 	std::string m_from ;
 	G::Strings m_to ;
-	Callback * m_callback ;
 	std::auto_ptr<std::istream> m_content ;
 	bool m_server_has_8bitmime ;
 	bool m_said_hello ;
@@ -241,6 +238,8 @@ private:
 	std::auto_ptr<SaslClient> m_sasl ;
 	bool m_must_authenticate ;
 	unsigned int m_timeout ;
+	G::Signal3<bool,bool,std::string> m_signal ;
+	bool m_signalled ;
 } ;
 
 #endif

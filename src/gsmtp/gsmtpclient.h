@@ -34,6 +34,7 @@
 #include "gmessagestore.h"
 #include "gstoredmessage.h"
 #include "gsocket.h"
+#include "gslot.h"
 #include "gtimer.h"
 #include "gstrings.h"
 #include "gexception.h"
@@ -51,68 +52,70 @@ namespace GSmtp
 // messages from a message store and forwarding them to
 // a remote SMTP server.
 //
-class GSmtp::Client : private GNet::Client , private GNet::TimeoutHandler ,
-	private GSmtp:: ClientProtocol::Sender ,
-	private GSmtp:: ClientProtocol::Callback
+class GSmtp::Client : private GNet::Client , private GNet::TimeoutHandler , private GSmtp::ClientProtocol::Sender
 {
 public:
 	G_EXCEPTION( NotConnected , "not connected" ) ;
-	class ClientCallback // A callback interface used by GSmtp::Client.
-	{
-		public: virtual void clientDone( std::string ) = 0 ;
-		public: virtual void clientEvent( const std::string & , const std::string & ) ;
-		public: virtual ~ClientCallback() ;
-		private: void operator=( const ClientCallback & ) ; // not implemented
-	} ;
 
-	Client( MessageStore & store , ClientCallback & callback , bool quit_on_disconnect ) ;
-			// Constructor. The message-store and callback
+	Client( MessageStore & store , const Secrets & secrets ,
+		bool quit_on_disconnect , unsigned int response_timeout ) ;
+			// Constructor. The 'store' and 'secrets'
 			// references are kept.
 			//
-			// The callback is used to signal that
+			// The doneSignal() is used to indicate that
 			// all message processing has finished
 			// or that the server connection has
 			// been lost.
 
-	Client( std::auto_ptr<StoredMessage> message , ClientCallback & callback ) ;
+	Client( std::auto_ptr<StoredMessage> message , const Secrets & secrets ,
+		unsigned int response_timeout ) ;
 			// Constructor for sending a single message.
+			// The 'secrets' reference is kept.
 			//
-			// The callback is used to signal that
-			// all message processing has finished
-			// or that the server connection has
-			// been lost.
+			// The doneSignal() is used to indicate that all
+			// message processing has finished or that the
+			// server connection has been lost.
 			//
-			// With this constructor the message is fail()ed
-			// if the connection to the downstream server
-			// cannot be made.
+			// With this constructor (designed for proxying) the
+			// message is fail()ed if the connection to the
+			// downstream server cannot be made.
 
-	std::string init( const std::string & server_address_string ) ;
-		// Starts the sending process. Messages
-		// are extracted from the message store
-		// (as passed in the ctor) and forwarded
-		// on to the specified server.
+	G::Signal1<std::string> & doneSignal() ;
+		// Returns a signal which indicates that client processing
+		// is complete.
+		//
+		// The signal parameter is a failure reason, or the
+		// empty string on success.
+
+	G::Signal2<std::string,std::string> & eventSignal() ;
+		// Returns a signal which indicates something interesting.
+		//
+		// The first signal parameter is one of "connecting",
+		// "failed", "connected", "sending", or "done".
+
+	std::string startSending( const std::string & server_address_string , unsigned int connection_timeout ) ;
+		// Starts the sending process. Messages are extracted
+		// from the message store (as passed in the ctor) and
+		// forwarded on to the specified server.
 		//
 		// To be called once (only) after construction.
 		//
 		// Returns an error string if there are no messages
 		// to be sent, or if the network connection
 		// cannot be initiated. Returns the empty
-		// string on success.
+		// string on success. The error string can
+		// be partially interpreted by calling
+		// nothingToSend().
+
+	static bool nothingToSend( const std::string & reason ) ;
+		// Returns true if the given reason string -- obtained
+		// from startSending() -- is the fairly benign
+		// 'no messages to send'.
 
 	bool busy() const ;
 		// Returns true after construction and while
 		// message processing is going on. Returns
-		// false once the clientDone() callback
-		// has been fired.
-
-	static unsigned int responseTimeout( unsigned int new_timeout ) ;
-		// Sets the response timeout value. Returns the
-		// previous value.
-
-	static unsigned int connectionTimeout( unsigned int new_timeout ) ;
-		// Sets the connection timeout value. Returns the
-		// previous value.
-
+		// false once the doneSignal() has been emited.
 
 private:
 	virtual void onConnect( GNet::Socket & socket ) ; // GNet::Client
@@ -121,18 +124,19 @@ private:
 	virtual void onWriteable() ; // GNet::Client
 	virtual void onError( const std::string & error ) ; // GNet::Client
 	virtual bool protocolSend( const std::string & ) ; // ClientProtocol::Sender
-	virtual void protocolDone( bool , bool , const std::string & ) ; // ClientProtocol::Callback
+	void protocolDone( bool , bool , std::string ) ; // ClientProtocol::doneSignal()
 	virtual void onTimeout( GNet::Timer & ) ; // GNet::TimeoutHandler
-	std::string init( const std::string & , const std::string & ) ;
+	std::string init( const std::string & , const std::string & , unsigned int ) ;
 	GNet::Socket & socket() ;
 	static std::string crlf() ;
 	bool sendNext() ;
 	void start( StoredMessage & ) ;
-	void doCallback( const std::string & ) ;
-	void raiseEvent( const std::string & , const std::string & ) ;
+	void raiseDoneSignal( const std::string & ) ;
+	void raiseEventSignal( const std::string & , const std::string & ) ;
 	void finish( const std::string & reason = std::string() , bool do_disconnect = true ) ;
 	void messageFail( const std::string & reason ) ;
 	void messageDestroy() ;
+	static std::string none() ;
 
 private:
 	MessageStore * m_store ;
@@ -142,13 +146,13 @@ private:
 	ClientProtocol m_protocol ;
 	GNet::Socket * m_socket ;
 	std::string m_pending ;
-	ClientCallback * m_callback ;
+	G::Signal1<std::string> m_done_signal ;
+	G::Signal2<std::string,std::string> m_event_signal ;
 	std::string m_host ;
 	GNet::Timer m_connect_timer ;
 	unsigned int m_message_index ;
+	bool m_busy ;
 	bool m_force_message_fail ;
-	static unsigned int m_response_timeout ;
-	static unsigned int m_connection_timeout ;
 } ;
 
 #endif

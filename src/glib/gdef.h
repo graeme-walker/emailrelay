@@ -38,20 +38,27 @@
 
 		#include <config.h>
 
-		#if ! HAVE_GMTIME_R
+		#if HAVE_BUGGY_CTIME
+			#include <time.h>
 			#include <ctime>
-			inline struct tm * gmtime_r( const time_t * tp , struct tm * tm_p )
+		#endif
+
+		#if ! HAVE_GMTIME_R || ! HAVE_LOCALTIME_R
+			#include <ctime>
+		#endif
+
+		#if ! HAVE_GMTIME_R
+			inline std::tm * gmtime_r( const std::time_t * tp , std::tm * tm_p )
 			{
-				* tm_p = * gmtime( tp ) ;
+				* tm_p = * std::gmtime( tp ) ;
 				return tm_p ;
 			}
 		#endif
 
 		#if ! HAVE_LOCALTIME_R
-			#include <ctime>
-			inline struct tm * localtime_r( const time_t * tp , struct tm * tm_p )
+			inline std::tm * localtime_r( const std::time_t * tp , std::tm * tm_p )
 			{
-				* tm_p = * localtime( tp ) ;
+				* tm_p = * std::localtime( tp ) ;
 				return tm_p ;
 			}
 		#endif
@@ -113,14 +120,13 @@
 	// pre-compilation)
 	//
 	#include <cstddef>
-	#include <iostream>
+	#include <exception>
 	#include <fstream>
-	#include <sstream>
-	#include <string>
-	//#include <xlocale>
+	#include <iostream>
 	#include <limits>
 	#include <memory>
-	#include <exception>
+	#include <sstream>
+	#include <string>
 
 	// Define fixed-size types
 	//
@@ -142,25 +148,25 @@
 		typedef unsigned int pid_t ;
 	#endif
 
-	// STL portability macros (no longer necessary)
-	//
-	#if 1
-		#define GAllocator(T)
-		#define GLessAllocator(T1,T2)
-	#else
-		#define GAllocator(T) ,std::allocator<T>
-		#define GLessAllocator(T1,T2) ,std::allocator<T1>,std::less<T2>
-	#endif
-
 	// Modify compiler error handling
 	//
-	#ifdef G_COMPILER_IS_MICROSOFT
+	#if defined(G_COMPILER_IS_MICROSOFT)
 		#pragma warning( disable : 4100 ) // unused formal parameter
 		#pragma warning( disable : 4355 ) // 'this' in initialiser list
 		#pragma warning( disable : 4511 ) // cannot create default copy ctor
 		#pragma warning( disable : 4512 ) // cannot create default op=()
 		#pragma warning( disable : 4786 ) // truncation in debug info
 		#pragma warning( disable : 4275 ) // dll-interface stuff in <complex>
+	#endif
+
+	// A macro to explicitly ignore a function's return value.
+	// Some compilers complain when return values are ignored, and
+	// others complain when using a c-style cast...
+	//
+	#if 1
+		#define G_IGNORE
+	#else
+		#define G_IGNORE (void)
 	#endif
 
 #endif

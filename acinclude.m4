@@ -73,18 +73,64 @@ AC_DEFUN([ACLOCAL_CHECK_LOCALTIME_R],
 	fi
 ])
 
-dnl gcc version 
+dnl buggy ctime
+dnl sunpro5 ctime + unistd.h doesnt compile -- fix with time.h first
+dnl
+AC_DEFUN([ACLOCAL_CHECK_BUGGY_CTIME],
+[AC_CACHE_CHECK([for buggy ctime], aclocal_cv_buggy_ctime,
+[
+	AC_TRY_COMPILE(
+		[#include <ctime>
+#include <unistd.h>],
+		[] ,
+		aclocal_cv_buggy_ctime=no ,
+		aclocal_cv_buggy_ctime=yes )
+])
+	if test $aclocal_cv_buggy_ctime = yes; then
+		AC_DEFINE(HAVE_BUGGY_CTIME,1,[Define if <ctime> requires <time.h>])
+	else
+		AC_DEFINE(HAVE_BUGGY_CTIME,0,[Define if <ctime> requires <time.h>])
+	fi
+])
+
+dnl compiler name and version 
 dnl used for -Ilib/<version> -- only needed for pre 3.0 gcc
 dnl
 AC_DEFUN([ACLOCAL_COMPILER_VERSION],
 [
 changequote(<<,>>)
 	COMPILER_VERSION=`$CXX --version 2>/dev/null | sed q | sed 's/[^0-9 .]*//g;s/\./ /g;s/^ *//;s/ /./;s/ .*//;s/^/gcc/'`
+	if test -z "${COMPILER_VERSION}"
+	then
+		COMPILER_VERSION=`$CXX -V 2>&1 | sed q | grep WorkShop | sed 's/[^0-9]*//;s/[ \.].*//;s/^/sunpro/'`
+	fi
 changequote([,])
 	AC_SUBST(COMPILER_VERSION)
 ])
 
-dnl fhs
+dnl enable-debug
+dnl
+AC_DEFUN([ENABLE_DEBUG],
+[
+if test "$enable_debug" = "yes"
+then
+	AC_DEFINE(_DEBUG,1,[Define to enable extra debug messages at compile-time])
+fi
+])
+
+dnl with-workshop
+dnl
+AC_DEFUN([WITH_WORKSHOP],
+[
+if test "$with_workshop" = "yes"
+then
+	chmod +x lib/sunpro5/xar
+	AR="`pwd`/lib/sunpro5/xar --cxx \"$CXX\""
+	AC_SUBST(AR)
+fi
+])
+
+dnl enable-fhs
 dnl
 AC_DEFUN([ENABLE_FHS],
 [

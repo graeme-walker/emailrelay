@@ -27,33 +27,33 @@
 #include "glog.h"
 #include <algorithm> // find
 
-// static data
+BOOL CALLBACK gdialog_dlgproc_export( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam )
+{
+	return GGui::Dialog::dlgProc( hwnd , message , wparam , lparam ) ;
+}
+
 GGui::DialogList GGui::Dialog::m_list ;
 
-// local prototypes
-BOOL CALLBACK gdialog_dlgproc_export( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam ) ;
-
-GGui::Dialog::Dialog( HINSTANCE hinstance , HWND hwnd_parent , const char *title ) :
+GGui::Dialog::Dialog( HINSTANCE hinstance , HWND hwnd_parent , const std::string & title ) :
 	WindowBase(NULL) ,
+	m_title(title) ,
 	m_modal(false) ,
 	m_focus_set(false) ,
 	m_hinstance(hinstance) ,
-	m_hwnd_parent(hwnd_parent)
+	m_hwnd_parent(hwnd_parent) ,
+	m_magic(Magic)
 {
-	m_magic = Magic ;
-	if( title != NULL )
-		m_title = title ;
 }
 
 GGui::Dialog::Dialog( const ApplicationBase & app , bool top_level ) :
 	WindowBase(NULL) ,
+	m_title(app.title()) ,
 	m_modal(false) ,
-	m_focus_set(false)
+	m_focus_set(false) ,
+	m_hinstance(app.hinstance()) ,
+	m_hwnd_parent(top_level?NULL:app.handle()) ,
+	m_magic(Magic)
 {
-	m_magic = Magic ;
-	m_hinstance = app.hinstance() ;
-	m_hwnd_parent = top_level ? NULL : app.handle() ;
-	m_title = app.title() ;
 }
 
 void GGui::Dialog::privateInit( HWND hwnd )
@@ -82,7 +82,7 @@ void GGui::Dialog::cleanup()
 		G_DEBUG( "GGui::Dialog::cleanup" ) ;
 
 		// reset the object pointer
-		::SetWindowLong( handle() , DWL_USER , (LPARAM)NULL ) ;
+		::SetWindowLong( handle() , DWL_USER , LPARAM(0) ) ;
 
 		// remove from the modal list
 		G_ASSERT( (find(handle())!=m_list.end()) == !m_modal ) ;
@@ -90,7 +90,7 @@ void GGui::Dialog::cleanup()
 		{
 			G_DEBUG( "GGui::Dialog::dlgProc: removing modeless dialog box window " << handle() ) ;
 			m_list.erase( find(handle()) ) ;
-			G_ASSERT( find(handle()) == m_list.end() ) ; // assert one
+			G_ASSERT( find(handle()) == m_list.end() ) ; // assert only one
 		}
 	}
 	setHandle( NULL ) ;
@@ -112,12 +112,12 @@ LRESULT GGui::Dialog::sendMessage( int control , unsigned message , WPARAM wpara
 	return ::SendMessage( hwnd_control , message , wparam , lparam ) ;
 }
 
-bool GGui::Dialog::dlgProc( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam )
+BOOL GGui::Dialog::dlgProc( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam )
 {
 	if( message == WM_INITDIALOG )
 	{
-		Dialog *dialog = (Dialog*)(void*)lparam ;
-		::SetWindowLong( hwnd , DWL_USER , (LPARAM)(void *)dialog ) ;
+		Dialog * dialog = from_lparam( lparam ) ;
+		::SetWindowLong( hwnd , DWL_USER , to_lparam(dialog) ) ;
 		dialog->privateInit( hwnd ) ;
 		G_DEBUG( "GGui::Dialog::dlgProc: WM_INITDIALOG" ) ;
 		if( !dialog->onInit() )
@@ -138,7 +138,7 @@ bool GGui::Dialog::dlgProc( HWND hwnd , UINT message , WPARAM wparam , LPARAM lp
 	}
 	else
 	{
-		GGui::Dialog *dialog = (GGui::Dialog*)::GetWindowLong( hwnd , DWL_USER ) ;
+		Dialog * dialog = from_long( ::GetWindowLong(hwnd,DWL_USER) ) ;
 		if( dialog != NULL )
 			return dialog->dlgProc( message , wparam , lparam ) ;
 		else
@@ -146,14 +146,14 @@ bool GGui::Dialog::dlgProc( HWND hwnd , UINT message , WPARAM wparam , LPARAM lp
 	}
 }
 
-bool GGui::Dialog::dlgProc( UINT message , WPARAM wparam , LPARAM lparam )
+BOOL GGui::Dialog::dlgProc( UINT message , WPARAM wparam , LPARAM lparam )
 {
 	switch( message )
 	{
 		case WM_VSCROLL:
 		case WM_HSCROLL:
 		{
-			HWND hwnd_scrollbar = (HWND)(HIWORD(lparam)) ; // may be zero
+			HWND hwnd_scrollbar = reinterpret_cast<HWND>(HIWORD(lparam)) ; // may be zero
 			if( wparam == SB_THUMBPOSITION || wparam == SB_THUMBTRACK )
 			{
 				unsigned position = LOWORD(lparam) ;
@@ -174,34 +174,45 @@ bool GGui::Dialog::dlgProc( UINT message , WPARAM wparam , LPARAM lparam )
 			return 1 ;
 		}
 
-		#ifdef G_WIN16
-		case WM_CTLCOLOR:
-		{
-			return (bool)onControlColour( wparam , LOWORD(lparam) , HIWORD(lparam) ) ;
-		}
-		#endif
-
-		#ifdef G_WIN32
 		case WM_CTLCOLORDLG:
-			return !!onControlColour( (HDC)wparam , (HWND)lparam , CTLCOLOR_DLG ) ;
+		{
+			return onControlColour_( wparam , lparam , CTLCOLOR_DLG ) ;
+		}
+
 		case WM_CTLCOLORMSGBOX:
-			return !!onControlColour( (HDC)wparam , (HWND)lparam , CTLCOLOR_MSGBOX ) ;
+		{
+			return onControlColour_( wparam , lparam , CTLCOLOR_MSGBOX ) ;
+		}
+
 		case WM_CTLCOLOREDIT:
-			return !!onControlColour( (HDC)wparam , (HWND)lparam , CTLCOLOR_EDIT ) ;
+		{
+			return onControlColour_( wparam , lparam , CTLCOLOR_EDIT ) ;
+		}
+
 		case WM_CTLCOLORBTN:
-			return !!onControlColour( (HDC)wparam , (HWND)lparam , CTLCOLOR_BTN ) ;
+		{
+			return onControlColour_( wparam , lparam , CTLCOLOR_BTN ) ;
+		}
+
 		case WM_CTLCOLORLISTBOX:
-			return !!onControlColour( (HDC)wparam , (HWND)lparam , CTLCOLOR_LISTBOX ) ;
+		{
+			return onControlColour_( wparam , lparam , CTLCOLOR_LISTBOX ) ;
+		}
+
 		case WM_CTLCOLORSCROLLBAR:
-			return !!onControlColour( (HDC)wparam , (HWND)lparam , CTLCOLOR_SCROLLBAR ) ;
+		{
+			return onControlColour_( wparam , lparam , CTLCOLOR_SCROLLBAR ) ;
+		}
+
 		case WM_CTLCOLORSTATIC:
-			return !!onControlColour( (HDC)wparam , (HWND)lparam , CTLCOLOR_STATIC ) ;
-		#endif
+		{
+			return onControlColour_( wparam , lparam , CTLCOLOR_STATIC ) ;
+		}
 
 #if 0 // Windows bug -- WM_SETCURSOR is useless in a dialog box
 		case WM_SETCURSOR:
 		{
-			onSetCursor( (HWND)wparam , LOWORD(lparam) , HIWORD(lparam) ) ;
+			onSetCursor( reinterpret_cast<HWND>(wparam) , LOWORD(lparam) , HIWORD(lparam) ) ;
 			return 0 ;
 		}
 #endif
@@ -229,7 +240,7 @@ bool GGui::Dialog::dlgProc( UINT message , WPARAM wparam , LPARAM lparam )
 	return 0 ;
 }
 
-HBRUSH GGui::Dialog::onControlColour( HDC /*hDC*/ , HWND /*hwnd_control*/ , WORD /*type*/ )
+HBRUSH GGui::Dialog::onControlColour( HDC , HWND , WORD )
 {
 	return 0 ;
 }
@@ -273,7 +284,7 @@ bool GGui::Dialog::run( int resource_id )
 	return run( MAKEINTRESOURCE(resource_id) ) ;
 }
 
-bool GGui::Dialog::run( const char *f_name )
+bool GGui::Dialog::run( const char * f_name )
 {		
 	G_DEBUG( "GGui::Dialog::run" ) ;
 	
@@ -285,8 +296,7 @@ bool GGui::Dialog::run( const char *f_name )
 
 	m_modal = true ;
 	int rc = ::DialogBoxParam( m_hinstance , f_name ,
-		m_hwnd_parent , (DLGPROC)gdialog_dlgproc_export ,
-		(LPARAM)(void *)this ) ;
+		m_hwnd_parent , dlgproc_export_fn() , to_lparam(this) ) ;
 		
 	if( rc == -1 )
 	{
@@ -308,7 +318,7 @@ bool GGui::Dialog::runModeless( int resource_id , bool visible )
 	return runModeless( MAKEINTRESOURCE(resource_id) , visible ) ;
 }
 
-bool GGui::Dialog::runModeless( const char *f_name , bool visible )
+bool GGui::Dialog::runModeless( const char * f_name , bool visible )
 {		
 	G_DEBUG( "GGui::Dialog::runModeless" ) ;
 
@@ -320,8 +330,7 @@ bool GGui::Dialog::runModeless( const char *f_name , bool visible )
 
 	m_modal = false ;
 	HWND hwnd = ::CreateDialogParam( m_hinstance , f_name ,
-		m_hwnd_parent , (DLGPROC)gdialog_dlgproc_export ,
-		(LPARAM)(void *)this ) ;
+		m_hwnd_parent , dlgproc_export_fn() , to_lparam(this) ) ;
 		
 	if( hwnd == NULL )
 	{
@@ -347,11 +356,6 @@ bool GGui::Dialog::dialogMessage( MSG &msg )
 	return false ;
 }
 
-BOOL CALLBACK gdialog_dlgproc_export( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam )
-{
-	return GGui::Dialog::dlgProc( hwnd , message , wparam , lparam ) ;
-}
-
 GGui::SubClassMap & GGui::Dialog::map()
 {
 	return m_map ;
@@ -374,5 +378,62 @@ bool GGui::Dialog::registerNewClass( HICON hicon , const std::string & new_class
 	ATOM rc = ::RegisterClass( &class_info ) ;
 
 	return rc != 0 ;
+}
+
+bool GGui::Dialog::privateFocusSet() const
+{
+	return m_focus_set ;
+}
+
+bool GGui::Dialog::onInit()
+{
+	return true ;
+}
+
+void GGui::Dialog::onScrollPosition( HWND , unsigned )
+{
+}
+
+void GGui::Dialog::onScroll( HWND , bool )
+{
+}
+
+void GGui::Dialog::onScrollMessage( unsigned , WPARAM , LPARAM )
+{
+}
+
+bool GGui::Dialog::isValid()
+{
+	return m_magic == Magic ;
+}
+
+BOOL GGui::Dialog::onControlColour_( WPARAM wparam , LPARAM lparam , WORD type )
+{
+	return reinterpret_cast<BOOL>(
+		onControlColour( reinterpret_cast<HDC>(wparam) , reinterpret_cast<HWND>(lparam) , type ) ) ;
+}
+
+//static
+GGui::Dialog * GGui::Dialog::from_lparam( LPARAM lparam )
+{
+	return reinterpret_cast<Dialog*>( reinterpret_cast<void*>(lparam) ) ;
+}
+
+//static
+GGui::Dialog * GGui::Dialog::from_long( LONG l )
+{
+	return reinterpret_cast<Dialog*>( reinterpret_cast<void*>(l) ) ;
+}
+
+//static
+LPARAM GGui::Dialog::to_lparam( Dialog * p )
+{
+	return reinterpret_cast<LPARAM>( reinterpret_cast<void*>(p) ) ;
+}
+
+//static
+DLGPROC GGui::Dialog::dlgproc_export_fn()
+{
+	return reinterpret_cast<DLGPROC>(gdialog_dlgproc_export) ;
 }
 

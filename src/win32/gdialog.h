@@ -28,12 +28,13 @@
 #include "gwinbase.h"
 #include "gappbase.h"
 #include "gscmap.h"
+#include <string>
 
 namespace GGui
 {
 	class DialogHandle ;
 	class Dialog ;
-} ;
+}
 
 // Class: GGui::DialogHandle
 // Description: A private implementation class used by GGui::Dialog.
@@ -49,22 +50,22 @@ public:
 
 namespace GGui
 {
-	typedef std::list< DialogHandle GAllocator(DialogHandle) > DialogList ;
-} ;
+	typedef std::list<DialogHandle> DialogList ;
+}
 
 // Class: GGui::Dialog
 // Description: A dialog box class for both modal and
 // modeless operation.
 // See also: GGui::Control
 //
-class GGui::Dialog : public WindowBase
+class GGui::Dialog : public GGui::WindowBase
 {
 public:
 	Dialog( HINSTANCE hinstance , HWND hwnd_parent ,
-		const char *title = NULL ) ;
-		// Constructor. After contruction just call
-		// run() or runModeless() with the appropriate
-		// dialog resource id or name.
+		const std::string & title = std::string() ) ;
+			// Constructor. After contruction just call
+			// run() or runModeless() with the appropriate
+			// dialog resource id or name.
 
 	explicit Dialog( const GGui::ApplicationBase & app , bool top_level = false ) ;
 		// Contructor for a dialog box which takes some
@@ -84,7 +85,7 @@ public:
 	static bool dialogMessage( MSG &msg ) ;
 		// Processes messages for all modeless dialog boxes.
 		// This should be put in the application's main message
-		// loop (as the GPump class does).
+		// loop (as the GGui::Pump class does).
 		// Returns true if the message was used up.
 			
 	bool run( const char * resource_name ) ;
@@ -107,7 +108,7 @@ public:
 		// on the heap and deleted with "delete this" within
 		// onNcDestroy().
 
-	static bool dlgProc( HWND hwnd , UINT message ,
+	static BOOL dlgProc( HWND hwnd , UINT message ,
 		WPARAM wparam , LPARAM lparam ) ;
 			// Called directly from the exported dialog procedure.
 
@@ -181,59 +182,31 @@ protected:
 		// necessary.
 
 private:
-	bool dlgProc( UINT message , WPARAM wparam , LPARAM lparam ) ;
+	BOOL dlgProc( UINT message , WPARAM wparam , LPARAM lparam ) ;
 	void privateInit( HWND hwnd ) ;
 	void privateEnd( int n ) ;
 	bool privateFocusSet() const ;
 	void cleanup() ;
 	DialogList::iterator find( HWND h ) ;
-	Dialog( const Dialog &other ) ;
-	void operator=( const Dialog &other ) ;
+	BOOL onControlColour_( WPARAM wparam , LPARAM lparam , WORD type ) ;
+	static Dialog * from_lparam( LPARAM lparam ) ;
+	static Dialog * from_long( LONG l ) ;
+	static LPARAM to_lparam( Dialog * p ) ;
+	static DLGPROC dlgproc_export_fn() ;
+	Dialog( const Dialog &other ) ; // not implemented
+	void operator=( const Dialog &other ) ; // not implemented
 
 private:
 	enum { Magic = 4567 } ;
 	std::string m_name ;
 	std::string m_title ;
+	bool m_modal ;
+	bool m_focus_set ;
 	HINSTANCE m_hinstance ;
 	HWND m_hwnd_parent ;
-	bool m_focus_set ;
-	bool m_modal ;
 	int m_magic ;
 	SubClassMap m_map ;
 	static DialogList m_list ;
 } ;
-
-inline
-bool GGui::Dialog::privateFocusSet() const
-{
-	return m_focus_set ;
-}
-
-inline
-bool GGui::Dialog::onInit()
-{
-	return true ;
-}
-
-inline
-void GGui::Dialog::onScrollPosition( HWND , unsigned )
-{
-}
-
-inline
-void GGui::Dialog::onScroll( HWND , bool )
-{
-}
-
-inline
-void GGui::Dialog::onScrollMessage( unsigned , WPARAM , LPARAM )
-{
-}
-
-inline
-bool GGui::Dialog::isValid()
-{
-	return m_magic == Magic ;
-}
 
 #endif

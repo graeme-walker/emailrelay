@@ -96,7 +96,6 @@ public:
 private:
 	void operator=( const DirectoryIteratorImp & ) ;
 	DirectoryIteratorImp( const DirectoryIteratorImp & ) ;
-	static int onError( const char * path , int errno_ ) ;
 } ;
 
 // ===
@@ -148,8 +147,7 @@ G::DirectoryIterator::~DirectoryIterator()
 
 // ===
 
-//static
-int G::DirectoryIteratorImp::onError( const char * , int )
+extern "C" int gdirectory_unix_on_error_( const char * , int )
 {
 	const int abort = 1 ;
 	return abort ;
@@ -171,7 +169,7 @@ G::DirectoryIteratorImp::DirectoryIteratorImp( const Directory &dir ,
 	G_DEBUG( "G::DirectoryIteratorImp::ctor: glob(\"" << wild_path << "\")" ) ;
 
 	int flags = 0 | GLOB_ERR ;
-	int error  = ::glob( wild_path.pathCstr() , flags , onError , &m_glob ) ;
+	int error  = ::glob( wild_path.pathCstr() , flags , gdirectory_unix_on_error_ , &m_glob ) ;
 	if( error || m_glob.gl_pathv == NULL )
 	{
 		G_DEBUG( "G::DirectoryIteratorImp::ctor: glob() error: " << error ) ;

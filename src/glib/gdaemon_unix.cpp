@@ -41,7 +41,7 @@ void G::Daemon::detach()
 		::_exit( 0 ) ;
 
 	setsid() ;
-	(void) Process::cd( "/" , Process::NoThrow() ) ;
+	G_IGNORE Process::cd( "/" , Process::NoThrow() ) ;
 
 	if( Process::fork() == Process::Parent )
 		::_exit( 0 ) ;

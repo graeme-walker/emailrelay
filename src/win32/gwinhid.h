@@ -31,13 +31,13 @@
 namespace GGui
 {
 	class WindowHidden ;
-} ;
+}
 
 // Class: GGui::WindowHidden
-// Description: A derivation of GWindow for
+// Description: A derivation of GGui::Window for
 // a hidden window (without a parent).
 //
-class GGui::WindowHidden : public Window
+class GGui::WindowHidden : public GGui::Window
 {
 public:
 	explicit WindowHidden( HINSTANCE hinstance ) ;
@@ -45,14 +45,14 @@ public:
 		// class if necessary and creates the window.
 
 	virtual ~WindowHidden() ;
-		// Virtual destructor.
-
+		// Virtual destructor. The Windows window
+		// is destroyed (unlike for the base class).
 
 private:
 	virtual void onNcDestroy() ;
-	WindowHidden( const WindowHidden & ) ;
-	void operator=( const WindowHidden & ) ;
 	std::string windowClassName() ;
+	WindowHidden( const WindowHidden & ) ; // not implemented
+	void operator=( const WindowHidden & ) ; // not implemented
 
 private:
 	bool m_destroyed ;

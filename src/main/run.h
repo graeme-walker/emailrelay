@@ -33,9 +33,13 @@
 #include "glogoutput.h"
 #include "gdaemon.h"
 #include "gpidfile.h"
+#include "gslot.h"
 #include "garg.h"
+#include "gsecrets.h"
 #include "gmessagestore.h"
+#include "gfilestore.h"
 #include "gsmtpclient.h"
+#include "gadminserver.h"
 #include <iostream>
 #include <exception>
 #include <memory>
@@ -57,7 +61,7 @@ namespace Main
 ///   return 0 ;
 /// }
 //
-class Main::Run : private GSmtp::Client::ClientCallback
+class Main::Run : private GNet::TimeoutHandler
 {
 public:
 	explicit Run( const G::Arg & arg ) ;
@@ -80,54 +84,39 @@ public:
 	static std::string versionNumber() ;
 		// Returns the application version number string.
 
-	static bool startForwarding( GSmtp::Client::ClientCallback & ,
-		const std::string & to ) ;
-			// Starts forwarding spooled email.
-			// Should be called from within run().
-			// Returns false if there is nothing to
-			// do or if nothing can be done. Throws
-			// on error. If true is returned then the
-			// callback object must remain valid
-			// until its clientDone() method is
-			// called.
-
-	void raiseStoreEvent() ;
-		// A pseudo-private method.
-
-	void raiseNetworkEvent( const std::string & , const std::string & ) ;
-		// A pseudo-private method.
-
-protected:
-	virtual void onEvent( const std::string & category ,
-		const std::string & s1 , const std::string & s2 ) ;
-			// Overridable. Called when something changes.
-
-	virtual bool runnable() const ;
-		// Overridable. Allows derived classes to have prepare()
-		// return false. The default implementation
-		// returns true.
+	G::Signal3<std::string,std::string,std::string> & signal() ;
+		// Provides a signal which is activated when something changes.
 
 private:
 	Run( const Run & ) ; // not implemented
 	void operator=( const Run & ) ; // not implemented
 	void runCore() ;
-	void doForwarding( GSmtp::MessageStore & , GNet::EventLoop & ) ;
-	void doServing( G::PidFile & , GNet::EventLoop & ) ;
+	void doForwarding( GSmtp::MessageStore & , const GSmtp::Secrets & , GNet::EventLoop & ) ;
+	void doServing( GSmtp::MessageStore & , const GSmtp::Secrets & , const GSmtp::Secrets & ,
+		G::PidFile & , GNet::EventLoop & ) ;
 	void closeFiles() ;
 	void closeMoreFiles() ;
 	std::string smtpIdent() const ;
 	void recordPid() ;
 	const CommandLine & cl() const ;
-	virtual void clientDone( std::string ) ; // from ClientCallback
-	virtual void clientEvent( const std::string & , const std::string & ) ; // from ClientCallback
-	const char * startForwarding( GSmtp::Client::ClientCallback * , const std::string & ) ;
+	virtual void clientDone( std::string ) ; // Client::doneSignal()
+	virtual void clientEvent( std::string , std::string ) ; // Client::eventSignal()
+	virtual void onTimeout( GNet::Timer & ) ; // from TimeoutHandler
+	void raiseStoreEvent( bool ) ;
+	void raiseNetworkEvent( std::string , std::string ) ;
+	void emit( const std::string & , const std::string & , const std::string & ) ;
+	std::string doPoll() ;
 
 private:
-	static Run * m_this ;
 	std::auto_ptr<CommandLine> m_cl ;
 	std::auto_ptr<G::LogOutput> m_log_output ;
 	std::auto_ptr<GSmtp::Client> m_client ;
 	G::Arg m_arg ;
+	G::Signal3<std::string,std::string,std::string> m_signal ;
+	std::auto_ptr<GSmtp::FileStore> m_store ;
+	std::auto_ptr<GSmtp::Secrets> m_client_secrets ;
+	std::auto_ptr<GSmtp::AdminServer> m_admin_server ;
+	std::auto_ptr<GNet::Timer> m_poll_timer ;
 } ;
 
 #endif

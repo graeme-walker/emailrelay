@@ -52,6 +52,8 @@ public:
 	G_EXCEPTION( BadString , "invalid ip address string" ) ;
 	class Localhost // An overload discriminator class for GNet::Address.
 		{} ;
+	class Broadcast // An overload discriminator class for GNet::Address.
+		{} ;
 
 	Address( const Address &addr ) ;
 		// Copy constructor.
@@ -92,6 +94,11 @@ public:
 		// the given port number. Throws an exception if
 		// an invalid port number. See also: validPort()
 
+	Address( unsigned int port , Broadcast ) ;
+		// Constructor for a local INADDR_BROADCAST address with
+		// the given port number. Throws an exception if
+		// an invalid port number. See also: validPort()
+
 	explicit Address( const std::string & display_string ) ;
 		// Constructor taking a string originally obtained
 		// from displayString().
@@ -100,8 +107,8 @@ public:
 		//
 		// See also validString().
 
-	Address( const std::string & host_or_ip , unsigned int port ) ;
-		// Constructor taking a host-name/ip-address and
+	Address( const std::string & ip , unsigned int port ) ;
+		// Constructor taking an ip-address and
 		// a port number.
 		//
 		// Throws an exception if an invalid string.
@@ -112,6 +119,10 @@ public:
 	static Address invalidAddress() ;
 		// Returns an invalid address. Should only be
 		// needed by socket and resolver classes.
+
+	static Address broadcastAddress( unsigned int port ) ;
+		// Returns a broadcast address. Only useful
+		// for datagram sockets.
 
 	static Address localhost( unsigned int port = 0U ) ;
 		// Returns a localhost ("loopback") address.

@@ -29,9 +29,3 @@ GSmtp::ProtocolMessage::~ProtocolMessage()
 {
 }
 
-// ===
-
-GSmtp::ProtocolMessage::Callback::~Callback()
-{
-}
-

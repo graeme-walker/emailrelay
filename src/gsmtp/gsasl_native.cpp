@@ -39,8 +39,6 @@ namespace
 	const char * login_challenge_2 = "Password:" ;
 }
 
-// ===
-
 // Class: GSmtp::SaslServerImp
 // Description: A private pimple-pattern implementation class used by GSmtp::SaslServer.
 //
@@ -48,22 +46,36 @@ class GSmtp::SaslServerImp
 {
 public:
 	bool m_first ;
+	const Secrets & m_secrets ;
 	std::string m_mechanism ;
 	std::string m_challenge ;
 	bool m_authenticated ;
 	std::string m_id ;
 	std::string m_trustee ;
-	SaslServerImp() ;
+	explicit SaslServerImp( const Secrets & ) ;
 	bool init( const std::string & mechanism ) ;
 	bool validate( const std::string & secret , const std::string & response ) const ;
-	bool trusted( GNet::Address ) ;
-	bool trustedCore( const std::string & , const std::string & ) ;
+	bool trusted( GNet::Address ) const ;
+	bool trustedCore( const std::string & , const std::string & ) const ;
 	static std::string clientResponse( const std::string & secret ,
 		const std::string & challenge , bool & error ) ;
 } ;
 
-GSmtp::SaslServerImp::SaslServerImp() :
+// Class: GSmtp::SaslClientImp
+// Description: A private pimple-pattern implementation class used by GSmtp::SaslClient.
+//
+class GSmtp::SaslClientImp
+{
+public:
+	const Secrets & m_secrets ;
+	explicit SaslClientImp( const Secrets & ) ;
+} ;
+
+// ===
+
+GSmtp::SaslServerImp::SaslServerImp( const Secrets & secrets ) :
 	m_first(true) ,
+	m_secrets(secrets) ,
 	m_authenticated(false)
 {
 }
@@ -135,11 +147,11 @@ std::string GSmtp::SaslServerImp::clientResponse( const std::string & secret ,
 	return std::string() ;
 }
 
-bool GSmtp::SaslServerImp::trusted( GNet::Address address )
+bool GSmtp::SaslServerImp::trusted( GNet::Address address ) const
 {
 	std::string ip = address.displayString(false) ;
 	G_DEBUG( "GSmtp::SaslServerImp::trusted: \"" << ip << "\"" ) ;
-	G::Str::StringArray part ;
+	G::StringArray part ;
 	G::Str::splitIntoFields( ip , part , "." ) ;
 	if( part.size() == 4U )
 	{
@@ -156,16 +168,16 @@ bool GSmtp::SaslServerImp::trusted( GNet::Address address )
 	}
 }
 
-bool GSmtp::SaslServerImp::trustedCore( const std::string & full , const std::string & key )
+bool GSmtp::SaslServerImp::trustedCore( const std::string & full , const std::string & key ) const
 {
 	G_DEBUG( "GSmtp::SaslServerImp::trustedCore: \"" << full << "\", \"" << key << "\"" ) ;
-	std::string secret = Sasl::instance().serverSecrets().secret("NONE",key) ;
+	std::string secret = m_secrets.secret("NONE",key) ;
 	bool trusted = ! secret.empty() ;
 	if( trusted )
 	{
 		G_LOG( "GSmtp::SaslServer::trusted: trusting \"" << full << "\" "
 			<< "(matched on NONE/server/" << key << "/" << secret << ")" ) ;
-		m_trustee = secret ;
+		const_cast<SaslServerImp*>(this)->m_trustee = secret ;
 	}
 	return trusted ;
 }
@@ -179,14 +191,25 @@ std::string GSmtp::SaslServer::mechanisms( char c ) const
 	return s ;
 }
 
-GSmtp::SaslServer::SaslServer() :
-	m_imp(new SaslServerImp)
+std::string GSmtp::SaslServer::mechanism() const
+{
+	return m_imp->m_mechanism ;
+}
+
+bool GSmtp::SaslServer::trusted( GNet::Address a ) const
+{
+	G_DEBUG( "GSmtp::SaslServer::trusted: checking \"" << a.displayString(false) << "\"" ) ;
+	return m_imp->trusted(a) ;
+}
+
+GSmtp::SaslServer::SaslServer( const Secrets & secrets ) :
+	m_imp(new SaslServerImp(secrets))
 {
 }
 
 bool GSmtp::SaslServer::active() const
 {
-	return Sasl::instance().serverSecrets().valid() ;
+	return m_imp->m_secrets.valid() ;
 }
 
 GSmtp::SaslServer::~SaslServer()
@@ -201,19 +224,9 @@ bool GSmtp::SaslServer::mustChallenge() const
 
 bool GSmtp::SaslServer::init( const std::string & mechanism )
 {
-	G_DEBUG( "GSmtp::SaslServer::init: mechanism \"" << mechanism << "\"" ) ;
-	return m_imp->init( mechanism ) ;
-}
-
-std::string GSmtp::SaslServer::mechanism() const
-{
-	return m_imp->m_mechanism ;
-}
-
-bool GSmtp::SaslServer::trusted( GNet::Address a )
-{
-	G_DEBUG( "GSmtp::SaslServer::trusted: checking \"" << a.displayString(false) << "\"" ) ;
-	return m_imp->trusted(a) ;
+	bool rc = m_imp->init( mechanism ) ;
+	G_DEBUG( "GSmtp::SaslServer::init: \"" << mechanism << "\" -> \"" << m_imp->m_mechanism << "\"" ) ;
+	return rc ;
 }
 
 std::string GSmtp::SaslServer::initialChallenge() const
@@ -238,7 +251,7 @@ std::string GSmtp::SaslServer::apply( const std::string & response , bool & done
 		{
 			m_imp->m_id = part_list.front() ;
 			G_DEBUG( "GSmtp::SaslServer::apply: id \"" << m_imp->m_id << "\"" ) ;
-			std::string secret = Sasl::instance().serverSecrets().secret(m_imp->m_mechanism,m_imp->m_id) ;
+			std::string secret = m_imp->m_secrets.secret(m_imp->m_mechanism,m_imp->m_id) ;
 			m_imp->m_authenticated = m_imp->validate( secret , part_list.back() ) ;
 		}
 		done = true ;
@@ -252,7 +265,7 @@ std::string GSmtp::SaslServer::apply( const std::string & response , bool & done
 	}
 	else
 	{
-		std::string secret = Sasl::instance().serverSecrets().secret(m_imp->m_mechanism,m_imp->m_id) ;
+		std::string secret = m_imp->m_secrets.secret(m_imp->m_mechanism,m_imp->m_id) ;
 		m_imp->m_first = true ;
 		m_imp->m_authenticated = !response.empty() && response == secret ;
 		done = true ;
@@ -274,20 +287,28 @@ std::string GSmtp::SaslServer::id() const
 
 // ===
 
-GSmtp::SaslClient::SaslClient( const std::string & server_name ) :
-	m_imp(NULL)
+GSmtp::SaslClientImp::SaslClientImp( const Secrets & secrets ) :
+	m_secrets(secrets)
 {
-	G_DEBUG( "GSmtp::SaslClient::ctor: \"" << server_name << "\"" ) ;
-	(void) server_name.length() ; // pacify compiler
+}
+
+// ===
+
+GSmtp::SaslClient::SaslClient( const Secrets & secrets , const std::string & server_name ) :
+	m_imp(new SaslClientImp(secrets) )
+{
+	G_DEBUG( "GSmtp::SaslClient::ctor: server-name=\"" << server_name << "\", active=" << active() ) ;
+	G_IGNORE server_name.length() ; // pacify compiler
 }
 
 GSmtp::SaslClient::~SaslClient()
 {
+	delete m_imp ;
 }
 
 bool GSmtp::SaslClient::active() const
 {
-	return Sasl::instance().clientSecrets().valid() ;
+	return m_imp->m_secrets.valid() ;
 }
 
 std::string GSmtp::SaslClient::response( const std::string & mechanism ,
@@ -299,8 +320,8 @@ std::string GSmtp::SaslClient::response( const std::string & mechanism ,
 	std::string rsp ;
 	if( mechanism == "CRAM-MD5" )
 	{
-		std::string id = Sasl::instance().clientSecrets().id(mechanism) ;
-		std::string secret = Sasl::instance().clientSecrets().secret(mechanism) ;
+		std::string id = m_imp->m_secrets.id(mechanism) ;
+		std::string secret = m_imp->m_secrets.secret(mechanism) ;
 		error = id.empty() || secret.empty() ;
 		if( !error )
 			rsp = id + " " + SaslServerImp::clientResponse( secret , challenge , error ) ;
@@ -309,13 +330,13 @@ std::string GSmtp::SaslClient::response( const std::string & mechanism ,
 	}
 	else if( challenge == login_challenge_1 )
 	{
-		rsp = Sasl::instance().clientSecrets().id(mechanism) ;
+		rsp = m_imp->m_secrets.id(mechanism) ;
 		error = rsp.empty() ;
 		done = false ;
 	}
 	else if( challenge == login_challenge_2 )
 	{
-		rsp = Sasl::instance().clientSecrets().secret(mechanism) ;
+		rsp = m_imp->m_secrets.secret(mechanism) ;
 		error = rsp.empty() ;
 		done = true ;
 	}
@@ -331,6 +352,8 @@ std::string GSmtp::SaslClient::response( const std::string & mechanism ,
 
 std::string GSmtp::SaslClient::preferred( const G::Strings & mechanism_list ) const
 {
+	G_DEBUG( "GSmtp::SaslClient::preferred: server's mechanisms: " << G::Str::join(mechanism_list,",") ) ;
+
 	// short-circuit if no secrets
 	//
 	if( !active() )
@@ -346,7 +369,6 @@ std::string GSmtp::SaslClient::preferred( const G::Strings & mechanism_list ) co
 	{
 		std::string mechanism = *p ;
 		G::Str::toUpper( mechanism ) ;
-		G_DEBUG( "GSmtp::SaslClient::preferred: \"" << mechanism << "\"" ) ;
 		if( mechanism == login )
 			has_login = true ;
 		else if( mechanism == cram )
@@ -356,18 +378,23 @@ std::string GSmtp::SaslClient::preferred( const G::Strings & mechanism_list ) co
 	// prefer cram-md5 over login...
 	//
 	std::string result = has_cram ? cram : ( has_login ? login : std::string() ) ;
+	G_DEBUG( "GSmtp::SaslClient::preferred: we prefer \"" << result << "\"" ) ;
 
 	// ... but only if a secret is defined for it
 	//
-	if( !result.empty() && Sasl::instance().clientSecrets().id(result).empty() )
+	if( !result.empty() && m_imp->m_secrets.id(result).empty() )
 	{
+		G_DEBUG( "GSmtp::SaslClient::preferred: .. but no secret" ) ;
 		result = std::string() ;
 		if( has_cram && has_login )
 		{
 			result = login ;
-			if( Sasl::instance().clientSecrets().id(login).empty() )
+			if( m_imp->m_secrets.id(login).empty() )
 				result = std::string() ;
 		}
+		G_DEBUG( "GSmtp::SaslClient::preferred: we now prefer \"" << result << "\"" ) ;
+
+		// one-shot warning
 		static bool first = true ;
 		if( first ) G_WARNING( "GSmtp::SaslClient: missing \"login\" or \"cram-md5\" entry in secrets file" ) ;
 		first = false ;
@@ -375,42 +402,4 @@ std::string GSmtp::SaslClient::preferred( const G::Strings & mechanism_list ) co
 	return result ;
 }
 
-// ===
-
-GSmtp::Sasl * GSmtp::Sasl::m_this = NULL ;
-
-GSmtp::Sasl::Sasl( const std::string & /*app*/ , const G::Path & client_path , const G::Path & server_path )
-{
-	if( m_this == NULL )
-		m_this = this ;
-
-	m_client_secrets <<= new Secrets(client_path) ;
-	m_server_secrets <<= new Secrets(server_path) ;
-}
-
-GSmtp::Sasl::~Sasl()
-{
-	if( m_this == this )
-		m_this = NULL ;
-}
-
-GSmtp::Sasl & GSmtp::Sasl::instance()
-{
-	if( m_this == NULL )
-		throw Error( "no instance" ) ;
-	return * m_this ;
-}
-
-const GSmtp::Secrets & GSmtp::Sasl::clientSecrets() const
-{
-	return *m_client_secrets.get() ;
-}
-
-const GSmtp::Secrets & GSmtp::Sasl::serverSecrets() const
-{
-	return *m_server_secrets.get() ;
-}
-
-// not implemented...
-//void GSmtp::Sasl::check( const std::string & op , int rc ) const {}
 

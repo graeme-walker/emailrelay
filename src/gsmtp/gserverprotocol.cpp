@@ -34,15 +34,18 @@
 #include <string>
 
 GSmtp::ServerProtocol::ServerProtocol( Sender & sender , Verifier & verifier , ProtocolMessage & pmessage ,
-	const std::string & thishost , GNet::Address peer_address ) :
+	const Secrets & secrets , const std::string & thishost , GNet::Address peer_address ) :
 		m_sender(sender) ,
 		m_pmessage(pmessage) ,
 		m_verifier(verifier) ,
 		m_fsm(sStart,sEnd,s_Same,s_Any) ,
 		m_thishost(thishost) ,
 		m_peer_address(peer_address) ,
-		m_authenticated(false)
+		m_authenticated(false) ,
+		m_sasl(secrets)
 {
+	m_pmessage.doneSignal().connect( G::slot(*this,&ServerProtocol::processDone) ) ;
+
 	// (dont send anything to the peer from this ctor -- the Sender
 	// object is not fuly constructed)
 
@@ -81,17 +84,21 @@ void GSmtp::ServerProtocol::sendGreeting( const std::string & thishost , const s
 
 bool GSmtp::ServerProtocol::apply( const std::string & line )
 {
+	bool log_content = false ;
 	if( m_fsm.state() == sData )
 	{
 		if( isEndOfText(line) )
 		{
-			G_LOG( "GSmtp::ServerProtocol: rx<<: [message content not logged]" ) ;
+			if( !log_content )
+				G_LOG( "GSmtp::ServerProtocol: rx<<: [message content not logged]" ) ;
 			G_LOG( "GSmtp::ServerProtocol: rx<<: \"" << G::Str::toPrintableAscii(line) << "\"" ) ;
 			m_fsm.reset( sProcessing ) ;
-			m_pmessage.process( *this , m_sasl.id() , m_peer_address.displayString(false) ) ; // -> processDone() callback
+			m_pmessage.process( m_sasl.id() , m_peer_address.displayString(false) ) ; // -> processDone()
 		}
 		else
 		{
+			if( log_content )
+				G_LOG( "GSmtp::ServerProtocol: rx<<: \"" << G::Str::toPrintableAscii(line) << "\"" ) ;
 			m_pmessage.addText( isEscaped(line) ? line.substr(1U) : line ) ;
 		}
 		return false ;
@@ -119,7 +126,7 @@ bool GSmtp::ServerProtocol::apply( const std::string & line )
 	}
 }
 
-void GSmtp::ServerProtocol::processDone( bool success , unsigned long , const std::string & reason )
+void GSmtp::ServerProtocol::processDone( bool success , unsigned long , std::string reason )
 {
 	G_ASSERT( m_fsm.state() == sProcessing ) ; // (a RSET will call m_pmessage.clear() to cancel the callback)
 	if( m_fsm.state() == sProcessing ) // just in case
@@ -209,7 +216,7 @@ void GSmtp::ServerProtocol::doHelo( const std::string & line , bool & predicate 
 
 void GSmtp::ServerProtocol::doAuth( const std::string & line , bool & predicate )
 {
-	G::Str::StringArray word_array ;
+	G::StringArray word_array ;
 	G::Str::splitIntoTokens( line , word_array , " \t" ) ;
 
 	std::string mechanism = word_array.size() > 1U ? word_array[1U] : std::string() ;
@@ -443,7 +450,7 @@ void GSmtp::ServerProtocol::sendUnrecognised( const std::string & line )
 
 void GSmtp::ServerProtocol::sendAuthRequired()
 {
-	send( "530 Authentication required" ) ;
+	send( "530 authentication required" ) ;
 }
 
 void GSmtp::ServerProtocol::sendNoRecipients()
@@ -588,10 +595,10 @@ std::string GSmtp::ServerProtocol::receivedLine() const
 		<< "BY " << m_thishost << " "
 		<< "WITH ESMTP "
 		<< "; "
-		<< date.weekdayString(true) << ", "
+		<< date.weekdayName(true) << ", "
 		<< date.monthday() << " "
-		<< date.monthString(true) << " "
-		<< date.year() << " "
+		<< date.monthName(true) << " "
+		<< date.yyyy() << " "
 		<< time.hhmmss(":") << " "
 		<< zone ;
 	return ss.str() ;

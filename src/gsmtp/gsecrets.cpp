@@ -29,9 +29,11 @@
 #include "gstr.h"
 #include <fstream>
 
-GSmtp::Secrets::Secrets( const G::Path & path )
+GSmtp::Secrets::Secrets( const G::Path & path , const std::string & debug_name ) :
+	m_path(path) ,
+	m_debug_name(debug_name)
 {
-	G_DEBUG( "GSmtp::Secrets: \"" << path << "\"" ) ;
+	G_DEBUG( "GSmtp::Secrets: " << m_debug_name << ": \"" << path << "\"" ) ;
 
 	if( path.str().empty() )
 	{
@@ -65,7 +67,7 @@ void GSmtp::Secrets::read( std::istream & file )
 		G::Str::trim( line , ws ) ;
 		if( !line.empty() && line.at(0U) != '#' )
 		{
-			G::Str::StringArray word_array ;
+			G::StringArray word_array ;
 			G::Str::splitIntoTokens( line , word_array , ws ) ;
 			if( word_array.size() == 4U )
 				process( word_array[0U] , word_array[1U] , word_array[2U] , word_array[3U] ) ;
@@ -104,10 +106,11 @@ bool GSmtp::Secrets::valid() const
 std::string GSmtp::Secrets::id( const std::string & mechanism ) const
 {
 	Map::const_iterator p = m_map.find( mechanism+" client" ) ;
-	if( p == m_map.end() || (*p).second.find(" ") == std::string::npos )
-		return std::string() ;
-	else
-		return Xtext::decode( (*p).second.substr(0U,(*p).second.find(" ")) ) ;
+	std::string result ;
+	if( p != m_map.end() && (*p).second.find(" ") != std::string::npos )
+		result = Xtext::decode( (*p).second.substr(0U,(*p).second.find(" ")) ) ;
+	G_DEBUG( "GSmtp::Secrets::id: " << m_debug_name << ": \"" << mechanism << "\" -> \"" << result << "\"" ) ;
+	return result ;
 }
 
 std::string GSmtp::Secrets::secret( const std::string & mechanism ) const

@@ -24,7 +24,6 @@
 #include "gdef.h"
 #include "gnet.h"
 #include "gaddress.h"
-#include "gconvert.h"
 #include "gstrings.h"
 #include "gstr.h"
 #include "gassert.h"
@@ -39,12 +38,14 @@ class GNet::AddressImp
 {
 public:
 	typedef sockaddr_in address_type ;
+	typedef union { address_type specific ; struct sockaddr general ; } Sockaddr ;
 
 	explicit AddressImp( unsigned int port ) ; // (not in_port_t -- see validPort(), setPort() etc)
 	explicit AddressImp( const servent & s ) ;
 	explicit AddressImp( const std::string & s ) ;
 	AddressImp( const std::string & s , unsigned int port ) ;
 	AddressImp( unsigned int port , Address::Localhost ) ;
+	AddressImp( unsigned int port , Address::Broadcast ) ;
 	AddressImp( const hostent & h , unsigned int port ) ;
 	AddressImp( const hostent & h , const servent & s ) ;
 	AddressImp( const sockaddr * addr , size_t len ) ;
@@ -67,7 +68,7 @@ public:
 
 private:
 	void init() ;
-	void set( const sockaddr * specific ) ;
+	void set( const sockaddr * general ) ;
 	bool setAddress( const std::string & display_string , std::string & reason ) ;
 	static bool validPart( const std::string & s ) ;
 	static bool validPortNumber( const std::string & s ) ;
@@ -102,6 +103,13 @@ GNet::AddressImp::AddressImp( unsigned int port , Address::Localhost )
 {
 	init() ;
 	m_inet.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	setPort( port ) ;
+}
+
+GNet::AddressImp::AddressImp( unsigned int port , Address::Broadcast )
+{
+	init() ;
+	m_inet.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 	setPort( port ) ;
 }
 
@@ -186,7 +194,7 @@ void GNet::AddressImp::setPort( unsigned int port )
 	if( ! validPort(port) )
 		throw Address::Error( "invalid port number" ) ;
 
-	const g_port_t in_port = G::Convert<g_port_t>(port) ;
+	const g_port_t in_port = static_cast<g_port_t>(port) ;
 	m_inet.sin_port = htons( in_port ) ;
 }
 
@@ -324,9 +332,11 @@ sockaddr * GNet::AddressImp::raw()
 	return reinterpret_cast<sockaddr*>(&m_inet) ;
 }
 
-void GNet::AddressImp::set( const sockaddr * specific )
+void GNet::AddressImp::set( const sockaddr * general )
 {
-	m_inet = *(reinterpret_cast<const address_type*>(specific)) ;
+	Sockaddr u ;
+	u.general = * general ;
+	m_inet = u.specific ;
 }
 
 // ===
@@ -337,12 +347,29 @@ GNet::Address GNet::Address::invalidAddress()
 	return Address( 0U ) ;
 }
 
+//static
+GNet::Address GNet::Address::localhost( unsigned int port )
+{
+	return Address( port , Localhost() ) ;
+}
+
+//static
+GNet::Address GNet::Address::broadcastAddress( unsigned int port )
+{
+	return Address( port , Broadcast() ) ;
+}
+
 GNet::Address::Address( unsigned int port ) :
 	m_imp( new AddressImp(port) )
 {
 }
 
 GNet::Address::Address( unsigned int port , Localhost dummy ) :
+	m_imp( new AddressImp(port,dummy) )
+{
+}
+
+GNet::Address::Address( unsigned int port , Broadcast dummy ) :
 	m_imp( new AddressImp(port,dummy) )
 {
 }
@@ -449,11 +476,5 @@ unsigned int GNet::Address::port() const
 bool GNet::Address::validPort( unsigned int port )
 {
 	return AddressImp::validPort( port ) ;
-}
-
-//static
-GNet::Address GNet::Address::localhost( unsigned int port )
-{
-	return Address( port , Localhost() ) ;
 }
 

@@ -44,7 +44,7 @@ namespace GNet
 // issues, and it reads incoming data. There is some support for flow-control
 // issues when writing data out to the server.
 //
-class GNet::Client : public GNet:: Connection
+class GNet::Client : public GNet::Connection
 {
 public:
 	explicit Client( bool priviledged = false , bool quit_on_disconnect = false ) ;

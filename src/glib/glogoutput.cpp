@@ -30,7 +30,8 @@
 G::LogOutput * G::LogOutput::m_this = NULL ;
 
 G::LogOutput::LogOutput( const std::string & prefix , bool enabled , bool summary_log ,
-	bool verbose_log , bool debug , bool level , bool timestamp , bool strip ) :
+	bool verbose_log , bool debug , bool level , bool timestamp , bool strip ,
+	bool use_syslog , SyslogFacility syslog_facility ) :
 		m_prefix(prefix) ,
 		m_enabled(enabled) ,
 		m_summary_log(summary_log) ,
@@ -38,7 +39,8 @@ G::LogOutput::LogOutput( const std::string & prefix , bool enabled , bool summar
 		m_debug(debug) ,
 		m_level(level) ,
 		m_strip(strip) ,
-		m_syslog(false) ,
+		m_syslog(use_syslog) ,
+		m_facility(syslog_facility) ,
 		m_time(0) ,
 		m_timestamp(timestamp) ,
 		m_handle(0) ,
@@ -57,6 +59,7 @@ G::LogOutput::LogOutput( bool enabled_and_summary , bool verbose_and_debug ) :
 	m_level(false) ,
 	m_strip(false) ,
 	m_syslog(false) ,
+	m_facility(User) ,
 	m_time(0) ,
 	m_timestamp(false) ,
 	m_handle(0) ,
@@ -84,22 +87,6 @@ bool G::LogOutput::enable( bool enabled )
 	bool was_enabled = m_enabled ;
 	m_enabled = enabled ;
 	return was_enabled ;
-}
-
-void G::LogOutput::timestamp()
-{
-	m_timestamp = true ;
-}
-
-void G::LogOutput::syslog()
-{
-	syslog( User ) ;
-}
-
-void G::LogOutput::syslog( SyslogFacility facility )
-{
-	m_syslog = true ;
-	m_facility = facility ;
 }
 
 //static

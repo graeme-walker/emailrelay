@@ -1,25 +1,27 @@
 Summary: Simple e-mail message transfer agent using SMTP
 Name: emailrelay
-Version: 1.0.2
+Version: 1.1
 Release: 1
 Copyright: GPL
 Group: System Environment/Daemons
-Source: http://emailrelay.sourceforge.net/.../emailrelay-src-1.0.2.tar.gz
+Source: http://emailrelay.sourceforge.net/.../emailrelay-src-1.1.tar.gz
 BuildRoot: /tmp/emailrelay-install
 
 %define prefix /usr
 
 %description
-E-MailRelay is a simple SMTP store-and-forward message transfer agent (MTA).
-It runs as an SMTP server, storing e-mail in a local spool directory, and
-then forwarding the stored messages to the next SMTP server on request. 
-It can also run as a proxy server, forwarding (and optionally pre-processing)
-e-mail as soon as it is received. It does not do any message routing, other
-than to a local postmaster. Because of this functional simplicity it is 
-extremely easy to configure, typically only requiring the address of the 
-next-hop SMTP server to be put on the command line.
+E-MailRelay is a simple SMTP proxy and store-and-forward message transfer agent 
+(MTA). When running as a proxy all e-mail messages can be passed through a 
+user-defined program, such as a spam filter, which can drop, re-address or edit 
+messages as they pass through. When running as a store-and-forward MTA incoming 
+messages are stored in a local spool directory, and then forwarded to the next 
+SMTP server on request. 
 
-C++ source code is available for Linux, FreeBSD (etc) and Windows. 
+Because of its functional simplicity E-MailRelay is easy to configure, typically 
+only requiring the address of the target SMTP server to be put on the command 
+line.
+
+C++ source code is available for Linux, FreeBSD, MacOS X etc, and Windows.
 Distribution is under the GNU General Public License.
 
 %prep
@@ -30,13 +32,13 @@ Distribution is under the GNU General Public License.
 make HAVE_DOXYGEN=no HAVE_MAN2HTML=no
 
 %install
-make install destdir=$RPM_BUILD_ROOT DESTDIR=$RPM_BUILD_ROOT HAVE_DOXYGEN=no HAVE_MAN2HTML=no
+make install-strip destdir=$RPM_BUILD_ROOT DESTDIR=$RPM_BUILD_ROOT HAVE_DOXYGEN=no HAVE_MAN2HTML=no
 
 %post
-test -f /usr/lib/lsb/install_initd && cd /etc/init.d && /usr/lib/lsb/install_initd emailrelay
+test -f /usr/lib/lsb/install_initd && cd /etc/init.d && /usr/lib/lsb/install_initd emailrelay || true
 
 %preun
-test $1 -eq 0 && test -f /usr/lib/lsb/remove_initd && cd /etc/init.d && /usr/lib/lsb/remove_initd emailrelay
+test $1 -eq 0 && test -f /usr/lib/lsb/remove_initd && cd /etc/init.d && /usr/lib/lsb/remove_initd emailrelay || true
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -75,6 +77,6 @@ rm -rf $RPM_BUILD_ROOT
 
 %changelog
 
-* Wed Jul 3 2003 Graeme Walker <graeme_walker@users.sourceforge.net>
+* Wed Jul 3 2002 Graeme Walker <graeme_walker@users.sourceforge.net>
 - Initial version.
 

@@ -49,7 +49,7 @@ namespace GSmtp
 // iterators by value, and therefore return them
 // from MessageStore::iterator().
 //
-class GSmtp::FileIterator : public GSmtp:: MessageStore::IteratorImp , public G::noncopyable
+class GSmtp::FileIterator : public GSmtp::MessageStore::IteratorImp , public G::noncopyable
 {
 public:
 	FileIterator( FileStore & store , const G::Directory & dir , bool lock ) ;
@@ -169,7 +169,8 @@ G::Path GSmtp::FileStore::envelopeWorkingPath( unsigned long seq ) const
 std::string GSmtp::FileStore::filePrefix( unsigned long seq ) const
 {
 	std::ostringstream ss ;
-	ss << "emailrelay." << G::Process::Id() << "." << m_pid_modifier << "." << seq ;
+	G::Process::Id pid ;
+	ss << "emailrelay." << pid.str() << "." << m_pid_modifier << "." << seq ;
 	return ss.str() ;
 }
 
@@ -244,14 +245,14 @@ std::auto_ptr<GSmtp::NewMessage> GSmtp::FileStore::newMessage( const std::string
 	return std::auto_ptr<NewMessage>( new NewFile(from,*this) ) ;
 }
 
-void GSmtp::FileStore::updated()
+void GSmtp::FileStore::updated( bool action )
 {
-	onEvent() ;
+	m_signal.emit( action ) ;
 }
 
-void GSmtp::FileStore::onEvent()
+G::Signal1<bool> & GSmtp::FileStore::signal()
 {
-	; // default implementation
+	return m_signal ;
 }
 
 // ===

@@ -72,7 +72,7 @@ GNet::Resolver::HostInfoPair GNet::Resolver::resolve( const std::string & host_n
 	if( !valid_host )
 	{
 		G_DEBUG( "GNet::Resolver::resolve: host error: \"" << host_name << "\"" ) ;
-		return HostInfoPair( HostInfo() , "invalid hostname" ) ;
+		return HostInfoPair( HostInfo() , std::string("invalid hostname: \"" + host_name + "\"" ) ) ;
 	}
 
 	std::string error ;

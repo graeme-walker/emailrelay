@@ -28,7 +28,9 @@
 #include "gsmtp.h"
 #include "gprotocolmessage.h"
 #include "gprotocolmessagestore.h"
+#include "gsecrets.h"
 #include "gsmtpclient.h"
+#include "gmessagestore.h"
 #include "gnewmessage.h"
 #include <string>
 #include <memory>
@@ -49,16 +51,20 @@ namespace GSmtp
 //
 // See also: ProtocolMessageStore
 //
-class GSmtp::ProtocolMessageForward : public GSmtp:: ProtocolMessage ,
-	private GSmtp:: ProtocolMessage::Callback ,
-	private GSmtp:: Client::ClientCallback
+class GSmtp::ProtocolMessageForward : public GSmtp::ProtocolMessage
 {
 public:
-	explicit ProtocolMessageForward( const std::string & server_address ) ;
-		// Constructor.
+	ProtocolMessageForward( MessageStore & store , const Secrets & client_secrets ,
+		const std::string & server_address , unsigned int response_timeout ,
+		unsigned int connection_timeout ) ;
+			// Constructor. The 'store' and 'client-secrets' references
+			// are kept.
 
 	virtual ~ProtocolMessageForward() ;
 		// Destructor.
+
+	virtual G::Signal3<bool,unsigned long,std::string> & doneSignal() ;
+		// See ProtocolMessage.
 
 	virtual void clear() ;
 		// See ProtocolMessage.
@@ -78,22 +84,25 @@ public:
 	virtual std::string from() const ;
 		// See ProtocolMessage.
 
-	virtual void process( ProtocolMessage::Callback & callback , const std::string & auth_id ,
-		const std::string & client_ip ) ;
-			// See ProtocolMessage.
+	virtual void process( const std::string & auth_id , const std::string & client_ip ) ;
+		// See ProtocolMessage.
 
 private:
 	void operator=( const ProtocolMessageForward & ) ; // not implemented
-	virtual void processDone( bool , unsigned long , const std::string & ) ; // from ProtocolMessage::Callback
-	virtual void clientDone( std::string ) ; // from Client::ClientCallback
+	void processDone( bool , unsigned long , std::string ) ; // ProtocolMessage::doneSignal()
+	void clientDone( std::string ) ; // Client::doneSignal()
 	bool forward( unsigned long , bool & , std::string * ) ;
 
 private:
+	MessageStore & m_store ;
+	const Secrets & m_client_secrets ;
 	ProtocolMessageStore m_pm ;
 	std::string m_server ;
-	ProtocolMessage::Callback * m_callback ;
 	std::auto_ptr<Client> m_client ;
 	unsigned long m_id ;
+	unsigned int m_response_timeout ;
+	unsigned int m_connection_timeout ;
+	G::Signal3<bool,unsigned long,std::string> m_signal ;
 } ;
 
 #endif

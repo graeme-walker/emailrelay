@@ -31,14 +31,26 @@
 #include "gassert.h"
 #include "glog.h"
 
-GSmtp::ProtocolMessageForward::ProtocolMessageForward( const std::string & server ) :
-	m_server(server) ,
-	m_callback(NULL)
+GSmtp::ProtocolMessageForward::ProtocolMessageForward( MessageStore & store ,
+	const Secrets & client_secrets , const std::string & server ,
+	unsigned int response_timeout , unsigned int connection_timeout ) :
+		m_store(store) ,
+		m_client_secrets(client_secrets) ,
+		m_pm(store) ,
+		m_server(server) ,
+		m_response_timeout(response_timeout) ,
+		m_connection_timeout(connection_timeout)
 {
+	m_pm.doneSignal().connect( G::slot(*this,&ProtocolMessageForward::processDone) ) ;
 }
 
 GSmtp::ProtocolMessageForward::~ProtocolMessageForward()
 {
+}
+
+G::Signal3<bool,unsigned long,std::string> & GSmtp::ProtocolMessageForward::doneSignal()
+{
+	return m_signal ;
 }
 
 void GSmtp::ProtocolMessageForward::clear()
@@ -72,14 +84,13 @@ std::string GSmtp::ProtocolMessageForward::from() const
 	return m_pm.from() ;
 }
 
-void GSmtp::ProtocolMessageForward::process( ProtocolMessage::Callback & callback , const std::string & auth_id ,
+void GSmtp::ProtocolMessageForward::process( const std::string & auth_id ,
 	const std::string & client_ip )
 {
-	m_callback = & callback ;
-	m_pm.process( *this , auth_id , client_ip ) ;
+	m_pm.process( auth_id , client_ip ) ;
 }
 
-void GSmtp::ProtocolMessageForward::processDone( bool success , unsigned long id , const std::string & reason_in )
+void GSmtp::ProtocolMessageForward::processDone( bool success , unsigned long id , std::string reason_in )
 {
 	std::string reason( reason_in ) ;
 	bool nothing_to_do = success && id == 0UL ;
@@ -91,10 +102,7 @@ void GSmtp::ProtocolMessageForward::processDone( bool success , unsigned long id
 
 	if( nothing_to_do || !success )
 	{
-		G_ASSERT( m_callback != NULL ) ;
-		if( m_callback )
-			m_callback->processDone( success , id , reason ) ;
-		m_callback = NULL ;
+		m_signal.emit( success , id , reason ) ;
 	}
 }
 
@@ -106,7 +114,7 @@ bool GSmtp::ProtocolMessageForward::forward( unsigned long id , bool & nothing_t
 		*reason_p = std::string() ;
 		G_DEBUG( "GSmtp::ProtocolMessageForward::forward: forwarding message " << id ) ;
 
-		std::auto_ptr<StoredMessage> message = GSmtp::MessageStore::instance().get( id ) ;
+		std::auto_ptr<StoredMessage> message = m_store.get( id ) ;
 
 		bool ok = true ;
 		if( message->remoteRecipientCount() == 0U )
@@ -117,8 +125,9 @@ bool GSmtp::ProtocolMessageForward::forward( unsigned long id , bool & nothing_t
 		}
 		else
 		{
-			m_client <<= new GSmtp::Client( message , *this ) ;
-			std::string reason = m_client->init( m_server ) ;
+			m_client <<= new GSmtp::Client( message , m_client_secrets , m_response_timeout ) ;
+			m_client->doneSignal().connect( G::slot(*this,&ProtocolMessageForward::clientDone) ) ;
+			std::string reason = m_client->startSending( m_server , m_connection_timeout ) ;
 
 			ok = reason.empty() ;
 			if( !ok && reason_p != NULL )
@@ -138,12 +147,6 @@ void GSmtp::ProtocolMessageForward::clientDone( std::string reason )
 {
 	G_DEBUG( "GSmtp::ProtocolMessageForward::clientDone: \"" << reason << "\"" ) ;
 	const bool ok = reason.empty() ;
-
-	G_ASSERT( m_callback != NULL ) ;
-	if( m_callback )
-	{
-		m_callback->processDone( ok , m_id , reason ) ;
-		m_callback = NULL ;
-	}
+	m_signal.emit( ok , m_id , reason ) ;
 }
 

@@ -159,6 +159,7 @@ private:
 	std::pair<g_uint32_t,size_t> getInfo() const ;
 	std::string getData( g_uint32_t & type , bool & ) const ;
 	size_t get( char * , size_t ) const ;
+	void set( g_uint32_t type , const void * p , size_t n ) ;
 
 private:
 	const RegistryKey & m_hkey ;

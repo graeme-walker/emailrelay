@@ -1,4 +1,3 @@
-dnl 
 dnl Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 dnl 
 dnl This program is free software; you can redistribute it and/or
@@ -19,9 +18,10 @@ dnl
 dnl ===
 dnl
 dnl Process this file with autoconf to produce a configure script.
+dnl
 
 AC_INIT(src/gsmtp/gsmtp.h)
-AM_INIT_AUTOMAKE(emailrelay,1.0.2)
+AM_INIT_AUTOMAKE(emailrelay,1.1)
 AM_CONFIG_HEADER(config.h)
 
 dnl ===
@@ -57,11 +57,24 @@ AC_CHECK_HEADERS(sys/time.h)
 AC_CHECK_FUNCS(glob)
 AC_LANG_CPLUSPLUS
 ACLOCAL_TYPE_SOCKLEN_T
+ACLOCAL_CHECK_BUGGY_CTIME
 ACLOCAL_CHECK_GMTIME_R
 ACLOCAL_CHECK_LOCALTIME_R
 
 dnl ===
-dnl directory tweaking...
+dnl "--enable-debug"
+dnl
+AC_ARG_ENABLE(debug,AC_HELP_STRING([--enable-debug],[enable extra debug messages at compile-time]))
+ENABLE_DEBUG
+
+dnl ===
+dnl "--with-workshop"
+dnl
+AC_ARG_WITH(workshop,AC_HELP_STRING([--with-workshop],[use Sun WorkShop 'CC -xar' as the 'ar' tool]))
+WITH_WORKSHOP
+
+dnl ===
+dnl directory tweaking and "--enable-fhs" ...
 dnl
 dnl not AC_PREFIX_DEFAULT([/usr])
 AC_ARG_ENABLE(fhs,AC_HELP_STRING([--enable-fhs],[force FHS-compliant directories, ignoring --prefix etc]))
@@ -83,10 +96,11 @@ ENABLE_FHS
 
 dnl ===
 dnl attempt to fix recursive makes where make is gmake -- may break something else
+dnl
 SET_MAKE=""
 
 dnl ===
 dnl generate files...
 dnl
-AC_OUTPUT(Makefile src/Makefile src/glib/Makefile src/gnet/Makefile src/gsmtp/Makefile src/main/Makefile src/win32/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile bin/Makefile doc/Makefile)
+AC_OUTPUT(Makefile src/Makefile src/glib/Makefile src/gnet/Makefile src/gsmtp/Makefile src/main/Makefile src/win32/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile lib/sunpro5/Makefile bin/Makefile doc/Makefile)
 

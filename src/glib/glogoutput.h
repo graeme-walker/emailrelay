@@ -45,7 +45,8 @@ public:
 
 	LogOutput( const std::string & prefix , bool output , bool with_logging ,
 		bool with_verbose_logging , bool with_debug , bool with_level ,
-		bool with_timestamp , bool strip_context ) ;
+		bool with_timestamp , bool strip_context ,
+		bool use_syslog , SyslogFacility syslog_facility = User ) ;
 			// Constructor. If there is no LogOutput object,
 			// or if 'output' is false, then there is no
 			// output of any sort. Otherwise at least
@@ -78,16 +79,6 @@ public:
 		// Enables or disables output.
 		// Returns the previous setting.
 
-	void syslog() ;
-		// Enables logging to the syslog system under Unix.
-
-	void timestamp() ;
-		// Enables timestamping.
-
-	void syslog( SyslogFacility facility ) ;
-		// Enables logging to the syslog system under Unix,
-		// using the specified facility.
-	
 	static void output( G::Log::Severity s , const char *file , unsigned line , const char *text ) ;
 		// Generates output if there is an existing
 		// LogOutput object which is enabled. Uses rawOutput().

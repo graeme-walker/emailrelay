@@ -27,7 +27,9 @@
 #include "gdef.h"
 #include "gsmtp.h"
 #include "gprotocolmessage.h"
+#include "gmessagestore.h"
 #include "gnewmessage.h"
+#include "gslot.h"
 #include <string>
 #include <memory>
 
@@ -42,14 +44,17 @@ namespace GSmtp
 // messages in the message store.
 // See also: ProtocolMessageForward
 //
-class GSmtp::ProtocolMessageStore : public GSmtp:: ProtocolMessage
+class GSmtp::ProtocolMessageStore : public GSmtp::ProtocolMessage
 {
 public:
-	ProtocolMessageStore() ;
+	explicit ProtocolMessageStore( MessageStore & store ) ;
 		// Constructor.
 
 	virtual ~ProtocolMessageStore() ;
 		// Destructor.
+
+	virtual G::Signal3<bool,unsigned long,std::string> & doneSignal() ;
+		// See ProtocolMessage.
 
 	virtual void clear() ;
 		// See ProtocolMessage.
@@ -69,16 +74,17 @@ public:
 	virtual std::string from() const ;
 		// See ProtocolMessage.
 
-	virtual void process( ProtocolMessage::Callback & callback , const std::string & auth_id ,
-		const std::string & client_ip ) ;
-			// See ProtocolMessage.
+	virtual void process( const std::string & auth_id , const std::string & client_ip ) ;
+		// See ProtocolMessage.
 
 private:
 	void operator=( const ProtocolMessageStore & ) ; // not implemented
 
 private:
+	MessageStore & m_store ;
 	std::auto_ptr<NewMessage> m_msg ;
 	std::string m_from ;
+	G::Signal3<bool,unsigned long,std::string> m_signal ;
 } ;
 
 #endif
