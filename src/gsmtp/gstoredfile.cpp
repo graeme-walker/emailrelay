@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -37,7 +37,8 @@ GSmtp::StoredFile::StoredFile( FileStore & store , const G::Path & path ) :
 	m_store(store) ,
 	m_envelope_path(path) ,
 	m_eight_bit(false) ,
-	m_errors(0U)
+	m_errors(0U) ,
+	m_locked(false)
 {
 	m_name = m_envelope_path.basename() ;
 	size_t pos = m_name.rfind(".envelope") ;
@@ -47,6 +48,13 @@ GSmtp::StoredFile::StoredFile( FileStore & store , const G::Path & path ) :
 
 GSmtp::StoredFile::~StoredFile()
 {
+	try
+	{
+		unlock() ;
+	}
+	catch(...)
+	{
+	}
 }
 
 std::string GSmtp::StoredFile::name() const
@@ -231,15 +239,29 @@ std::string GSmtp::StoredFile::crlf() const
 bool GSmtp::StoredFile::lock()
 {
 	FileWriter claim_writer ;
-	G::Path & src = m_envelope_path ;
-	G::Path dst( src.str() + ".busy" ) ;
+	const G::Path src = m_envelope_path ;
+	const G::Path dst( src.str() + ".busy" ) ;
 	bool ok = G::File::rename( src , dst , G::File::NoThrow() ) ;
 	if( ok )
 	{
 		G_LOG( "GSmtp::StoredMessage: locking file \"" << src.basename() << "\"" ) ;
 		m_envelope_path = dst ;
+		m_old_envelope_path = src ;
+		m_locked = true ;
 	}
 	return ok ;
+}
+
+void GSmtp::StoredFile::unlock()
+{
+	if( m_locked )
+	{
+		G_LOG( "GSmtp::StoredMessage: unlocking file \"" << m_envelope_path.basename() << "\"" ) ;
+		FileWriter claim_writer ;
+		G::File::rename( m_envelope_path , m_old_envelope_path ) ;
+		m_envelope_path = m_old_envelope_path ;
+		m_locked = false ;
+	}
 }
 
 void GSmtp::StoredFile::fail( const std::string & reason )

@@ -137,7 +137,7 @@ BEGIN
             VALUE "FileDescription", "E-MailRelay Application\0"
             VALUE "FileVersion", "1, 0, 0, 0\0"
             VALUE "InternalName", "emailrelay\0"
-            VALUE "LegalCopyright", "Copyright © Graeme Walker, 2002\0"
+            VALUE "LegalCopyright", "Copyright © Graeme Walker, 2003\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "emailrelay.rc\0"
             VALUE "PrivateBuild", "\0"

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -80,7 +80,7 @@ Main::Run * Main::Run::m_this = NULL ;
 //static
 std::string Main::Run::versionNumber()
 {
-	return "1.0.0" ;
+	return "1.0.1" ;
 }
 
 Main::Run::Run( const G::Arg & arg ) :

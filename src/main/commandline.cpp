@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -98,15 +98,16 @@ void Main::CommandLine::showUsage( bool e ) const
 	Show show( e ) ;
 
 	G::GetOpt::Level level = G::GetOpt::Level(2U) ;
+	std::string introducer = G::GetOpt::introducerDefault() ;
 	if( m_getopt.contains("verbose") )
 		level = G::GetOpt::levelDefault() ;
 	else
-		show.s() << "abbreviated " ;
+		introducer = std::string("abbreviated ") + G::GetOpt::introducerDefault() ;
 
 	size_t tab_stop = 33U ;
 	size_t columns = ttyColumns() ;
 	m_getopt.showUsage( show.s() , m_arg.prefix() , "" ,
-		level , tab_stop , columns ) ;
+		introducer , level , tab_stop , columns ) ;
 }
 
 bool Main::CommandLine::contains( const std::string & name ) const

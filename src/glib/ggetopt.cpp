@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -135,6 +135,12 @@ size_t G::GetOpt::tabDefault()
 }
 
 //static
+std::string G::GetOpt::introducerDefault()
+{
+	return "usage: " ;
+}
+
+//static
 G::GetOpt::Level G::GetOpt::levelDefault()
 {
 	return Level(99U) ;
@@ -148,21 +154,21 @@ size_t G::GetOpt::widthLimit( size_t w )
 
 void G::GetOpt::showUsage( std::ostream & stream , const std::string & args , bool verbose ) const
 {
-	showUsage( stream , m_args.prefix() , args , verbose ? levelDefault() : Level(1U) ) ;
+	showUsage( stream , m_args.prefix() , introducerDefault() , args , verbose ? levelDefault() : Level(1U) ) ;
 }
 
 void G::GetOpt::showUsage( std::ostream & stream , const std::string & exe , const std::string & args ,
-	Level level , size_t tab_stop , size_t width ) const
+	const std::string & introducer , Level level , size_t tab_stop , size_t width ) const
 {
 	stream
-		<< usageSummary(exe,args,level,width) << std::endl
+		<< usageSummary(exe,args,introducer,level,width) << std::endl
 		<< usageHelp(level,tab_stop,width,false) ;
 }
 
 std::string G::GetOpt::usageSummary( const std::string & exe , const std::string & args ,
-	Level level , size_t width ) const
+	const std::string & introducer , Level level , size_t width ) const
 {
-	std::string s = std::string("usage: ") + exe + " " + usageSummarySwitches(level) + args ;
+	std::string s = introducer + exe + " " + usageSummarySwitches(level) + args ;
 	if( width != 0U )
 	{
 		return G::Str::wrap( s , "" , "  " , widthLimit(width) ) ;

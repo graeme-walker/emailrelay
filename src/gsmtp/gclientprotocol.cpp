@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -365,8 +365,8 @@ bool GSmtp::ClientProtocol::sendLine( std::string & line )
 	G::Str::readLineFrom( *(m_content.get()) , crlf() , line ) ;
 	if( m_content->good() )
 	{
-		line.append( crlf() ) ;
-		return m_sender.protocolSend( line ) ;
+		const bool log_content = false ;
+		return send( line , false , log_content ) ;
 	}
 	else
 	{
@@ -376,16 +376,15 @@ bool GSmtp::ClientProtocol::sendLine( std::string & line )
 
 bool GSmtp::ClientProtocol::send( const std::string & line , bool eot , bool log )
 {
+	const bool add_prefix = !eot && line.length() && line.at(0U) == '.' ;
+	const std::string prefix( add_prefix ? "." : "" ) ;
 	if( log )
-		G_LOG( "GSmtp::ClientProtocol: tx>>: \"" << G::Str::toPrintableAscii(line) << "\"" ) ;
+		G_LOG( "GSmtp::ClientProtocol: tx>>: \"" << prefix << G::Str::toPrintableAscii(line) << "\"" ) ;
 
 	if( m_timeout != 0U )
 		startTimer( m_timeout ) ;
 
-	if( !eot && line.length() && line.at(0U) == '.' )
-		return m_sender.protocolSend( std::string(".")+line+crlf() ) ;
-	else
-		return m_sender.protocolSend( line + crlf() ) ;
+	return m_sender.protocolSend( prefix + line + crlf() ) ;
 }
 
 //static

@@ -263,7 +263,7 @@ sendmail command-line interface rather than SMTP):
 	#!/bin/sh
 	#
 	content="${1}"
-	envelope="`echo \"${content}\" | sed 's/content/envelope/'`"
+	envelope="`echo \"${content}\" | sed 's/content/envelope.new/'`"
 	ip="`awk '/MailRelay-Client:/ {print $2;exit}' \"${envelope}\"`"
 	if test "${ip}" = "192.168.0.2"
 	then
@@ -318,7 +318,7 @@ Some other points are:
 * Strings are dynamically allocated, so buffer overflow/truncation issues are avoided.
 * By default connections to the SMTP and administrative ports will be rejected if they come from remote machines.
 * No configuration parameters can be changed through the administrative interface.
-* No exec(), system() or popen() calls are used other than execve() to spawn the mail processor.
+* No exec(), system() or popen() calls are used other than execve() to spawn the mail processor and address verifier.
 * The submit utility is installed as set-group-id with group ownership of "daemon".
 
 Authentication
@@ -516,7 +516,7 @@ defined at run-time.
 
 For example, building with "configure --enable-fhs ; make ; make install DESTDIR=/root"
 would create a spool directory "/root/var/spool/emailrelay", but the server
-run as "/root/usr/sbin/emailrelay --as-server" would use a expect a spool directory
+run as "/root/usr/sbin/emailrelay --as-server" would expect a spool directory
 of "/var/spool/emailrelay". This could be fixed by either adding
 "--spool-dir /root/var/spool/emailrelay" to the server command-line, or by
 creating the "/var/spool/emailrelay" directory manually.
@@ -526,4 +526,4 @@ directory exists, or in "/tmp" otherwise.
 
 
 
-Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
+Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.

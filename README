@@ -66,7 +66,7 @@ doxygen (www.doxygen.org), is available in a separate package,
 
 Configurations
 --------------
-The code was developed on SuSE Linux 7.1 using:
+The code was originally developed on SuSE Linux 7.1 using:
 * linux 2.4.10
 * gcc 2.95.3
 * glibc 2.2.4 (libc.so.6)
@@ -75,6 +75,11 @@ The code was developed on SuSE Linux 7.1 using:
 
 and ported to Windows 98 using:
 * MSVC 6.0
+
+Recent releases were developed on SuSE Linux 8.0 and 
+RedHat Linux 8.0 using:
+* gcc 2.95.3 and 3.2
+* autoconf 2.53
 
 The code has also been built successfully on:
 * Windows NT 4.0

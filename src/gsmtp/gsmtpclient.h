@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -81,6 +81,10 @@ public:
 			// all message processing has finished
 			// or that the server connection has
 			// been lost.
+			//
+			// With this constructor the message is fail()ed
+			// if the connection to the downstream server
+			// cannot be made.
 
 	std::string init( const std::string & server_address_string ) ;
 		// Starts the sending process. Messages
@@ -126,7 +130,9 @@ private:
 	void start( StoredMessage & ) ;
 	void doCallback( const std::string & ) ;
 	void raiseEvent( const std::string & , const std::string & ) ;
-	void finish( const std::string & reason = std::string() ) ;
+	void finish( const std::string & reason = std::string() , bool do_disconnect = true ) ;
+	void messageFail( const std::string & reason ) ;
+	void messageDestroy() ;
 
 private:
 	MessageStore * m_store ;
@@ -140,6 +146,7 @@ private:
 	std::string m_host ;
 	GNet::Timer m_connect_timer ;
 	unsigned int m_message_index ;
+	bool m_force_message_fail ;
 	static unsigned int m_response_timeout ;
 	static unsigned int m_connection_timeout ;
 } ;

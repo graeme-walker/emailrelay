@@ -1,5 +1,5 @@
 # 
-# Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -99,6 +99,7 @@ install-data-local: install-e_docDATA install-e_man1DATA
 	if test "$(HAVE_DOXYGEN)" = "yes" ; then for file in doxygen/* ; do $(INSTALL) $$file $(DESTDIR)$(e_docdir)/$$file ; done ; fi
 
 uninstall-local:
+	-rm -f $(DESTDIR)$(e_docdir)/doxygen/* 2>/dev/null
 	-rmdir $(DESTDIR)$(e_docdir)/doxygen 2>/dev/null
 	-rmdir $(DESTDIR)$(e_docdir) 2>/dev/null
 

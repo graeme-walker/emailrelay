@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -25,19 +25,31 @@
 # use in the SysV-init system (/etc/init.d).
 #
 # See also: LSB, start_daemon (lsb), startproc (suse), 
-# install_initd (lsb), insserv (suse)
+# install_initd (lsb), insserv (suse),
+# /usr/share/doc/initscripts*/sysvinitfiles (redhat)
 #
 # usage: emailrelay { start [<emailrelay-switches>] | stop | restart | force-reload | status }
 #
-
-# LSB comment block
+##
+# RedHat comment block...
+#
+# chkconfig: 345 80 20
+# description: E-MailRelay is a store-and-forward Message Transfer Agent.
+# pidfile: /var/run/emailrelay.pid
+# processname: emailrelay
+# 
+##
+# LSB comment block...
+#
+# The bogus 345 run-levels are a workround for a buggy RedHat chkconfig which 
+# reads the LSB comment block (incorrectly) as an undocumented 'feature'.
 #
 ### BEGIN INIT INFO
 # Provides:       emailrelay
 # Required-Start: $network
 # Required-Stop:  $network
-# Default-Start:  3 4 5
-# Default-Stop:   3 4 5
+# Default-Start:  345 3 4 5
+# Default-Stop:   345 3 4 5
 # Description:    E-MailRelay store-and-forward Message Transfer Agent.
 ### END INIT INFO
 
@@ -47,6 +59,10 @@ if test -f /etc/rc.status
 then 
 	style="suse"
 	. /etc/rc.status
+elif test -f /etc/init.d/functions
+then 
+	style="redhat" 
+	. /etc/init.d/functions
 elif test -f /lib/lsb/init-functions
 then 
 	style="lsb" 
@@ -134,6 +150,65 @@ function unix_exit()
 
 ##
 
+function redhat_reset()
+{
+	redhat_errno="0"
+}
+
+function redhat_message()
+{
+	echo -n "${1}"
+}
+
+function redhat_status()
+{
+	redhat_errno="$?"
+	if test "${1}" = "-v" -a "${redhat_errno}" -eq 0
+	then
+		success
+	fi
+	if test "${1}" = "-v" -a "${redhat_errno}" -ne 0
+	then
+		failure
+	fi
+}
+
+function redhat_startproc()
+{
+	initlog -q --cmd="$*"
+	redhat_errno="$?"
+	#touch /var/lock/subsys/emailrelay
+	return ${redhat_errno}
+}
+
+function redhat_killproc()
+{
+	killproc "`basename ${emailrelay}`"
+	redhat_errno="$?"
+	#rm -f /var/lock/subsys/emailrelay
+	return ${redhat_errno}
+}
+
+function redhat_checkproc()
+{
+	if test -f "${pid_file}" && test "`cat ${pid_file}`" != "" && kill -0 "`cat ${pid_file}`" 2>/dev/null
+	then
+		return 0
+	elif test -f "${pid_file}" 
+	then
+		return 1
+	else
+		return 3
+	fi
+}
+
+function redhat_exit()
+{
+	exit "${redhat_errno}"
+}
+
+##
+
 function suse_reset()
 {
 	rc_reset
@@ -196,7 +271,7 @@ function lsb_status()
 
 function lsb_startproc()
 {
-	start_daemon "`basename \"${1}\"`"
+	start_daemon $@
 }
 
 function lsb_killproc()

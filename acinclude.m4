@@ -1,5 +1,4 @@
-dnl 
-dnl Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
+dnl Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 dnl 
 dnl This program is free software; you can redistribute it and/or
 dnl modify it under the terms of the GNU General Public License
@@ -18,7 +17,9 @@ dnl Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 dnl 
 dnl ===
 
+dnl socketlen_t
 dnl derived from lars brinkhoff...
+dnl
 AC_DEFUN(ACLOCAL_TYPE_SOCKLEN_T,
 [AC_CACHE_CHECK([for socklen_t], aclocal_cv_type_socklen_t,
 [
@@ -36,6 +37,8 @@ AC_DEFUN(ACLOCAL_TYPE_SOCKLEN_T,
   fi
 ])
 
+dnl gmtime_r
+dnl
 AC_DEFUN([ACLOCAL_CHECK_GMTIME_R],
 [AC_CACHE_CHECK([for gmtime_r], aclocal_cv_gmtime_r,
 [
@@ -52,6 +55,8 @@ AC_DEFUN([ACLOCAL_CHECK_GMTIME_R],
 	fi
 ])
 
+dnl localtime_r
+dnl
 AC_DEFUN([ACLOCAL_CHECK_LOCALTIME_R],
 [AC_CACHE_CHECK([for localtime_r], aclocal_cv_localtime_r,
 [
@@ -68,12 +73,19 @@ AC_DEFUN([ACLOCAL_CHECK_LOCALTIME_R],
 	fi
 ])
 
+dnl gcc version 
+dnl used for -Ilib/<version> -- only needed for pre 3.0 gcc
+dnl
 AC_DEFUN([ACLOCAL_COMPILER_VERSION],
 [
-	COMPILER_VERSION=`$CXX --version 2>/dev/null | sed 's/\./ /;s/\..*//;s/ /\./;s/ .*//;s/^/gcc/'`
+changequote(<<,>>)
+	COMPILER_VERSION=`$CXX --version 2>/dev/null | sed q | sed 's/[^0-9 .]*//g;s/\./ /g;s/^ *//;s/ /./;s/ .*//;s/^/gcc/'`
+changequote([,])
 	AC_SUBST(COMPILER_VERSION)
 ])
 
+dnl fhs
+dnl
 AC_DEFUN([ENABLE_FHS],
 [
 if test "$enable_fhs" = "yes"
@@ -82,6 +94,8 @@ then
 fi
 ])
 
+dnl fhs
+dnl
 AC_DEFUN([FHS_COMPLIANCE],
 [
 	# tweaks for fhs compliance...

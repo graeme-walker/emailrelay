@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -58,7 +58,8 @@ public:
 		// Constructor.
 
 	virtual ~StoredFile() ;
-		// Destructor.
+		// Destructor. Unlocks the file if it has been lock()ed
+		// but not destroy()ed or fail()ed.
 
 	bool lock() ;
 		// Locks the file by renaming the envelope file.
@@ -118,6 +119,7 @@ private:
 	void readAuthentication( std::istream & stream ) ;
 	void readClientIp( std::istream & stream ) ;
 	void readEnvelopeCore( bool ) ;
+	void unlock() ;
 
 private:
 	FileStore & m_store ;
@@ -125,6 +127,7 @@ private:
 	G::Strings m_to_remote ;
 	std::string m_from ;
 	G::Path m_envelope_path ;
+	G::Path m_old_envelope_path ;
 	std::string m_name ;
 	std::auto_ptr<std::istream> m_content ;
 	bool m_eight_bit ;
@@ -132,6 +135,7 @@ private:
 	std::string m_format ;
 	std::string m_client_ip ;
 	size_t m_errors ;
+	bool m_locked ;
 } ;
 
 #endif

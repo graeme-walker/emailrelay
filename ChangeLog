@@ -1,6 +1,19 @@
 E-MailRelay Change Log
 ======================
 
+1.0.0 -> 1.0.1
+--------------
+* In proxy mode unexpected client-side disconnects and timeouts result in ".bad" files [bug-id 659039].
+* Require successful "AUTH" before "MAIL FROM" when using "--server-auth".
+* Better word-wrap on "--help" output.
+* Use of RedHat's "functions" code, and support for "chkconfig", added to the "init.d" script.
+* Builds with gcc3.2 (1.0.0-pl5).
+* Fix for files left as "busy" after a connection failure in proxy mode [bug-id 631032] (1.0.0-pl3/4/5).
+* Trivial documentation fixes (1.0.0-pl3).
+* Fix for the double-dot escape bug in the client protocol [bug-id 611624] (1.0.0-pl2).
+* Fix build when using gcc2.96 rather than gcc2.95 (1.0.0-pl1).
+* Fix default spool directory in example scripts (1.0.0-pl1).
+
 0.9.9 -> 1.0.0
 --------------
 * Briefer "--help" output; works with "--verbose".
@@ -22,7 +35,7 @@ E-MailRelay Change Log
 * Spool files writeable by preprocessor when server started as root.
 * Default directories in executables and scripts come from "configure".
 * The "init.d" script is renamed "emailrelay" (was "emailrelay.sh").
-* Man pages are gzippped when installed.
+* Man pages are gzipped when installed.
 * Fix for access violation under Windows NT when client disconnects.
 * Use of event log when compiled on Windows NT.
 * Fix for info-after-flush bug when using the administration interface. [rc2]
@@ -80,8 +93,8 @@ Windows fixes and improvements...
 
 0.9.2 -> 0.9.3
 --------------
-* Proxy mode (--immediate and --as-proxy).
-* Message preprocessing (--filter).
+* Proxy mode ("--immediate" and "--as-proxy").
+* Message preprocessing ("--filter").
 * Message store classes better separated using abstract interfaces.
 * Improved notification script, with MIME encoding.
 * Builds with old 2.91 version of gcc.
@@ -90,7 +103,7 @@ Windows fixes and improvements...
 --------------
 * Better autoconf detection.
 * Workround for FreeBSD uname() feature.
-* Added missing .sh_ files to the distribution.
+* Added missing ".sh_" files to the distribution.
 * Fixed a benign directory iterator bug.
 * Use of gcc's "exception" header.
 

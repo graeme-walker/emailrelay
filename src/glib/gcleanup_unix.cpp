@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -114,8 +114,8 @@ void G::CleanupImp::installDefault( int signum )
 
 bool G::CleanupImp::ignored( int signum )
 {
-	static struct ::sigaction zero_action ;
-	struct ::sigaction action( zero_action ) ;
+	static struct sigaction zero_action ;
+	struct sigaction action( zero_action ) ;
 	if( ::sigaction( signum , NULL , &action ) )
 		throw Error( "sigaction" ) ;
 	return action.sa_handler == SIG_IGN ;
@@ -123,8 +123,8 @@ bool G::CleanupImp::ignored( int signum )
 
 void G::CleanupImp::install( int signum , void (*fn)(int) )
 {
-	static struct ::sigaction zero_action ;
-	struct ::sigaction action( zero_action ) ;
+	static struct sigaction zero_action ;
+	struct sigaction action( zero_action ) ;
 	action.sa_handler = fn ? fn : SIG_DFL ;
 	if( ::sigaction( signum , &action , NULL ) && fn != NULL )
 		throw Error( "sigaction" ) ;

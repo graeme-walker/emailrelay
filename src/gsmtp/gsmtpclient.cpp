@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -57,7 +57,8 @@ GSmtp::Client::Client( MessageStore & store , ClientCallback & callback ,
 		m_socket(NULL) ,
 		m_callback(&callback) ,
 		m_connect_timer(*this) ,
-		m_message_index(0U)
+		m_message_index(0U) ,
+		m_force_message_fail(false)
 {
 }
 
@@ -70,8 +71,18 @@ GSmtp::Client::Client( std::auto_ptr<StoredMessage> message , ClientCallback & c
 	m_socket(NULL) ,
 	m_callback(&callback) ,
 	m_connect_timer(*this) ,
-	m_message_index(0U)
+	m_message_index(0U) ,
+	m_force_message_fail(true)
 {
+	// The m_force_message_fail flag is set true here so that in proxy
+	// mode any unexpected disconnects etc on the client side result
+	// in failed ".bad" message files which can be retried. Strictly
+	// this is not correct behaviour since the proxy's client will
+	// get an error message which indicates that the proxy has not
+	// yet accepted responsibility for the message. So this behaviour
+	// may lead to unwanted message duplication, but pragmatically it
+	// may be better to have duplicated messages, rather than dropped
+	// ones.
 }
 
 std::string GSmtp::Client::init( const std::string & s )
@@ -158,9 +169,6 @@ bool GSmtp::Client::sendNext()
 		if( message.get() == NULL )
 		{
 			G_LOG_S( "GSmtp::Client: no more messages to send" ) ;
-			GNet::Socket * s = m_socket ;
-			m_socket = NULL ;
-			s->close() ;
 			return false ;
 		}
 		m_message = message ;
@@ -189,15 +197,14 @@ void GSmtp::Client::protocolDone( bool ok , bool abort , const std::string & rea
 	G_DEBUG( "GSmtp::Client::protocolDone: " << ok << ": " << reason ) ;
 
 	std::string error_message ;
-	if( !ok )
-		error_message = std::string("smtp client protocol failure: ") + reason ;
-
-	if( m_message.get() != NULL )
+	if( ok )
 	{
-		if( ok )
-			m_message->destroy() ;
-		else
-			m_message->fail( error_message ) ;
+		messageDestroy() ;
+	}
+	else
+	{
+		error_message = std::string("smtp client protocol failure: ") + reason ;
+		messageFail( error_message ) ;
 	}
 
 	if( m_store == NULL || abort || !sendNext() )
@@ -206,10 +213,18 @@ void GSmtp::Client::protocolDone( bool ok , bool abort , const std::string & rea
 	}
 }
 
-void GSmtp::Client::onDisconnect()
+void GSmtp::Client::messageDestroy()
 {
-	doCallback( "connection to server lost" ) ;
-	m_socket = NULL ;
+	if( m_message.get() != NULL )
+		m_message->destroy() ;
+	m_message <<= 0 ;
+}
+
+void GSmtp::Client::messageFail( const std::string & reason )
+{
+	if( m_message.get() != NULL )
+		m_message->fail( reason ) ;
+	m_message <<= 0 ;
 }
 
 GNet::Socket & GSmtp::Client::socket()
@@ -230,16 +245,42 @@ void GSmtp::Client::onData( const char * data , size_t size )
 	}
 }
 
+void GSmtp::Client::onDisconnect()
+{
+	std::string reason = "connection to server lost" ;
+	if( m_force_message_fail )
+		messageFail( reason ) ;
+
+	finish( reason , false ) ;
+}
+
 void GSmtp::Client::onError( const std::string & error )
 {
 	G_WARNING( "GSmtp::Client: smtp client error: \"" << error << "\"" ) ;
-	doCallback( std::string("error on connection to server: ") + error ) ;
+
+	std::string reason = "error on connection to server: " ;
+	reason += error ;
+	if( m_force_message_fail )
+		messageFail( "connection failure" ) ;
+
+	finish( reason , false ) ;
 }
 
-void GSmtp::Client::finish( const std::string & reason )
+void GSmtp::Client::onTimeout( GNet::Timer & )
+{
+	std::string reason = "connection timeout" ;
+	if( m_force_message_fail )
+		messageFail( reason ) ;
+
+	finish( reason ) ;
+}
+
+void GSmtp::Client::finish( const std::string & reason , bool do_disconnect )
 {
 	doCallback( reason ) ;
-	disconnect() ; // GNet::Client::disconnect()
+	if( do_disconnect )
+		disconnect() ; // GNet::Client::disconnect()
+	m_socket = NULL ;
 }
 
 void GSmtp::Client::doCallback( const std::string & reason )
@@ -278,12 +319,6 @@ unsigned int GSmtp::Client::connectionTimeout( unsigned int new_timeout )
 	unsigned int previous = m_connection_timeout ;
 	m_connection_timeout = new_timeout ;
 	return previous ;
-}
-
-void GSmtp::Client::onTimeout( GNet::Timer & )
-{
-	//G_ASSERT( &timer == &m_connect_timer ) ;
-	doCallback( "connection timeout" ) ;
 }
 
 // ===

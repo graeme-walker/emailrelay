@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -82,7 +82,11 @@ public:
 	static Level levelDefault() ;
 		// Returns the default level.
 
+	static std::string introducerDefault() ;
+		// Returns "usage: ".
+
 	std::string usageSummary( const std::string & exe , const std::string & args ,
+		const std::string & introducer = introducerDefault() ,
 		Level level = levelDefault() , size_t wrap_width = wrapDefault() ) const ;
 			// Returns a one-line usage summary, as
 			// "usage: <exe> <usageSummarySwitches()> <args>"
@@ -98,7 +102,8 @@ public:
 			// Returns a multi-line string giving help on each switch.
 
 	void showUsage( std::ostream & stream , const std::string & exe ,
-		const std::string & args , Level level = levelDefault() ,
+		const std::string & args , const std::string & introducer = introducerDefault() ,
+		Level level = levelDefault() ,
 		size_t tab_stop = tabDefault() ,
 		size_t wrap_width = wrapDefault() ) const ;
 			// Streams out multi-line usage text using

@@ -105,4 +105,4 @@ taskbar, desktop or "Start->Programs->StartUp" shortcuts.
 
 
 
-Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
+Copyright (C) 2001-2003 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
