@@ -53,8 +53,8 @@ need to store mail while away from the network.
 
 The source code for E-MailRelay is well-structured, portable ANSI C++, without any
 thrid-party library dependencies. It could therefore be the basis for other SMTP
-projects such as, for example, a protocol bridge between SMTP and proprietary mail
-transfer protocols used in private e-mail networks.
+projects such as, for example, an anonymising remailer or a protocol bridge between
+SMTP and proprietary mail transfer protocols used in private e-mail networks.
 
 Running E-MailRelay
 -------------------

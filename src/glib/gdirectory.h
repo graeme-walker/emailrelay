@@ -96,7 +96,7 @@ private:
 class G::DirectoryIterator
 {
 public:
-	explicit DirectoryIterator( const Directory &dir , const char *wc = NULL ) ;
+	explicit DirectoryIterator( const Directory &dir , const std::string & wc = std::string() ) ;
 		// Constructor taking a directory reference
 		// and an optional wildcard specification.
 

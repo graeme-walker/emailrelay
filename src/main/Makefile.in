@@ -78,10 +78,13 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+AR = @AR@
+AWK = @AWK@
 CC = @CC@
 CXX = @CXX@
 HAVE_DOXYGEN = @HAVE_DOXYGEN@
 HAVE_MAN2HTML = @HAVE_MAN2HTML@
+MAKE = @MAKE@
 MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
@@ -294,6 +297,104 @@ distdir: $(DISTFILES)
 	    || cp -p $$d/$$file $(distdir)/$$file || :; \
 	  fi; \
 	done
+gadminserver.o: gadminserver.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits \
+	../../src/gnet/gnet.h gsmtp.h ../../src/glib/glog.h \
+	gadminserver.h ../../src/gnet/gserver.h \
+	../../src/gnet/gsocket.h ../../src/gnet/gaddress.h \
+	../../src/glib/gexception.h ../../src/gnet/gevent.h \
+	../../src/gnet/gdescriptor.h ../../src/gnet/gselect.h \
+	../../src/gnet/glinebuffer.h ../../src/glib/gstrings.h \
+	gserverprotocol.h gprotocolmessage.h gsmtpclient.h \
+	../../src/gnet/gclient.h gclientprotocol.h gmessagestore.h \
+	../../src/glib/gpath.h ../../src/glib/gstr.h \
+	../../src/glib/gmemory.h
+gclientprotocol.o: gclientprotocol.cpp ../../src/glib/gdef.h \
+	../../config.h ../../lib/gcc2.95/iostream \
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
+	../../lib/gcc2.95/limits ../../src/gnet/gnet.h gsmtp.h \
+	../../src/glib/glog.h ../../src/gnet/glocal.h \
+	../../src/gnet/gaddress.h ../../src/glib/gexception.h \
+	../../src/glib/gfile.h ../../src/glib/gpath.h \
+	../../src/glib/gstrings.h ../../src/glib/gstr.h \
+	../../src/glib/gmemory.h gclientprotocol.h gmessagestore.h \
+	../../src/gnet/gresolve.h ../../src/glib/gassert.h \
+	../../src/glib/glogoutput.h
+gmessagestore.o: gmessagestore.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gsmtp.h \
+	../../src/gnet/gnet.h ../../src/glib/glog.h \
+	../../src/glib/gpid.h ../../src/glib/gdirectory.h \
+	../../src/glib/gpath.h ../../src/glib/gstrings.h \
+	gmessagestore.h ../../src/glib/gexception.h \
+	../../src/glib/gmemory.h ../../src/glib/gfile.h \
+	../../src/glib/gstr.h ../../src/glib/gassert.h \
+	../../src/glib/glogoutput.h
+gmessagestore_unix.o: gmessagestore_unix.cpp ../../src/glib/gdef.h \
+	../../config.h ../../lib/gcc2.95/iostream \
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
+	../../lib/gcc2.95/limits gsmtp.h ../../src/gnet/gnet.h \
+	../../src/glib/glog.h gmessagestore.h \
+	../../src/glib/gexception.h ../../src/glib/gstrings.h \
+	../../src/glib/gpath.h
+gprotocolmessage.o: gprotocolmessage.cpp ../../src/glib/gdef.h \
+	../../config.h ../../lib/gcc2.95/iostream \
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
+	../../lib/gcc2.95/limits gsmtp.h ../../src/gnet/gnet.h \
+	../../src/glib/glog.h gprotocolmessage.h \
+	../../src/glib/gstrings.h gmessagestore.h \
+	../../src/glib/gexception.h ../../src/glib/gpath.h \
+	../../src/glib/gmemory.h ../../src/glib/gstr.h \
+	../../src/glib/gassert.h ../../src/glib/glogoutput.h
+gserverprotocol.o: gserverprotocol.cpp ../../src/glib/gdef.h \
+	../../config.h ../../lib/gcc2.95/iostream \
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
+	../../lib/gcc2.95/limits gsmtp.h ../../src/gnet/gnet.h \
+	../../src/glib/glog.h gserverprotocol.h gprotocolmessage.h \
+	../../src/glib/gstrings.h ../../src/glib/gdate.h \
+	../../src/glib/gdatetime.h ../../src/glib/gexception.h \
+	../../src/glib/gdebug.h ../../src/glib/glogoutput.h \
+	../../src/glib/gassert.h ../../src/glib/gtime.h \
+	../../src/glib/gstr.h
+gsmtpclient.o: gsmtpclient.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits \
+	../../src/gnet/gnet.h gsmtp.h ../../src/glib/glog.h \
+	../../src/gnet/glocal.h ../../src/gnet/gaddress.h \
+	../../src/glib/gexception.h ../../src/glib/gfile.h \
+	../../src/glib/gpath.h ../../src/glib/gstrings.h \
+	../../src/glib/gstr.h ../../src/glib/gmemory.h gsmtpclient.h \
+	../../src/gnet/glinebuffer.h ../../src/gnet/gclient.h \
+	../../src/gnet/gsocket.h ../../src/gnet/gevent.h \
+	../../src/gnet/gdescriptor.h gclientprotocol.h gmessagestore.h \
+	../../src/gnet/gresolve.h
+gsmtpserver.o: gsmtpserver.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gsmtp.h \
+	../../src/gnet/gnet.h ../../src/glib/glog.h gsmtpserver.h \
+	../../src/gnet/gserver.h ../../src/gnet/gsocket.h \
+	../../src/gnet/gaddress.h ../../src/glib/gexception.h \
+	../../src/gnet/gevent.h ../../src/gnet/gdescriptor.h \
+	../../src/gnet/gselect.h ../../src/gnet/glinebuffer.h \
+	../../src/glib/gstrings.h gserverprotocol.h gprotocolmessage.h \
+	../../src/gnet/glocal.h ../../src/glib/gdebug.h \
+	../../src/glib/glogoutput.h ../../src/glib/gassert.h
+mailrelay.o: mailrelay.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gsmtp.h \
+	../../src/gnet/gnet.h ../../src/glib/glog.h gsmtpserver.h \
+	../../src/gnet/gserver.h ../../src/gnet/gsocket.h \
+	../../src/gnet/gaddress.h ../../src/glib/gexception.h \
+	../../src/gnet/gevent.h ../../src/gnet/gdescriptor.h \
+	../../src/gnet/gselect.h ../../src/gnet/glinebuffer.h \
+	../../src/glib/gstrings.h gserverprotocol.h gprotocolmessage.h \
+	gsmtpclient.h ../../src/gnet/gclient.h gclientprotocol.h \
+	gmessagestore.h ../../src/glib/gpath.h ../../src/glib/garg.h \
+	../../src/glib/gdaemon.h ../../src/glib/gstr.h gadminserver.h \
+	../../src/glib/ggetopt.h ../../src/glib/gdebug.h \
+	../../src/glib/glogoutput.h ../../src/glib/gassert.h
+poke.o: poke.c
 
 info-am:
 info: info-am

@@ -116,7 +116,7 @@ void Main::version() const
 
 std::string Main::versionNumber() const
 {
-	return "0.9.1" ;
+	return "0.9.2" ;
 }
 
 std::string Main::smtpIdent() const

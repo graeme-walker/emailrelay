@@ -25,7 +25,7 @@ AM_INSTALL_PROGRAM_FLAGS=-s
 localstatedir = ${prefix}/var/spool/emailrelay
 
 EXTRA_DIST=gmessagestore_win32.cpp emailrelay.dsp empty_file doxygen.cfg
-INCLUDES =  -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet
+INCLUDES = -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet
 sbin_PROGRAMS = emailrelay 
 libexec_PROGRAMS = emailrelay-poke
 localstate_DATA = empty_file

@@ -61,11 +61,11 @@ public:
 	~Arg() ;
 		// Destructor.
 		
-	unsigned int c() const ;
+	size_t c() const ;
 		// Returns the number of tokens in the
 		// command line, including the program
 		// name.
-		
+
 	std::string v( size_t i ) const ;
 		// Returns the i'th argument.
 		// Precondition: i < c()

@@ -26,7 +26,7 @@ EXTRA_DIST=gclient_win32.cpp \
 	gresolve_win32.cpp \
 	gsocket_win32.cpp \
 	gwinsock.cpp
-INCLUDES = -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib
+INCLUDES = -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib 
 noinst_LIBRARIES = libgnet.a
 libgnet_a_SOURCES = gaddress_ipv4.cpp \
 	gclient.cpp \

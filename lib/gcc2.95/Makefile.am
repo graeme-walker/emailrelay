@@ -18,5 +18,5 @@
 # 
 # ===
 
-EXTRA_DIST = exception iostream limits sstream xlocale
+EXTRA_DIST = iostream limits sstream xlocale
 

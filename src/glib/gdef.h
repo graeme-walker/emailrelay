@@ -32,43 +32,36 @@
 #ifndef G_DEF_H
 #define G_DEF_H
 
-	// Autoconf stuff (mostly commented out)
+	// Autoconf stuff
 	//
 	#if HAVE_CONFIG_H
-		#if 0
-			#include <config.h>
 
-			#if HAVE_UNISTD_H
-				#include <sys/types.h>
-				#include <unistd.h>
-			#endif
+		#include <config.h>
 
-			#if HAVE_DIRENT_H
-				#include <dirent.h>
-			#else
-				#define dirent direct
-				#if HAVE_SYS_NDIR_H
-					#include <sys/ndir.h>
-				#endif
-				#if HAVE_SYS_DIR_H
-					#include <sys/dir.h>
-				#endif
-				#if HAVE_NDIR_H
-					#include <ndir.h>
-				#endif
-			#endif
-
-			#if TIME_WITH_SYS_TIME
-				#include <sys/time.h>
-				#include <time.h>
-			#else
-				#if HAVE_SYS_TIME_H
-					#include <sys/time.h>
-				#else
-					#include <time.h>
-				#endif
-			#endif
+		#if ! HAVE_GMTIME_R
+			#include <ctime>
+			namespace std
+			{
+				inline struct tm * gmtime_r( const time_t * tp , struct tm * tm_p )
+				{
+					* tm_p = * gmtime( tp ) ;
+					return tm_p ;
+				}
+			} ;
 		#endif
+
+		#if ! HAVE_LOCALTIME_R
+			#include <ctime>
+			namespace std
+			{
+				inline struct tm * localtime_r( const time_t * tp , struct tm * tm_p )
+				{
+					* tm_p = * localtime( tp ) ;
+					return tm_p ;
+				}
+			} ;
+		#endif
+
 		#if ! defined( G_UNIX )
 			#define G_UNIX
 		#endif
@@ -118,7 +111,7 @@
 		#include <shellapi.h>
 	#else
 		#include <unistd.h>
-		#include <sys/stat.h>
+		#include <sys/stat.h> // <cstat> ??
 	#endif
 
 	// Restore complier error handling
@@ -163,7 +156,7 @@
 	// Define missing standard types
 	//
 	#if defined( G_WINDOWS )
-		typedef int ssize_t ; // (should be in sys/types.h)
+		typedef int ssize_t ;
 	#endif
 
 	// STL portability macros

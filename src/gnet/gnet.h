@@ -38,8 +38,9 @@
 #else
 	#include <winsock.h>
 	typedef int socklen_t ;
-	typedef unsigned short in_port_t ;
 #endif
+
+typedef unsigned short g_port_t ; // ('in_port_t' is not defined on many systems)
 
 #ifndef INADDR_NONE
 #define INADDR_NONE 0xffffffff // (should be in netinet/in.h)

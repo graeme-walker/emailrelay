@@ -24,11 +24,6 @@
 #include "gdef.h"
 #include "gdatetime.h"
 
-void G::DateTime::tzset()
-{
-	std::_tzset() ;
-}
-
 struct std::tm * G::DateTime::gmtime_r( const time_t * t , struct std::tm * p )
 {
 	*p = *(std::gmtime(t)) ;

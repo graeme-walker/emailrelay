@@ -169,7 +169,7 @@ bool GNet::AddressImp::setAddress( const std::string & display_string , std::str
 void GNet::AddressImp::setPort( unsigned int port )
 {
 	G_ASSERT( validPort(port) ) ;
-	const in_port_t in_port = ::GConvert<in_port_t>(port) ;
+	const g_port_t in_port = ::GConvert<g_port_t>(port) ;
 	m_inet.sin_port = htons( in_port ) ;
 }
 

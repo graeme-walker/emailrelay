@@ -31,8 +31,15 @@ std::string GNet::Local::hostname()
 {
 	struct ::utsname info ;
 	int rc = ::uname( &info ) ;
-	if( rc == -1 ) throw Error("uname") ;
-	return std::string(info.nodename) ;
+	if( rc == -1 )
+		throw Error("uname") ;
+
+	std::string name = std::string(info.nodename) ;
+	size_t pos = name.find('.') ;
+	if( pos != std::string::npos )
+		name = name.substr( 0U , pos ) ;
+
+	return name ;
 }
 
 std::string GNet::Local::domainname()

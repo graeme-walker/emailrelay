@@ -77,10 +77,13 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+AR = @AR@
+AWK = @AWK@
 CC = @CC@
 CXX = @CXX@
 HAVE_DOXYGEN = @HAVE_DOXYGEN@
 HAVE_MAN2HTML = @HAVE_MAN2HTML@
+MAKE = @MAKE@
 MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
@@ -88,7 +91,7 @@ VERSION = @VERSION@
 
 EXTRA_DIST = gclient_win32.cpp 	gdescriptor_win32.cpp 	gevent_win32.cpp 	glocal_win32.cpp 	grequest.cpp 	gresolve_win32.cpp 	gsocket_win32.cpp 	gwinsock.cpp
 
-INCLUDES = -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib
+INCLUDES = -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib 
 noinst_LIBRARIES = libgnet.a
 libgnet_a_SOURCES = gaddress_ipv4.cpp 	gclient.cpp 	gclient_unix.cpp 	gdescriptor_unix.cpp 	gevent.cpp 	gevent_unix.cpp 	geventserver.cpp 	glinebuffer.cpp 	glocal_unix.cpp 	gresolve.cpp 	gresolve_ipv4.cpp 	gresolve_unix.cpp 	gselect.cpp 	gserver.cpp 	gsocket.cpp 	gsocket_unix.cpp 	gaddress.h 	gclient.h 	gdescriptor.h 	gevent.h 	geventserver.h 	glinebuffer.h 	glocal.h 	gnet.h 	grequest.h 	gresolve.h 	gselect.h 	gserver.h 	gsocket.h 	gwinsock.h
 
@@ -107,7 +110,6 @@ libgnet_a_OBJECTS =  gaddress_ipv4.o gclient.o gclient_unix.o \
 gdescriptor_unix.o gevent.o gevent_unix.o geventserver.o glinebuffer.o \
 glocal_unix.o gresolve.o gresolve_ipv4.o gresolve_unix.o gselect.o \
 gserver.o gsocket.o gsocket_unix.o
-AR = ar
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 CXXLD = $(CXX)
@@ -216,6 +218,104 @@ distdir: $(DISTFILES)
 	    || cp -p $$d/$$file $(distdir)/$$file || :; \
 	  fi; \
 	done
+gaddress_ipv4.o: gaddress_ipv4.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gnet.h \
+	gaddress.h ../../src/glib/gexception.h \
+	../../src/glib/gconvert.h ../../src/glib/gstrings.h \
+	../../src/glib/gstr.h ../../src/glib/gassert.h \
+	../../src/glib/glogoutput.h ../../src/glib/glog.h \
+	../../src/glib/gdebug.h
+gclient.o: gclient.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gnet.h \
+	gaddress.h ../../src/glib/gexception.h gsocket.h gevent.h \
+	gdescriptor.h ../../src/glib/gdatetime.h gresolve.h gclient.h \
+	../../src/glib/gdebug.h ../../src/glib/glogoutput.h \
+	../../src/glib/glog.h ../../src/glib/gassert.h
+gclient_unix.o: gclient_unix.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gnet.h \
+	gclient.h gaddress.h ../../src/glib/gexception.h gsocket.h \
+	gevent.h gdescriptor.h
+gdescriptor_unix.o: gdescriptor_unix.cpp ../../src/glib/gdef.h \
+	../../config.h ../../lib/gcc2.95/iostream \
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
+	../../lib/gcc2.95/limits gnet.h gdescriptor.h
+gevent.o: gevent.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gnet.h \
+	gevent.h gdescriptor.h ../../src/glib/gdebug.h \
+	../../src/glib/glogoutput.h ../../src/glib/glog.h \
+	../../src/glib/gassert.h
+gevent_unix.o: gevent_unix.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gnet.h \
+	gevent.h gdescriptor.h gselect.h ../../src/glib/gexception.h
+geventserver.o: geventserver.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gnet.h \
+	geventserver.h gserver.h gsocket.h gaddress.h \
+	../../src/glib/gexception.h gevent.h gdescriptor.h gselect.h \
+	../../src/glib/glog.h
+glinebuffer.o: glinebuffer.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gnet.h \
+	glinebuffer.h ../../src/glib/gstrings.h ../../src/glib/gdebug.h \
+	../../src/glib/glogoutput.h ../../src/glib/glog.h \
+	../../src/glib/gassert.h
+glocal_unix.o: glocal_unix.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits glocal.h \
+	gnet.h gaddress.h ../../src/glib/gexception.h gresolve.h \
+	../../src/glib/glog.h
+gresolve.o: gresolve.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gresolve.h \
+	gnet.h gaddress.h ../../src/glib/gexception.h gsocket.h \
+	gevent.h gdescriptor.h ../../src/glib/gstr.h \
+	../../src/glib/gstrings.h ../../src/glib/gdebug.h \
+	../../src/glib/glogoutput.h ../../src/glib/glog.h \
+	../../src/glib/gassert.h
+gresolve_ipv4.o: gresolve_ipv4.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gresolve.h \
+	gnet.h gaddress.h ../../src/glib/gexception.h
+gresolve_unix.o: gresolve_unix.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gresolve.h \
+	gnet.h gaddress.h ../../src/glib/gexception.h gsocket.h \
+	gevent.h gdescriptor.h ../../src/glib/gstr.h \
+	../../src/glib/gstrings.h ../../src/glib/gdebug.h \
+	../../src/glib/glogoutput.h ../../src/glib/glog.h \
+	../../src/glib/gassert.h
+gselect.o: gselect.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gselect.h \
+	gnet.h gevent.h gdescriptor.h ../../src/glib/gexception.h \
+	../../src/glib/gdebug.h ../../src/glib/glogoutput.h \
+	../../src/glib/glog.h ../../src/glib/gassert.h
+gserver.o: gserver.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gnet.h \
+	gserver.h gsocket.h gaddress.h ../../src/glib/gexception.h \
+	gevent.h gdescriptor.h gselect.h ../../src/glib/gdebug.h \
+	../../src/glib/glogoutput.h ../../src/glib/glog.h \
+	../../src/glib/gassert.h
+gsocket.o: gsocket.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gnet.h \
+	../../src/glib/gassert.h ../../src/glib/glogoutput.h \
+	../../src/glib/glog.h gsocket.h gaddress.h \
+	../../src/glib/gexception.h gevent.h gdescriptor.h \
+	../../src/glib/gmemory.h ../../src/glib/gdebug.h
+gsocket_unix.o: gsocket_unix.cpp ../../src/glib/gdef.h ../../config.h \
+	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
+	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gnet.h \
+	gsocket.h gaddress.h ../../src/glib/gexception.h gevent.h \
+	gdescriptor.h ../../src/glib/gdebug.h \
+	../../src/glib/glogoutput.h ../../src/glib/glog.h \
+	../../src/glib/gassert.h
 
 info-am:
 info: info-am

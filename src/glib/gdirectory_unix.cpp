@@ -100,7 +100,7 @@ private:
 
 // ===
 
-G::DirectoryIterator::DirectoryIterator( const Directory &dir , const char *wc )
+G::DirectoryIterator::DirectoryIterator( const Directory &dir , const std::string & wc )
 {
 	m_imp = new DirectoryIteratorImp( dir , wc ) ;
 }

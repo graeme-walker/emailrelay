@@ -24,7 +24,6 @@
 #ifndef G_DATE_TIME_H
 #define G_DATE_TIME_H
 
-#include <ctime>
 #include "gdef.h"
 #include "gexception.h"
 #include <ctime>
@@ -70,9 +69,6 @@ public:
 	static std::string offsetString( Offset offset ) ;
 		// Uses the five-character format "+/-hhmm".
 		// See also RFC2822.
-
-	static void tzset() ;
-		// Calls std::tzset() (portably). Used for testing.
 
 private:
 	static bool equivalent( EpochTime , const BrokenDownTime & ) ;

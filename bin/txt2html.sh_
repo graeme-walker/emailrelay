@@ -21,8 +21,19 @@
 #
 # txt2html.sh
 #
+# usage: txt2html.sh [-a <awk-binary>] <input-file>
+#
 
 awk="awk"
+if test "${1}" = "-a"
+then
+	shift
+	if test "${1}" != ""
+	then
+		awk="${1}"
+	fi
+	shift
+fi
 
 file="${1}"
 if test "${file}" = ""

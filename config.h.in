@@ -1,8 +1,5 @@
 /* config.h.in.  Generated automatically from configure.in by autoheader.  */
 
-/* Define to `unsigned' if <sys/types.h> doesn't define.  */
-#undef size_t
-
 /* Define if you have the ANSI C header files.  */
 #undef STDC_HEADERS
 
@@ -11,9 +8,6 @@
 
 /* Define if you have the glob function.  */
 #undef HAVE_GLOB
-
-/* Define if you have the socket function.  */
-#undef HAVE_SOCKET
 
 /* Define if you have the <dirent.h> header file.  */
 #undef HAVE_DIRENT_H
@@ -38,4 +32,10 @@
 
 /* Version number of package */
 #undef VERSION
+
+/* have reentrant localtime */
+#undef HAVE_LOCALTIME_R
+
+/* have reentrant gmtime */
+#undef HAVE_GMTIME_R
 

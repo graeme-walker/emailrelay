@@ -5,30 +5,32 @@ CLEANFILES = $(pkgdata_DATA) $(noinst_SCRIPTS) html
 
 SUFFIXES = .txt .html
 
-filter=$(srcdir)/../bin/emailrelay-filter.sh
-converter=$(srcdir)/../bin/txt2html.sh
+filter=$(top_builddir)/bin/emailrelay-filter.sh
+filter_src=$(top_srcdir)/bin/emailrelay-filter.sh_
+converter=$(top_builddir)/bin/txt2html.sh
+converter_src=$(top_srcdir)/bin/txt2html.sh_
 
 .txt.html:
-	$(converter) $< > $*.html
+	$(converter) -a "$(AWK)" $< > $*.html
 
 .dox: $(filter)
-	if test "$(HAVE_DOXYGEN)" = "yes" ; then cat $(top_srcdir)/src/main/doxygen.cfg | sed "s:__TOP__:$(top_srcdir):g" | doxygen - && touch .dox ; else echo no doxygen ; fi
+	if test "$(HAVE_DOXYGEN)" = "yes" ; then cat $(top_srcdir)/src/main/doxygen.cfg | sed "s:__TOP_SRC__:$(top_srcdir):g" | sed "s:__TOP_BUILD__:$(top_builddir):g" | doxygen - && touch .dox ; else echo no doxygen ; fi
 
 man.html: emailrelay.1
 	if test "$(HAVE_MAN2HTML)" = "yes" ; then man2html emailrelay.1 > man.html ; else echo no man2html ; fi
 
-$(filter): $(filter)_
-	@cp $(filter)_ $(filter)
-	@chmod ugo+x $(filter)
+$(filter): $(filter_src)
+	cp $< $(filter)
+	chmod ugo+x $(filter)
 
-$(converter): $(converter)_
-	@cp $(converter)_ $(converter)
-	@chmod ugo+x $(converter)
+$(converter): $(converter_src)
+	cp $< $(converter)
+	chmod ugo+x $(converter)
 
 developer.html reference.html userguide.html: $(converter)
 
 readme.html: $(top_srcdir)/README $(converter)
-	$(converter) $(top_srcdir)/README > readme.html
+	$(converter) -a "$(AWK)" $(top_srcdir)/README > readme.html
 
 install-data-local:
 	$(mkinstalldirs) $(destdir)$(mandir)/man1

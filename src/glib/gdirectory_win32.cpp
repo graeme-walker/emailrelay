@@ -60,7 +60,7 @@ private:
 	bool m_special ; // if wc = ".." -- FindFirstFile returns ".."'s proper name -- this class returns ".."
 
 public:
-	DirectoryIteratorImp( const Directory &dir , const char *wildcard ) ;
+	DirectoryIteratorImp( const Directory &dir , const std::string & wildcard ) ;
 	~DirectoryIteratorImp() ;
 	bool isDir() const ;
 	bool more() ;
@@ -77,7 +77,7 @@ private:
 
 // ===
 
-G::DirectoryIterator::DirectoryIterator( const Directory &dir , const char *wc )
+G::DirectoryIterator::DirectoryIterator( const Directory &dir , const std::string & wc )
 {
 	m_imp = new DirectoryIteratorImp( dir , wc ) ;
 }
@@ -125,17 +125,13 @@ G::DirectoryIterator::~DirectoryIterator()
 // ===
 
 G::DirectoryIteratorImp::DirectoryIteratorImp( const Directory & dir ,
-	const char *wildcard ) :
+	const std::string & wildcard ) :
 		m_dir(dir) ,
 		m_error(false) ,
 		m_first(true) ,
 		m_special(false)
 {
-	if( wildcard == NULL )
-	{
-		wildcard = "*.*" ;
-	}
-	else if( std::string(wildcard) == ".." )
+	if( std::string(wildcard) == ".." )
 	{
 		G_DEBUG( "DirectoryIteratorImp: special work-round for .." ) ;
 		m_special = true ;
@@ -143,7 +139,7 @@ G::DirectoryIteratorImp::DirectoryIteratorImp( const Directory & dir ,
 	}
 
 	Path wild_path( m_dir.path() ) ;
-	wild_path.pathAppend( wildcard ) ;
+	wild_path.pathAppend( wildcard.empty() ? std::string("*.*") : wildcard ) ;
 
 	G_DEBUG( "G::DirectoryIteratorImp::ctor: FindFirstFile(\""
 		<< wild_path << "\")" ) ;
