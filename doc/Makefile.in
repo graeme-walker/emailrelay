@@ -264,6 +264,7 @@ install-data-local:
 	$(INSTALL) $(top_srcdir)/doc/emailrelay.1 $(destdir)$(mandir)/man1/emailrelay.1
 	$(INSTALL) $(top_srcdir)/doc/emailrelay-passwd.1 $(destdir)$(mandir)/man1/emailrelay-passwd.1
 	$(INSTALL) $(top_srcdir)/doc/emailrelay-poke.1 $(destdir)$(mandir)/man1/emailrelay-poke.1
+	$(INSTALL) $(top_srcdir)/doc/emailrelay-submit.1 $(destdir)$(mandir)/man1/emailrelay-submit.1
 	$(mkinstalldirs) $(destdir)$(pkgdatadir)/graphics
 	$(INSTALL) $(top_srcdir)/doc/graphics/bullet.gif $(destdir)$(pkgdatadir)/graphics/bullet.gif
 	$(mkinstalldirs) $(destdir)$(pkgdatadir)/html

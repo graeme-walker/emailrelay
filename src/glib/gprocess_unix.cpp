@@ -23,6 +23,7 @@
 
 #include "gdef.h"
 #include "gprocess.h"
+#include "gassert.h"
 #include "gfs.h"
 #include "glog.h"
 #include <errno.h>
@@ -176,17 +177,27 @@ int G::Process::errno_()
 	return errno ; // not ::errno or std::errno for gcc2.95
 }
 
-void G::Process::exec( const G::Path & exe , const std::string & arg )
+int G::Process::spawn( Identity nobody , const G::Path & exe , const std::string & arg , int error_return )
 {
 	if( exe.isRelative() )
 		throw InvalidPath( exe.str() ) ;
 
-	if( privileged() )
+	if( ::geteuid() == 0U || nobody.uid == 0U )
 		throw Insecure() ;
 
-	closeFiles() ;
-
-	execCore( exe , arg ) ;
+	Id child_pid ;
+	if( fork(child_pid) == Child )
+	{
+		beNobody( nobody ) ;
+		G_ASSERT( ::getuid() != 0U && ::geteuid() != 0U ) ;
+		closeFiles() ;
+		execCore( exe , arg ) ;
+		::_exit( error_return ) ;
+	}
+	else
+	{
+		return wait( child_pid , error_return ) ;
+	}
 }
 
 void G::Process::execCore( const G::Path & exe , const std::string & arg )
@@ -207,31 +218,6 @@ void G::Process::execCore( const G::Path & exe , const std::string & arg )
 
 	const int error = errno_() ;
 	G_WARNING( "G::Process::exec: execve() returned: errno=" << error << ": " << exe ) ;
-}
-
-int G::Process::spawn( const G::Path & exe , const std::string & arg , int error_return )
-{
-	if( exe.isRelative() )
-		throw InvalidPath( exe.str() ) ;
-
-	if( privileged() )
-		throw Insecure() ;
-
-	Id child_pid ;
-	if( fork(child_pid) == Child )
-	{
-		exec( exe , arg ) ;
-		::_exit( error_return ) ;
-	}
-	else
-	{
-		return wait( child_pid , error_return ) ;
-	}
-}
-
-bool G::Process::privileged()
-{
-	return ::getuid() == 0U || ::geteuid() == 0U ;
 }
 
 void G::Process::beSpecial( Identity identity )
@@ -268,6 +254,17 @@ G::Process::Identity G::Process::beOrdinary( Identity nobody )
 	}
 	G_DEBUG( "G::Process::beOrdinary: " << special_identity << " -> " << Identity() ) ;
 	return special_identity ;
+}
+
+void G::Process::beNobody( Identity nobody )
+{
+	if( ::getuid() == 0 )
+	{
+		// set the *real* userid
+		if( ::seteuid(0) ) throw UidError("0") ; // first
+		if( ::setgid(nobody.gid) ) throw GidError(nobody.str()) ; // second
+		if( ::setuid(nobody.uid) ) throw UidError(nobody.str()) ; // third
+	}
 }
 
 // ===

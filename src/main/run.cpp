@@ -48,7 +48,7 @@
 //static
 std::string Main::Run::versionNumber()
 {
-	return "0.9.7" ;
+	return "0.9.8" ;
 }
 
 Main::Run::Run( const G::Arg & arg ) :

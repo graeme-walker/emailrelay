@@ -94,33 +94,16 @@ public:
 		// error.
 
 	static Who fork() ;
-		// Forks a new process.
+		// Forks a child process.
 
 	static Who fork( Id & child ) ;
-		// Forks a new process. In the parent process
-		// the child process-id is returned by reference.
+		// Forks a child process. Returns the child
+		// pid to the parent.
 
-	static void exec( const Path & exe , const std::string & arg = std::string() ) ;
-		// Executes a program taking reasonable security
-		// precautions.
-
-	static int wait( const Id & child ) ;
-		// Waits for a child process to terminate.
-		// Returns the exit code. Throws exceptions
-		// on error.
-
-	static int wait( const Id & child , int error_return ) ;
-		// Waits for a child process to terminate.
-		// Returns the exit code, or returns 'error_return'
-		// on error.
-
-	static int spawn( const Path & exe , const std::string & arg , int error_return = 127 ) ;
-		// Runs a command in a child process. Returns the
+	static int spawn( Identity nobody , const Path & exe , const std::string & arg , int error_return = 127 ) ;
+		// Runs a command in an unprivileged child process. Returns the
 		// child process's exit code, or 'error_return' on error.
-
-	static bool privileged() ;
-		// Returns true if this process has enhanced security
-		// privileges.
+		// The identity should have come from beOrdinary().
 
 	static int errno_() ;
 		// Returns the process's current 'errno' value.
@@ -142,7 +125,10 @@ public:
 
 private:
 	Process() ;
+	static int wait( const Id & child ) ;
+	static int wait( const Id & child , int error_return ) ;
 	static void execCore( const Path & , const std::string & ) ;
+	static void beNobody( Identity ) ;
 } ;
 
 namespace G

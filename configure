@@ -1124,7 +1124,7 @@ fi
 
 PACKAGE=emailrelay
 
-VERSION=0.9.7
+VERSION=0.9.8
 
 if test "`cd $srcdir && pwd`" != "`pwd`" && test -f $srcdir/config.status; then
   { { echo "$as_me:1130: error: source directory already configured; run \"make distclean\" there first" >&5

@@ -296,7 +296,8 @@ gpath.o: gpath.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
 gprocess_unix.o: gprocess_unix.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gprocess.h \
-	gexception.h gpath.h gstrings.h gfs.h glog.h
+	gexception.h gpath.h gstrings.h gassert.h glogoutput.h glog.h \
+	gfs.h
 groot.o: groot.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
 	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
 	../../lib/gcc2.95/limits groot.h gprocess.h gexception.h \

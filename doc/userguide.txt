@@ -39,8 +39,8 @@ or to people who are on the same local area network.
 
 Also be careful with programs like "fetchmail" which will fetch incoming mail
 using POP3 or IMAP, but then use a local SMTP server to deliver to local
-mailboxes. If your local SMTP server is E-MailRelay then your incoming e-mail
-will bounce back out.
+mailboxes. E-MailRelay does not act as a delivery agent, so if your local SMTP
+server is E-MailRelay then your incoming e-mail will bounce back out.
 
 Why use it?
 -----------

@@ -59,9 +59,16 @@ G::Root::~Root()
 	}
 }
 
+//static
 void G::Root::init( const std::string & nobody )
 {
-	m_nobody = G::Process::Identity( nobody ) ;
+	m_nobody = Process::Identity( nobody ) ;
 	m_special = Process::beOrdinary( m_nobody ) ;
+}
+
+//static
+G::Process::Identity G::Root::nobody()
+{
+	return m_nobody ;
 }
 

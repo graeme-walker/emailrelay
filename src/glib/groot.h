@@ -54,6 +54,10 @@ public:
 		// gives a non-privileged username which
 		// is used if the real user-id is root.
 
+	static Process::Identity nobody() ;
+		// Returns the 'nobody' identity.
+		// Precondition: init() called
+
 private:
 	void * operator new( size_t ) ;
 

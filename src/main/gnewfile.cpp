@@ -164,7 +164,7 @@ bool GSmtp::NewFile::preprocess( const G::Path & path , bool & cancelled )
 int GSmtp::NewFile::preprocessCore( const G::Path & path )
 {
 	G_LOG( "GSmtp::NewFile::preprocess: " << m_preprocessor << " " << path ) ;
-	int exit_code = G::Process::spawn( m_preprocessor , path.str() ) ;
+	int exit_code = G::Process::spawn( G::Root::nobody() , m_preprocessor , path.str() ) ;
 	G_LOG( "GSmtp::NewFile::preprocess: exit status " << exit_code ) ;
 	return exit_code ;
 }

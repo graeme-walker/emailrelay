@@ -23,11 +23,13 @@ emailrelay-submit \- a submission utility for E-MailRelay
 .B emailrelay-submit
 [--help] [--from
 .IR from-address ]
+.I to-address 
 .RI [ to-address \ ...]
 .SH DESCRIPTION
 .I emailrelay-submit
 is a utility which reads an RFC822 email message from the standard
-input, and writes it into the 
+input, with SMTP envelope recipient addresses passed on the 
+command-line, and writes it into the 
 .B E-MailRelay 
 spool directory.
 .SH SEE ALSO

@@ -325,10 +325,10 @@ void GSmtp::ClientProtocol::onTimeout()
 G::Strings GSmtp::ClientProtocol::serverAuthMechanisms( const ClientProtocolReply & reply ) const
 {
 	G::Strings result ;
-	std::string auth_line = reply.textLine("AUTH") ;
+	std::string auth_line = reply.textLine("AUTH ") ; // trailing space to avoid "AUTH="
 	if( ! auth_line.empty() )
 	{
-		G::Str::splitIntoTokens( auth_line , result , " \t" ) ;
+		G::Str::splitIntoTokens( auth_line , result , " " ) ;
 		if( result.size() )
 			result.pop_front() ; // remove "AUTH" ;
 	}
@@ -415,6 +415,7 @@ GSmtp::ClientProtocolReply::ClientProtocolReply( const std::string & line ) :
 		{
 			m_text = line.substr(4U) ;
 			G::Str::trimLeft( m_text , " \t" ) ;
+			G::Str::replaceAll( m_text , "\t" , " " ) ;
 		}
 	}
 }

@@ -1,6 +1,12 @@
 E-MailRelay Change Log
 ======================
 
+0.9.7 -> 0.9.8
+--------------
+* Fix for running preprocessor ("--filter") as root.
+* Ignore bogus "AUTH=LOGIN" lines in EHLO response.
+* Submit utility improved to work with mutt.
+
 0.9.6 -> 0.9.7
 --------------
 * CRAM-MD5 authentication mechanism added.

@@ -78,18 +78,49 @@ public:
 		BadSequence_503 = 503 ,
 		Invalid = 0 ,
 	} ;
+
 	explicit ClientProtocolReply( const std::string & line = std::string() ) ;
-	bool incomplete() const ;
+		// Constructor for one line of text.
+
 	bool add( const ClientProtocolReply & other ) ;
+		// Adds more lines to this reply. Returns
+		// false if the numeric values are different.
+
+	bool incomplete() const ;
+		// Returns true if the reply is incomplete.
+
 	bool validFormat() const ;
-	bool positive() const ; // <400
+		// Returns true if
+
+	bool positive() const ;
+		// Returns true if the numeric value of the
+		// reply is less that four hundred.
+
 	bool is( Value v ) const ;
+		// Returns true if the reply value is 'v'.
+
 	unsigned int value() const ;
+		// Returns the numeric value of the reply.
+
 	std::string text() const ;
-	std::string textLine( const std::string & prefix ) const ;
-	Type type() const ;
-	SubType subType() const ;
+		// Returns the complete text of the reply,
+		// excluding the numeric part, and with
+		// embedded newlines.
+
 	bool textContains( std::string s ) const ;
+		// Returns true if the text() contains
+		// the given substring.
+
+	std::string textLine( const std::string & prefix ) const ;
+		// Returns a line of text() which starts with
+		// prefix.
+
+	Type type() const ;
+		// Returns the reply type (category).
+
+	SubType subType() const ;
+		// Returns the reply sub-type.
+
 private:
 	bool m_complete ;
 	bool m_valid ;

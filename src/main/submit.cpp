@@ -24,7 +24,7 @@
 // directory.
 //
 // It works a bit like sendmail...
-// * additional recipient addresses can be put on the command-line
+// * envelope recipient addresses are taken from the command-line
 // * content (header+body) is read from stdin up to "." or EOF
 // * the envelope "From" field can be specified on the command-line
 // * the envelope "From" field is defaulted from the header "From:" line
@@ -42,10 +42,13 @@
 #include "gpath.h"
 #include "gfilestore.h"
 #include "gnewmessage.h"
+#include "gexception.h"
 #include "legal.h"
 #include <exception>
 #include <iostream>
 #include <memory>
+
+G_EXCEPTION( NoBody , "no body text" ) ;
 
 static void process( const G::Path & path , std::istream & stream ,
 	const G::Strings & to_list , std::string from , G::Strings header )
@@ -76,26 +79,14 @@ static void process( const G::Path & path , std::istream & stream ,
 	GSmtp::FileStore store( path ) ;
 	std::auto_ptr<GSmtp::NewMessage> msg = store.newMessage( envelope_from ) ;
 
-	// add additional "To:" lines to the header
+	// add "To:" lines to the envelope
 	//
 	for( G::Strings::const_iterator to_p = to_list.begin() ; to_p != to_list.end() ; ++to_p )
 	{
-		header.push_back( std::string("To: ") + *to_p ) ;
-	}
-
-	// add "To:" lines to the envelope
-	{
-		for( G::Strings::const_iterator header_p = header.begin() ; header_p != header.end() ; ++header_p )
-		{
-			const std::string & line = *header_p ;
-			if( line.find("To: ") == 0U )
-			{
-				std::string to = line.substr(3U) ;
-				G::Str::trim( to , " \t\r\n" ) ;
-				const bool is_local = false ;
-				msg->addTo( to , is_local ) ;
-			}
-		}
+		std::string to = *to_p ;
+		G::Str::trim( to , " \t\r\n" ) ;
+		const bool is_local = false ;
+		msg->addTo( to , is_local ) ;
 	}
 
 	// stream out the header
@@ -145,12 +136,18 @@ static void run( const G::Arg & arg )
 	else if( getopt.contains("help") )
 	{
 		std::ostream & stream = std::cerr ;
-		getopt.showUsage( stream , arg.prefix() , " [<to-address> ...]" ) ;
+		getopt.showUsage( stream , arg.prefix() , " <to-address> [<to-address> ...]" ) ;
 		stream
 			<< std::endl
 			<< Main::Legal::warranty()
 			<< std::endl
 			<< Main::Legal::copyright()
+			<< std::endl ;
+	}
+	else if( getopt.args().c() == 1U )
+	{
+		std::cerr
+			<< getopt.usageSummary( arg.prefix() , " <to-address> [<to-address> ...]" )
 			<< std::endl ;
 	}
 	else
@@ -181,6 +178,8 @@ static void run( const G::Arg & arg )
 		while( stream.good() )
 		{
 			std::string line = G::Str::readLineFrom( stream ) ;
+			if( line == "." )
+				throw NoBody() ;
 			if( line.empty() )
 				break ;
 			header.push_back( line ) ;

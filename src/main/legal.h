@@ -34,7 +34,7 @@ namespace Main
 } ;
 
 // Class: Main::Legal
-// Description:
+// Description: A static class providing warranty and copyright text.
 //
 class Main::Legal
 {
