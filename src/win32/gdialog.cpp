@@ -300,7 +300,8 @@ bool GGui::Dialog::run( const char * f_name )
 		
 	if( rc == -1 )
 	{
-		G_DEBUG( "GGui::Dialog::run: cannot create dialog box" ) ;
+		int error = ::GetLastError() ;
+		G_DEBUG( "GGui::Dialog::run: cannot create dialog box: " << error ) ;
 		return false ;
 	}
 	else if( rc == 0 )

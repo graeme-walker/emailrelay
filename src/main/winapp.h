@@ -30,6 +30,7 @@
 #include "gtray.h"
 #include "winform.h"
 #include "configuration.h"
+#include "output.h"
 #include <memory>
 
 namespace Main
@@ -37,16 +38,44 @@ namespace Main
 	class WinApp ;
 }
 
-class Main::WinApp : public GGui::ApplicationBase
+// Class: Main::WinApp
+// Description: An application class instantiated in WinMain()
+// and containing a Main::WinForm object. WinMain() sets up
+// slot/signal links from Main::Run to Main::WinApp. Derives
+// from Main::Output so that Main::CommandLine can call
+// output() to throw up message boxes.
+//
+class Main::WinApp : public GGui::ApplicationBase , public Main::Output
 {
 public:
 	G_EXCEPTION( Error , "application error" ) ;
+
 	WinApp( HINSTANCE h , HINSTANCE p , const char * name ) ;
+		// Constructor. Initialise with init().
+
+	virtual ~WinApp() ;
+		// Destructor.
+
 	void init( const Main::Configuration & cfg ) ;
+		// Initialises the object after construction.
+
+	void output( const std::string & message , bool error ) ;
+		// Puts up a message box. See Main::Output.
+
+	unsigned int columns() ;
+		// See Main::Output.
+
 	bool confirm() ;
+		// Puts up a confirmation message box.
+
 	void formOk() ;
+		// Called from the form's ok button handler.
+
 	void formDone() ;
+		// Called from the form's nc-destroy message handler.
+
 	void onRunEvent( std::string , std::string , std::string ) ;
+		// Slot for Main::Run::signal().
 
 private:
 	void doOpen() ;

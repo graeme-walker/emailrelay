@@ -28,6 +28,7 @@
 #include "gsmtp.h"
 #include "configuration.h"
 #include "commandline.h"
+#include "output.h"
 #include "geventloop.h"
 #include "gtimer.h"
 #include "glogoutput.h"
@@ -55,7 +56,8 @@ namespace Main
 /// int main( int argc , char ** argv )
 /// {
 ///   G::Arg arg( argc , argv ) ;
-///   Main::Run run( arg ) ;
+///   Output output ;
+///   Main::Run run( output , arg , CommandLine::switchSpec() ) ;
 ///   if( run.prepare() )
 ///      run.run() ;
 ///   return 0 ;
@@ -64,7 +66,7 @@ namespace Main
 class Main::Run : private GNet::TimeoutHandler
 {
 public:
-	explicit Run( const G::Arg & arg ) ;
+	Run( Output & output , const G::Arg & arg , const std::string & switch_spec ) ;
 		// Constructor.
 
 	virtual ~Run() ;
@@ -108,6 +110,8 @@ private:
 	std::string doPoll() ;
 
 private:
+	Output & m_output ;
+	std::string m_switch_spec ;
 	std::auto_ptr<CommandLine> m_cl ;
 	std::auto_ptr<G::LogOutput> m_log_output ;
 	std::auto_ptr<GSmtp::Client> m_client ;

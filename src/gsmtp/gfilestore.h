@@ -29,6 +29,7 @@
 #include "gmessagestore.h"
 #include "gdatetime.h"
 #include "gexception.h"
+#include "gprocess.h"
 #include "gnoncopyable.h"
 #include "gslot.h"
 #include "groot.h"
@@ -45,8 +46,16 @@ namespace GSmtp
 
 // Class: GSmtp::FileStore
 // Description: A concrete implementation of the MessageStore
-// interface, dealing in flat files. Passes out unique sequence
-// numbers, filesystem paths and i/o streams to NewMessageImp.
+// interface, dealing in paired flat files.
+//
+// The implementation puts separate envelope and content files
+// in the spool directory. The content file is written first.
+// The presence of a matching envelope file is used to indicate
+// that the content file is valid and that it has been commited
+// to the care of the SMTP system for delivery.
+//
+// Passes out unique sequence numbers, filesystem paths and
+// i/o streams to NewMessageImp.
 //
 class GSmtp::FileStore : public GSmtp::MessageStore
 {

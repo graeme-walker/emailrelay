@@ -190,7 +190,7 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 		{
 			G_DEBUG( "Cracker::onDrop" ) ;
 			HDROP hdrop = reinterpret_cast<HDROP>(wparam) ;
-			int count = ::DragQueryFile( hdrop , -1 , NULL , 0 ) ;
+			int count = ::DragQueryFile( hdrop , 0xFFFFFFFF , NULL , 0 ) ;
 			G::Strings list ;
 			for( int i = 0 ; i < count ; i++ )
 			{
@@ -263,37 +263,37 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 
 		case WM_LBUTTONDOWN:
 		{
-			return doMouseButton( onLeftMouseButtonDown , Mouse_Left ,
+			return doMouseButton( &Cracker::onLeftMouseButtonDown , Mouse_Left ,
 				Mouse_Down , message , wparam , lparam ) ;
 		}
 
 		case WM_LBUTTONUP:
 		{
-			return doMouseButton( onLeftMouseButtonUp , Mouse_Left ,
+			return doMouseButton( &Cracker::onLeftMouseButtonUp , Mouse_Left ,
 				Mouse_Up , message , wparam , lparam ) ;
 		}
 
 		case WM_MBUTTONDOWN:
 		{
-			return doMouseButton( onMiddleMouseButtonDown , Mouse_Middle ,
+			return doMouseButton( &Cracker::onMiddleMouseButtonDown , Mouse_Middle ,
 				Mouse_Down , message , wparam , lparam ) ;
 		}
 
 		case WM_MBUTTONUP:
 		{
-			return doMouseButton( onMiddleMouseButtonUp , Mouse_Middle ,
+			return doMouseButton( &Cracker::onMiddleMouseButtonUp , Mouse_Middle ,
 				Mouse_Up , message , wparam , lparam ) ;
 		}
 
 		case WM_RBUTTONDOWN:
 		{
-			return doMouseButton( onRightMouseButtonDown , Mouse_Right ,
+			return doMouseButton( &Cracker::onRightMouseButtonDown , Mouse_Right ,
 				Mouse_Down , message , wparam , lparam ) ;
 		}
 
 		case WM_RBUTTONUP:
 		{
-			return doMouseButton( onRightMouseButtonUp , Mouse_Right ,
+			return doMouseButton( &Cracker::onRightMouseButtonUp , Mouse_Right ,
 				Mouse_Up , message , wparam , lparam ) ;
 		}
 

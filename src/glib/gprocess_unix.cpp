@@ -23,6 +23,7 @@
 
 #include "gdef.h"
 #include "gprocess.h"
+#include "gidentity.h"
 #include "gassert.h"
 #include "gfs.h"
 #include "glog.h"
@@ -31,7 +32,6 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h> // open()
-#include <pwd.h> // getpwnam()
 #include <unistd.h> // setuid() etc
 
 namespace
@@ -88,6 +88,19 @@ void G::Process::cd( const Path & dir )
 bool G::Process::cd( const Path & dir , NoThrow )
 {
 	return 0 == ::chdir( dir.str().c_str() ) ;
+}
+
+//static
+void G::Process::chroot( const Path & dir )
+{
+	cd( dir ) ;
+	if( 0 != ::chroot( dir.str().c_str() ) )
+	{
+		int error = errno_() ;
+		G_DEBUG( "G::Process::chroot: " << error ) ;
+		throw CannotChroot( dir.str() ) ;
+	}
+	cd( "/" ) ;
 }
 
 //static
@@ -218,7 +231,7 @@ int G::Process::spawn( Identity nobody , const Path & exe , const Strings & args
 	if( exe.isRelative() )
 		throw InvalidPath( exe.str() ) ;
 
-	if( ::geteuid() == 0U || nobody.uid == 0U )
+	if( Identity::effective().isRoot() || nobody.isRoot() )
 		throw Insecure() ;
 
 	Pipe pipe( pipe_result_p != NULL ) ;
@@ -274,48 +287,41 @@ void G::Process::execCore( const G::Path & exe , const Strings & args )
 
 void G::Process::beSpecial( Identity identity , bool change_group )
 {
-	// try to change our effective id -- this
-	// will only work if our real uid is root, or if
-	// the executable is suid (assuming the
-	// o/s supports the saved-suid feature)
-	//
-	// gcc requires -D_BSD_SOURCE for seteuid()
-	//
-	Identity old_identity ;
-	G_IGNORE ::seteuid( identity.uid ) ;
-	if( change_group) G_IGNORE ::setegid( identity.gid ) ;
-	//G_DEBUG( "G::Process::beSpecial: " << old_identity << " -> " << Identity() ) ;
-	old_identity.uid = 0 ; // pacify the compiler
+	const bool do_throw = false ; // only works if really root or if executable is suid
+	setEffectiveUserTo( identity , do_throw ) ;
+	if( change_group) setEffectiveGroupTo( identity , do_throw ) ;
 }
 
-G::Process::Identity G::Process::beOrdinary( Identity nobody , bool change_group )
+G::Identity G::Process::beOrdinary( Identity nobody , bool change_group )
 {
-	Identity special_identity ;
-	if( ::getuid() == 0 )
+	Identity special_identity( Identity::effective() ) ;
+	if( Identity::real().isRoot() )
 	{
-		if( ::seteuid(0) ) throw UidError("0") ; // first
-		if( change_group && ::setegid(nobody.gid) ) throw GidError(nobody.str()) ; // second
-		if( ::seteuid(nobody.uid) ) throw UidError(nobody.str()) ; // third
+		setEffectiveUserTo( Identity::root() ) ;
+		if( change_group )
+		setEffectiveGroupTo( nobody ) ;
+		setEffectiveUserTo( nobody ) ;
 	}
 	else
 	{
-		// switch our effective id back to our real id --
-		// ie. turn off the effects of a suid executable
-		if( ::seteuid( ::getuid() ) ) throw UidError() ;
-		if( change_group && ::setegid( ::getgid() ) ) throw GidError() ;
+		setEffectiveUserTo( Identity::real() ) ;
+		if( change_group )
+		setEffectiveGroupTo( Identity::real() ) ;
 	}
-	//G_DEBUG( "G::Process::beOrdinary: " << special_identity << " -> " << Identity() ) ;
 	return special_identity ;
 }
 
 void G::Process::beNobody( Identity nobody )
 {
-	if( ::getuid() == 0 )
+	// this private method is only used before an exec()
+	// so the effective ids are lost anyway -- the
+	// Identity will only be valid if getuid() is zero
+
+	if( Identity::real().isRoot() )
 	{
-		// set the *real* userid
-		if( ::seteuid(0) ) throw UidError("0") ; // first
-		if( ::setgid(nobody.gid) ) throw GidError(nobody.str()) ; // second
-		if( ::setuid(nobody.uid) ) throw UidError(nobody.str()) ; // third
+		setEffectiveUserTo( Identity::root() ) ;
+		setRealGroupTo( nobody ) ;
+		setRealUserTo( nobody ) ;
 	}
 }
 
@@ -357,36 +363,6 @@ std::string G::Process::Id::str() const
 bool G::Process::Id::operator==( const Id & other ) const
 {
 	return m_pid == other.m_pid ;
-}
-
-// ===
-
-G::Process::Identity::Identity() :
-	uid(::geteuid()) ,
-	gid(::getegid())
-{
-}
-
-G::Process::Identity::Identity( const std::string & name ) :
-	uid(static_cast<uid_t>(-1)) ,
-	gid(static_cast<gid_t>(-1))
-{
-	if( ::getuid() == 0 )
-	{
-		::passwd * pw = ::getpwnam( name.c_str() ) ;
-		if( pw == NULL )
-			throw Process::NoSuchUser(name) ;
-		//G_DEBUG( "G::Process::Identity: " << name << "=" << pw->pw_uid << "/" << pw->pw_gid ) ;
-		uid = pw->pw_uid ;
-		gid = pw->pw_gid ;
-	}
-}
-
-std::string G::Process::Identity::str() const
-{
-	std::ostringstream ss ;
-	ss << uid << "/" << gid ;
-	return ss.str() ;
 }
 
 // ===

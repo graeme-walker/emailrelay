@@ -29,14 +29,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <process.h>
-#include <direct.h>
 #include <io.h>
 #include <fcntl.h>
 
 namespace G
 {
-	const int STDERR_FILENO = 2 ;
-	const int SC_OPEN_MAX = 256 ; // 32 in limits.h !?
+	const int g_stderr_fileno = 2 ;
+	const int g_sc_open_max = 256 ; // 32 in limits.h !?
 	class Pipe ;
 } ;
 
@@ -144,17 +143,17 @@ bool G::Process::Id::operator==( const Id & rhs ) const
 
 void G::Process::closeFiles( bool keep_stderr )
 {
-	const int n = SC_OPEN_MAX ;
+	const int n = g_sc_open_max ;
 	for( int fd = 0 ; fd < n ; fd++ )
 	{
-		if( !keep_stderr || fd != STDERR_FILENO )
+		if( !keep_stderr || fd != g_stderr_fileno )
 			::_close( fd ) ;
 	}
 }
 
 void G::Process::closeStderr()
 {
-	int fd = STDERR_FILENO ;
+	int fd = g_stderr_fileno ;
 	::_close( fd ) ;
 }
 
@@ -208,7 +207,7 @@ int G::Process::spawn( Identity , const Path & exe , const Strings & args_ ,
 	return rc < 0 ? error_return : rc ;
 }
 
-G::Process::Identity G::Process::beOrdinary( Identity identity , bool )
+G::Identity G::Process::beOrdinary( Identity identity , bool )
 {
 	// not implemented
 	return identity ;
@@ -225,25 +224,6 @@ void G::Process::beSpecial( Identity , bool )
 // void G::Process::exec( const Path & exe , const std::string & arg ) {}
 // int G::Process::wait( const Id & child ) {}
 // int G::Process::wait( const Id & child , int error_return ) {}
-
-// ===
-
-G::Process::Identity::Identity() :
-	uid(0) ,
-	gid(0)
-{
-}
-
-G::Process::Identity::Identity( const std::string & ) :
-	uid(0) ,
-	gid(0)
-{
-}
-
-std::string G::Process::Identity::str() const
-{
-	return "0/0" ;
-}
 
 // ===
 

@@ -93,6 +93,7 @@ install_sh = @install_sh@
 #
 #
 SUBDIRS = glib gnet gsmtp main win32
+EXTRA_DIST = mingw.mak mingw-common.mak
 subdir = src
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h

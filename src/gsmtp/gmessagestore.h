@@ -41,13 +41,6 @@ namespace GSmtp
 // Description: A class which allows SMTP messages
 // (envelope+content) to be stored and retrieved.
 //
-// The implementation puts separate envelope and content
-// files in a spool directory. The content file is
-// written first. The presence of a matching envelope
-// file is used to indicate that the content file
-// is valid and that it has been commited to the
-// care of the SMTP system for delivery.
-//
 // See also: NewMessage, StoredMessage, ProtocolMessage
 //
 class GSmtp::MessageStore

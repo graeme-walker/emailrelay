@@ -26,9 +26,53 @@
 #include "winmenu.h"
 #include "gwindow.h"
 #include "glog.h"
+#include "gstr.h"
 #include "gmemory.h"
+#include "gcontrol.h"
+#include "gdialog.h"
 #include "gassert.h"
 #include "resource.h"
+
+namespace Main
+{
+	class Box ;
+} ;
+
+class Main::Box : public GGui::Dialog
+{
+public:
+	Box( GGui::ApplicationBase & app , const G::Strings & text ) ;
+	bool run() ;
+private:
+	bool onInit() ;
+private:
+	GGui::EditBox m_edit ;
+	G::Strings m_text ;
+} ;
+
+Main::Box::Box( GGui::ApplicationBase & app , const G::Strings & text ) :
+	GGui::Dialog( app , false ) ,
+	m_edit( *this , IDC_EDIT1 ) ,
+	m_text( text )
+{
+}
+
+bool Main::Box::onInit()
+{
+	G_DEBUG( "Main::Box::onInit" ) ;
+	m_edit.set( m_text ) ;
+	return true ;
+}
+
+bool Main::Box::run()
+{
+	GGui::Dialog & base = *this ;
+	bool rc = base.run( IDD_DIALOG2 ) ;
+	G_DEBUG( "Main::Box::run: " << rc ) ;
+	return rc ;
+}
+
+// ===
 
 Main::WinApp::WinApp( HINSTANCE h , HINSTANCE p , const char * name ) :
 	GGui::ApplicationBase( h , p , name ) ,
@@ -36,6 +80,10 @@ Main::WinApp::WinApp( HINSTANCE h , HINSTANCE p , const char * name ) :
 	m_quit(false) ,
 	m_icon(0U) ,
 	m_hidden(false)
+{
+}
+
+Main::WinApp::~WinApp()
 {
 }
 
@@ -203,5 +251,26 @@ void Main::WinApp::setStatus( const std::string & s1 , const std::string & s2 )
 	if( !s1.empty() ) message.append( std::string(": ")+s1 ) ;
 	if( !s2.empty() ) message.append( std::string(": ")+s2 ) ;
 	::SetWindowText( handle() , message.c_str() ) ;
+}
+
+unsigned int Main::WinApp::columns()
+{
+	return 1000U ;
+}
+
+void Main::WinApp::output( const std::string & text , bool )
+{
+	G::Strings text_lines ;
+	G::Str::splitIntoFields( text , text_lines , "\r\n" ) ;
+	if( text_lines.size() > 20U )
+	{
+		Box box( *this , text_lines ) ;
+		if( ! box.run() )
+			messageBox( text ) ;
+	}
+	else
+	{
+		messageBox( text ) ;
+	}
 }
 

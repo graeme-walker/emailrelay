@@ -22,7 +22,6 @@
 AM_INSTALL_PROGRAM_FLAGS=-s
 
 EXTRA_DIST=\
-	commandline_win32.cpp \
 	common.dsp \
 	doxygen.cfg \
 	doxygen.h \
@@ -53,16 +52,18 @@ e_libexec_PROGRAMS = emailrelay-poke
 e_spool_DATA = 
 
 emailrelay_SOURCES = \
-	main.cpp \
+	commandline.cpp \
+	commandline.h \
 	configuration.cpp \
 	configuration.h \
 	legal.cpp \
 	legal.h \
+	main.cpp \
+	output.cpp \
+	output.h \
 	run.cpp \
 	run.h \
-	commandline.cpp \
-	commandline_unix.cpp \
-	commandline.h
+	mingw.mak
 
 emailrelay_LDADD = \
 	$(top_builddir)/src/gsmtp/libgsmtp.a \

@@ -17,33 +17,38 @@
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ## 
 #
+#
+# mingw.mak
+#
 
-EXTRA_DIST = \
-	gappinst.cpp \
-	gappinst.h \
-	gappbase.cpp \
-	gappbase.h \
-	gcracker.cpp \
-	gcracker.h \
-	gdc.h \
-	gdc.cpp \
-	gdialog.cpp \
-	gdialog.h \
-	gcontrol.cpp \
-	gcontrol.h \
-	gpump.cpp \
-	gpump.h \
-	gpump_dialog.cpp \
-	gscmap.h \
-	gscmap.cpp \
-	gsize.h \
-	gtray.h \
-	gtray.cpp \
-	gwinbase.cpp \
-	gwinbase.h \
-	gwindow.cpp \
-	gwindow.h \
-	gwinhid.cpp \
-	gwinhid.h \
-	mingw.mak
+mk_sources=\
+	gadminserver.cpp \
+	gbase64.cpp \
+	gclientprotocol.cpp \
+	gfilestore.cpp \
+	gmessagestore.cpp \
+	gmessagestore_win32.cpp \
+	gnewfile.cpp \
+	gnewmessage.cpp \
+	gprotocolmessage.cpp \
+	gprotocolmessageforward.cpp \
+	gprotocolmessagestore.cpp \
+	gsasl_native.cpp \
+	gsecrets.cpp \
+	gserverprotocol.cpp \
+	gsmtpclient.cpp \
+	gsmtpserver.cpp \
+	gstoredfile.cpp \
+	gstoredmessage.cpp \
+	gverifier.cpp \
+	gxtext.cpp
+
+mk_target=gsmtp.a
+
+all: $(mk_target)
+
+include ../mingw-common.mak
+
+$(mk_target): $(mk_objects)
+	$(mk_ar) $(mk_target) $(mk_objects)
 

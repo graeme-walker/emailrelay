@@ -1459,7 +1459,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=emailrelay
- VERSION=1.1
+ VERSION=1.1.1
 
 
 cat >>confdefs.h <<_ACEOF
@@ -3274,7 +3274,7 @@ fi
 
 
 
-	COMPILER_VERSION=`$CXX --version 2>/dev/null | sed q | sed 's/[^0-9 .]*//g;s/\./ /g;s/^ *//;s/ /./;s/ .*//;s/^/gcc/'`
+	COMPILER_VERSION=`$CXX --version 2>/dev/null | sed q | sed 's/[^0-9 .]*//g;s/\./ /g;s/^ *//;s/ /./;s/ .*//;s/^/gcc/' | sed 's/gcc2.96/gcc2.95/'`
 	if test -z "${COMPILER_VERSION}"
 	then
 		COMPILER_VERSION=`$CXX -V 2>&1 | sed q | grep WorkShop | sed 's/[^0-9]*//;s/[ \.].*//;s/^/sunpro/'`

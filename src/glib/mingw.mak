@@ -17,33 +17,46 @@
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ## 
 #
+#
+# mingw.mak
+#
 
-EXTRA_DIST = \
-	gappinst.cpp \
-	gappinst.h \
-	gappbase.cpp \
-	gappbase.h \
-	gcracker.cpp \
-	gcracker.h \
-	gdc.h \
-	gdc.cpp \
-	gdialog.cpp \
-	gdialog.h \
-	gcontrol.cpp \
-	gcontrol.h \
-	gpump.cpp \
-	gpump.h \
-	gpump_dialog.cpp \
-	gscmap.h \
-	gscmap.cpp \
-	gsize.h \
-	gtray.h \
-	gtray.cpp \
-	gwinbase.cpp \
-	gwinbase.h \
-	gwindow.cpp \
-	gwindow.h \
-	gwinhid.cpp \
-	gwinhid.h \
-	mingw.mak
+mk_sources=\
+	garg.cpp \
+	garg_win32.cpp \
+	gcleanup_win32.cpp \
+	gdaemon_win32.cpp \
+	gdate.cpp \
+	gdatetime.cpp \
+	gdatetime_win32.cpp \
+	gdirectory.cpp \
+	gdirectory_win32.cpp \
+	gexception.cpp \
+	gfile.cpp \
+	gfile_win32.cpp \
+	gfs_win32.cpp \
+	ggetopt.cpp \
+	gidentity_win32.cpp \
+	glog.cpp \
+	glogoutput.cpp \
+	glogoutput_win32.cpp \
+	gmd5_rsa.cpp \
+	gpath.cpp \
+	gpidfile.cpp \
+	gprocess_win32.cpp \
+	gregistry_win32.cpp \
+	groot.cpp \
+	gslot.cpp \
+	gstr.cpp \
+	gtime.cpp
+
+mk_target=glib.a
+
+all: $(mk_target)
+
+include ../mingw-common.mak
+
+$(mk_target): $(mk_objects)
+	$(mk_ar) $(mk_target) $(mk_objects)
+
 

@@ -28,6 +28,7 @@
 #include "gsmtp.h"
 #include "garg.h"
 #include "configuration.h"
+#include "output.h"
 #include "ggetopt.h"
 #include <string>
 #include <iostream>
@@ -44,8 +45,12 @@ namespace Main
 class Main::CommandLine
 {
 public:
-	CommandLine( const G::Arg & arg , const std::string & version ) ;
-		// Constructor.
+	static std::string switchSpec( bool is_windows ) ;
+		// Returns an o/s-specific G::GetOpt switch specification string.
+
+	CommandLine( Main::Output & output , const G::Arg & arg , const std::string & spec ,
+		const std::string & version ) ;
+			// Constructor.
 
 	Configuration cfg() const ;
 		// Returns a Configuration object.
@@ -93,13 +98,13 @@ private:
 	void showWarranty( bool error_stream ) const ;
 	void showShortHelp( bool error_stream ) const ;
 	std::string semanticError() const ;
-	static std::string switchSpec() ;
-	static std::string osSwitchSpec() ; // o/s-specific
-	unsigned int ttyColumns() const ; // o/s-specific
 	void showUsage( bool e ) const ;
 	void showExtraHelp( bool error_stream ) const ;
+	static std::string switchSpec_unix() ;
+	static std::string switchSpec_windows() ;
 
 private:
+	Output & m_output ;
 	std::string m_version ;
 	G::Arg m_arg ;
 	G::GetOpt m_getopt ;
@@ -107,14 +112,15 @@ private:
 public:
 	class Show // A private implementation class used by Main::CommandLine.
 	{
-		public: explicit Show( bool e ) ;
+		public: Show( Main::Output & , bool e ) ;
 		public: std::ostream & s() ;
 		public: ~Show() ;
-		private: static Show * m_this ;
-		private: class Imp ;
-		private: Imp * m_imp ;
 		private: Show( const Show & ) ; // not implemented
 		private: void operator=( const Show & ) ; // not implemented
+		private: std::ostringstream m_ss ;
+		private: Main::Output & m_output ;
+		private: bool m_e ;
+		private: static Show * m_this ;
 	} ;
 } ;
 

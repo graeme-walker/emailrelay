@@ -95,7 +95,7 @@ SOURCE=.\commandline.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\commandline_win32.cpp
+SOURCE=.\output.cpp
 # End Source File
 # Begin Source File
 

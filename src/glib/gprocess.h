@@ -26,6 +26,7 @@
 
 #include "gdef.h"
 #include "gexception.h"
+#include "gidentity.h"
 #include "gpath.h"
 #include "gstrings.h"
 #include <iostream>
@@ -41,17 +42,15 @@ namespace G
 // Description: A static interface for doing things with processes.
 // See also: G::Daemon
 //
-class G::Process
+class G::Process : private G::IdentityUser
 {
 public:
 	G_EXCEPTION( CannotFork , "cannot fork()" ) ;
+	G_EXCEPTION( CannotChroot , "cannot chroot()" ) ;
 	G_EXCEPTION( CannotChangeDirectory , "cannot cd()" ) ;
 	G_EXCEPTION( WaitError , "cannot wait()" ) ;
 	G_EXCEPTION( ChildError , "child process terminated abnormally or stopped" ) ;
 	G_EXCEPTION( InvalidPath , "invalid executable path -- must be absolute" ) ;
-	G_EXCEPTION( NoSuchUser , "no such user" ) ;
-	G_EXCEPTION( UidError , "cannot set uid" ) ;
-	G_EXCEPTION( GidError , "cannot set gid" ) ;
 	G_EXCEPTION( Insecure , "refusing to exec() while the user-id is zero" ) ;
 	G_EXCEPTION( InvalidId , "invalid process-id string" ) ;
 	G_EXCEPTION( PipeError , "pipe error" ) ;
@@ -67,14 +66,6 @@ public:
 		public: bool operator==( const Id & ) const ;
 		private: pid_t m_pid ;
 		friend class Process ;
-	} ;
-	struct Identity // Used by G::Process::beSpecial().
-	{
-		uid_t uid ;
-		gid_t gid ;
-		Identity() ;
-		explicit Identity( const std::string & login_name ) ;
-		std::string str() const ;
 	} ;
 	class Umask // Used to temporarily modify the process umask.
 	{
@@ -103,6 +94,9 @@ public:
 		// Changes directory. Returns false on
 		// error.
 
+	static void chroot( const Path & dir ) ;
+		// Does a chroot. Throws on error, or if not implemented.
+
 	static Who fork() ;
 		// Forks a child process.
 
@@ -121,22 +115,26 @@ public:
 	static int errno_() ;
 		// Returns the process's current 'errno' value.
 
-	static void beSpecial( Identity special , bool change_group = true ) ;
-		// Aquires special privileges (either root
-		// or suid). The parameter must have come from
-		// a previous call to beOrdinary().
+	static Identity beOrdinary( Identity nobody , bool change_group = true ) ;
+		// Revokes special privileges (root or suid).
+		//
+		// If really root (as opposed to suid root)
+		// then the effective id is changed to that
+		// passed in.
+		//
+		// If suid (including suid-root), then the effective
+		// id is changed to the real id, and the parameter
+		// is ignored.
+		//
+		// Returns the old identity, which can be passed to
+		// beSpecial().
 		//
 		// See also class G::Root.
 
-	static Identity beOrdinary( Identity nobody , bool change_group = true ) ;
-		// Revokes special privileges (root or suid).
-		// If really root (as opposed to suid root)
-		// then the effective id is changed to that
-		// passed in. If suid, then the effective
-		// id is changed to the real id, and the
-		// parameter is ignored. Returns the old
-		// identity, which can be passed to
-		// beSpecial().
+	static void beSpecial( Identity special , bool change_group = true ) ;
+		// Re-aquires special privileges (either root
+		// or suid). The parameter must have come from
+		// a previous call to beOrdinary().
 		//
 		// See also class G::Root.
 
@@ -162,12 +160,6 @@ namespace G
 	{
 		id = G::Process::Id( stream ) ;
 		return stream ;
-	}
-
-	inline
-	std::ostream & operator<<( std::ostream & stream , const G::Process::Identity & identity )
-	{
-		return stream << identity.str() ;
 	}
 }
 

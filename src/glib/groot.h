@@ -25,7 +25,7 @@
 #define G_ROOT_H
 
 #include "gdef.h"
-#include "gprocess.h"
+#include "gidentity.h"
 #include "gnoncopyable.h"
 
 namespace G
@@ -35,7 +35,7 @@ namespace G
 
 // Class: G::Root
 // Description: A class which aquires special privileges.
-// The implementation uses G::Process.
+// The implementation uses G::Process and G::Identity.
 //
 class G::Root : private G::noncopyable
 {
@@ -54,14 +54,14 @@ public:
 		// gives a non-privileged username which
 		// is used if the real user-id is root.
 
-	static Process::Identity nobody() ;
+	static Identity nobody() ;
 		// Returns the 'nobody' identity.
 		// Precondition: init() called
 
 private:
 	static Root * m_this ;
-	static Process::Identity m_special ;
-	static Process::Identity m_nobody ;
+	static Identity m_special ;
+	static Identity m_nobody ;
 	bool m_change_group ;
 } ;
 

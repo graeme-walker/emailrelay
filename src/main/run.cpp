@@ -50,10 +50,12 @@
 //static
 std::string Main::Run::versionNumber()
 {
-	return "1.1" ;
+	return "1.1.1" ;
 }
 
-Main::Run::Run( const G::Arg & arg ) :
+Main::Run::Run( Main::Output & output , const G::Arg & arg , const std::string & switch_spec ) :
+	m_output(output) ,
+	m_switch_spec(switch_spec) ,
 	m_arg(arg)
 {
 }
@@ -331,7 +333,7 @@ const Main::CommandLine & Main::Run::cl() const
 	// lazy evaluation so that the constructor doesnt throw
 	if( m_cl.get() == NULL )
 	{
-		const_cast<Run*>(this)->m_cl <<= new CommandLine( m_arg , versionNumber() ) ;
+		const_cast<Run*>(this)->m_cl <<= new CommandLine( m_output , m_arg , m_switch_spec , versionNumber() ) ;
 	}
 	return *m_cl.get() ;
 }

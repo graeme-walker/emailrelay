@@ -22,6 +22,10 @@ In summary, the Windows installation process is as follows:
 
 These steps are explained in more detail below.
 
+On versions of Windows that support services you could also try using Microsoft's
+"srvany.exe" utility to run emailrelay as a service; you will need to add the
+"--hidden" and "--no-daemon" switches to the E-MailRelay command-line for this.
+
 Unpacking
 ---------
 To start the installation process you will need to extract the files from

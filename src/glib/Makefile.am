@@ -24,6 +24,7 @@ EXTRA_DIST=\
 	gdatetime_win32.cpp \
 	gdirectory_win32.cpp \
 	gfs_win32.cpp \
+	gidentity_win32.cpp \
 	glogoutput_win32.cpp \
 	gmd5_aladdin.cpp \
 	gprocess_win32.cpp \
@@ -31,7 +32,8 @@ EXTRA_DIST=\
 	gregistry_win32.cpp \
 	gregistry.h \
 	md5c.c \
-	md5.h
+	md5.h \
+	mingw.mak
 INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION)
 noinst_LIBRARIES = libglib.a
 libglib_a_SOURCES = \
@@ -63,6 +65,8 @@ libglib_a_SOURCES = \
 	gfs_unix.cpp \
 	ggetopt.cpp \
 	ggetopt.h \
+	gidentity.h \
+	gidentity_unix.cpp \
 	glog.cpp \
 	glog.h \
 	glogoutput.cpp \

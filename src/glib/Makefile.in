@@ -99,6 +99,7 @@ EXTRA_DIST = \
 	gdatetime_win32.cpp \
 	gdirectory_win32.cpp \
 	gfs_win32.cpp \
+	gidentity_win32.cpp \
 	glogoutput_win32.cpp \
 	gmd5_aladdin.cpp \
 	gprocess_win32.cpp \
@@ -106,7 +107,8 @@ EXTRA_DIST = \
 	gregistry_win32.cpp \
 	gregistry.h \
 	md5c.c \
-	md5.h
+	md5.h \
+	mingw.mak
 
 INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION)
 noinst_LIBRARIES = libglib.a
@@ -139,6 +141,8 @@ libglib_a_SOURCES = \
 	gfs_unix.cpp \
 	ggetopt.cpp \
 	ggetopt.h \
+	gidentity.h \
+	gidentity_unix.cpp \
 	glog.cpp \
 	glog.h \
 	glogoutput.cpp \
@@ -179,8 +183,8 @@ am_libglib_a_OBJECTS = garg.$(OBJEXT) garg_unix.$(OBJEXT) \
 	gdatetime.$(OBJEXT) gdatetime_unix.$(OBJEXT) \
 	gdirectory.$(OBJEXT) gdirectory_unix.$(OBJEXT) \
 	gexception.$(OBJEXT) gfile.$(OBJEXT) gfile_unix.$(OBJEXT) \
-	gfs_unix.$(OBJEXT) ggetopt.$(OBJEXT) glog.$(OBJEXT) \
-	glogoutput.$(OBJEXT) glogoutput_unix.$(OBJEXT) \
+	gfs_unix.$(OBJEXT) ggetopt.$(OBJEXT) gidentity_unix.$(OBJEXT) \
+	glog.$(OBJEXT) glogoutput.$(OBJEXT) glogoutput_unix.$(OBJEXT) \
 	gmd5_rsa.$(OBJEXT) gpath.$(OBJEXT) gpidfile.$(OBJEXT) \
 	gprocess_unix.$(OBJEXT) groot.$(OBJEXT) gslot.$(OBJEXT) \
 	gstr.$(OBJEXT) gtime.$(OBJEXT)
@@ -202,7 +206,8 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/gdirectory_unix.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gexception.Po ./$(DEPDIR)/gfile.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gfile_unix.Po ./$(DEPDIR)/gfs_unix.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/ggetopt.Po ./$(DEPDIR)/glog.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/ggetopt.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gidentity_unix.Po ./$(DEPDIR)/glog.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/glogoutput.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/glogoutput_unix.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gmd5_rsa.Po ./$(DEPDIR)/gpath.Po \
@@ -262,6 +267,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gfile_unix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gfs_unix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ggetopt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gidentity_unix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/glog.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/glogoutput.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/glogoutput_unix.Po@am__quote@

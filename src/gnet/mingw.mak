@@ -17,33 +17,39 @@
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ## 
 #
+#
+# mingw.mak
+#
 
-EXTRA_DIST = \
-	gappinst.cpp \
-	gappinst.h \
-	gappbase.cpp \
-	gappbase.h \
-	gcracker.cpp \
-	gcracker.h \
-	gdc.h \
-	gdc.cpp \
-	gdialog.cpp \
-	gdialog.h \
-	gcontrol.cpp \
-	gcontrol.h \
-	gpump.cpp \
-	gpump.h \
-	gpump_dialog.cpp \
-	gscmap.h \
-	gscmap.cpp \
-	gsize.h \
-	gtray.h \
-	gtray.cpp \
-	gwinbase.cpp \
-	gwinbase.h \
-	gwindow.cpp \
-	gwindow.h \
-	gwinhid.cpp \
-	gwinhid.h \
-	mingw.mak
+mk_sources=\
+	gaddress_ipv4.cpp \
+	gclient.cpp \
+	gclient_win32.cpp \
+	gconnection.cpp \
+	gdescriptor_win32.cpp \
+	geventhandler.cpp \
+	geventloop.cpp \
+	geventloop_win32.cpp \
+	geventserver.cpp \
+	glinebuffer.cpp \
+	glocal.cpp \
+	glocal_win32.cpp \
+	gmonitor.cpp \
+	grequest.cpp \
+	gresolve.cpp \
+	gresolve_ipv4.cpp \
+	gresolve_win32.cpp \
+	gserver.cpp \
+	gsocket.cpp \
+	gsocket_win32.cpp \
+	gtimer.cpp
+
+mk_target=gnet.a
+
+all: $(mk_target)
+
+include ../mingw-common.mak
+
+$(mk_target): $(mk_objects)
+	$(mk_ar) $(mk_target) $(mk_objects)
 

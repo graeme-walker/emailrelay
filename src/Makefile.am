@@ -18,3 +18,4 @@
 ## 
 #
 SUBDIRS = glib gnet gsmtp main win32
+EXTRA_DIST = mingw.mak mingw-common.mak

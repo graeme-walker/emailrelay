@@ -98,9 +98,16 @@
 
 	// Include main o/s headers
 	//
-	#if defined( G_WINDOWS )
+	#if defined( G_WINDOWS ) && defined( G_MINGW )
+		#define __USE_W32_SOCKETS
 		#include <windows.h>
 		#include <shellapi.h>
+		#include <sys/stat.h>
+		#include <unistd.h>
+	#elif defined( G_WINDOWS )
+		#include <windows.h>
+		#include <shellapi.h>
+		#include <direct.h>
 	#else
 		#include <unistd.h>
 		#include <sys/stat.h>
@@ -145,7 +152,9 @@
 		typedef int ssize_t ;
 		typedef int uid_t ;
 		typedef int gid_t ;
-		typedef unsigned int pid_t ;
+		#if ! defined( G_MINGW )
+			typedef unsigned int pid_t ;
+		#endif
 	#endif
 
 	// Modify compiler error handling

@@ -1,6 +1,16 @@
 E-MailRelay Change Log
 ======================
 
+1.1.0 -> 1.1.1
+--------------
+* Restored the fix for building with gcc2.96.
+* Support for MinGW builds on Windows.
+* More reasonable size of the "--help --verbose" message box on Windows.
+* Windows "--icon" switch changed from "-i" to "-c" to avoid conflicting with "--interface".
+* Shows "next server address" correctly in the configuration report when using "--forward-to".
+* Fix for "make install" when "man2html" is not available.
+* Updated init script.
+
 1.0.2 -> 1.1.0
 --------------
 * In proxy mode unexpected client-side disconnects and timeouts do not leave ".bad" files [see also bug-id 659039].

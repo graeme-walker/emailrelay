@@ -217,6 +217,10 @@ SOURCE=..\glib\ggetopt.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\glib\gidentity_win32.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\gnet\glinebuffer.cpp
 # End Source File
 # Begin Source File

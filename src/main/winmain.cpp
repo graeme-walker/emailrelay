@@ -18,7 +18,7 @@
 //
 // ===
 //
-// main_win32.cpp
+// winmain.cpp
 //
 
 #include "gdef.h"
@@ -27,6 +27,7 @@
 #include "gslot.h"
 #include "gexception.h"
 #include "winapp.h"
+#include "commandline.h"
 #include "run.h"
 
 int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous ,
@@ -40,7 +41,7 @@ int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous ,
 
 		try
 		{
-			Main::Run run( arg ) ;
+			Main::Run run( app , arg , Main::CommandLine::switchSpec(true) ) ;
 			if( run.prepare() )
 			{
 				const bool visible = ! run.cfg().daemon() ;

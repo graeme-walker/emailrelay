@@ -307,13 +307,15 @@ section above.
 However, this behaviour can be modified by using an external verifier program,
 using the "--verifier" command-line switch.
 
-The verifier program is passed a command-line containing: (1) the full address,
-(2) the user-name part of the address, (3) the host-name part, (4) the local
-host's fully qualified domain name, (5) the current "MAIL" command's "FROM:"
+The verifier program is passed a command-line containing: (1) the full
+address, (2) the user-name part of the address, (3) the host-name part, (4) the
+local host's fully qualified domain name, (5) the current "MAIL" command's "FROM:"
 address or the empty string for the "VRFY" command, (6) the IP address of the
 client connection, (7) the authentication mechanism used by the client ("NONE"
 if trusted), and (8) either the authentication name or the fourth field from
-authentication secrets file if a trusted IP address.
+authentication secrets file if a trusted IP address. Under Windows there is an
+additional command line argument: (1) is the file descriptor which must be
+used instead of stdout, (2) is the full address, etc.
 
 For valid local mailbox addresses the verifier is expected to write two lines to
 the standard output -- the full name associated with the mailbox, and the

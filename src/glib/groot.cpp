@@ -27,8 +27,8 @@
 #include "gdebug.h"
 
 G::Root * G::Root::m_this = NULL ;
-G::Process::Identity G::Root::m_special ;
-G::Process::Identity G::Root::m_nobody ;
+G::Identity G::Root::m_special( G::Identity::invalid() ) ;
+G::Identity G::Root::m_nobody( G::Identity::invalid() ) ;
 
 G::Root::Root( bool change_group ) :
 	m_change_group(change_group)
@@ -63,12 +63,12 @@ G::Root::~Root()
 //static
 void G::Root::init( const std::string & nobody )
 {
-	m_nobody = Process::Identity( nobody ) ;
+	m_nobody = nobody.empty() ? Identity::invalid() : Identity(nobody) ;
 	m_special = Process::beOrdinary( m_nobody ) ;
 }
 
 //static
-G::Process::Identity G::Root::nobody()
+G::Identity G::Root::nobody()
 {
 	return m_nobody ;
 }

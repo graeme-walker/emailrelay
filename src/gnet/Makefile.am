@@ -27,7 +27,8 @@ EXTRA_DIST=\
 	gresolve_win32.cpp \
 	gsocket_win32.cpp \
 	gaddress_ipv6.cpp \
-	gresolve_ipv6.cpp
+	gresolve_ipv6.cpp \
+	mingw.mak
 INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib 
 noinst_LIBRARIES = libgnet.a
 libgnet_a_SOURCES = gaddress_ipv4.cpp \
