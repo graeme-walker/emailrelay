@@ -110,8 +110,8 @@ public:
 		// on success. Not implemented on all platforms.
 
 private:
-	void operator=( const Resolver & ) ;
-	Resolver( const Resolver & ) ;
+	void operator=( const Resolver & ) ; // not implemented
+	Resolver( const Resolver & ) ; // not implemented
 	static bool resolveHost( const std::string & host_name , HostInfo & ) ;
 	static unsigned int resolveService( const std::string & host_name , bool , std::string & ) ;
 

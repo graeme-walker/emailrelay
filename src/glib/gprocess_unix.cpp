@@ -206,7 +206,7 @@ int G::Process::spawn( const G::Path & exe , const std::string & arg , int error
 
 bool G::Process::privileged()
 {
-	return getuid() == 0 || geteuid() == 0 ;
+	return ::getuid() == 0U || ::geteuid() == 0U ;
 }
 
 // ===

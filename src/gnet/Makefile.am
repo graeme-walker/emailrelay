@@ -31,12 +31,14 @@ noinst_LIBRARIES = libgnet.a
 libgnet_a_SOURCES = gaddress_ipv4.cpp \
 	gclient.cpp \
 	gclient_unix.cpp \
+	gconnection.cpp \
 	gdescriptor_unix.cpp \
 	gevent.cpp \
 	gevent_unix.cpp \
 	geventserver.cpp \
 	glinebuffer.cpp \
 	glocal_unix.cpp \
+	gmonitor.cpp \
 	gresolve.cpp \
 	gresolve_ipv4.cpp \
 	gresolve_unix.cpp \
@@ -46,11 +48,13 @@ libgnet_a_SOURCES = gaddress_ipv4.cpp \
 	gsocket_unix.cpp \
 	gaddress.h \
 	gclient.h \
+	gconnection.h \
 	gdescriptor.h \
 	gevent.h \
 	geventserver.h \
 	glinebuffer.h \
 	glocal.h \
+	gmonitor.h \
 	gnet.h \
 	grequest.h \
 	gresolve.h \

@@ -24,7 +24,7 @@ AM_INSTALL_PROGRAM_FLAGS=-s
 # change the local-state directory from .../var to .../var/spool/emailrelay
 localstatedir = ${prefix}/var/spool/emailrelay
 
-EXTRA_DIST=gmessagestore_win32.cpp emailrelay.dsp icon-32.ico empty_file doxygen.cfg emailrelay.rc
+EXTRA_DIST=commandline_win32.cpp main_win32.cpp gmessagestore_win32.cpp emailrelay.dsp icon-32.ico empty_file doxygen.cfg emailrelay.rc resource.h
 INCLUDES = -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet
 sbin_PROGRAMS = emailrelay 
 libexec_PROGRAMS = emailrelay-poke
@@ -62,7 +62,14 @@ emailrelay_SOURCES = \
 	gstoredmessage.h \
 	gverifier.cpp \
 	gverifier.h \
-	mailrelay.cpp
+	main_unix.cpp \
+	configuration.cpp \
+	configuration.h \
+	run.cpp \
+	run.h \
+	commandline.cpp \
+	commandline_unix.cpp \
+	commandline.h
 emailrelay_poke_SOURCES=poke.c
 emailrelay_LDADD = $(top_builddir)/src/glib/libglib.a $(top_builddir)/src/gnet/libgnet.a
 

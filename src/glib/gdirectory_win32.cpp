@@ -24,9 +24,9 @@
 #include "gdef.h"
 #include "gdirectory.h"
 #include "gfs.h"
-#include "gnumber.h"
 #include "gdebug.h"
 #include "glog.h"
+#include <iomanip>
 
 namespace G
 {
@@ -186,8 +186,8 @@ bool G::DirectoryIteratorImp::more()
 	if( m_first )
 	{
 		m_first = false ;
-		if( ::strcmp(m_context.cFileName,".") &&
-			::strcmp(m_context.cFileName,"..") )
+		if( std::string(m_context.cFileName) == "." ||
+			std::string(m_context.cFileName) == ".." )
 				return true ;
 
 		G_DEBUG( "G::DirectoryIteratorImp::more: ignoring " << m_context.cFileName);
@@ -214,8 +214,8 @@ bool G::DirectoryIteratorImp::more()
 		}
 
 		// go round again if . or ..
-		if( ::strcmp(m_context.cFileName,".") &&
-			::strcmp(m_context.cFileName,"..") )
+		if( std::string(m_context.cFileName) != "." &&
+			std::string(m_context.cFileName) != ".." )
 		{
 			G_DEBUG( "G::DirectoryIteratorImp::more: " << m_context.cFileName ) ;
 			break ;
@@ -277,12 +277,12 @@ std::string G::DirectoryIteratorImp::modificationTimeString() const
 		return std::string() ;
 	}
 
-	char buffer[50U] ;
-	::sprintf( buffer , "%lX%08lX" ,
-		(unsigned long)m_context.ftLastWriteTime.dwHighDateTime ,
-		(unsigned long)m_context.ftLastWriteTime.dwLowDateTime ) ;
+	const DWORD & hi = m_context.ftLastWriteTime.dwHighDateTime ;
+	const DWORD & lo = m_context.ftLastWriteTime.dwLowDateTime ;
 
-	return std::string(buffer) ;
+	std::stringstream ss ;
+	ss << hi << std::setw(8) << std::setfill('0') << lo ;
+	return ss.str() ;
 }
 
 std::string G::DirectoryIteratorImp::sizeString() const
@@ -292,7 +292,11 @@ std::string G::DirectoryIteratorImp::sizeString() const
 		return std::string( "0" ) ;
 	}
 
-	Number size( m_context.nFileSizeHigh , m_context.nFileSizeLow ) ;
-	return size.displayString() ;
+	const DWORD & hi = m_context.nFileSizeHigh ;
+	const DWORD & lo = m_context.nFileSizeLow ;
+
+	std::stringstream ss ;
+	ss << hi << std::setw(8) << std::setfill('0') << lo ;
+	return ss.str() ;
 }
 

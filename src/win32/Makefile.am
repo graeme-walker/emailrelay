@@ -18,8 +18,11 @@
 # 
 # ===
 
-EXTRA_DIST = gappinst.h \
+EXTRA_DIST = \
 	gappinst.cpp \
+	gappinst.h \
+	gappbase.cpp \
+	gappbase.h \
 	gcracker.cpp \
 	gcracker.h \
 	gpump.cpp \

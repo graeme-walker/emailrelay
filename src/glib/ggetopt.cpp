@@ -29,11 +29,6 @@
 #include "gassert.h"
 #include "gdebug.h"
 
-static void GetOpt__pushBack( void * out , const std::string & s )
-{
-	reinterpret_cast<G::GetOpt::StringArray*>(out)->push_back(s) ;
-}
-
 G::GetOpt::GetOpt( const Arg & args_in , const std::string & spec ,
 	char sep_major , char sep_minor , char escape ) :
 		m_args(args_in)
@@ -53,13 +48,14 @@ void G::GetOpt::parseSpec( const std::string & spec , char sep_major , char sep_
 
 void G::GetOpt::parseOldSpec( const std::string & spec )
 {
+	unsigned int ordinal = 1U ;
 	for( size_t i = 0U ; i < spec.length() ; i++ )
 	{
 		char c = spec.at(i) ;
 		if( c != ':' )
 		{
 			bool valued = (i+1U) < spec.length() && spec.at(i+1U) == ':' ;
-			addSpec( c , valued ) ;
+			addSpec( ordinal++ , c , valued ) ;
 		}
 	}
 }
@@ -70,6 +66,8 @@ void G::GetOpt::parseNewSpec( const std::string & spec , char sep_major ,
 	Strings outer ;
 	std::string ws_major( 1U , sep_major ) ;
 	G::Str::splitIntoFields( spec , outer , ws_major , escape , false ) ;
+
+	unsigned int ordinal = 1U ;
 	for( Strings::iterator p = outer.begin() ; p != outer.end() ; ++p )
 	{
 		StringArray inner ;
@@ -78,23 +76,34 @@ void G::GetOpt::parseNewSpec( const std::string & spec , char sep_major ,
 		if( inner.size() != 5U )
 			throw InvalidSpecification(std::stringstream() << "\"" << *p << "\" (" << ws_minor << ")") ;
 		bool valued = G::Str::toUInt( inner[3U] ) != 0U ;
-		addSpec( inner[0U].at(0U) , inner[1U] , inner[2U] , valued , inner[4U] ) ;
+		addSpec( ordinal++ , inner[0U].at(0U) , inner[1U] , inner[2U] , valued , inner[4U] ) ;
 	}
 }
 
-void G::GetOpt::addSpec( char c , bool valued )
+void G::GetOpt::addSpec( unsigned int ordinal , char c , bool valued )
 {
-	addSpec( c , std::string() , std::string() , valued , std::string() ) ;
+	addSpec( ordinal , c , std::string() , std::string() , valued , std::string() ) ;
 }
 
-void G::GetOpt::addSpec( char c , const std::string & name , const std::string & description ,
+void G::GetOpt::addSpec( unsigned int ordinal , char c , const std::string & name , const std::string & description ,
 	bool valued , const std::string & value_description )
 {
 	if( c == '\0' )
 		throw InvalidSpecification() ;
 
+	const bool debug = true ;
+	if( debug )
+	{
+		G_DEBUG( "G::GetOpt::addSpec: #" << ordinal << ": "
+			<< "char=" << c << ": "
+			<< "name=" << name << ": "
+			<< "description=" << description << ": "
+			<< "valued=" << (valued?"true":"false") << ": "
+			<< "value-description=" << value_description ) ;
+	}
+
 	std::pair<SwitchSpecMap::iterator,bool> rc =
-		m_spec_map.insert( std::make_pair(c,SwitchSpec(c,name,description,valued,value_description)) ) ;
+		m_spec_map.insert( std::make_pair(ordinal,SwitchSpec(c,name,description,valued,value_description)) ) ;
 
 	if( ! rc.second )
 		throw InvalidSpecification("duplication") ;
@@ -107,11 +116,12 @@ bool G::GetOpt::valued( const std::string & name ) const
 
 bool G::GetOpt::valued( char c ) const
 {
-	SwitchSpecMap::const_iterator p = m_spec_map.find( c ) ;
-	if( p == m_spec_map.end() )
-		return false ;
-	else
-		return (*p).second.valued ;
+	for( SwitchSpecMap::const_iterator p = m_spec_map.begin() ; p != m_spec_map.end() ; ++p )
+	{
+		if( (*p).second.c == c )
+			return (*p).second.valued ;
+	}
+	return false ;
 }
 
 char G::GetOpt::key( const std::string & name ) const
@@ -120,7 +130,7 @@ char G::GetOpt::key( const std::string & name ) const
 	{
 		if( (*p).second.name == name )
 		{
-			return (*p).first ;
+			return (*p).second.c ;
 		}
 	}
 	G_DEBUG( "G::GetOpt::key: " << name << " not found" ) ;
@@ -177,7 +187,7 @@ std::string G::GetOpt::usageSummaryPartOne() const
 			if( first )
 				ss << "[-" ;
 			first = false ;
-			ss << (*p).first ;
+			ss << (*p).second.c ;
 		}
 	}
 
@@ -201,7 +211,7 @@ std::string G::GetOpt::usageSummaryPartTwo() const
 			}
 			else
 			{
-				ss << "-" << (*p).first ;
+				ss << "-" << (*p).second.c ;
 			}
 			if( (*p).second.valued )
 			{
@@ -230,7 +240,7 @@ std::string G::GetOpt::usageHelpCore( const std::string & prefix , size_t tab_st
 		{
 			std::string line( prefix ) ;
 			line.append( "-" ) ;
-			line.append( 1U , (*p).first ) ;
+			line.append( 1U , (*p).second.c ) ;
 
 			if( (*p).second.name.length() )
 			{
@@ -458,15 +468,24 @@ void G::GetOpt::show( std::ostream &stream , std::string prefix ) const
 	{
 		char c = (*p).first ;
 		Value v = (*p).second ;
+		bool valued = v.first ;
+		std::string value = v.second ;
 
-		SwitchSpecMap::const_iterator q = m_spec_map.find( c ) ;
 		std::string name ;
-		if( q != m_spec_map.end() )
-			name = (*q).second.name ;
+		for( SwitchSpecMap::const_iterator q = m_spec_map.begin() ; q != m_spec_map.end() ; ++q )
+		{
+			if( (*q).second.c == c )
+			{
+				name = (*q).second.name ;
+				break ;
+			}
+		}
 
-		stream << prefix << "--" << name ;
-		if( v.first )
-			stream << " = \"" << v.second << "\"" ;
+		stream << prefix << "-" << c ;
+		if( !name.empty() )
+			stream << ",--" << name ;
+		if( valued )
+			stream << " = \"" << value << "\"" ;
 		stream << std::endl ;
 	}
 }
@@ -504,7 +523,12 @@ bool G::GetOpt::valid( const std::string & name ) const
 
 bool G::GetOpt::valid( char c ) const
 {
-	return m_spec_map.find( c ) != m_spec_map.end() ;
+	for( SwitchSpecMap::const_iterator p = m_spec_map.begin() ; p != m_spec_map.end() ; ++p )
+	{
+		if( (*p).second.c == c )
+			return true ;
+	}
+	return false ;
 }
 
 

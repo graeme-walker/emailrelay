@@ -27,6 +27,7 @@
 #include "gdef.h"
 #include "gnet.h"
 #include "gaddress.h"
+#include "gconnection.h"
 #include "gsocket.h"
 #include "gevent.h"
 #include <string>
@@ -43,7 +44,7 @@ namespace GNet
 // issues, and it reads incoming data. There is some support for flow-control
 // issues when writing data out to the server.
 //
-class GNet::Client
+class GNet::Client : public GNet:: Connection
 {
 public:
 	explicit Client( bool priviledged = false , bool quit_on_disconnect = false ) ;
@@ -86,6 +87,14 @@ public:
 
 	virtual ~Client() ;
 		// Destructor.
+
+	virtual std::pair<bool,Address> localAddress() const ;
+		// Returns the local address.
+		// Pair.first is false on error.
+
+	virtual std::pair<bool,Address> peerAddress() const ;
+		// Returns the peer address.
+		// Pair.first is false on error.
 
 protected:
 	friend class ClientImp ;

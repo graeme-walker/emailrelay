@@ -57,12 +57,12 @@ void G::LogOutput::itoa( char *out , unsigned int n )
 
 	if( n == 0U )
 	{
-		out[0] = '0' ;
-		out[1] = '\0' ;
+		out[0U] = '0' ;
+		out[1U] = '\0' ;
 	}
 	else
 	{
-		char buffer[15] ;
+		char buffer[15U] ;
 		char *p = buffer + sizeof(buffer) - 1 ;
 		*p-- = '\0' ;
 
@@ -72,7 +72,7 @@ void G::LogOutput::itoa( char *out , unsigned int n )
 			n /= 10U ;
 		}
 
-		::strcpy( out , p+1 ) ;
+		std::strcpy( out , p+1 ) ;
 	}
 }
 
@@ -84,7 +84,7 @@ void G::LogOutput::output( G::Log::Severity severity , const char *text )
 		if( severity != G::Log::s_Debug || m_this->m_verbose )
 		{
 			m_this->rawOutput( severity , text ? text : "" ) ;
-			if( text && text[0] && text[std::strlen(text)-1] != '\n' )
+			if( text && text[0U] && text[std::strlen(text)-1U] != '\n' )
 				m_this->rawOutput( severity , "\n" ) ;
 		}
 	}
@@ -100,11 +100,11 @@ void G::LogOutput::output( G::Log::Severity severity , const char *file, unsigne
 	if( m_this == NULL || !m_this->m_enabled )
 		return ;
 
-	char buffer[500] ;
-	buffer[0] = '\0' ;
+	char buffer[500U] ;
+	buffer[0U] = '\0' ;
 	if( severity == G::Log::s_Debug )
 		fileAndLine( buffer , sizeof(buffer) , file , line ) ;
-	std::strncat( buffer + std::strlen(buffer) , text , sizeof(buffer) - 1 - std::strlen(buffer) ) ;
+	std::strncat( buffer + std::strlen(buffer) , text , sizeof(buffer) - 1U - std::strlen(buffer) ) ;
 	output( severity , buffer ) ;
 }
 
@@ -121,33 +121,33 @@ void G::LogOutput::onAssert()
 //static
 void G::LogOutput::fileAndLine( char *buffer , size_t size , const char *file , int line )
 {
-	const char *forward = ::strrchr( file , '/' ) ;
-	const char *back = ::strrchr( file , '\\' ) ;
+	const char *forward = std::strrchr( file , '/' ) ;
+	const char *back = std::strrchr( file , '\\' ) ;
 	const char *last = forward > back ? forward : back ;
 	const char *basename = last ? (last+1) : file ;
 
-	std::strncat( buffer+std::strlen(buffer) , basename , size-std::strlen(buffer)-1 ) ;
-	std::strncat( buffer+std::strlen(buffer) , "(" , size-std::strlen(buffer)-1 ) ;
-	char b[15] ;
-	itoa( b , line ) ;
-	std::strncat( buffer+std::strlen(buffer) , b , size-std::strlen(buffer)-1 ) ;
-	std::strncat( buffer+std::strlen(buffer) , "): " , size-std::strlen(buffer)-1 ) ;
+	std::strncat( buffer+std::strlen(buffer) , basename , size-std::strlen(buffer)-1U ) ;
+	std::strncat( buffer+std::strlen(buffer) , "(" , size-std::strlen(buffer)-1U ) ;
+	char b[15U] ;
+	itoa( b , line ) ; // (implemented above)
+	std::strncat( buffer+std::strlen(buffer) , b , size-std::strlen(buffer)-1U ) ;
+	std::strncat( buffer+std::strlen(buffer) , "): " , size-std::strlen(buffer)-1U ) ;
 }
 
 void G::LogOutput::assertion( const char *file , unsigned line , bool test , const char *test_string )
 {
 	if( !test )
 	{
-		char buffer[100] ;
+		char buffer[100U] ;
 		std::strcpy( buffer , "Assertion error: " ) ;
-		size_t size = sizeof(buffer) - 10 ; // -10 for luck
+		size_t size = sizeof(buffer) - 10U ; // -10 for luck
 		if( file )
 		{
 			fileAndLine( buffer , size , file , line ) ;
 		}
 		if( test_string )
 		{
-			std::strncat( buffer+std::strlen(buffer) , test_string , size-std::strlen(buffer)-1);
+			std::strncat( buffer+std::strlen(buffer) , test_string , size-std::strlen(buffer)-1U);
 		}
 
 		if( instance() )

@@ -18,13 +18,14 @@
 //
 // ===
 //
-// gadmin.h
+// gadminserver.cpp
 //
 
 #include "gdef.h"
 #include "gnet.h"
 #include "gsmtp.h"
 #include "gadminserver.h"
+#include "gmonitor.h"
 #include "gstr.h"
 #include "gmemory.h"
 
@@ -42,6 +43,7 @@ GSmtp::AdminPeer::AdminPeer( GNet::StreamSocket * s , GNet::Address a , AdminSer
 		m_buffer(crlf()) ,
 		m_server_address(server_address)
 {
+	// dont prompt() here -- it confuses the poke program
 }
 
 void GSmtp::AdminPeer::clientDone( std::string s )
@@ -50,6 +52,8 @@ void GSmtp::AdminPeer::clientDone( std::string s )
 		send( "OK" ) ;
 	else
 		send( std::string("error: ") + s ) ;
+
+	prompt() ;
 }
 
 void GSmtp::AdminPeer::onDelete()
@@ -75,6 +79,12 @@ bool GSmtp::AdminPeer::processLine( const std::string & line )
 	else if( is(line,"HELP") )
 	{
 		help() ;
+		prompt() ;
+	}
+	else if( is(line,"INFO") )
+	{
+		info() ;
+		prompt() ;
 	}
 	else if( is(line,"QUIT") )
 	{
@@ -84,6 +94,11 @@ bool GSmtp::AdminPeer::processLine( const std::string & line )
 	else if( line.find_first_not_of(" \r\n\t") != std::string::npos )
 	{
 		send( "error: unrecognised command" ) ;
+		prompt() ;
+	}
+	else
+	{
+		prompt() ;
 	}
 	return true ;
 }
@@ -105,7 +120,7 @@ bool GSmtp::AdminPeer::is( const std::string & line_in , const char * key )
 
 void GSmtp::AdminPeer::help()
 {
-	send( "commands: FLUSH, HELP, QUIT" ) ;
+	send( "commands: FLUSH, HELP, INFO, QUIT" ) ;
 }
 
 void GSmtp::AdminPeer::flush( const std::string & address )
@@ -127,13 +142,33 @@ void GSmtp::AdminPeer::flush( const std::string & address )
 	}
 }
 
+void GSmtp::AdminPeer::prompt()
+{
+	std::string p( "E-MailRelay> " ) ;
+	ssize_t rc = socket().write( p.data() , p.length() ) ;
+	if( rc < p.length() )
+		doDelete() ; // onDelete() and "delete this"
+}
+
 void GSmtp::AdminPeer::send( std::string line )
 {
 	line.append( crlf() ) ;
 	ssize_t rc = socket().write( line.data() , line.length() ) ;
 	if( rc < line.length() )
-	{
 		doDelete() ; // onDelete() and "delete this"
+}
+
+void GSmtp::AdminPeer::info()
+{
+	std::stringstream ss ;
+	if( GNet::Monitor::instance() )
+	{
+		GNet::Monitor::instance()->report( ss ) ;
+		send( ss.str() ) ;
+	}
+	else
+	{
+		send( "no info" ) ;
 	}
 }
 

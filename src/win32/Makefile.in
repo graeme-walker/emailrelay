@@ -89,7 +89,7 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-EXTRA_DIST = gappinst.h 	gappinst.cpp 	gcracker.cpp 	gcracker.h 	gpump.cpp 	gpump.h 	gpump_nodialog.cpp 	gsize.h 	gwinbase.cpp 	gwinbase.h 	gwindow.cpp 	gwindow.h 	gwinhid.cpp 	gwinhid.h
+EXTRA_DIST =  	gappinst.cpp 	gappinst.h 	gappbase.cpp 	gappbase.h 	gcracker.cpp 	gcracker.h 	gpump.cpp 	gpump.h 	gpump_nodialog.cpp 	gsize.h 	gwinbase.cpp 	gwinbase.h 	gwindow.cpp 	gwindow.h 	gwinhid.cpp 	gwinhid.h
 
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../../config.h

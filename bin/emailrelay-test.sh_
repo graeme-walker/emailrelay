@@ -21,7 +21,7 @@
 #
 # emailrelay-test.sh
 #
-# Test the E-MailRelay system.
+# Tests the E-MailRelay system.
 #
 # Creates four temporary spool directories under /tmp and runs
 # four emailrelay servers to bucket-brigade a test message from one to 
@@ -34,9 +34,22 @@
 # If this test takes more than a second or two then it has failed.
 #
 
+# configuration
+#
 exe="../src/main/emailrelay"
 poke="../src/main/emailrelay-poke"
+null_filter="/bin/touch"
 pp="1001" # port-prefix
+
+# configuration fallback
+#
+if test \! -f ${null_filter} 
+then 
+	null_filter="/usr/bin/touch"
+fi
+
+# initialisation
+#
 base_dir="/tmp/`basename $0`.$$.tmp"
 exit_code="1"
 
@@ -144,7 +157,7 @@ trap "Trap 0 ; exit" 0
 StartTimer
 RunServer ${pp}1 store-2 log-1 pid-1
 RunServer ${pp}2 store-2 log-2 pid-2 "--admin ${pp}9 --forward-to localhost:${pp}3"
-RunServer ${pp}3 store-3 log-3 pid-3 "--immediate --forward-to localhost:${pp}4 --filter /bin/touch"
+RunServer ${pp}3 store-3 log-3 pid-3 "--immediate --forward-to localhost:${pp}4 --filter ${null_filter}"
 RunServer ${pp}4 store-4 log-4 pid-4
 CreateMessages
 RunClient localhost:${pp}1 store-1 log-c pid-5

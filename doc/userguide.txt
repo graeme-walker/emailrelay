@@ -49,16 +49,14 @@ In particular the configuration of some popular MTAs is notoriously complex
 and arcane, whereas the only thing the E-MailRelay system needs is the name of
 your ISP's mail server.
 
-With the move away from dial-up Internet connections a simple store-and-forward
-MTA like E-MailRelay becomes more relevant to mobile computers and PDAs which
-need to store mail while away from the network.
+Even with the move away from dial-up Internet connections a simple
+store-and-forward MTA like E-MailRelay may still be useful for mobile computers
+and PDAs which need to store mail while away from the network.
 
-The source code for E-MailRelay is well-structured, portable ANSI C++, without
-any third-party library dependencies. It could therefore be the basis for other
-SMTP projects such as, for example, an anonymising remailer or an encryption
-gateway. E-MailRelay is well suited to gateway applications (sitting between
-local e-mail clients and a local routing MTA) because of its functional
-simplicity.
+E-MailRelay can also pre-process the e-mail messages which pass through it. This
+could be used to compensate for features, such as encryption, which are not
+available in your e-mail client program, or it could be used to enforce
+formatting or legal requirements for all outgoing mail.
 
 Running E-MailRelay
 -------------------
@@ -73,19 +71,13 @@ a command like this:
 
 where "mail.myisp.net" is replaced with the name of your ISP's SMTP server.
 
-(E-MailRelay can also combine the two roles of storage daemon and forwarding
-client in one process. In this mode the storage service is always available,
-but the forwarding activity has to be triggered via the "administration"
-interface. The administration interface is a command-line network service
-compatible with telnet. The interface must be enabled using the "--admin"
-command line switch, specifying the listening port number.)
-
 To run E-MailRelay as a personal proxy server (on port 10025) to the system's
-default server use a command like this:
+default MTA use a command something like this:
 
 	emailrelay --as-proxy localhost:smtp --no-syslog --port 10025 --filter ${HOME}/.emailrelay/mailfilter --spool-dir ${HOME}/.emailrelay/spool
 
-where 'mailfilter' is a program which does the appropriate mail processing.
+where "mailfilter" is a program which you have written to do the appropriate
+mail processing.
 
 For more information on the command-line options refer to the reference guide
 or run:

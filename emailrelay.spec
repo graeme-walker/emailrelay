@@ -1,10 +1,10 @@
 Summary: Simple e-mail message transfer agent using SMTP
 Name: emailrelay
-Version: 0.9.3
+Version: 0.9.4
 Release: 1
 Copyright: GPL
 Group: System Environment/Daemons
-Source: http://emailrelay.sourceforge.net/.../emailrelay-src-0.9.3.tar.gz
+Source: http://emailrelay.sourceforge.net/.../emailrelay-src-0.9.4.tar.gz
 BuildRoot: /tmp/emailrelay-install
 
 %description
@@ -25,10 +25,10 @@ under the GNU General Public License.
 
 %build
 ./configure
-make
+make HAVE_DOXYGEN=no
 
 %install
-make install destdir=$RPM_BUILD_ROOT DESTDIR=$RPM_BUILD_ROOT
+make install destdir=$RPM_BUILD_ROOT DESTDIR=$RPM_BUILD_ROOT HAVE_DOXYGEN=no
 
 %clean
 rm -rf $RPM_BUILD_ROOT

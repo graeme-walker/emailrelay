@@ -27,6 +27,7 @@
 #include "gsocket.h"
 #include "gdatetime.h"
 #include "gresolve.h"
+#include "gmonitor.h"
 #include "gclient.h"
 #include "gdebug.h"
 #include "gassert.h"
@@ -98,12 +99,15 @@ public:
 	std::string startConnecting( const Address & , bool & ) ;
 	Status connectCore( Address , std::string * , bool , unsigned int ) ;
 	void disconnect() ;
-	StreamSocket & s()  ;
+	StreamSocket & s() ;
+	const StreamSocket & s() const ;
 	void run() ;
 	void close() ;
 	void blocked() ;
 	bool connected() const ;
 	void setState( State ) ;
+	std::pair<bool,Address> localAddress() const ;
+	std::pair<bool,Address> peerAddress() const ;
 
 private:
 	ClientImp( const ClientImp & ) ;
@@ -118,10 +122,12 @@ GNet::Client::Client( bool priviledged , bool quit_on_disconnect ) :
 {
 	G_DEBUG( "Client::ctor" ) ;
 	m_imp = new ClientImp( *this , priviledged , quit_on_disconnect ) ;
+	if( Monitor::instance() ) Monitor::instance()->add( *this ) ;
 }
 
 GNet::Client::~Client()
 {
+	if( Monitor::instance() ) Monitor::instance()->remove( *this ) ;
 	delete m_imp ;
 }
 
@@ -148,6 +154,16 @@ void GNet::Client::blocked()
 void GNet::Client::disconnect()
 {
 	m_imp->disconnect() ;
+}
+
+std::pair<bool,GNet::Address> GNet::Client::localAddress() const
+{
+	return m_imp->localAddress() ;
+}
+
+std::pair<bool,GNet::Address> GNet::Client::peerAddress() const
+{
+	return m_imp->peerAddress() ;
 }
 
 // ===
@@ -181,6 +197,12 @@ int GNet::ClientImp::getRandomPort()
 }
 
 GNet::StreamSocket & GNet::ClientImp::s()
+{
+	G_ASSERT( m_s != NULL ) ;
+	return *m_s ;
+}
+
+const GNet::StreamSocket & GNet::ClientImp::s() const
 {
 	G_ASSERT( m_s != NULL ) ;
 	return *m_s ;
@@ -453,6 +475,16 @@ void GNet::ClientImp::setState( State new_state )
 void GNet::ClientImp::run()
 {
 	EventSources::instance().run() ;
+}
+
+std::pair<bool,GNet::Address> GNet::ClientImp::localAddress() const
+{
+	return s().getLocalAddress() ;
+}
+
+std::pair<bool,GNet::Address> GNet::ClientImp::peerAddress() const
+{
+	return s().getPeerAddress() ;
 }
 
 // ===

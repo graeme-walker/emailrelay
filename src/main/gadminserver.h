@@ -71,11 +71,13 @@ private:
 	static bool is( const std::string & , const char * ) ;
 	void flush( const std::string & ) ;
 	void help() ;
+	void info() ;
 	void send( std::string ) ;
+	static std::string crlf() ;
+	void prompt() ;
 
 private:
 	GNet::LineBuffer m_buffer ;
-	static std::string crlf() ;
 	AdminServer & m_server ;
 	std::auto_ptr<GSmtp::AdminClient> m_client ;
 	std::string m_server_address ;

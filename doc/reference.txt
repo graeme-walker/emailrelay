@@ -175,6 +175,11 @@ must have been defined on the "emailrelay" command line at start-up using the
 "--forward-to" switch; it cannot be specified through the administration
 interface.
 
+The "flush" command allows you to run a single process which combines the
+functionality of storage daemon and forwarding client. This might be useful
+in systems which are low on memory: the memory footprint of "telnet" or
+"emailrelay-poke" will be much smaller than "emailrelay --as-client".
+
 Mail pre-processing
 -------------------
 The "--filter" command-line switch allows you to specify a pre-processor program

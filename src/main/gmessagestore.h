@@ -111,6 +111,11 @@ public:
 		// iterators share state. For independent iterators
 		// call iterator() for each.)
 		//
+		// Stored messages returned by the iterator are locked.
+		// Normally they are then processed (using
+		// StoredMessage::extractContentStream()) and
+		// then deleted (by StoredMessage::destroy()).
+		//
 		// As a side effect of iteration some stored
 		// messages may be marked as bad, or deleted (if
 		// they have no recipients).

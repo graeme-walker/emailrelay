@@ -9,9 +9,9 @@ utility functions, logging, command line parsing etc., and "gnet" provides
 network classes using the Berkley socket and Winsock APIs. Both libraries
 are portable between POSIX-like systems (eg. Linux) and Windows.
 
-The application-level classes are implemented within the "GSmtp" namespace.
-The key interfaces in this namespace are "ClientProtocol", "ServerProtocol" and
-"MessageStore".
+The application-level classes are implemented within the "GSmtp" and "Main"
+namespaces. The key interfaces in the "GSmtp" namespace are "ClientProtocol",
+"ServerProtocol" and "MessageStore".
 
 Under Windows there is an additional library for event handling. Windows has
 historically built network event processing on top of the GUI event system,
@@ -137,16 +137,10 @@ these cases there are three source files per header. For example, "gsocket.cpp",
 
 Porting to other compilers
 --------------------------
-If trying a port using a good ANSI C++ compiler then start by removing files
-from the "lib/gcc2.95" directory (or edit makefiles to remove the include path),
-and then review the following header files: "src/glib/gdef.h",
-"src/gnet/gnet.h", "src/glib/gmemory.h".
-
-The unix (ie. POSIX-like) implementation of the directory iteration class
-uses glob(). This functionality is only used by the message store code in
-the "src/main" directory. If glob() presents a porting challenge then
-the filename matching could be removed from the directory iterator and
-moved into the message store class.
+If porting to a good ANSI C++ compiler then start by removing files from the
+"lib/gcc2.95" directory (or edit makefiles to remove the include path), and then
+review the following header files: "src/glib/gdef.h", "src/gnet/gnet.h",
+"src/glib/gmemory.h".
 
 IPv6
 ----

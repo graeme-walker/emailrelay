@@ -27,6 +27,7 @@
 #include "gdef.h"
 #include "gnet.h"
 #include "gsocket.h"
+#include "gconnection.h"
 #include "gselect.h"
 #include "gevent.h"
 #include <list>
@@ -82,8 +83,8 @@ protected:
 			// May return NULL.
 
 private:
-	Server( const Server& ) ;
-	void operator=( const Server& ) ;
+	Server( const Server & ) ; // not implemented
+	void operator=( const Server & ) ; // not implemented
 	virtual void readEvent() ; // see EventHandler
 	virtual void writeEvent() ; // see EventHandler
 	virtual void exceptionEvent() ; // see EventHandler
@@ -99,7 +100,7 @@ private:
 // delete themselves when the connection is lost.
 // See also: GNet::Server, GNet::EventHandler
 //
-class GNet::ServerPeer : public GNet:: EventHandler
+class GNet::ServerPeer : public GNet:: EventHandler , public GNet:: Connection
 {
 public:
 	ServerPeer( StreamSocket * , Address ) ;
@@ -129,6 +130,14 @@ public:
 		// log message to destinguish one connection
 		// from another.
 
+	virtual std::pair<bool,Address> localAddress() const ;
+		// Returns the local address.
+		// Pair.first is false on error.
+
+	virtual std::pair<bool,Address> peerAddress() const ;
+		// Returns the peer address.
+		// Pair.first is false on error.
+
 protected:
 	virtual ~ServerPeer() ;
 		// Destructor. Note that objects will delete
@@ -148,8 +157,8 @@ protected:
 
 private:
 	void readEvent() ;
-	ServerPeer( const ServerPeer & ) ;
-	void operator=( const ServerPeer & ) ;
+	ServerPeer( const ServerPeer & ) ; // not implemented
+	void operator=( const ServerPeer & ) ; // not implemented
 
 private:
 	unsigned int m_ref_count ;

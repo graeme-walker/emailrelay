@@ -48,11 +48,22 @@ public:
 	G_EXCEPTION( Dangerous , "message filtering not allowed if running as a privileged process" ) ;
 
 	NewFile( const std::string & from , FileStore & store ) ;
+		// Constructor.
+
 	virtual ~NewFile() ;
+		// Destructor.
+
 	virtual void addTo( const std::string & to , bool local ) ;
+		// Adds a 'to' address.
+
 	virtual void addText( const std::string & line ) ;
+		// Adds a line of content.
+
 	virtual void store() ;
+		// Stores the message in the message store.
+
 	virtual unsigned long id() const ;
+		// Returns the message's unique identifier.
 
 	static void setPreprocessor( const G::Path & exe ) ;
 		// Defines a program which is used for pre-processing

@@ -34,7 +34,7 @@
 
 	// Autoconf stuff
 	//
-	#if HAVE_CONFIG_H
+	#if defined(HAVE_CONFIG_H)
 
 		#include <config.h>
 
@@ -82,48 +82,26 @@
 		#define G_WINDOWS
 	#endif
 
-	// Define the compiler and its capabilities
+	// Define the compiler
 	//
 	#if defined( _MSC_VER )
 		#define G_COMPILER_IS_MICROSOFT 1
-		// #define G_COMPILER_HAS_... 0
 	#endif
 	#if defined( __GNUC__ )
 		#define G_COMPILER_IS_GNU 1
-		// #define G_COMPILER_HAS_... 1
 	#endif
 
-	// Modify compiler error handling for system headers
-	//
-	#if defined( G_COMPILER_IS_MICROSOFT )
-		#pragma warning( disable : 4514 ) // don't reenable
-		#pragma warning( push , 3 )
-		#pragma warning( disable : 4201 )
-		#pragma warning( disable : 4514 ) // again
-		#pragma warning( disable : 4663 4018 4146 4018 )
-		#pragma warning( disable : 4244 4100 4512 4511 )
-	#endif
-
-	// Include main operating-system headers
+	// Include main o/s headers
 	//
 	#if defined( G_WINDOWS )
 		#include <windows.h>
 		#include <shellapi.h>
 	#else
 		#include <unistd.h>
-		#include <sys/stat.h> // <cstat> ??
+		#include <sys/stat.h>
 	#endif
 
-	// Restore complier error handling
-	//
-	#if defined( G_COMPILER_IS_MICROSOFT )
-		#pragma warning( default : 4201 )
-		#pragma warning( default : 4663 4018 4146 4018 )
-		#pragma warning( default : 4244 4100 4512 4511 )
-		#pragma warning( pop )
-	#endif
-
-	// Define Windows-style types (under Unix these
+	// Define Windows-style types (under unix these
 	// are only used for unimplemented declarations)
 	//
 	#if ! defined( G_WINDOWS )

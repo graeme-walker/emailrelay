@@ -89,11 +89,11 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-EXTRA_DIST = garg_win32.cpp 	gdaemon_win32.cpp 	gdatetime_win32.cpp 	gdirectory_win32.cpp 	gfs_win32.cpp 	glogoutput_win32.cpp 	gprocess_win32.cpp 	gfile_win32.cpp 	gnumber.cpp
+EXTRA_DIST = garg_win32.cpp 	gdaemon_win32.cpp 	gdatetime_win32.cpp 	gdirectory_win32.cpp 	gfs_win32.cpp 	glogoutput_win32.cpp 	gprocess_win32.cpp 	gfile_win32.cpp
 
 INCLUDES = -I$(top_srcdir)/lib/gcc2.95
 noinst_LIBRARIES = libglib.a
-libglib_a_SOURCES =  	garg.cpp 	garg.h 	garg_unix.cpp 	gassert.h 	gconvert.h 	gdaemon.h 	gdaemon_unix.cpp 	gdate.cpp 	gdate.h 	gdatetime.cpp 	gdatetime.h 	gdatetime_unix.cpp 	gdebug.h 	gdef.h 	gdirectory.cpp 	gdirectory.h 	gdirectory_unix.cpp 	gexception.cpp 	gexception.h 	gfile.cpp 	gfile.h 	gfile_unix.cpp 	gfs.h 	gfs_unix.cpp 	ggetopt.cpp 	ggetopt.h 	glog.cpp 	glog.h 	glogoutput.cpp 	glogoutput.h 	glogoutput_unix.cpp 	gmemory.h 	gnumber.h 	gpath.cpp 	gpath.h 	gprocess.h 	gprocess_unix.cpp 	gstr.cpp 	gstr.h 	gstrings.h 	gtime.cpp 	gtime.h
+libglib_a_SOURCES =  	garg.cpp 	garg.h 	garg_unix.cpp 	gassert.h 	gconvert.h 	gdaemon.h 	gdaemon_unix.cpp 	gdate.cpp 	gdate.h 	gdatetime.cpp 	gdatetime.h 	gdatetime_unix.cpp 	gdebug.h 	gdef.h 	gdirectory.cpp 	gdirectory.h 	gdirectory_unix.cpp 	gexception.cpp 	gexception.h 	gfile.cpp 	gfile.h 	gfile_unix.cpp 	gfs.h 	gfs_unix.cpp 	ggetopt.cpp 	ggetopt.h 	glog.cpp 	glog.h 	glogoutput.cpp 	glogoutput.h 	glogoutput_unix.cpp 	gmemory.h 	gpath.cpp 	gpath.h 	gprocess.h 	gprocess_unix.cpp 	gstr.cpp 	gstr.h 	gstrings.h 	gtime.cpp 	gtime.h
 
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../../config.h

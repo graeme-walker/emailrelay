@@ -24,6 +24,7 @@
 #include "gdef.h"
 #include "gnet.h"
 #include "gserver.h"
+#include "gmonitor.h"
 #include "gdebug.h"
 #include "gassert.h"
 
@@ -34,12 +35,14 @@ GNet::ServerPeer::ServerPeer( StreamSocket * s , Address a )  :
 {
 	G_ASSERT( m_socket != NULL ) ;
 	G_DEBUG( "GNet::ServerPeer::ctor: fd " << m_socket->asString() << ": " << m_address.displayString() ) ;
+	if( Monitor::instance() ) Monitor::instance()->add(*this) ;
 	m_socket->addReadHandler( *this ) ;
 }
 
 GNet::ServerPeer::~ServerPeer()
 {
 	G_DEBUG( "GNet::ServerPeer::dtor: fd " << m_socket->asString() ) ;
+	if( Monitor::instance() ) Monitor::instance()->remove(*this) ;
 	m_socket->dropReadHandler() ;
 	delete m_socket ;
 	m_socket = NULL ;
@@ -93,11 +96,32 @@ bool GNet::ServerPeer::down()
 	return m_ref_count == 0U ;
 }
 
+std::pair<bool,GNet::Address> GNet::ServerPeer::localAddress() const
+{
+	G_ASSERT( m_socket != NULL ) ;
+	return m_socket->getLocalAddress() ;
+}
+
+std::pair<bool,GNet::Address> GNet::ServerPeer::peerAddress() const
+{
+	G_ASSERT( m_socket != NULL ) ;
+	return m_socket->getPeerAddress() ;
+}
+
 // ===
 
-GNet::Server::Server( unsigned int listening_port )
+GNet::Server::Server( unsigned int listening_port ) :
+	m_socket(NULL)
 {
-	init( listening_port ) ;
+	try
+	{
+		init( listening_port ) ;
+	}
+	catch(...)
+	{
+		delete m_socket ;
+		throw ;
+	}
 }
 
 GNet::Server::Server() :

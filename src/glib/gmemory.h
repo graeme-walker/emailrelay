@@ -27,7 +27,10 @@
 #include "gdef.h"
 #include <memory>
 
+// define HAVE_NONCONST_AUTOPTR
+//
 #if HAVE_CONFIG_H
+  // autoconf's config.h
   #include <config.h>
 #else
   #ifdef G_WINDOWS
@@ -38,12 +41,11 @@
 #endif
 
 // Template function: operator<<=
-// Description: A fix for the problem of resetting
-// an auto_ptr portably. MSVC6.0 does not have a reset
-// method, and GCC 2.95 has a non-const assignment
-// operators. This means that the MSVC code and
-// the GCC code for resetting auto_ptr<>s has to
-// be quite different. This operator hides
+// Description: A fix for the problem of resetting an auto_ptr<>
+// portably. MSVC6.0 & GCC 2.91 do not have a reset() method,
+// and GCC 2.95 has a non-const assignment operators. This means
+// that the MSVC code and the GCC 2.95 code for resetting
+// auto_ptr<>s has to be quite different. This operator hides
 // those differences.
 //
 // Usage:

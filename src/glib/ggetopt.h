@@ -137,7 +137,7 @@ private:
 				hidden(description_.empty()) ,
 				valued(v_) , value_description(vd_) {}
 	} ;
-	typedef std::map<char,SwitchSpec GLessAllocator(char,SwitchSpec) > SwitchSpecMap ;
+	typedef std::map<unsigned int,SwitchSpec GLessAllocator(char,SwitchSpec) > SwitchSpecMap ;
 	typedef std::pair<bool,std::string> Value ;
 	typedef std::map<char,Value GLessAllocator(char,Value) > SwitchMap ;
 
@@ -146,8 +146,8 @@ private:
 	void parseSpec( const std::string & spec , char , char , char ) ;
 	void parseOldSpec( const std::string & spec ) ;
 	void parseNewSpec( const std::string & spec , char , char , char ) ;
-	void addSpec( char c , bool valued ) ;
-	void addSpec( char c , const std::string & name , const std::string & , bool valued , const std::string & ) ;
+	void addSpec( unsigned int ordinal , char c , bool valued ) ;
+	void addSpec( unsigned int ordinal , char c , const std::string & name , const std::string & , bool valued , const std::string & ) ;
 	size_t parseArgs( const Arg & args_in ) ;
 	bool isOldSwitch( const std::string & arg ) const ;
 	bool isNewSwitch( const std::string & arg ) const ;

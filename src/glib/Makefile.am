@@ -24,8 +24,7 @@ EXTRA_DIST=garg_win32.cpp \
 	gfs_win32.cpp \
 	glogoutput_win32.cpp \
 	gprocess_win32.cpp \
-	gfile_win32.cpp \
-	gnumber.cpp
+	gfile_win32.cpp
 INCLUDES = -I$(top_srcdir)/lib/gcc2.95
 noinst_LIBRARIES = libglib.a
 libglib_a_SOURCES = \
@@ -61,7 +60,6 @@ libglib_a_SOURCES = \
 	glogoutput.h \
 	glogoutput_unix.cpp \
 	gmemory.h \
-	gnumber.h \
 	gpath.cpp \
 	gpath.h \
 	gprocess.h \
