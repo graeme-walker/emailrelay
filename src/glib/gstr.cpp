@@ -214,6 +214,13 @@ unsigned short G::Str::toUShort( const std::string &s , bool limited )
 	return ushort_val ;
 }
 
+std::string G::Str::fromUInt( unsigned int n )
+{
+	std::stringstream ss ;
+	ss << n ;
+	return ss.str() ;
+}
+
 void G::Str::toLower( std::string &s )
 {
 	for( std::string::iterator p = s.begin() ; p != s.end() ; ++p )

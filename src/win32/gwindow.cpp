@@ -201,10 +201,8 @@ LRESULT GGui::Window::wndProcCore( unsigned msg , WPARAM wparam , LPARAM lparam 
 	}
 	catch( std::exception & e )
 	{
-		// absorb the exception
-		G_DEBUG( "GGui::Window::wndProcCore: exception: " << e.what() ) ;
-		defolt = true ;
-		return 0 ; // ignored
+		onException( e ) ;
+		return 0 ;
 	}
 }
 
@@ -216,8 +214,7 @@ bool GGui::Window::onCreateCore()
 	}
 	catch( std::exception & e )
 	{
-		// absorb the exception
-		G_DEBUG( "GGui::Window::onCreateCore: exception: " << e.what() ) ;
+		onException( e ) ;
 		return false ;
 	}
 }
@@ -288,19 +285,6 @@ GGui::Size GGui::Window::borderSize( bool has_menu )
 	return size ;
 }
 
-GGui::Size GGui::Window::clientSize() const
-{
-	Size size ;
-	RECT rect ;
-	BOOL success = ::GetClientRect( handle() , &rect ) ;
-//	if( success )
-	{
-		size.dx = rect.right ;
-		size.dy = rect.bottom ;
-	}
-	return size ;
-}
-
 void GGui::Window::resize( Size new_size , bool repaint )
 {
 	// note that GetWindowRect() returns coordinates
@@ -327,5 +311,13 @@ void GGui::Window::resize( Size new_size , bool repaint )
 			new_size.dy ,
 			repaint ) ;
 	}
+}
+
+void GGui::Window::onException( std::exception & e )
+{
+	// it is not clear that it is safe to throw out of a
+	// window procedure, but it seems to work okay
+	//
+	throw ;
 }
 

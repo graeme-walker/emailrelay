@@ -42,6 +42,7 @@ public:
 	unsigned long dx ;
 	unsigned long dy ;
 	Size() ;
+	Size( unsigned long dx , unsigned long dy ) ;
 	void streamOut( std::ostream & ) const ;
 } ;
 
@@ -49,6 +50,13 @@ inline
 GGui::Size::Size() :
 	dx(0) ,
 	dy(0)
+{
+}
+
+inline
+GGui::Size::Size( unsigned long dx_ , unsigned long dy_ ) :
+	dx(dx_) ,
+	dy(dy_)
 {
 }
 

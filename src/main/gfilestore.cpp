@@ -96,6 +96,7 @@ GSmtp::FileStore::FileStore( const G::Path & dir , bool optimise ) :
 	m_optimise(optimise) ,
 	m_empty(false)
 {
+	m_pid_modifier = static_cast<unsigned long>(G::DateTime::now()) % 1000000UL ;
 	checkPath( dir ) ;
 }
 
@@ -154,7 +155,7 @@ G::Path GSmtp::FileStore::envelopeWorkingPath( unsigned long seq ) const
 std::string GSmtp::FileStore::filePrefix( unsigned long seq ) const
 {
 	std::stringstream ss ;
-	ss << "emailrelay." << G::Process::Id() << "." << seq ;
+	ss << "emailrelay." << G::Process::Id() << "." << m_pid_modifier << "." << seq ;
 	return ss.str() ;
 }
 

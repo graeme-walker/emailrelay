@@ -52,7 +52,7 @@ public:
 	Cracker( const Cracker &other ) ;
 		// Copy constructor.
 		
-	Cracker &operator=( const Cracker &other ) ;
+	Cracker & operator=( const Cracker & other ) ;
 		// Assignment operator.
 	
 	LRESULT crack( unsigned msg , WPARAM w , LPARAM l , bool &defolt ) ;
@@ -63,9 +63,22 @@ public:
 		// user should then normally call
 		// DefWindowProc().
 
+	static unsigned int wm_winsock() ;
+		// Returns a message number which is recommended for
+		// winsock messages.
+
 	static unsigned int wm_idle() ;
 		// Returns a message number which should be used for
-		// idle messages. See onIdle().
+		// idle messages. See onIdle() and GGui::Pump.
+
+	static unsigned int wm_tray() ;
+		// Returns a message number which should be used for
+		// system-tray notification messages.
+		// See GGui::Tray.
+
+	static unsigned int wm_quit() ;
+		// Returns a message number which can be used
+		// as an alternative to WM_QUIT. See also GGui::Pump.
 
 protected:
 	virtual bool onEraseBackground( HDC hdc ) ;
@@ -85,6 +98,12 @@ protected:
 	virtual void onSysColourChange() ;
 		// Overridable. Called when the window
 		// receives a WM_SYSCOLORCHANGE message.
+
+	enum SysCommand { scMaximise , scMinimise , scClose , scSize /*etc*/ } ;
+	virtual bool onSysCommand( SysCommand sys_command ) ;
+		// Overridable. Called when the window
+		// receives a WM_SYSCOMMAND message.
+		// Returns true if processed.
 
 	virtual bool onCreate() ;
 		// Overridable. Called when the window
@@ -170,6 +189,30 @@ protected:
 		// button is double clicked (but depending
 		// on the window class-style).
 
+	virtual void onTrayDoubleClick() ;
+		// Overridable. Called when the left mouse
+		// button is double clicked on the window's
+		// system-tray icon.
+		// See also: GGui::Tray
+
+	virtual void onTrayLeftMouseButtonDown() ;
+		// Overridable. Called when the left mouse
+		// button is clicked on the window's
+		// system-tray icon.
+		// See also: GGui::Tray
+
+	virtual void onTrayRightMouseButtonDown() ;
+		// Overridable. Called when the right mouse
+		// button is clicked on the window's
+		// system-tray icon.
+		// See also: GGui::Tray
+
+	virtual void onTrayRightMouseButtonUp() ;
+		// Overridable. Called when the right mouse
+		// button is released on the window's
+		// system-tray icon.
+		// See also: GGui::Tray
+
 	virtual void onTimer( unsigned id ) ;
 		// Overridable. Called on receipt of a WM_TIMER
 		// message.
@@ -223,6 +266,7 @@ protected:
 		// Called whenever the event loop becomes empty.
 		// If true is returned then it is called again
 		// (as long as the queue is still empty).
+		// See also: GGui::Pump
 } ;
 
 inline

@@ -119,6 +119,9 @@ public:
 		// Exception: Overflow
 		// Exception: InvalidFormat
 
+	static std::string fromUInt( unsigned int ) ;
+		// Converts from unsigned int to a decimal string.
+
 	static void toUpper( std::string &s ) ;
 		// Replaces all lowercase characters in string 's' by
 		// uppercase characters.

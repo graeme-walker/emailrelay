@@ -48,6 +48,10 @@ public:
 	explicit Configuration( const CommandLine & cl ) ;
 		// Constructor. The reference is kept.
 
+	std::string str( const std::string & line_prefix = std::string() , const std::string & eol = std::string("\n") ) const ;
+		// Reports the configuration in a multi-line
+		// string.
+
 	unsigned int port() const ;
 		// Returns the main port number.
 
@@ -102,8 +106,14 @@ public:
 	std::string filter() const ;
 		// Returns the pre-processor's path.
 
+	unsigned int icon() const ;
+		// Returns the icon selector.
+
 private:
 	const CommandLine & m_cl ;
+
+private:
+	static std::string yn( bool ) ;
 } ;
 
 #endif

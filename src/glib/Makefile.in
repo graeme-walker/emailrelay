@@ -93,7 +93,7 @@ EXTRA_DIST = garg_win32.cpp 	gdaemon_win32.cpp 	gdatetime_win32.cpp 	gdirectory_
 
 INCLUDES = -I$(top_srcdir)/lib/gcc2.95
 noinst_LIBRARIES = libglib.a
-libglib_a_SOURCES =  	garg.cpp 	garg.h 	garg_unix.cpp 	gassert.h 	gconvert.h 	gdaemon.h 	gdaemon_unix.cpp 	gdate.cpp 	gdate.h 	gdatetime.cpp 	gdatetime.h 	gdatetime_unix.cpp 	gdebug.h 	gdef.h 	gdirectory.cpp 	gdirectory.h 	gdirectory_unix.cpp 	gexception.cpp 	gexception.h 	gfile.cpp 	gfile.h 	gfile_unix.cpp 	gfs.h 	gfs_unix.cpp 	ggetopt.cpp 	ggetopt.h 	glog.cpp 	glog.h 	glogoutput.cpp 	glogoutput.h 	glogoutput_unix.cpp 	gmemory.h 	gpath.cpp 	gpath.h 	gprocess.h 	gprocess_unix.cpp 	gstr.cpp 	gstr.h 	gstrings.h 	gtime.cpp 	gtime.h
+libglib_a_SOURCES =  	garg.cpp 	garg.h 	garg_unix.cpp 	gassert.h 	gconvert.h 	gdaemon.h 	gdaemon.cpp 	gdaemon_unix.cpp 	gdate.cpp 	gdate.h 	gdatetime.cpp 	gdatetime.h 	gdatetime_unix.cpp 	gdebug.h 	gdef.h 	gdirectory.cpp 	gdirectory.h 	gdirectory_unix.cpp 	gexception.cpp 	gexception.h 	gfile.cpp 	gfile.h 	gfile_unix.cpp 	gfs.h 	gfs_unix.cpp 	ggetopt.cpp 	ggetopt.h 	glog.cpp 	glog.h 	glogoutput.cpp 	glogoutput.h 	glogoutput_unix.cpp 	gmemory.h 	gpath.cpp 	gpath.h 	gprocess.h 	gprocess_unix.cpp 	gstr.cpp 	gstr.h 	gstrings.h 	gtime.cpp 	gtime.h
 
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../../config.h
@@ -106,7 +106,7 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 libglib_a_LIBADD = 
-libglib_a_OBJECTS =  garg.o garg_unix.o gdaemon_unix.o gdate.o \
+libglib_a_OBJECTS =  garg.o garg_unix.o gdaemon.o gdaemon_unix.o gdate.o \
 gdatetime.o gdatetime_unix.o gdirectory.o gdirectory_unix.o \
 gexception.o gfile.o gfile_unix.o gfs_unix.o ggetopt.o glog.o \
 glogoutput.o glogoutput_unix.o gpath.o gprocess_unix.o gstr.o gtime.o
@@ -226,6 +226,10 @@ garg_unix.o: garg_unix.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits garg.h \
 	gdebug.h glogoutput.h glog.h gassert.h
+gdaemon.o: gdaemon.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
+	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
+	../../lib/gcc2.95/limits gdaemon.h gexception.h gpath.h \
+	gstrings.h gprocess.h
 gdaemon_unix.o: gdaemon_unix.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gdaemon.h \

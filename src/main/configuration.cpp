@@ -28,10 +28,39 @@
 #include "gmessagestore.h"
 #include "gstr.h"
 #include "gdebug.h"
+#include <sstream>
 
 Main::Configuration::Configuration( const CommandLine & cl ) :
 	m_cl(cl)
 {
+}
+
+//static
+std::string Main::Configuration::yn( bool b )
+{
+	return b ? std::string("yes") : std::string("no") ;
+}
+
+std::string Main::Configuration::str( const std::string & p , const std::string & eol ) const
+{
+	const std::string na( "n/a" ) ;
+	std::stringstream ss ;
+	ss
+		<< p << "listening port: " << (doServing()?G::Str::fromUInt(port()):na) << eol
+		<< p << "downstream server address: " << (doForwarding()?serverAddress():na) << eol
+		<< p << "spool directory: " << spoolDir() << eol
+		<< p << "immediate forwarding? " << yn(immediate()) << eol
+		<< p << "pre-processor: " << (useFilter()?filter():na) << eol
+		<< p << "admin port: " << (doAdmin()?G::Str::fromUInt(adminPort()):na) << eol
+		<< p << "run as daemon? " << yn(daemon()) << eol
+		<< p << "log to stderr/syslog? " << yn(log()) << eol
+		<< p << "verbose logging? " << yn(verbose()) << eol
+		//<< p << "use syslog? " << yn(syslog()) << eol
+		<< p << "close stderr? " << yn(closeStderr()) << eol
+		<< p << "allow remote clients? " << yn(allowRemoteClients()) << eol
+		<< p << "pid file: " << (usePidFile()?pidFile():na) << eol
+		;
+	return ss.str() ;
 }
 
 bool Main::Configuration::log() const
@@ -140,5 +169,10 @@ bool Main::Configuration::useFilter() const
 std::string Main::Configuration::filter() const
 {
 	return m_cl.value("filter") ;
+}
+
+unsigned int Main::Configuration::icon() const
+{
+	return m_cl.contains("icon") ? G::Str::toUInt(m_cl.value("icon")) : 0U ;
 }
 

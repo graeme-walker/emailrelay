@@ -143,7 +143,15 @@ SOURCE=..\..\src\gnet\gconnection.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\win32\gcontrol.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\win32\gcracker.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\glib\gdaemon.cpp
 # End Source File
 # Begin Source File
 
@@ -164,6 +172,10 @@ SOURCE=..\..\src\glib\gdatetime_win32.cpp
 # Begin Source File
 
 SOURCE=..\..\src\gnet\gdescriptor_win32.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\win32\gdialog.cpp
 # End Source File
 # Begin Source File
 
@@ -275,7 +287,7 @@ SOURCE=..\win32\gpump.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\win32\gpump_nodialog.cpp
+SOURCE=..\win32\gpump_dialog.cpp
 # End Source File
 # Begin Source File
 
@@ -292,6 +304,10 @@ SOURCE=..\gnet\gresolve_ipv4.cpp
 # Begin Source File
 
 SOURCE=..\..\src\gnet\gresolve_win32.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\win32\gscmap.cpp
 # End Source File
 # Begin Source File
 
@@ -332,6 +348,10 @@ SOURCE=..\..\src\glib\gstr.cpp
 # Begin Source File
 
 SOURCE=..\..\src\glib\gtime.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\win32\gtray.cpp
 # End Source File
 # Begin Source File
 

@@ -27,6 +27,7 @@
 #include "gdef.h"
 #include "gsmtp.h"
 #include "gmessagestore.h"
+#include "gdatetime.h"
 #include "gexception.h"
 #include "gpath.h"
 #include <memory>
@@ -110,6 +111,7 @@ private:
 	G::Path m_dir ;
 	bool m_optimise ;
 	bool m_empty ; // mutable
+	unsigned long m_pid_modifier ;
 } ;
 
 #endif

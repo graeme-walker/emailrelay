@@ -34,8 +34,10 @@ namespace GGui
 
 // Class: GGui::WindowBase
 // Description: A low-level window class which
-// encapsulates a window handle and methods
-// to retrieve basic window attributes.
+// encapsulates a window handle and provides methods
+// to retrieve basic window attributes. Knows
+// nothing about window messages.
+// See also: GGui::Cracker, GGui::Window, GGui::Dialog
 //
 class GGui::WindowBase
 {
@@ -62,6 +64,13 @@ public:
 	Size internalSize() const ;
 		// Returns the internal size of the window.
 		// (ie. the size of the client area)
+
+	std::string windowClass() const ;
+		// Returns the window's window-class name.
+
+	HINSTANCE windowInstanceHandle() const ;
+		// Returns the window's application instance.
+		// See also: GGui::ApplicationInstance
 
 protected:
 	void setHandle( HWND hwnd ) ;

@@ -25,51 +25,21 @@
 #include "gdaemon.h"
 #include "gprocess.h"
 
-namespace
-{
-	void PidFile__testSyntax( const G::Path & pid_file )
-	{
-		if( pid_file != G::Path() && !pid_file.isAbsolute() )
-			throw G::Daemon::BadPidFile(std::string("must be an absolute path: ")+pid_file.str()) ;
-	}
-
-	void PidFile__testCreation( const G::Path & pid_file )
-	{
-		if( pid_file != G::Path() )
-		{
-			std::ofstream tester( pid_file.str().c_str() ) ;
-			if( !tester.good() )
-				throw G::Daemon::BadPidFile(std::string("cannot create file: ")+pid_file.str()) ;
-		}
-	}
-
-	void PidFile__create( const G::Path & pid_file )
-	{
-		if( pid_file != G::Path() )
-		{
-			std::ofstream file( pid_file.str().c_str() ) ;
-			file << G::Process::Id() << std::endl ;
-			if( !file.good() )
-				throw G::Daemon::BadPidFile(std::string("cannot create file: ")+pid_file.str()) ;
-		}
-	}
-} ;
-
 //static
 void G::Daemon::detach( const Path & pid_file )
 {
-	PidFile__testSyntax( pid_file ) ;
-	PidFile__testCreation( pid_file ) ;
+	PidFile::check( pid_file ) ;
+	PidFile::test( pid_file ) ;
 
 	detach() ;
 
-	PidFile__create( pid_file ) ;
+	PidFile::create( pid_file ) ;
 }
 
 //static
 void G::Daemon::detach( PidFile & pid_file )
 {
-	PidFile__testSyntax( pid_file.m_path ) ;
+	PidFile::check( pid_file.m_path ) ;
 	detach() ;
 }
 
@@ -94,24 +64,4 @@ void G::Daemon::setsid()
 	if( session_id == -1 )
 		; // no-op
 }
-
-// ===
-
-G::Daemon::PidFile::PidFile() :
-	m_valid(false)
-{
-}
-
-G::Daemon::PidFile::PidFile( const G::Path & path ) :
-	m_path(path) ,
-	m_valid(true)
-{
-}
-
-void G::Daemon::PidFile::commit()
-{
-	if( m_valid )
-		PidFile__create( m_path ) ;
-}
-
 

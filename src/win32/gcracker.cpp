@@ -132,6 +132,23 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 			onSysColourChange() ;
 			return 0 ;
 		}
+
+		case WM_SYSCOMMAND:
+		{
+			bool processed = false ;
+			WPARAM cmd = wparam & 0xfff0 ;
+			if( cmd == SC_MAXIMIZE )
+				processed = onSysCommand( scMaximise ) ;
+			else if( cmd == SC_MINIMIZE )
+				processed = onSysCommand( scMinimise ) ;
+			else if( cmd == SC_SIZE )
+				processed = onSysCommand( scSize ) ;
+			else if( cmd == SC_CLOSE )
+				processed = onSysCommand( scClose ) ;
+			if( !processed )
+				defolt = true ;
+			return 0 ;
+		}
 		
 		case WM_KILLFOCUS:
 		{
@@ -296,9 +313,28 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 			return onUser( wparam , lparam ) ;
 		}
 
-		case WM_USER+1: // see wm_idle()
+		case WM_USER+1U: // see wm_idle()
 		{
 			return onIdle() ? 1 : 0 ;
+		}
+
+		case WM_USER+2U: // see wm_tray()
+		{
+			if( lparam == WM_LBUTTONDBLCLK )
+				onTrayDoubleClick() ;
+			else if( lparam == WM_RBUTTONUP )
+				onTrayRightMouseButtonUp() ;
+			else if( lparam == WM_RBUTTONDOWN )
+				onTrayRightMouseButtonDown() ;
+			else if( lparam == WM_LBUTTONDOWN )
+				onTrayLeftMouseButtonDown() ;
+			return 1 ;
+		}
+
+		case WM_USER+3U: // see wm_quit()
+		{
+			// never gets here -- intercepted in GGui::Pump
+			return 0 ;
 		}
 
 		case WM_TIMER:
@@ -334,9 +370,27 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 }
 
 //static
+unsigned int GGui::Cracker::wm_winsock()
+{
+	return WM_USER ;
+}
+
+//static
 unsigned int GGui::Cracker::wm_idle()
 {
-	return WM_USER+1 ;
+	return WM_USER+1U ;
+}
+
+//static
+unsigned int GGui::Cracker::wm_tray()
+{
+	return WM_USER+2U ;
+}
+
+//static
+unsigned int GGui::Cracker::wm_quit()
+{
+	return WM_USER+3U ;
 }
 
 // trivial default implementations of virtual functions...
@@ -348,6 +402,11 @@ HBRUSH GGui::Cracker::onControlColour( HDC , HWND , WORD )
 
 void GGui::Cracker::onSysColourChange()
 {
+}
+
+bool GGui::Cracker::onSysCommand( SysCommand )
+{
+	return false ;
 }
 
 bool GGui::Cracker::onCreate()
@@ -415,6 +474,22 @@ void GGui::Cracker::onDimension( int & , int & )
 }
 
 void GGui::Cracker::onDoubleClick( unsigned , unsigned , unsigned )
+{
+}
+
+void GGui::Cracker::onTrayDoubleClick()
+{
+}
+
+void GGui::Cracker::onTrayLeftMouseButtonDown()
+{
+}
+
+void GGui::Cracker::onTrayRightMouseButtonDown()
+{
+}
+
+void GGui::Cracker::onTrayRightMouseButtonUp()
 {
 }
 

@@ -36,7 +36,7 @@
 	#include <arpa/inet.h> // for inet_ntoa()
 	typedef int SOCKET ; // used in gdescriptor.h
 #else
-	#include <winsock.h>
+	//#include <winsock.h> // winsock.h comes via windows.h
 	typedef int socklen_t ;
 #endif
 

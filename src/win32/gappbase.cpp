@@ -83,22 +83,20 @@ bool GGui::ApplicationBase::firstInstance() const
 bool GGui::ApplicationBase::initFirst()
 {
 	UINT id = resource() ;
-
-	G_DEBUG( "GGui::ApplicationBase::initFirst: loading main icon: id " << id ) ;
-
-	HICON icon = id ? ::LoadIcon(hinstance(),MAKEINTRESOURCE(resource())) : 0 ;
+	HICON icon = id ? ::LoadIcon(hinstance(),MAKEINTRESOURCE(id)) : 0 ;
 
 	G_DEBUG( "GGui::ApplicationBase::initFirst: "
 		<< "registering main window class \"" << className()
 		<< "\", hinstance " << hinstance() ) ;
 
+	const char * menu = MAKEINTRESOURCE( id ) ;
 	return registerWindowClass( className() ,
 		hinstance() ,
 		classStyle() ,
 		icon ? icon : GGui::Window::classIcon() ,
 		GGui::Window::classCursor() ,
 		backgroundBrush() ,
-		MAKEINTRESOURCE(resource()) ) ;
+		menu ) ;
 }
 
 void GGui::ApplicationBase::close() const
@@ -160,8 +158,11 @@ void GGui::ApplicationBase::messageBox( const std::string & message )
 	if( box_parent == NULL )
 		box_parent = handle() ;
 
-	::MessageBox( box_parent , message.c_str() , title() ,
-		MB_OK | MB_ICONEXCLAMATION ) ;
+	unsigned int type = MB_OK | MB_ICONEXCLAMATION ;
+	if( box_parent == NULL )
+		type |= ( MB_TASKMODAL | MB_SETFOREGROUND ) ;
+
+	::MessageBox( box_parent , message.c_str() , title() , type ) ;
 }
 
 //static

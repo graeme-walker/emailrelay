@@ -26,6 +26,7 @@
 #include <cstdlib> // getenv
 #include <cstring> // strlen
 
+
 void G::LogOutput::rawOutput( G::Log::Severity severity , const char *message )
 {
 	std::cerr << message ;
@@ -54,5 +55,7 @@ void G::LogOutput::rawOutput( G::Log::Severity severity , const char *message )
 
 void G::LogOutput::syslog()
 {
+	// no-op
+	// see also ::RegisterEventSource() and ::ReportEvent() for NT
 }
 

@@ -35,20 +35,16 @@ std::string Main::CommandLine::switchSpec()
 	std::string dir = GSmtp::MessageStore::defaultDirectory().str() ;
 	std::stringstream ss ;
 	ss
+		<< osSwitchSpec() << "|"
+		<< "y!as-proxy!equivalent to \"--log --close-stderr --immediate --forward-to\"!1!host:port|"
+		<< "e!close-stderr!closes the standard error stream after start-up!0!|"
 		<< "a!admin!enables the administration interface and specifies its listening port number!1!admin-port|"
-		<< "q!as-client!equivalent to \"--no-syslog --no-daemon --log --dont-serve --forward --forward-to\"!" << "1!host:port|"
-		<< "y!as-proxy!equivalent to \"--close-stderr --log --immediate --forward-to\"!1!host:port|"
-		<< "d!as-server!equivalent to \"--close-stderr --log\"!0!|"
-		<< "e!close-stderr!closes the standard error stream when daemonising!0!|"
 		<< "x!dont-serve!stops the process acting as a server (usually used with --forward)!0!|"
 		<< "z!filter!defines a mail pre-processor (disallowed if running as root)!1!program|"
 		<< "f!forward!forwards stored mail on startup (requires --forward-to)!0!|"
 		<< "o!forward-to!specifies the remote smtp server (required by --forward and --admin)!1!host:port|"
 		<< "h!help!displays help text and exits!0!|"
 		<< "m!immediate!forwards each message as soon as it is received (requires --forward-to)!0!|"
-		<< "l!log!writes log information on standard error (if open) and syslog (if not disabled)!0!|"
-		<< "t!no-daemon!does not detach from the terminal!0!|"
-		<< "n!no-syslog!disables syslog output!0!|"
 		<< "i!pid-file!records the daemon process-id in the given file!1!pid-file|"
 		<< "p!port!specifies the smtp listening port number!1!port|"
 		<< "r!remote-clients!allows remote clients to connect!0!|"
@@ -109,7 +105,7 @@ std::string Main::CommandLine::semanticError() const
 	if( cfg().daemon() && cfg().spoolDir().isRelative() )
 	{
 		return "in daemon mode the spool-dir must "
-			"be an absolute path (starting with /)" ;
+			"be an absolute path" ;
 	}
 
 	if( !m_getopt.contains("forward-to") && (
@@ -207,17 +203,31 @@ void Main::CommandLine::showBanner( bool e ) const
 void Main::CommandLine::showCopyright( bool e ) const
 {
 	Show show( e ) ;
-	show.s() << "Copyright (C) 2001 Graeme Walker" << std::endl ;
+	show.s() << copyright() << std::endl ;
+}
+
+//static
+std::string Main::CommandLine::copyright()
+{
+	return "Copyright (C) 2001 Graeme Walker" ;
 }
 
 void Main::CommandLine::showWarranty( bool e ) const
 {
 	Show show( e ) ;
-	show.s()
-		<< "This software is provided without warranty of any kind." << std::endl
-		<< "You may redistribure copies of this program under " << std::endl
-		<< "the terms of the GNU General Public License." << std::endl
-		<< "For more information refer to the file named COPYING." << std::endl ;
+	show.s() << warranty() ;
+}
+
+//static
+std::string Main::CommandLine::warranty( const std::string & eol )
+{
+	std::stringstream ss ;
+	ss
+		<< "This software is provided without warranty of any kind." << eol
+		<< "You may redistribure copies of this program under " << eol
+		<< "the terms of the GNU General Public License." << eol
+		<< "For more information refer to the file named COPYING." << eol ;
+	return ss.str() ;
 }
 
 void Main::CommandLine::showVersion( bool e ) const

@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+0.9.4 -> 0.9.5
+--------------
+* Windows fixes and improvements:
+  - system-tray + dialog-box user interface
+  - fix for dropped connections
+  - fix for content file deletion
+  - fix for directory iterator
+
 0.9.3 -> 0.9.4
 --------------
 * Fixed memory leak when no "--log" switch.
@@ -10,11 +18,11 @@ Change Log
 
 0.9.2 -> 0.9.3
 --------------
-* Proxy mode (--immediate and --as-proxy)
-* Message preprocessing (--filter)
-* Message store classes better separated using abstract interfaces
-* Improved notification script, with MIME encoding
-* Builds with old 2.91 version of gcc
+* Proxy mode (--immediate and --as-proxy).
+* Message preprocessing (--filter).
+* Message store classes better separated using abstract interfaces.
+* Improved notification script, with MIME encoding.
+* Builds with old 2.91 version of gcc.
 
 0.9.1 -> 0.9.2
 --------------

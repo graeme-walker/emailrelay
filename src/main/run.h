@@ -32,8 +32,10 @@
 #include "gdaemon.h"
 #include "garg.h"
 #include "gmessagestore.h"
+#include "gsmtpclient.h"
 #include <iostream>
 #include <exception>
+#include <memory>
 
 namespace Main
 {
@@ -52,10 +54,10 @@ namespace Main
 ///   return 0 ;
 /// }
 //
-class Main::Run
+class Main::Run : private GSmtp::Client::ClientCallback
 {
 public:
-	explicit Run( G::Arg & arg ) ;
+	explicit Run( const G::Arg & arg ) ;
 		// Constructor.
 
 	bool prepare() ;
@@ -66,8 +68,13 @@ public:
 		// Runs the application.
 		// Precondition: prepare() returned true
 
-private:
+	Configuration cfg() const ;
+		// Returns a configuration object.
+
 	static std::string versionNumber() ;
+		// Returns the application version number string.
+
+private:
 	void runCore() ;
 	void doForwarding( GSmtp::MessageStore & , GNet::EventSources & ) ;
 	void doServing( G::Daemon::PidFile & , GNet::EventSources & ) ;
@@ -75,10 +82,12 @@ private:
 	void closeMoreFiles() ;
 	std::string smtpIdent() const ;
 	void recordPid() ;
-	Configuration cfg() const ;
+	const CommandLine & cl() const ;
+	virtual void clientDone( std::string ) ;
 
 private:
-	CommandLine m_cl ;
+	std::auto_ptr<CommandLine> m_cl ;
+	G::Arg m_arg ;
 } ;
 
 #endif

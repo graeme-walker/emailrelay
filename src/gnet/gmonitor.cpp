@@ -97,32 +97,32 @@ void GNet::Monitor::remove( const ServerPeer & peer )
 	m_imp->m_server_peers.erase( & peer ) ;
 }
 
-void GNet::Monitor::report( std::ostream & stream )
+void GNet::Monitor::report( std::ostream & s , const std::string & px , const std::string & eol )
 {
-	stream << "clients created: " << m_imp->m_client_adds << std::endl ;
-	stream << "client destroyed: " << m_imp->m_client_removes << std::endl ;
+	s << px << "clients created: " << m_imp->m_client_adds << eol ;
+	s << px << "clients destroyed: " << m_imp->m_client_removes << eol ;
 	{
 		for( MonitorImp::Clients::const_iterator p = m_imp->m_clients.begin() ;
 		 p != m_imp->m_clients.end() ; ++p )
 		{
-			stream
+			s << px
 				<< "  client " << (const void *)(*p) << ": "
 				<< (*p)->localAddress().second.displayString() << " -> "
-				<< (*p)->peerAddress().second.displayString() << std::endl ;
+				<< (*p)->peerAddress().second.displayString() << eol ;
 		}
 	}
 
-	stream << "servers created: " << m_imp->m_server_peer_adds << std::endl ;
-	stream << "servers destroyed: " << m_imp->m_server_peer_removes << std::endl ;
+	s << px << "servers created: " << m_imp->m_server_peer_adds << eol ;
+	s << px << "servers destroyed: " << m_imp->m_server_peer_removes << eol ;
 
 	{
 		for( MonitorImp::ServerPeers::const_iterator p = m_imp->m_server_peers.begin() ;
 			p != m_imp->m_server_peers.end() ; ++p )
 		{
-			stream
+			s << px
 				<< "  server " << (const void *)(*p) << ": "
 				<< (*p)->localAddress().second.displayString() << " -> "
-				<< (*p)->peerAddress().second.displayString() << std::endl ;
+				<< (*p)->peerAddress().second.displayString() << eol ;
 		}
 	}
 }

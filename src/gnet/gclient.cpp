@@ -435,19 +435,21 @@ void GNet::ClientImp::readEvent()
 	char buffer[200U] ;
 	ssize_t n = s().read( buffer , sizeof(buffer) ) ;
 
-	if( n <= 0 )
+	if( n == 0 || ( n == -1 && !s().eWouldBlock() ) )
 	{
-		if( s().eWouldBlock() ) return ; // for windows
-
 		close() ;
 		setState( Disconnected ) ;
 		m_interface.onDisconnect() ;
 	}
-	else
+	else if( n != -1 )
 	{
 		G_ASSERT( n <= sizeof(buffer) ) ;
 		G_DEBUG( "GNet::ClientImp::readEvent: " << n << " byte(s)" ) ;
 		m_interface.onData( buffer , n ) ;
+	}
+	else
+	{
+		; // no-op (windows)
 	}
 }
 

@@ -37,6 +37,7 @@ GNet::ServerPeer::ServerPeer( StreamSocket * s , Address a )  :
 	G_DEBUG( "GNet::ServerPeer::ctor: fd " << m_socket->asString() << ": " << m_address.displayString() ) ;
 	if( Monitor::instance() ) Monitor::instance()->add(*this) ;
 	m_socket->addReadHandler( *this ) ;
+	m_socket->addExceptionHandler( *this ) ;
 }
 
 GNet::ServerPeer::~ServerPeer()
@@ -68,15 +69,25 @@ void GNet::ServerPeer::readEvent()
 	size_t buffer_size = sizeof(buffer) ;
 	ssize_t rc = m_socket->read( buffer , buffer_size ) ;
 
-	if( rc <= 0 )
+	if( rc == 0 || (rc == -1 && !m_socket->eWouldBlock()) )
 	{
 		doDelete() ;
 	}
-	else
+	else if( rc != -1 )
 	{
 		size_t n = rc ;
 		onData( buffer , n ) ;
 	}
+	else
+	{
+		; // no-op (windows)
+	}
+}
+
+void GNet::ServerPeer::exceptionEvent()
+{
+	G_DEBUG( "GNet::Server::exceptionEvent: " << (void*)this ) ;
+	doDelete() ;
 }
 
 void GNet::ServerPeer::doDelete()

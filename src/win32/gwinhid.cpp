@@ -47,7 +47,7 @@ GGui::WindowHidden::WindowHidden( HINSTANCE hinstance ) :
 	{
 		bool success = create( window_class_name.c_str() ,
 			"" , // title
-			0 , // window style
+			WS_POPUP , // window style
 			0 , 0 , 10 , 10 , // x,y,dx,dy
 			0 , // parent
 			0 , // menu

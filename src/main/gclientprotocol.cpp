@@ -237,6 +237,7 @@ void GSmtp::ClientProtocol::applyEvent( const Reply & reply )
 
 void GSmtp::ClientProtocol::doCallback( bool ok , const std::string & reason )
 {
+	m_content <<= 0 ;
 	if( m_callback )
 	{
 		Callback * cb = m_callback ;

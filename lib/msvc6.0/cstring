@@ -34,6 +34,7 @@ namespace std
 	using ::strrchr ;
 	using ::strdup ;
 	using ::strcpy ;
+	using ::strncpy ;
 	using ::strstr ;
 	using ::strspn ;
 	using ::strcspn ;

@@ -4,22 +4,22 @@ E-MailRelay User Guide
 What is it?
 -----------
 E-MailRelay is a simple store-and-forward e-mail transfer agent. It's a program
-which runs in the background and accepts e-mail front-ends (KMail, Outlook,
+which runs in the background and accepts e-mail from front-ends (KMail, Outlook,
 Netscape etc.), stores the messages on the hard disk, and when next connected
 to the Internet forwards them to a downstream SMTP server for onward delivery.
 
-The E-MailRelay program ("emailrelay") can run in two main modes: a storage daemon,
-or a forwarding agent. As a storage daemon it waits for connections from your
-e-mail front-end and stores the mail which it receives in a spool directory.
-As a forwarding agent it pulls messages out of the spool directory and passes
-them on to a remote server -- typically an ISP mail server.
+The E-MailRelay program ("emailrelay") can run in two main modes: a storage
+daemon, or a forwarding agent. As a storage daemon it waits for connections
+from your e-mail front-end and stores the mail which it receives in a spool
+directory. As a forwarding agent it pulls messages out of the spool directory
+and passes them on to a remote server -- typically an ISP mail server.
 
 E-MailRelay uses the Simple Message Transfer Protocol (SMTP). When running as a
 storage daemon it acts as an SMTP server, and when running as a forwarding
 agent it acts as an SMTP client.
 
-The program can also run as a proxy server. In this mode e-mails submitted at the
-server interface are passed on to the dowstream server immediately, without
+The program can also run as a proxy server. In this mode e-mails submitted at
+the server interface are passed on to the dowstream server immediately, without
 spooling. This can be useful when combined with mail pre-processing to do things
 like encryption, message archiving, addition of digital signatures, etc.
 

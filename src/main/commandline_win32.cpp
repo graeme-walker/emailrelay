@@ -27,6 +27,25 @@
 
 Main::CommandLine::Show * Main::CommandLine::Show::m_this = NULL ;
 
+//static
+std::string Main::CommandLine::osSwitchSpec()
+{
+	// (could use empty descriptions here so that G::GetOpt does
+	// not put them in the --help listing)
+
+	std::stringstream ss ;
+	ss
+		<< "l!log!writes log information on standard error (if open)!0!|"
+		<< "t!no-daemon!use an ordinary window, not the system tray!0!|"
+		<< "n!no-syslog!has no effect on windows!0!|"
+		<< "q!as-client!equivalent to \"--log --no-daemon --dont-serve --forward --forward-to\"!" << "1!host:port|"
+		<< "d!as-server!equivalent to \"--log --close-stderr\" (has little effect on windows)!0!|"
+		<< "I!icon!chooses the application icon!1!icon index {0,1,2}"
+
+		;
+	return ss.str() ;
+}
+
 Main::CommandLine::Show::Show( bool )
 {
 	if( m_this == NULL )
@@ -53,4 +72,5 @@ unsigned int Main::CommandLine::ttyColumns() const
 {
 	return 120U ;
 }
+
 

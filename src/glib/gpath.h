@@ -143,6 +143,9 @@ public:
 	bool operator==( const Path & path ) const ;
 		// Comparison operator.
 	
+	bool operator!=( const Path & path ) const ;
+		// Comparison operator.
+	
 	void streamOut( std::ostream & stream ) const ;
 		// Streams out the path.
 

@@ -163,7 +163,7 @@ void GSmtp::AdminPeer::info()
 	std::stringstream ss ;
 	if( GNet::Monitor::instance() )
 	{
-		GNet::Monitor::instance()->report( ss ) ;
+		GNet::Monitor::instance()->report( ss , "" , crlf() ) ;
 		send( ss.str() ) ;
 	}
 	else

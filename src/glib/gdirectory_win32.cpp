@@ -186,8 +186,8 @@ bool G::DirectoryIteratorImp::more()
 	if( m_first )
 	{
 		m_first = false ;
-		if( std::string(m_context.cFileName) == "." ||
-			std::string(m_context.cFileName) == ".." )
+		if( std::string(m_context.cFileName) != "." &&
+			std::string(m_context.cFileName) != ".." )
 				return true ;
 
 		G_DEBUG( "G::DirectoryIteratorImp::more: ignoring " << m_context.cFileName);

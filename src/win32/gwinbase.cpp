@@ -25,6 +25,7 @@
 #include "gwinbase.h"
 #include "gdebug.h"
 #include <windowsx.h>
+#include <cstring>
 
 GGui::WindowBase::WindowBase( HWND hwnd ) :
 	m_hwnd(hwnd)
@@ -58,29 +59,52 @@ void GGui::WindowBase::setHandle( HWND hwnd )
 
 GGui::Size GGui::WindowBase::internalSize() const
 {
-	Size size ;
 	RECT rect ;
 	if( ::GetClientRect( m_hwnd , &rect ) )
 	{
-		G_ASSERT( rect.right >= rect.left ) ;
-		G_ASSERT( rect.bottom >= rect.top ) ;
-		size.dx = rect.right - rect.left ;
-		size.dy = rect.bottom - rect.top ;
+		G_ASSERT( rect.left == 0 ) ;
+		G_ASSERT( rect.top == 0 ) ;
+		return Size( rect.right , rect.bottom ) ;
 	}
-	return size ;
+	else
+	{
+		return Size() ;
+	}
 }
 
 GGui::Size GGui::WindowBase::externalSize() const
 {
-	GGui::Size size ;
 	RECT rect ;
 	if( ::GetWindowRect( m_hwnd , &rect ) )
 	{
 		G_ASSERT( rect.right >= rect.left ) ;
 		G_ASSERT( rect.bottom >= rect.top ) ;
-		size.dx = rect.right - rect.left ;
-		size.dy = rect.bottom - rect.top ;
+		return Size( rect.right - rect.left , rect.bottom - rect.top ) ;
 	}
-	return size ;
+	else
+	{
+		return Size() ;
+	}
+}
+
+std::string GGui::WindowBase::windowClass() const
+{
+	char buffer[256U] ;
+	buffer[0U] = '\0' ;
+	::GetClassName( m_hwnd , buffer , sizeof(buffer)-1U ) ;
+	buffer[sizeof(buffer)-1U] = '\0' ;
+
+	if( (std::strlen(buffer)+1U) == sizeof(buffer) )
+	{
+		G_WARNING( "GGui::WindowBase::windowClass: possible truncation: "
+			<< "\"" << buffer << "\"" ) ;
+	}
+
+	return std::string( buffer ) ;
+}
+
+HINSTANCE GGui::WindowBase::windowInstanceHandle() const
+{
+	return reinterpret_cast<HINSTANCE>(::GetWindowLong(m_hwnd,GWL_HINSTANCE)) ;
 }
 

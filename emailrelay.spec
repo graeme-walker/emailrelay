@@ -1,19 +1,19 @@
 Summary: Simple e-mail message transfer agent using SMTP
 Name: emailrelay
-Version: 0.9.4
+Version: 0.9.5
 Release: 1
 Copyright: GPL
 Group: System Environment/Daemons
-Source: http://emailrelay.sourceforge.net/.../emailrelay-src-0.9.4.tar.gz
+Source: http://emailrelay.sourceforge.net/.../emailrelay-src-0.9.5.tar.gz
 BuildRoot: /tmp/emailrelay-install
 
 %description
 E-MailRelay is a simple SMTP store-and-forward message transfer agent (MTA).
-It runs as an SMTP server, storing incoming e-mail in a local spool directory,
-and then forwarding the stored messages to a downstream SMTP server on request. 
+It runs as an SMTP server, storing e-mail in a local spool directory, and
+then forwarding the stored messages to a downstream SMTP server on request. 
 It can also run as a proxy server, forwarding (and optionally pre-processing)
-incoming e-mail as soon as it is received. It does not do any message routing, 
-other than to a local postmaster. Because of this functional simplicity it is 
+e-mail as soon as it is received. It does not do any message routing, other
+than to a local postmaster. Because of this functional simplicity it is 
 extremely easy to configure, typically only requiring the address of the 
 downstream SMTP server to be put on the command line.
 

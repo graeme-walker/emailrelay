@@ -40,22 +40,6 @@ void G::Daemon::detach( PidFile & )
 //static
 void G::Daemon::detach()
 {
-	(void) ::FreeConsole() ;
-}
-
-// ===
-
-G::Daemon::PidFile::PidFile() :
-	m_valid(false)
-{
-}
-
-G::Daemon::PidFile::PidFile( const Path & ) :
-	m_valid(false)
-{
-}
-
-void G::Daemon::PidFile::commit()
-{
+	// no-op
 }
 

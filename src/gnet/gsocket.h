@@ -188,6 +188,10 @@ public:
 		// Returns the socket handle as a string.
 		// Only used in debugging.
 
+	std::string reasonString() const ;
+		// Returns the failure reason as a string.
+		// Only used in debugging.
+
 protected:
 	Socket( int domain, int type, int protocol = 0 ) ;
 		// Constructor used by derived classes.
@@ -275,7 +279,11 @@ public:
 	ssize_t read( char *buffer , size_t buffer_length ) ;
 		// Reads from the TCP stream. Returns
 		// 0 if the connection has been lost.
-		// Returns -1 on error.
+		// Returns -1 on error, or if there is
+		// nothing to read (eWouldBlock() true).
+		// Note that under Windows there can
+		// be nothing to read even after receiving
+		// a read event.
 
 	AcceptPair accept() ;
 		// Accepts an incoming connection, returning

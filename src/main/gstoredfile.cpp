@@ -196,8 +196,8 @@ void GSmtp::StoredFile::fail( const std::string & reason )
 		// write the reason into the file
 		{
 			std::ofstream file( m_envelope_path.str().c_str() ,
-				std::ios_base::binary | std::ios_base::ate ) ;
-			file << FileStore::x() << "Reason: " << reason ;
+				std::ios_base::binary | std::ios_base::app ) ; // app not ate for win32
+			file << FileStore::x() << "Reason: " << reason << crlf() ;
 		}
 
 		G::Path env_temp( m_envelope_path ) ; // "foo.envelope.busy"

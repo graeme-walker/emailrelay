@@ -92,11 +92,18 @@ public:
 	void showCopyright( bool error_stream = false ) const ;
 		// Writes a copyright message.
 
+	static std::string warranty( const std::string & eol = std::string("\n") ) ;
+		// Returns the warranty text.
+
+	static std::string copyright() ;
+		// Returns the copyright text.
+
 private:
 	void showWarranty( bool error_stream ) const ;
 	void showShortHelp( bool error_stream ) const ;
 	std::string semanticError() const ;
 	static std::string switchSpec() ;
+	static std::string osSwitchSpec() ; // o/s-specific
 	unsigned int ttyColumns() const ; // o/s-specific
 	void showExtraHelp( bool error_stream ) const ;
 

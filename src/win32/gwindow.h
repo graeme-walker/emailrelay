@@ -38,7 +38,8 @@ namespace GGui
 // Class: GGui::Window
 // Description: A window class. Window messages
 // should be processed by overriding the on*()
-// virtual functions inherited from GCracker.
+// virtual functions inherited from GGui::Cracker.
+// See also: WindowBase
 //
 class GGui::Window : public Cracker
 {
@@ -114,17 +115,12 @@ public:
 	void invalidate( bool erase = true ) ;
 		// Invalidates the window so that it redraws.
 
-	static Size borderSize( bool has_menu = true ) ;
+	static Size borderSize( bool has_menu ) ;
 		// Returns the size of the border of a _typical_
 		// main window. The actual border size will
 		// depend on the window style and its size
 		// (since the menu bar changes height at
 		// run-time).
-
-	Size clientSize() const ;
-		// Returns the size of the window's client area.
-		// (The client size is also available in WM_MOVE
-		// messages and from onSize().)
 
 	void resize( Size new_size , bool repaint = true ) ;
 		// Resizes the window. The top-left corner stays put.
@@ -189,7 +185,12 @@ protected:
 		// Returns the address of the exported 'C' window
 		// procedure. This is not for general use -- see
 		// WindowHidden.
-		
+
+	virtual void onException( std::exception & e ) ;
+		// Called if an exception is being thrown out of the
+		// window procedure. The default implementation
+		// does "throw;" to continue throwing the exception.
+
 public:
 	static LRESULT wndProc( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam ) ;
 		// Called directly from the global, exported

@@ -38,16 +38,16 @@ namespace GGui
 // Description: A simple windows application class which
 // can be used for very-simple applications on its own,
 // or as a base class for the more fully-functional
-// GApplication class. It has no dependence on other
-// low-level classes such as GPath, GArg, and (depending
-// on the build) GDialog (see "gpump_nodialog.cpp").
+// GGui::Application class. It has no dependence on other
+// low-level classes such as G::Path, G::Arg, and (depending
+// on the build) GGui::Dialog (see "gpump_nodialog.cpp").
 //
 // The application object creates and manages the application's
 // main window and runs the ::GetMessage() event loop.
 //
-// GApplicationBase derives from GGui::Window allowing the user
-// to override the default message handing for the
-// main application window.
+// GGui::ApplicationBase derives from GGui::Window allowing the
+// user to override the default message handing for the main
+// application window.
 //
 // See also: Application, ApplicationInstance, Pump
 //
@@ -90,6 +90,10 @@ public:
 		// Puts up a message box in the absence of a running application
 		// object.
 
+	virtual UINT resource() const ;
+		// Overridable. Defines the resource id
+		// for the main window's icon and menu.
+
 protected:
 	bool firstInstance() const ;
 		// Returns true if the constructor's 'previous'
@@ -118,10 +122,6 @@ protected:
 	virtual DWORD classStyle() const ;
 		// Overridable. Defines the main window class style.
 
-	virtual UINT resource() const ;
-		// Overridable. Defines the resource id
-		// for the main window's icon and menu.
-		
 	virtual void onDestroy() ;
 		// Inherited from GGui::Window. Calls PostQuitMessage()
 		// so that the task terminates when its main

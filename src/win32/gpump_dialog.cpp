@@ -18,16 +18,17 @@
 //
 // ===
 //
-// gpump_nodialog.cpp
+// gpump_dialog.cpp
 //
 
 #include "gdef.h"
 #include "gpump.h"
+#include "gdialog.h"
 
 //static
 bool GGui::Pump::dialogMessage( MSG & msg )
 {
-	return false ;
+	return Dialog::dialogMessage( msg ) ;
 }
 
 

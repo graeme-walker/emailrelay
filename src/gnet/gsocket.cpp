@@ -168,9 +168,10 @@ ssize_t GNet::Socket::write( const char *buf, size_t len )
 		G_DEBUG( "GNet::Socket::write: write error " << m_reason ) ;
 		return -1 ;
 	}
-
-	if( nsent < len )
+	else if( nsent < len )
+	{
 		m_reason = reason() ;
+	}
 
 	G_DEBUG( "GNet::Socket::write: wrote " << nsent << "/" << len << " byte(s)" ) ;
 	return nsent;
@@ -292,6 +293,13 @@ std::string GNet::Socket::asString() const
 	return ss.str() ;
 }
 
+std::string GNet::Socket::reasonString() const
+{
+	std::stringstream ss ;
+	ss << m_reason ;
+	return ss.str() ;
+}
+
 //===================================================================
 
 GNet::StreamSocket::StreamSocket() :
@@ -326,7 +334,7 @@ ssize_t GNet::StreamSocket::read( char *buf , size_t len )
 	if( sizeError(nread) )
 	{
 		m_reason = reason() ;
-		G_DEBUG( "GNet::StreamSocket::read: read error " << m_reason ) ;
+		G_DEBUG( "GNet::StreamSocket::read: fd " << m_socket << ": read error " << m_reason ) ;
 		return -1 ;
 	}
 

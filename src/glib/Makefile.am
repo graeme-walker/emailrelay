@@ -34,6 +34,7 @@ libglib_a_SOURCES = \
 	gassert.h \
 	gconvert.h \
 	gdaemon.h \
+	gdaemon.cpp \
 	gdaemon_unix.cpp \
 	gdate.cpp \
 	gdate.h \

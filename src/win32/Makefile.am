@@ -25,10 +25,18 @@ EXTRA_DIST = \
 	gappbase.h \
 	gcracker.cpp \
 	gcracker.h \
+	gdialog.cpp \
+	gdialog.h \
+	gcontrol.cpp \
+	gcontrol.h \
 	gpump.cpp \
 	gpump.h \
-	gpump_nodialog.cpp \
+	gpump_dialog.cpp \
+	gscmap.h \
+	gscmap.cpp \
 	gsize.h \
+	gtray.h \
+	gtray.cpp \
 	gwinbase.cpp \
 	gwinbase.h \
 	gwindow.cpp \

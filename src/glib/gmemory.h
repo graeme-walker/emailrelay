@@ -72,7 +72,7 @@ void operator<<=( std::auto_ptr<T> & ap , T * p )
 }
 
 // Template function: operator<<=
-// Description: A version for null pointers.
+// Description: A version for null-pointer constants.
 //
 template <class T>
 void operator<<=( std::auto_ptr<T> & ap , int null_pointer )

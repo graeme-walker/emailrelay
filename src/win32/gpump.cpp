@@ -34,7 +34,7 @@ void GGui::Pump::run()
 void GGui::Pump::run( HWND idle_window , unsigned int idle_message )
 {
 	G_LOG( "GGui::Pump::run: " << idle_window << " " << idle_message ) ;
-	::PostMessage( idle_window , GGui::Cracker::wm_idle() , 0 , 0 ) ; // pump priming
+	::PostMessage( idle_window , idle_message , 0 , 0 ) ; // pump priming
 	runCore( true , idle_window , idle_message ) ;
 }
 
@@ -43,7 +43,16 @@ void GGui::Pump::runCore( bool idle , HWND hwnd_idle , unsigned int wm_idle )
 	MSG msg ;
 	while( ::GetMessage( &msg , NULL , 0 , 0 ) )
 	{
-		if( dialogMessage( msg ) ) // (may be stubbed out as a build option)
+		// we use our own quit message rather than WM_QUIT because
+		// WM_QUIT has some nasty undocumented side-effects such as
+		// making message boxes invisible -- we need to quit event
+		// loops (sometimes more than once) without side effects
+		//
+		if( msg.message == Cracker::wm_quit() )
+		{
+			break ;
+		}
+		else if( dialogMessage( msg ) ) // (may be stubbed out as a build option)
 		{
 			; // no-op
 		}
@@ -75,6 +84,6 @@ bool GGui::Pump::sendIdle( HWND hwnd_idle , unsigned int wm_idle )
 
 void GGui::Pump::quit()
 {
-	::PostQuitMessage( 0 ) ;
+	::PostMessage( 0 , Cracker::wm_quit() , 0 , 0 ) ; // not PostQuitMessage()
 }
 

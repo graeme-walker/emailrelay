@@ -18,45 +18,44 @@
 //
 // ===
 //
-// gwinhid.h
-//	
+// gtray.h
+//
 
-#ifndef G_WINHID_H
-#define G_WINHID_H
+#ifndef G_GUI_TRAY_H
+#define G_GUI_TRAY_H
 
 #include "gdef.h"
-#include "gwindow.h"
-#include <string>
+#include "gwinbase.h"
+#include "gcracker.h"
+#include "gexception.h"
 
 namespace GGui
 {
-	class WindowHidden ;
+	class Tray ;
 } ;
 
-// Class: GGui::WindowHidden
-// Description: A derivation of GWindow for
-// a hidden window (without a parent).
+// Class: GGui::Tray
+// Description: Manages an icon within the system tray.
 //
-class GGui::WindowHidden : public Window
+class GGui::Tray
 {
 public:
-	explicit WindowHidden( HINSTANCE hinstance ) ;
-		// Default constructor. Registers the window
-		// class if necessary and creates the window.
+	G_EXCEPTION( Error , "system-tray error" ) ;
 
-	virtual ~WindowHidden() ;
-		// Virtual destructor.
+	Tray( unsigned int icon_resource_id , const WindowBase & window ,
+		const std::string & tip , unsigned int message = Cracker::wm_tray() ) ;
+			// Constructor. Adds the icon to the system tray.
 
-
-private:
-	virtual void onNcDestroy() ;
-	WindowHidden( const WindowHidden & ) ;
-	void operator=( const WindowHidden & ) ;
-	std::string windowClassName() ;
+	~Tray() ;
+		// Destructor. Removes the icon from the system tray.
 
 private:
-	bool m_destroyed ;
-	static bool m_registered ;
+	void operator=( const Tray & ) ; // not implemented
+	Tray( const Tray & ) ; // not implemented
+
+private:
+	NOTIFYICONDATA m_info ;
 } ;
 
 #endif
+

@@ -64,8 +64,10 @@ public:
 	void remove( const ServerPeer & peer ) ;
 		// Removes a server peer.
 
-	void report( std::ostream & stream ) ;
-		// Reports itself onto a stream.
+	void report( std::ostream & stream ,
+		const std::string & line_prefix = std::string() ,
+		const std::string & eol = std::string("\n") ) ;
+			// Reports itself onto a stream.
 
 private:
 	Monitor( const Monitor & ) ; // not implemented

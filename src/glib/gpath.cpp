@@ -414,6 +414,11 @@ bool G::Path::operator==( const Path & other ) const
 	return m_str == other.m_str ;
 }
 
+bool G::Path::operator!=( const Path & other ) const
+{
+	return m_str != other.m_str ;
+}
+
 G::Path &G::Path::operator=( const Path & other )
 {
 	if( &other != this )

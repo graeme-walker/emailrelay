@@ -55,6 +55,9 @@ public:
 		private: Path m_path ;
 		private: bool m_valid ;
 		friend class Daemon ;
+		private: static void check( const Path & ) ;
+		private: static void test( const Path & ) ;
+		private: static void create( const Path & ) ;
 	} ;
 
 	static void detach() ;

@@ -41,7 +41,7 @@ namespace G
 class G::Process::IdImp
 {
 public:
-	int m_pid ;
+	unsigned int m_pid ;
 } ;
 
 // ===
@@ -49,7 +49,7 @@ public:
 G::Process::Id::Id() : m_imp(NULL)
 {
 	m_imp = new IdImp ;
-	m_imp->m_pid = ::_getpid() ;
+	m_imp->m_pid = static_cast<unsigned int>(::_getpid()) ; // or ::GetCurrentProcessId()
 }
 
 G::Process::Id::~Id()

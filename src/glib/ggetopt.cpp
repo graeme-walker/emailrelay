@@ -48,14 +48,13 @@ void G::GetOpt::parseSpec( const std::string & spec , char sep_major , char sep_
 
 void G::GetOpt::parseOldSpec( const std::string & spec )
 {
-	unsigned int ordinal = 1U ;
 	for( size_t i = 0U ; i < spec.length() ; i++ )
 	{
 		char c = spec.at(i) ;
 		if( c != ':' )
 		{
 			bool valued = (i+1U) < spec.length() && spec.at(i+1U) == ':' ;
-			addSpec( ordinal++ , c , valued ) ;
+			addSpec( std::string(1U,c) , c , valued ) ;
 		}
 	}
 }
@@ -67,7 +66,6 @@ void G::GetOpt::parseNewSpec( const std::string & spec , char sep_major ,
 	std::string ws_major( 1U , sep_major ) ;
 	G::Str::splitIntoFields( spec , outer , ws_major , escape , false ) ;
 
-	unsigned int ordinal = 1U ;
 	for( Strings::iterator p = outer.begin() ; p != outer.end() ; ++p )
 	{
 		StringArray inner ;
@@ -76,16 +74,16 @@ void G::GetOpt::parseNewSpec( const std::string & spec , char sep_major ,
 		if( inner.size() != 5U )
 			throw InvalidSpecification(std::stringstream() << "\"" << *p << "\" (" << ws_minor << ")") ;
 		bool valued = G::Str::toUInt( inner[3U] ) != 0U ;
-		addSpec( ordinal++ , inner[0U].at(0U) , inner[1U] , inner[2U] , valued , inner[4U] ) ;
+		addSpec( inner[1U] , inner[0U].at(0U) , inner[1U] , inner[2U] , valued , inner[4U] ) ;
 	}
 }
 
-void G::GetOpt::addSpec( unsigned int ordinal , char c , bool valued )
+void G::GetOpt::addSpec( const std::string & sort_key , char c , bool valued )
 {
-	addSpec( ordinal , c , std::string() , std::string() , valued , std::string() ) ;
+	addSpec( sort_key , c , std::string() , std::string() , valued , std::string() ) ;
 }
 
-void G::GetOpt::addSpec( unsigned int ordinal , char c , const std::string & name , const std::string & description ,
+void G::GetOpt::addSpec( const std::string & sort_key , char c , const std::string & name , const std::string & description ,
 	bool valued , const std::string & value_description )
 {
 	if( c == '\0' )
@@ -94,7 +92,8 @@ void G::GetOpt::addSpec( unsigned int ordinal , char c , const std::string & nam
 	const bool debug = true ;
 	if( debug )
 	{
-		G_DEBUG( "G::GetOpt::addSpec: #" << ordinal << ": "
+		G_DEBUG( "G::GetOpt::addSpec: "
+			<< "sort-key=" << sort_key << ": "
 			<< "char=" << c << ": "
 			<< "name=" << name << ": "
 			<< "description=" << description << ": "
@@ -103,7 +102,7 @@ void G::GetOpt::addSpec( unsigned int ordinal , char c , const std::string & nam
 	}
 
 	std::pair<SwitchSpecMap::iterator,bool> rc =
-		m_spec_map.insert( std::make_pair(ordinal,SwitchSpec(c,name,description,valued,value_description)) ) ;
+		m_spec_map.insert( std::make_pair(sort_key,SwitchSpec(c,name,description,valued,value_description)) ) ;
 
 	if( ! rc.second )
 		throw InvalidSpecification("duplication") ;

@@ -85,9 +85,9 @@ protected:
 private:
 	Server( const Server & ) ; // not implemented
 	void operator=( const Server & ) ; // not implemented
-	virtual void readEvent() ; // see EventHandler
-	virtual void writeEvent() ; // see EventHandler
-	virtual void exceptionEvent() ; // see EventHandler
+	virtual void readEvent() ; // from EventHandler
+	virtual void writeEvent() ; // from EventHandler
+	virtual void exceptionEvent() ; // from EventHandler
 
 private:
 	StreamSocket * m_socket ;
@@ -156,7 +156,8 @@ protected:
 		// connection socket.
 
 private:
-	void readEvent() ;
+	virtual void readEvent() ; // from EventHandler
+	virtual void exceptionEvent() ; // from EventHandler
 	ServerPeer( const ServerPeer & ) ; // not implemented
 	void operator=( const ServerPeer & ) ; // not implemented
 

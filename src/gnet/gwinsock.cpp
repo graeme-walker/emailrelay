@@ -55,6 +55,7 @@ GNet::WinsockWindow::WinsockWindow( Winsock & ws , HINSTANCE hinstance ) :
 {
 }
 
+// (wm_winsock is WM_USER -- should be called onWinsock())
 LRESULT GNet::WinsockWindow::onUser( WPARAM w , LPARAM l )
 {
 	m_ws.onMessage( w , l ) ;
@@ -94,7 +95,7 @@ bool GNet::Winsock::init()
 		G_WARNING( "GNet::Winsock::init: cannot create hidden window" ) ;
 		return false ;
 	}
-	return attach( m_window->handle() , WM_USER ) ;
+	return attach( m_window->handle() , GGui::Cracker::wm_winsock() ) ;
 }
 
 bool GNet::Winsock::attach( HWND hwnd , unsigned msg )
@@ -176,7 +177,7 @@ void GNet::Winsock::dropException( Descriptor fd )
 namespace
 {
 	const long READ_EVENTS = (FD_READ | FD_ACCEPT | FD_OOB) ;
-	const long WRITE_EVENTS = (FD_WRITE | FD_CONNECT) ;
+	const long WRITE_EVENTS = (FD_WRITE) ; // no need for "FD_CONNECT"
 	const long EXCEPTION_EVENTS = (FD_CLOSE) ;
 } ;
 
@@ -193,13 +194,13 @@ long GNet::Winsock::desiredEvents( Descriptor fd )
 	long mask = 0 ;
 
 	if( m_read_list.contains(fd) )
-		mask |= FD_READ | FD_ACCEPT | FD_OOB ;
+		mask |= READ_EVENTS ;
 
 	if( m_write_list.contains(fd) )
-		mask |= FD_WRITE | FD_CONNECT ;
+		mask |= WRITE_EVENTS ;
 
 	if( m_exception_list.contains(fd) )
-		mask |= FD_CLOSE ;
+		mask |= EXCEPTION_EVENTS ;
 
 	return mask ;
 }
@@ -256,5 +257,4 @@ void GNet::Winsock::quit()
 {
 	GGui::Pump::quit() ;
 }
-
 
