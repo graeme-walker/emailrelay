@@ -1,0 +1,67 @@
+E-MailRelay
+===========
+
+Abstract
+--------
+E-MailRelay is a simple store-and-forward SMTP MTA, designed for standalone 
+machines with an intermittent (dial-up) connection to the wider Internet.
+In most situations the only configuration required is to specify the mail 
+gateway address on the command line. 
+
+C++ source code is available for Linux and Windows. Distribution is under 
+the GNU General Public License.
+
+Quick start
+-----------
+The "emailrelay" program can be run as an SMTP server daemon using the
+command "emailrelay --as-server", and stored mail can be forwarded by
+running the command "emailrelay --as-client <isp-mail-server>:smtp". 
+
+The "--as-server" command is typically run automatically at boot time, 
+using the boot scripts under "/etc/init.d" or "/sbin/init.d", while the 
+"--as-client" command is normally put into pppd's "ip-up" script ("/etc/ppp/ip-up") 
+in place of "sendmail -q".
+
+The program requires a writeable spool directory to store e-mail messages.
+The directory defaults to "/usr/local/var/spool/emailrelay", but it
+can be changed by using the "--spool-dir" switch.
+
+By default the server will try to listen on TCP port 25. If another SMTP
+server is running then it will fail to start up, with a "cannot bind" error 
+message. The port number can be changed by using the "--port" switch.
+
+To test the program out without a full installation:
+(1) run the server as "emailrelay --no-daemon --no-syslog --log --spool-dir ${HOME} --port 10001 &"
+(2) reconfigure your e-mail client to use port 10001 rather than 25 ("smtp")
+(3) send some test messages to addressees on the Internet
+(4) connect to the Internet
+(5) forward the stored messages using "emailrelay --spool-dir ${HOME} --as-client <your-isp-smtp-host>:smtp"
+(6) clean up with "killall emailrelay ; rm ${HOME}/emailrelay.*"
+
+Documentation
+-------------
+The following documentation is provided:
+* README              -- this document
+* COPYING             -- the GNU General Public License
+* INSTALL             -- build & install instructions (based on generic GNU text)
+* doc/userguide.txt   -- user guide
+* doc/reference.txt   -- reference document
+* doc/developer.txt   -- developer guide
+
+And for completeness the following stub documents are also included:
+* NEWS
+* AUTHORS
+* ChangeLog
+
+Configurations
+--------------
+The code was developed on SuSE Linux 7.1 using:
+* linux 2.2.18,
+* gcc 2.95.2,
+* glibc 2.2.7 (libc.so.6),
+* gnu make 3.79.1,
+* autoconf 2.13
+
+and ported to Windows 98 using
+* MSVC 6.0
+

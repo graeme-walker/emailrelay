@@ -1,0 +1,161 @@
+E-MailRelay Developer reference
+===============================
+
+Module structure
+----------------
+There are two C++ libraries in the E-MailRelay code: "glib" provides low-level
+classes for file-system abstraction, date and time representation, string
+utility functions, logging, command line parsing etc., and "gnet" provides
+network classes using the Berkley socket and Winsock APIs. Both libraries
+are portable between POSIX-like systems (eg. Linux) and Windows.
+
+The application-level classes are implemented within the "GSmtp" namespace.
+The key classes in this namespace are "ClientProtocol", "ServerProtocol" and
+"MessageStore".  The protocol and message-store functionality is brought
+together by the high-level "GSmtp::Server" and "GSmtp::Client" classes.
+
+Under Windows the "gnet" library needs to create hidden GUI windows in
+order to receive network events. (Windows has historically built network
+event processing on top of the GUI event system, rather then implementing
+both GUI and network event handling on top of a generic event notification
+system as POSIX systems do.) The Windows GUI and event classes are put into
+a separate "src/win32" directory.
+
+For a quick tour of the code look at the following headers:
+* src/glib/gpath.h
+* src/glib/gstr.h
+* lib/gcc2.95/sstream
+* src/gnet/gevent.h
+* src/gnet/gaddress.h
+* src/gnet/gsocket.h
+* src/gnet/gserver.h
+* src/main/gmessagestore.h
+* src/main/gserverprotocol.h
+* src/main/gsmtpserver.h
+
+
+Directory structure
+-------------------
+
+* src
+
+  Parent directory for source code.
+
+* src/glib
+
+  A low-level class library, including classes for file-system abstraction,
+  date and time, string utility functions, logging, command line parsing etc.
+
+* src/gnet
+
+  A network library using Berkley sockets or Winsock.
+
+* src/win32
+
+  Additional classes for windows event processing.
+
+* src/main
+
+  Application-level classes for E-MailRelay.
+
+* lib
+
+  Parent directory for ANSI C++ fixes
+
+* lib/gcc2.95
+
+  Standard headers which are missing in gcc2.95
+
+* lib/msvc6.0
+
+  Standard headers which are missing (or broken) in msvc6.0
+
+Portability
+-----------
+The E-MailRelay code is written in ANSI C++, using the following
+language/library features:
+* templates
+* exceptions
+* namespaces
+* "explicit"
+* STL
+* std::string & std::stringstream
+* dynamic_cast<> & RTTI
+* static_cast<> & const_cast<>
+
+but not:
+* defaulted template parameters
+* templated member functions
+* covariant return
+* "mutable"
+
+The header files "gdef.h" in "src/glib", and "gnet.h" in "src/gnet" are
+intended to be used to fix up portability issues such as missing standard
+types, non-standard system headers etc. Conditional compilation is not
+used outside of these headers (with the odd exception).
+
+Deficiencies in the ANSI C++ headers files provided by the compiler
+are fixed up in the "lib" directory tree. For example, the msvc6.0
+compiler sometimes does not put its names into the "std" namespace,
+even though the std-namespace headers are used. This can be worked round
+by additional "using" declarations in the "lib/msvc6.0" headers.
+These work-rounds are kept out of the "src" tree because they are likely
+to be fixed in later compiler releases. Standards-compliant compilers
+should not need to include any headers from the "lib" directory tree.
+
+Windows/unix portability is generally addressed by providing a common
+class declaration with two implementations. Where necessary a pimple
+pattern is used to hide the system-specific parts of the declaration.
+
+A good example is the "GDirectory" class used for iterating through files
+in a directory. The header file "src/glib/gdirectory.h" is common to both
+systems, but two implementations are provided in "gdirectory_unix.cpp"
+and "gdirectory_win32.cpp". The unix implementation uses opendir() and
+glob(), while the windows implementation uses FindFirstFile().
+
+Sometimes only parts of the implementation are system-specific. In these
+cases there are three source files per header. For example, "gsocket.cpp",
+"gsocket_win32.cpp" and "gsocket_unix.cpp" in the "src/gnet" directory.
+
+Porting
+-------
+If trying a port using a good ANSI C++ compiler then start by removing
+files from the "lib/gcc2.95" directory (or edit makefiles to remove the
+include path), and then review the following header files: "src/glib/gdef.h",
+"src/gnet/gnet.h", "src/glib/gmemory.h".
+
+The unix (ie. POSIX-like) implementation of the directory iteration class
+uses glob(). This functionality is only used by the message store code in
+the "src/main" directory. If glob() presents a porting challenge then
+the filename matching could be removed from the directory iterator and
+moved into the message store class.
+
+IPv6
+----
+IPv6 is supported at compile-time by selecting source files in the
+"src/gnet" directory ending "_ipv6.cpp" rather than "_ipv4.cpp".
+The code should be regarded as experimental.
+
+Doxygen
+-------
+The commenting style used in header files is compatible with Doxygen
+if passed through the simple awk-based preprocessor "emailrelay-filter.sh".
+A "make" in the "doc" directory will run Doxygen if it is found on
+your path.
+
+Windows build
+-------------
+A simple project file "emailrelay.dsp" for msvc6.0 is provided in the
+"src/main" directory.
+
+Style
+-----
+Tabs are used for indenting, not multiple spaces, but only at the left
+hand edge, and never within a line. This allows the reader to choose
+how deep the indenting should be (appropriate to their window size) by
+setting the editor's tabstop. Using spaces does not allow the reader this
+freedom.
+
+
+
+Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.

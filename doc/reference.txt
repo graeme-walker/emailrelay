@@ -1,0 +1,190 @@
+E-MailRelay Reference Manual
+============================
+
+Document
+--------
+This is the E-MailRelay reference guide. It contains material which is supplementary
+to the user guide.
+
+Usage
+-----
+The "emailrelay" program supports the following command-line usage:
+
+	emailrelay [<switch> [<switch> ...]]
+
+where <switch> is:
+
+* --version (-V)
+  Displays version information and exits.
+
+* --admin (-a)
+  Enables the administration interface and specifies its listening port number.
+
+* --as-server (-d)
+  Equivalent to "--close-stderr --log".
+
+* --close-stderr (-e)
+  Closes the standard error stream when daemonising.
+
+* --forward (-f)
+  Forwards stored mail on startup (requires --forward-to).
+
+* --help (-h)
+  Displays help text and exits.
+
+* --pid-file (-i)
+  Records the daemon process-id in the given file.
+
+* --log (-l)
+  Writes log information on standard error (if open) and syslog (if not disabled).
+
+* --no-syslog (-n)
+  Disables syslog output.
+
+* --forward-to (-o)
+  Specifies the remote smtp server (required by --forward and --admin).
+
+* --port (-p)
+  Specifies the smtp listening port number.
+
+* --as-client (-q)
+  Equivalent to "--no-syslog --no-daemon --log --dont-serve --forward --forward-to".
+
+* --remote-clients (-r)
+  Allows remote clients to connect.
+
+* --spool-dir (-s)
+  Specifies the spool directory (default is "/usr/local/var/spool/emailrelay").
+
+* --no-daemon (-t)
+  Does not detach from the terminal.
+
+* --verbose (-v)
+  Generates more verbose logging (if compiled-in and logging enabled and stderr open).
+
+* --dont-serve (-x)
+  Stops the process acting as a server (usually used with --forward).
+
+If no command-line switches are supplied at all then the default
+behaviour is:
+* to run as a daemon, detached from the terminal
+* listen on the standard SMTP port (25)
+* store e-mail messages in "/usr/local/var/spool/emailrelay"
+* reject connections from remote clients
+* disable the administration interface
+* generate no logging or diagnostic messages
+
+To foward spooled messages to the ISP the command-line switch "--as-client"
+is provided to run the program...
+* in foreground, exiting when all spooled mail has been processed
+* forwarding spooled mail from "/usr/local/var/spool/emailrelay"
+* without listening on any port
+* with error, warning and information messages sent to stderr
+* without using syslog
+
+The "--as-server" switch makes sure that logging is enabled and that
+the standard error stream is closed.
+
+Message store
+-------------
+Mail messages are stored as text files in the configured spool directory. Each
+message is represented as an envelope file and a content file. The envelope
+file contains parameters relevant to the SMTP dialogue, and the content file
+contains the RFC822 headers and body text. Note that the content is largely
+ignored by the SMTP protocol.
+
+The filenames used in the message store have a prefix of "emailrelay", followed
+by a process-id and sequence number, followed by "envelope" or "content". The
+envelope files then have an additional suffix to implement a simple locking
+scheme.
+
+The envelope suffixes are:
+* ".new" -- while the envelope is first being written
+* <none> -- while the message is spooled
+* ".busy" -- while the message is being forwarded
+* ".bad" -- if the message cannot be forwarded
+* ".local" -- for copies of the envelope file for delivery to local recipeints
+
+Copies of the content file for delivery to local recipeints will also have
+a "local" suffix.
+
+If a message cannot be forwarded the envelope file is given a "bad" suffix,
+and the failure reason is written into the file.
+
+SMTP issues
+-----------
+Local delivery:
+
+  E-MailRelay will reject all local recipients, with the exception of "postmaster".
+  This is in line with its intended purpose as a simple mail relay, rather than
+  a fully-fledged routing MTA. Any addressee (except "postmaster") without an "at"
+  sign (@) will be rejected at the time the message is submitted by the e-mail
+  front-end.
+
+  Delivery of mail to a local "postmaster" is a feature of E-MailRelay which is
+  provided for completeness and for comformance to the SMTP specification. It is
+  only relevant if you are in the habit of sending mail to yourself as "postmaster";
+  mail to "postmaster" from an external source is not processed by E-MailRelay
+  and should be delivered normally.
+
+  Note that E-MailRelay daemon does not actually deliver mail to the postmaster
+  mailbox.  All it does is create an envelope and content file in the spool directory
+  with a ".local" suffix. Some external system, such as a shell script run
+  from cron calling "procmail", should be used to process the ".local" files.
+  An example script is provided.
+
+Timeouts:
+
+  Client-side timeouts are not implemented. If the ISP server is very slow then
+  in a typical setup the dial-up line will be dropped due to inactivity. This
+  will have the desired effect of aborting the message submission.
+
+Message loops:
+
+  Message loops are not detected.
+
+Eight bit messages:
+
+  The 8BITMIME SMTP extension is supported, however no attempt is made to
+  re-encode 8-bit messages into 7-bit messages if the downstream server
+  does not.
+
+Administration interface
+------------------------
+If enabled, the server will provide a network interface for performing administration
+tasks. This is a simple command-line interface which is compatible with telnet.
+
+Currently the only supported command is "flush", which tries to forward spooled mail
+to the configured dowstream SMTP server. The downstream server address must have been
+defined on the "emailrelay" command line at start-up using the "--forward-to" switch;
+it cannot be specified through the administration interface.
+
+Security issues
+---------------
+E-MailRelay runs with a umask of 177. It does not call exec() or system(). It does not
+change its effective userid. No configuration parameters can be changed through the
+administrative interface. By default connections to the SMTP and administrative ports
+will be rejected if they come from remote machines.
+
+Files
+-----
+By default "make install" installs the following files:
+* /usr/local/sbin/emailrelay
+* /usr/local/libexec/emailrelay-poke
+* /usr/local/libexec/emailrelay.sh
+* /usr/local/var/spool/emailrelay/empty_file
+* /usr/local/share/emailrelay/emailrelay-notify.sh
+* /usr/local/share/emailrelay/emailrelay-deliver.sh
+
+This directory structure is constrained by the autoconf and GNU standards. Preferred
+locations would be something like this:
+* /usr/sbin/emailrelay
+* /opt/emailrelay/bin/emailrelay-poke
+* /sbin/init.d/emailrelay.sh
+* /var/spool/emailrelay/
+* /opt/emailrelay/examples/emailrelay-notify.sh
+* /opt/emailrelay/examples/emailrelay-deliver.sh
+
+
+
+Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
