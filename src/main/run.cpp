@@ -48,7 +48,7 @@
 //static
 std::string Main::Run::versionNumber()
 {
-	return "0.9.8" ;
+	return "0.9.9" ;
 }
 
 Main::Run::Run( const G::Arg & arg ) :
@@ -114,18 +114,39 @@ bool Main::Run::prepare()
 		do_run = true ;
 	}
 
+	// (prefix,output,log,verbose-log,debug,level,timestamp,strip-context)
+	m_log_output <<= new G::LogOutput( m_arg.prefix() , cfg().log() , cfg().log() ,
+		cfg().verbose() , cfg().debug() , true ,
+		cfg().logTimestamp() , !cfg().debug() ) ;
+
 	return do_run ;
 }
 
 void Main::Run::run()
 {
-	// logging
+	try
+	{
+		runCore() ;
+		G_LOG( "Main::Run::run: done" ) ;
+	}
+	catch( std::exception & e )
+	{
+		G_LOG( "Main::Run::run: exception: " << e.what() ) ;
+		throw ;
+	}
+	catch(...)
+	{
+		G_LOG( "Main::Run::run: unknown exception" ) ;
+		throw ;
+	}
+}
+
+void Main::Run::runCore()
+{
+	// syslog initialisation
 	//
-	G::LogOutput log( cfg().log() , cfg().verbose() ) ;
 	if( cfg().syslog() )
-		log.syslog(G::LogOutput::Mail) ;
-	if( cfg().logTimestamp() )
-		log.timestamp() ;
+		G::LogOutput::instance()->syslog(G::LogOutput::Mail) ;
 
 	// fqdn override option
 	//

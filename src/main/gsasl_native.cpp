@@ -94,7 +94,7 @@ bool GSmtp::SaslServerImp::validate( const std::string & secret , const std::str
 		G_WARNING( "GSmtp::SaslServer: exception: " << e.what() ) ;
 		return false ;
 	}
-	catch( ... )
+	catch(...)
 	{
 		G_WARNING( "GSmtp::SaslServer: exception" ) ;
 		return false ;

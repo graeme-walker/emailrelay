@@ -38,9 +38,7 @@ std::string Main::CommandLine::osSwitchSpec()
 	ss
 		<< "l!log!writes log information on standard error (if open)!0!|"
 		<< "t!no-daemon!use an ordinary window, not the system tray!0!|"
-		<< "n!no-syslog!has no effect on windows!0!|"
-		<< "q!as-client!equivalent to \"--log --no-daemon --dont-serve --forward --forward-to\"!" << "1!host:port|"
-		<< "d!as-server!equivalent to \"--log --close-stderr\" (has little effect on windows)!0!|"
+		<< "n!no-syslog!dont use the event log!0!|"
 		<< "I!icon!selects the application icon!1!0^|1^|2^|3"
 		;
 

@@ -19,19 +19,17 @@
 # 
 # ===
 #
-# emailrelay-deliver.sh
+# emailrelay-resubmit.sh
 #
-# Looks for local mail in the E-MailRelay spool directory, and delivers 
-# it using 'procmail'. Note that the only local mail should be for the local
-# postmaster, since E-MailRelay will not accept mail for any other
-# local recipient.
+# Looks for all failed e-mails in the E-MailRelay spool directory 
+# and resubmits them. However, if an e-mail has been retried five 
+# times already then it is not resubmitted again.
 #
-# usage: emailrelay-deliver.sh [<spool-dir>]
+# usage: emailrelay-resubmit.sh [<spool-dir>]
 #
 
 store="__SPOOL_DIR__/emailrelay"
-postmaster="root"
-procmail="procmail"
+retry_limit="5"
 
 # parse the command line
 #
@@ -48,31 +46,17 @@ then
 	exit 1
 fi
 
-# for each e-mail to a local recipient...
+# for each failed e-mail...
 #
-for file in ${store}/emailrelay.*.envelope.local ""
+for file in ${store}/emailrelay.*.envelope.bad ""
 do
 	if test -f "${file}"
 	then
-		content="`echo ${file} | sed 's/envelope/content/'`"
-
-		deliver_to="`fgrep X-MailRelay-To-Local ${file} | sed 's/X-MailRelay-To-Local: //' | tr -d '\015' | sed \"s/postmaster/${postmaster}/g\"`"
-		if test "${deliver_to}" = "" 
-		then 
-			deliver_to="${postmaster}"
-		fi
-
-		# deliver using procmail
-		#
-		if test -f "${content}"
+		failures="`fgrep MailRelay-Reason: < ${file} | wc -l`"
+		if test "${failures}" -lt "${retry_limit}"
 		then
-			echo `basename $0`: delivering `basename ${content}` to ${deliver_to}
-			${procmail} -d ${deliver_to} < ${content}
-			rc=$?
-			if test "${rc}" -eq 0
-			then
-				rm -f "${file}" 2>/dev/null
-			fi
+			good_file="`echo ${file} | sed 's/\.bad$//'`"
+			mv -f ${file} ${good_file}
 		fi
 	fi
 done

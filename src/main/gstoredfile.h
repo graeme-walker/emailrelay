@@ -95,6 +95,9 @@ public:
 	virtual size_t remoteRecipientCount() const ;
 		// From StoredMessage.
 
+	virtual size_t errorCount() const ;
+		// From StoredMessage.
+
 private:
 	StoredFile( const StoredFile & ) ;
 	void operator=( const StoredFile & ) ;
@@ -107,6 +110,7 @@ private:
 	void readFrom( std::istream & stream ) ;
 	void readToList( std::istream & stream ) ;
 	void readEnd( std::istream & stream ) ;
+	void readReasons( std::istream & stream ) ;
 	void readAuthentication( std::istream & stream ) ;
 	void readClientIp( std::istream & stream ) ;
 	void readEnvelopeCore( bool ) ;
@@ -121,6 +125,7 @@ private:
 	std::string m_authentication ;
 	std::string m_format ;
 	std::string m_client_ip ;
+	size_t m_errors ;
 } ;
 
 #endif

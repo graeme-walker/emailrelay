@@ -10,6 +10,25 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
+# 
+# Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
+# 
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later
+# version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# 
+
 
 SHELL = @SHELL@
 
@@ -61,6 +80,7 @@ AR = @AR@
 AWK = @AWK@
 CC = @CC@
 CXX = @CXX@
+GZIP = @GZIP@
 HAVE_DOXYGEN = @HAVE_DOXYGEN@
 HAVE_MAN2HTML = @HAVE_MAN2HTML@
 MAKE = @MAKE@
@@ -68,6 +88,13 @@ MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
+e_docdir = @e_docdir@
+e_examplesdir = @e_examplesdir@
+e_initdir = @e_initdir@
+e_libexecdir = @e_libexecdir@
+e_man1dir = @e_man1dir@
+e_sbindir = @e_sbindir@
+e_spooldir = @e_spooldir@
 
 SUBDIRS = glib gnet main win32
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -82,7 +109,7 @@ TAR = tar
 GZIP_ENV = --best
 all: all-redirect
 .SUFFIXES:
-$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
+$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.ac $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps src/Makefile
 
 Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status

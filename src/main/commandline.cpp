@@ -55,9 +55,12 @@ std::string Main::CommandLine::switchSpec()
 		<< "i!pid-file!records the daemon process-id in the given file!1!pid-file|"
 		<< "p!port!specifies the smtp listening port number!1!port|"
 		<< "r!remote-clients!allows remote clients to connect!0!|"
-		<< "s!spool-dir!specifies the spool directory " << "(default is \"" << dir << "\")!1!dir|"
-		<< "v!verbose!generates more verbose logging " << "(if compiled-in and logging enabled and stderr open)!0!|"
-		<< "V!version!displays version information and exits!0!"
+		<< "s!spool-dir!specifies the spool directory (default is \"" << dir << "\")!1!dir|"
+		<< "v!verbose!generates more verbose logging!0!|"
+		<< "g!debug!generates debug-level logging (if compiled-in)!0!|"
+		<< "V!version!displays version information and exits!0!|"
+		<< "q!as-client!equivalent to \"--log --no-syslog --no-daemon --dont-serve --forward --forward-to\"!" << "1!host:port|"
+		<< "d!as-server!equivalent to \"--log --close-stderr\"!0!"
 		;
 	return ss.str() ;
 }

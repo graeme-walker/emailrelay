@@ -26,9 +26,17 @@
 #include "gmessagestore.h"
 #include "gpath.h"
 
+#ifndef G_SPOOLDIR
+	#define G_SPOOLDIR ""
+#endif
+
 //static
 G::Path GSmtp::MessageStore::defaultDirectory()
 {
-	return G::Path( "/usr/local/var/spool/emailrelay" ) ;
+	std::string spooldir( G_SPOOLDIR ) ;
+	if( spooldir.empty() )
+		spooldir = "/var/spool/emailrelay" ;
+
+	return G::Path( spooldir ) ;
 }
 

@@ -132,9 +132,9 @@ The envelope suffixes are:
 * <none> -- while the message is spooled
 * ".busy" -- while the message is being forwarded
 * ".bad" -- if the message cannot be forwarded
-* ".local" -- for copies of the envelope file for delivery to local recipeints
+* ".local" -- for copies of the envelope file for delivery to local recipients
 
-Copies of the content file for delivery to local recipeints will also have
+Copies of the content file for delivery to local recipients will also have
 a "local" suffix.
 
 If a message cannot be forwarded the envelope file is given a "bad" suffix,
@@ -152,7 +152,7 @@ SMTP issues
   (where "fqdn" is the host's fully qualified domain name) are treated as the local
   postmaster, resulting in local delivery rather than mail forwarding.
 
-  Receipient addresses (other than "postmaster" addresses) with no "at" sign (@) or
+  Recipient addresses (other than "postmaster" addresses) with no "at" sign (@) or
   ending in "@localhost" will be rejected at the time the message is submitted by the
   e-mail front-end. This is in line with E-MailRelay's intended purpose as a simple
   mail relay, rather than a fully-fledged routing MTA.
@@ -178,7 +178,7 @@ SMTP issues
 # Eight bit messages:
 
   The 8BITMIME SMTP extension is supported, however no attempt is made to
-  re-encode 8-bit messages into 7-bit messages if the downstream server
+  re-encode 8-bit messages into 7-bit messages if the next-hop server
   does not.
 
 Administration interface
@@ -188,8 +188,8 @@ administration tasks. This is a simple command-line interface which is
 compatible with "telnet".
 
 Currently the only supported commands are "flush" and "info". The "flush" command
-is used to forward spooled mail to the configured dowstream SMTP server. The
-downstream server address must have been defined on the "emailrelay" command
+is used to forward spooled mail to the configured next-hop SMTP server. The
+next-hop server address must have been defined on the "emailrelay" command
 line at start-up using the "--forward-to" switch; it cannot be specified through
 the administration interface.
 
@@ -251,15 +251,19 @@ A major security concern is the use of an external mail pre-processor (using the
 
 # effective userid
 
-  Root or suid privileges are revoked at start-up, switching to the real userid
-  or "daemon" if the real userid is root. Special privileges are only reclaimed
-  when needed to bind sockets and do file i/o.
+  Suid privileges are revoked at start-up, switching the effective userid/groupid
+  to be the real userid/groupid values. If started as "root" then the effective
+  userid/groupid are taken from the "daemon" user. Special privileges are only
+  reclaimed when needed to bind sockets and do file i/o. Normally this means
+  temporarily switching the userid and groupid back to what they were at start-up.
+  However, when writing spool files only the effective userid is changed, not the
+  groupid.
 
 # execution environment
 
-  The pre-processor runs with an almost empty set of environment variables,
-  and with no open file descriptors other than "stdin"/"stdout"/"stderr" open
-  onto "/dev/null".
+  The pre-processor runs with an almost empty set of environment variables ("PATH"
+  and "IFS"), and with no open file descriptors other than "stdin"/"stdout"/"stderr"
+  open onto "/dev/null".
 
 # configuration
 
@@ -276,11 +280,12 @@ such as those which use digital signatures."
 The "Authentication" section below also relates to security.
 
 Some other points are:
-* The program runs with a "umask" of 177 so files are created with "-rw-------" permissions.
+* The program runs for most of the time with a "umask" of 177, switching to 117 when creating spool files.
 * Strings are dynamically allocated, so buffer overflow/truncation issues are avoided.
 * By default connections to the SMTP and administrative ports will be rejected if they come from remote machines.
 * No configuration parameters can be changed through the administrative interface.
 * No exec(), system() or popen() calls are used other than execve() to spawn the mail pre-processor.
+* The submit utility is installed as set-group-id with group ownership of "daemon".
 
 Authentication
 --------------
@@ -303,12 +308,12 @@ identifier; and the "secret" field is the xtext-encoded "LOGIN" password or
 "CRAM-MD5" keys can be generated using the "emailrelay-passwd" utility.
 
 A client-side secrets file should contain at least one "LOGIN client" or
-"CRAM-MD5 client" entry. A server-side secrets file should contains zero or
+"CRAM-MD5 client" entry. A server-side secrets file should contain zero or
 more "LOGIN server" or "CRAM-MD5 server" entries. The same secrets file may
 be specified for both "--auth-client" and "--auth-server" switches.
 
 For example, the following secrets file defines "jsmith" as the username to be
-used when E-MailRelay authenticates with a downstream server, and defines two
+used when E-MailRelay authenticates with a next-hop server, and defines two
 usernames ("user1" and "user2") which can be used by clients when they
 authenticate with the E-MailRelay server:
 
@@ -337,7 +342,7 @@ On the server side authentication is advertised in the response to the SMTP
 "EHLO" command if the "--auth-server" command line switch is used, but
 authentication by the client is optional. If the client does authenticate then
 the authenticated user-id is stored with the message and then passed on to a
-downstream server using an "AUTH=userid" parameter on the SMTP "MAIL FROM"
+next-hop server using an "AUTH=userid" parameter on the SMTP "MAIL FROM"
 command. If the client chooses not to authenticate then the submitted messages
 will be forwarded using "AUTH=<>" on the "MAIL FROM" command. Note that any
 "AUTH=userid" information on incoming submitted messages is ignored and
@@ -357,25 +362,101 @@ from a particular IP address is allowed. This type of POP-before-SMTP
 authentication can be done outside the E-MailRelay system by POP/IMAP utilities
 such as "fetchmail".
 
-Files
------
+Installation directories
+------------------------
 By default "make install" installs files in the following locations:
 * /usr/local/libexec/emailrelay-poke
-* /usr/local/libexec/emailrelay-passwd
-* /usr/local/libexec/emailrelay.sh
+* /usr/local/libexec/emailrelay-notify.sh
+* /usr/local/libexec/emailrelay-deliver.sh
+* /usr/local/libexec/emailrelay-resubmit.sh
+* /usr/local/libexec/emailrelay
+* /usr/local/libexec/emailrelay-process.sh
 * /usr/local/sbin/emailrelay
-* /usr/local/var/spool/emailrelay/empty_file
-* /usr/local/share/emailrelay/emailrelay-notify.sh
-* /usr/local/share/emailrelay/emailrelay-deliver.sh
-* /usr/local/share/emailrelay/emailrelay-process.sh
-* /usr/local/share/emailrelay/*.html
-* /usr/local/share/emailrelay/graphics/bullet.gif
-* /usr/local/man/man1/emailrelay.1
-* /usr/local/man/man1/emailrelay-poke.1
+* /usr/local/sbin/emailrelay-passwd
+* /usr/local/sbin/emailrelay-submit
+* /usr/local/var/spool/emailrelay/*
+* /usr/local/share/emailrelay/doc/developer.txt
+* /usr/local/share/emailrelay/doc/reference.txt
+* /usr/local/share/emailrelay/doc/userguide.txt
+* /usr/local/share/emailrelay/doc/windows.txt
+* /usr/local/share/emailrelay/doc/readme.html
+* /usr/local/share/emailrelay/doc/developer.html
+* /usr/local/share/emailrelay/doc/reference.html
+* /usr/local/share/emailrelay/doc/userguide.html
+* /usr/local/share/emailrelay/doc/windows.html
+* /usr/local/share/emailrelay/doc/emailrelay-man.html
+* /usr/local/share/emailrelay/doc/index.html
+* /usr/local/share/emailrelay/doc/changelog.html
+* /usr/local/share/emailrelay/doc/emailrelay.css
+* /usr/local/share/emailrelay/doc/NEWS
+* /usr/local/share/emailrelay/doc/README
+* /usr/local/share/emailrelay/doc/changelog.gz
+* /usr/local/share/emailrelay/doc/doxygen/*
+* /usr/local/man/man1/emailrelay.1.gz
+* /usr/local/man/man1/emailrelay-passwd.1.gz
+* /usr/local/man/man1/emailrelay-poke.1.gz
+* /usr/local/man/man1/emailrelay-submit.1.gz
 
 This directory structure is constrained by the GNU/"autoconf" conventions rather
-than the Filesystem Hierarchy Standard.
+than the Filesystem Hierarchy Standard (FHS).
 
+To force FHS compliance you can use the "--enable-fhs" switch when running
+"configure". This results in the following file locations:
+* /usr/lib/emailrelay/emailrelay-poke
+* /usr/sbin/emailrelay
+* /usr/sbin/emailrelay-passwd
+* /usr/sbin/emailrelay-submit
+* /usr/share/doc/emailrelay/examples/emailrelay-notify.sh
+* /usr/share/doc/emailrelay/examples/emailrelay-deliver.sh
+* /usr/share/doc/emailrelay/examples/emailrelay-resubmit.sh
+* /usr/share/doc/emailrelay/examples/emailrelay-process.sh
+* /usr/share/doc/emailrelay/developer.txt
+* /usr/share/doc/emailrelay/reference.txt
+* /usr/share/doc/emailrelay/userguide.txt
+* /usr/share/doc/emailrelay/windows.txt
+* /usr/share/doc/emailrelay/readme.html
+* /usr/share/doc/emailrelay/developer.html
+* /usr/share/doc/emailrelay/reference.html
+* /usr/share/doc/emailrelay/userguide.html
+* /usr/share/doc/emailrelay/windows.html
+* /usr/share/doc/emailrelay/emailrelay-man.html
+* /usr/share/doc/emailrelay/index.html
+* /usr/share/doc/emailrelay/changelog.html
+* /usr/share/doc/emailrelay/emailrelay.css
+* /usr/share/doc/emailrelay/NEWS
+* /usr/share/doc/emailrelay/README
+* /usr/share/doc/emailrelay/changelog.gz
+* /usr/share/doc/emailrelay/doxygen/*
+* /usr/share/man/man1/emailrelay.1.gz
+* /usr/share/man/man1/emailrelay-passwd.1.gz
+* /usr/share/man/man1/emailrelay-poke.1.gz
+* /usr/share/man/man1/emailrelay-submit.1.gz
+* /var/spool/emailrelay/*
+* /etc/init.d/emailrelay
+
+For finer control of the directory structure the following variables
+can be specified on the "configure" command line (but note that the
+"--enable-fhs" will override them):
+* e_sbindir
+* e_libexecdir
+* e_docdir
+* e_initdir
+* e_spooldir
+* e_man1dir
+* e_examplesdir
+
+For example, running "./configure --prefix=/usr e_spooldir=/tmp/spool" will
+create the GNU-style directory structure under "/usr" rather than "/usr/local",
+and create the E-MailRelay spool directory as "/tmp/spool" rather than
+"/usr/local/var/spool/emailrelay".
+
+The default spool directory path which is built into the executables and scripts
+comes from "configure", via the makefiles. So if you re-run "configure" with a
+different spool directory you should also do a "make clean" in at least
+"src/main" and "bin".
+
+The "emailrelay" script in "init.d" creates a pid file in "/var/run" if the
+directory exists, or in "/tmp" otherwise.
 
 
 Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.

@@ -69,6 +69,9 @@ public:
 	virtual size_t remoteRecipientCount() const = 0 ;
 		// Returns the number of non-local recipients.
 
+	virtual size_t errorCount() const = 0 ;
+		// Returns the number of accumulated submission errors.
+
 	virtual ~StoredMessage() ;
 		// Destructor.
 

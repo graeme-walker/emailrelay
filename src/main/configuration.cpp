@@ -55,6 +55,7 @@ std::string Main::Configuration::str( const std::string & p , const std::string 
 		<< p << "run as daemon? " << yn(daemon()) << eol
 		<< p << "log to stderr/syslog? " << yn(log()) << eol
 		<< p << "verbose logging? " << yn(verbose()) << eol
+		<< p << "debug logging? " << yn(debug()) << eol
 		//<< p << "use syslog? " << yn(syslog()) << eol
 		<< p << "close stderr? " << yn(closeStderr()) << eol
 		<< p << "allow remote clients? " << yn(allowRemoteClients()) << eol
@@ -80,6 +81,11 @@ bool Main::Configuration::log() const
 bool Main::Configuration::verbose() const
 {
 	return m_cl.contains("verbose") ;
+}
+
+bool Main::Configuration::debug() const
+{
+	return m_cl.contains("debug") ;
 }
 
 bool Main::Configuration::syslog() const

@@ -17,29 +17,11 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 dnl 
 dnl ===
-dnl 
-dnl Copyright (C) 2001 Graeme Walker <graeme_walker@users.sourceforge.net>
-dnl 
-dnl This program is free software; you can redistribute it and/or
-dnl modify it under the terms of the GNU General Public License
-dnl as published by the Free Software Foundation; either
-dnl version 2 of the License, or (at your option) any later
-dnl version.
-dnl 
-dnl This program is distributed in the hope that it will be useful,
-dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
-dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-dnl GNU General Public License for more details.
-dnl 
-dnl You should have received a copy of the GNU General Public License
-dnl along with this program; if not, write to the Free Software
-dnl Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-dnl 
-dnl ===
+dnl
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(src/main/gsmtp.h)
-AM_INIT_AUTOMAKE(emailrelay,0.9.8)
+AM_INIT_AUTOMAKE(emailrelay,0.9.9)
 AM_CONFIG_HEADER(config.h)
 
 dnl ===
@@ -52,6 +34,7 @@ AC_PROG_INSTALL
 AC_PROG_AWK
 AC_CHECK_PROGS(MAKE,make gmake)
 AC_CHECK_PROGS(AR,ar gar)
+AC_CHECK_PROGS(GZIP,gzip)
 AC_CHECK_PROG(HAVE_DOXYGEN,doxygen,yes)
 AC_CHECK_PROG(HAVE_MAN2HTML,man2html,yes)
 
@@ -75,8 +58,31 @@ AC_LANG_CPLUSPLUS
 dnl check for *_r() declarations -- using ac_check_funcs
 dnl is no good here since they may be in the library but
 dnl not the header (depending on preprocessor switches)
-AC_EGREP_HEADER(localtime_r,time.h,AC_DEFINE(HAVE_LOCALTIME_R,1,have reentrant localtime))
-AC_EGREP_HEADER(gmtime_r,time.h,AC_DEFINE(HAVE_GMTIME_R,1,have reentrant gmtime))
+AC_EGREP_HEADER(localtime_r,time.h,[AC_DEFINE(HAVE_LOCALTIME_R,1,[have reentrant localtime])])
+AC_EGREP_HEADER(gmtime_r,time.h,[AC_DEFINE(HAVE_GMTIME_R,1,[have reentrant gmtime])])
+
+dnl ===
+dnl directory tweaking...
+dnl
+dnl not AC_PREFIX_DEFAULT([/usr])
+AC_ARG_ENABLE(fhs,AC_HELP_STRING([--enable-fhs],[force FHS-compliant directories, ignoring --prefix etc]))
+AC_SUBST(e_sbindir)
+if test "$e_sbindir" = "" ; then e_sbindir="$sbindir" ; fi
+AC_SUBST(e_libexecdir)
+if test "$e_libexecdir" = "" ; then e_libexecdir="$libexecdir" ; fi
+AC_SUBST(e_docdir)
+if test "$e_docdir" = "" ; then e_docdir="$datadir/$PACKAGE/doc" ; fi
+AC_SUBST(e_initdir)
+if test "$e_initdir" = "" ; then e_initdir="$libexecdir" ; fi
+AC_SUBST(e_spooldir)
+if test "$e_spooldir" = "" ; then e_spooldir="$localstatedir/spool/emailrelay" ; fi
+AC_SUBST(e_man1dir)
+if test "$e_man1dir" = "" ; then e_man1dir="$mandir/man1" ; fi
+AC_SUBST(e_examplesdir)
+if test "$e_examplesdir" = "" ; then e_examplesdir="$libexecdir" ; fi
+ENABLE_FHS
+
+dnl ===
 dnl attempt to fix recursive makes where make is gmake -- may break something else
 SET_MAKE=""
 

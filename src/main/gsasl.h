@@ -45,6 +45,8 @@ namespace GSmtp
 
 // Class: GSmtp::Sasl
 // Description: A singleton class representing the SASL library.
+// The SASL challenge/response concept is described in RFC2222.
+// See also: GSmtp::SaslClient, GSmtp::SaslServer, RFC2554, RFC2222
 //
 class GSmtp::Sasl
 {

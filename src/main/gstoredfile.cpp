@@ -26,7 +26,6 @@
 #include "gfilestore.h"
 #include "gstoredfile.h"
 #include "gmemory.h"
-#include "groot.h"
 #include "gxtext.h"
 #include "gfile.h"
 #include "gstr.h"
@@ -35,7 +34,9 @@
 #include <fstream>
 
 GSmtp::StoredFile::StoredFile( const G::Path & path ) :
-	m_envelope_path(path)
+	m_envelope_path(path) ,
+	m_eight_bit(false) ,
+	m_errors(0U)
 {
 	G_DEBUG( "StoredFile: \"" << path << "\"" ) ;
 }
@@ -65,7 +66,7 @@ bool GSmtp::StoredFile::readEnvelope( std::string & reason , bool check )
 
 void GSmtp::StoredFile::readEnvelopeCore( bool check )
 {
-	G::Root claim_root ;
+	FileReader claim_reader ;
 	std::ifstream stream( m_envelope_path.str().c_str() , std::ios_base::binary | std::ios_base::in ) ;
 	if( ! stream.good() )
 		throw OpenError() ;
@@ -86,6 +87,8 @@ void GSmtp::StoredFile::readEnvelopeCore( bool check )
 
 	if( ! stream.good() )
 		throw StreamError() ;
+
+	readReasons( stream ) ;
 }
 
 void GSmtp::StoredFile::readFormat( std::istream & stream )
@@ -150,11 +153,22 @@ void GSmtp::StoredFile::readEnd( std::istream & stream )
 		throw NoEnd() ;
 }
 
+void GSmtp::StoredFile::readReasons( std::istream & stream )
+{
+	m_errors = 0U ;
+	while( stream.good() )
+	{
+		std::string reason = getline(stream) ;
+		if( reason.find(FileStore::x()+"Reason") == 0U )
+			m_errors++ ;
+	}
+}
+
 bool GSmtp::StoredFile::openContent( std::string & reason )
 {
 	try
 	{
-		G::Root claim_root ;
+		FileReader claim_reader ;
 		G::Path content_path = contentPath() ;
 		G_DEBUG( "GSmtp::FileStore::openContent: \"" << content_path << "\"" ) ;
 		std::auto_ptr<std::istream> stream( new std::ifstream(
@@ -207,7 +221,7 @@ std::string GSmtp::StoredFile::crlf() const
 
 bool GSmtp::StoredFile::lock()
 {
-	G::Root claim_root ;
+	FileWriter claim_writer ;
 	G::Path & src = m_envelope_path ;
 	G::Path dst( src.str() + ".busy" ) ;
 	bool ok = G::File::rename( src , dst , G::File::NoThrow() ) ;
@@ -223,7 +237,7 @@ void GSmtp::StoredFile::fail( const std::string & reason )
 {
 	try
 	{
-		G::Root claim_root ;
+		FileWriter claim_writer ;
 
 		// write the reason into the file
 		{
@@ -235,7 +249,7 @@ void GSmtp::StoredFile::fail( const std::string & reason )
 		G::Path env_temp( m_envelope_path ) ; // "foo.envelope.busy"
 		env_temp.removeExtension() ; // "foo.envelope"
 		G::Path bad( env_temp.str() + ".bad" ) ; // "foo.envelope.bad"
-		G_LOG( "GSmtp::StoredMessage: failing file: "
+		G_LOG_S( "GSmtp::StoredMessage: failing file: "
 			<< "\"" << m_envelope_path.basename() << "\" -> "
 			<< "\"" << bad.basename() << "\"" ) ;
 
@@ -250,7 +264,7 @@ void GSmtp::StoredFile::destroy()
 {
 	try
 	{
-		G::Root claim_root ;
+		FileWriter claim_writer ;
 		G_LOG( "GSmtp::StoredMessage: deleting file: \"" << m_envelope_path.basename() << "\"" ) ;
 		G::File::remove( m_envelope_path , G::File::NoThrow() ) ;
 
@@ -293,7 +307,13 @@ size_t GSmtp::StoredFile::remoteRecipientCount() const
 	return m_to_remote.size() ;
 }
 
+size_t GSmtp::StoredFile::errorCount() const
+{
+	return m_errors ;
+}
+
 std::string GSmtp::StoredFile::authentication() const
 {
 	return m_authentication ;
 }
+

@@ -29,6 +29,7 @@
 #include "configuration.h"
 #include "commandline.h"
 #include "geventloop.h"
+#include "glogoutput.h"
 #include "gdaemon.h"
 #include "garg.h"
 #include "gmessagestore.h"
@@ -97,6 +98,7 @@ private:
 
 private:
 	std::auto_ptr<CommandLine> m_cl ;
+	std::auto_ptr<G::LogOutput> m_log_output ;
 	G::Arg m_arg ;
 } ;
 

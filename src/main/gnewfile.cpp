@@ -124,7 +124,7 @@ bool GSmtp::NewFile::store( const std::string & auth_id , const std::string & cl
 
 	// commit the envelope, or rollback the content
 	//
-	G::Root claim_root ;
+	FileWriter claim_writer ;
 	if( ! ok || ! G::File::rename(p0,p1,G::File::NoThrow() ) )
 	{
 		G_ASSERT( m_content_path.str().length() != 0U ) ;
@@ -176,10 +176,10 @@ void GSmtp::NewFile::deliver( const G::Strings & /*to*/ ,
 	// could shell out to "procmail" or "deliver" here, but keep it
 	// simple and within the scope of a "message-store" class
 
-	G_LOG( "GSmtp::NewMessage: copying message for local recipient(s): "
+	G_LOG_S( "GSmtp::NewMessage: copying message for local recipient(s): "
 		<< content_path.basename() << ".local" ) ;
 
-	G::Root claim_root ;
+	FileWriter claim_writer ;
 	G::File::copy( content_path.str() , content_path.str()+".local" ) ;
 	G::File::copy( envelope_path_now.str() , envelope_path_later.str()+".local" ) ;
 }

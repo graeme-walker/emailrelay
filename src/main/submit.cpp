@@ -35,11 +35,13 @@
 #include "gsmtp.h"
 #include "glocal.h"
 #include "gaddress.h"
+#include "geventloop.h"
 #include "garg.h"
 #include "gstrings.h"
 #include "gstr.h"
 #include "ggetopt.h"
 #include "gpath.h"
+#include "gverifier.h"
 #include "gfilestore.h"
 #include "gnewmessage.h"
 #include "gexception.h"
@@ -81,12 +83,13 @@ static void process( const G::Path & path , std::istream & stream ,
 
 	// add "To:" lines to the envelope
 	//
+	GSmtp::Verifier verifier ;
 	for( G::Strings::const_iterator to_p = to_list.begin() ; to_p != to_list.end() ; ++to_p )
 	{
 		std::string to = *to_p ;
 		G::Str::trim( to , " \t\r\n" ) ;
-		const bool is_local = false ;
-		msg->addTo( to , is_local ) ;
+		GSmtp::Verifier::Status status = verifier.verify( to ) ;
+		msg->addTo( status.address , status.is_local ) ;
 	}
 
 	// stream out the header
@@ -152,6 +155,9 @@ static void run( const G::Arg & arg )
 	}
 	else
 	{
+		std::auto_ptr<GNet::EventLoop> event_loop( GNet::EventLoop::create() ) ;
+		event_loop->init() ;
+
 		G::Path path = GSmtp::MessageStore::defaultDirectory() ;
 		if( getopt.contains("spool-dir") )
 			path = getopt.value("spool-dir") ;

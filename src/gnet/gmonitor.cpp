@@ -106,7 +106,7 @@ void GNet::Monitor::report( std::ostream & s , const std::string & px , const st
 	s << px << "clients destroyed: " << m_imp->m_client_removes << eol ;
 	{
 		for( MonitorImp::Clients::const_iterator p = m_imp->m_clients.begin() ;
-		 p != m_imp->m_clients.end() ; ++p )
+			p != m_imp->m_clients.end() ; ++p )
 		{
 			s << px
 				<< "  client " << (const void *)(*p) << ": "

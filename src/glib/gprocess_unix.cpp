@@ -59,9 +59,9 @@ bool G::Process::cd( const Path & dir , NoThrow )
 }
 
 //static
-void G::Process::setUmask()
+void G::Process::setUmask( bool tightest )
 {
-	mode_t new_mode = 0177 ; // create as -rw-------
+	mode_t new_mode = tightest ? 0177 : 0117 ; // tightest => -rw-------
 	(void) ::umask( new_mode ) ;
 }
 
@@ -209,9 +209,9 @@ void G::Process::execCore( const G::Path & exe , const std::string & arg )
 
 	char * env[3U] ;
 	std::string path( "PATH=/usr/bin:/bin" ) ; // no "."
-	std::string ifr( "IFR= \t\n" ) ;
+	std::string ifs( "IFS= \t\n" ) ;
 	env[0U] = const_cast<char*>( path.c_str() ) ;
-	env[1U] = const_cast<char*>( ifr.c_str() ) ;
+	env[1U] = const_cast<char*>( ifs.c_str() ) ;
 	env[2U] = NULL ;
 
 	::execve( exe.str().c_str() , argv , env ) ;
@@ -220,7 +220,7 @@ void G::Process::execCore( const G::Path & exe , const std::string & arg )
 	G_WARNING( "G::Process::exec: execve() returned: errno=" << error << ": " << exe ) ;
 }
 
-void G::Process::beSpecial( Identity identity )
+void G::Process::beSpecial( Identity identity , bool change_group )
 {
 	// try to change our effective id -- this
 	// will only work if our real uid is root, or if
@@ -231,18 +231,18 @@ void G::Process::beSpecial( Identity identity )
 	//
 	Identity old_identity ;
 	(void) ::seteuid( identity.uid ) ;
-	(void) ::setegid( identity.gid ) ;
+	if( change_group) (void) ::setegid( identity.gid ) ;
 	(void) old_identity.str() ; // pacify the compiler
 	G_DEBUG( "G::Process::beSpecial: " << old_identity << " -> " << Identity() ) ;
 }
 
-G::Process::Identity G::Process::beOrdinary( Identity nobody )
+G::Process::Identity G::Process::beOrdinary( Identity nobody , bool change_group )
 {
 	Identity special_identity ;
 	if( ::getuid() == 0 )
 	{
 		if( ::seteuid(0) ) throw UidError("0") ; // first
-		if( ::setegid(nobody.gid) ) throw GidError(nobody.str()) ; // second
+		if( change_group && ::setegid(nobody.gid) ) throw GidError(nobody.str()) ; // second
 		if( ::seteuid(nobody.uid) ) throw UidError(nobody.str()) ; // third
 	}
 	else
@@ -250,7 +250,7 @@ G::Process::Identity G::Process::beOrdinary( Identity nobody )
 		// switch our effective id back to our real id --
 		// ie. turn off the effects of a suid executable
 		if( ::seteuid( ::getuid() ) ) throw UidError() ;
-		if( ::setegid( ::getgid() ) ) throw GidError() ;
+		if( change_group && ::setegid( ::getgid() ) ) throw GidError() ;
 	}
 	G_DEBUG( "G::Process::beOrdinary: " << special_identity << " -> " << Identity() ) ;
 	return special_identity ;

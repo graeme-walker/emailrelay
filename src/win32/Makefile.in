@@ -28,7 +28,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # 
-# ===
 
 
 SHELL = @SHELL@
@@ -81,6 +80,7 @@ AR = @AR@
 AWK = @AWK@
 CC = @CC@
 CXX = @CXX@
+GZIP = @GZIP@
 HAVE_DOXYGEN = @HAVE_DOXYGEN@
 HAVE_MAN2HTML = @HAVE_MAN2HTML@
 MAKE = @MAKE@
@@ -88,6 +88,13 @@ MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
+e_docdir = @e_docdir@
+e_examplesdir = @e_examplesdir@
+e_initdir = @e_initdir@
+e_libexecdir = @e_libexecdir@
+e_man1dir = @e_man1dir@
+e_sbindir = @e_sbindir@
+e_spooldir = @e_spooldir@
 
 EXTRA_DIST =  	gappinst.cpp 	gappinst.h 	gappbase.cpp 	gappbase.h 	gcracker.cpp 	gcracker.h 	gdialog.cpp 	gdialog.h 	gcontrol.cpp 	gcontrol.h 	gpump.cpp 	gpump.h 	gpump_dialog.cpp 	gscmap.h 	gscmap.cpp 	gsize.h 	gtray.h 	gtray.cpp 	gwinbase.cpp 	gwinbase.h 	gwindow.cpp 	gwindow.h 	gwinhid.cpp 	gwinhid.h
 
@@ -103,7 +110,7 @@ TAR = tar
 GZIP_ENV = --best
 all: all-redirect
 .SUFFIXES:
-$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
+$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.ac $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps src/win32/Makefile
 
 Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status

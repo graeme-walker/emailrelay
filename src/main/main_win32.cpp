@@ -38,7 +38,6 @@
 #include "gexception.h"
 #include "gmemory.h"
 #include "glog.h"
-#include "glogoutput.h"
 #include "gassert.h"
 
 namespace
@@ -414,7 +413,6 @@ int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous ,
 		try
 		{
 			Run run( app , arg ) ;
-			G::LogOutput log( run.cfg().log() , run.cfg().verbose() ) ;
 			if( run.prepare() )
 			{
 				const bool visible = ! run.cfg().daemon() ;

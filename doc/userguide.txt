@@ -6,7 +6,7 @@ What is it?
 E-MailRelay is a simple store-and-forward e-mail transfer agent. It's a program
 which runs in the background and accepts e-mail from front-ends (KMail, Outlook,
 Netscape etc.), stores the messages on the hard disk, and when next connected
-to the Internet forwards them to a downstream SMTP server for onward delivery.
+to the Internet forwards them to a next SMTP server for onward delivery.
 
 The E-MailRelay program ("emailrelay") can run in two main modes: a storage
 daemon, or a forwarding agent. As a storage daemon it waits for connections
@@ -19,7 +19,7 @@ storage daemon it acts as an SMTP server, and when running as a forwarding
 agent it acts as an SMTP client.
 
 The program can also run as a proxy server. In this mode e-mails submitted at
-the server interface are passed on to the dowstream server immediately, without
+the server interface are passed on to the next server immediately, without
 spooling. This can be useful when combined with mail pre-processing to do things
 like encryption, message archiving, addition of digital signatures, etc.
 
@@ -113,9 +113,10 @@ found and what your default run level is:
 	$ runlevel | awk '{print $2}'
 
 Assuming these are "/etc/init.d" and "5" you should (as root) copy the
-E-MailRelay start/stop script into "/etc/init.d":
+E-MailRelay start/stop script into "/etc/init.d" (if it is not already
+installed there):
 
-	$ cp /usr/local/libexec/emailrelay.sh /etc/init.d
+	$ cp /usr/local/libexec/emailrelay /etc/init.d
 
 Then determine an appropriate numeric value for the link names by looking at
 the "sendmail" links:
@@ -127,8 +128,8 @@ Assuming sendmail links are "S10sendmail" and "K10sendmail", create
 the "emailrelay" links in the same format:
 
 	$ cd /etc/init.d/rc5.d
-	$ ln -s ../emailrelay.sh S10emailrelay
-	$ ln -s ../emailrelay.sh K10emailrelay
+	$ ln -s ../emailrelay S10emailrelay
+	$ ln -s ../emailrelay K10emailrelay
 
 And finally remove sendmail from the run-level (otherwise both
 daemons compete for the standard SMTP listening port):
@@ -173,8 +174,9 @@ Notification of failed e-mails
 If e-mail messages become corrupted or inaccessible within the spool directory
 then they will get failed within the E-MailRelay system. In order to get failed
 e-mails to 'bounce' back into your in-tray you will need to run the
-"emailrelay-notify.sh" script periodically. Note that this script requires
-that you have "procmail" installed on your system to act as a "delivery agent".
+"emailrelay-notify.sh" script (as "root") periodically. Note that this script
+requires that you have "procmail" installed on your system to act as a
+"delivery agent".
 
 There are not many ways in which an e-mail can fail within the E-MailRelay
 system. If everything is set up correctly then perhaps the most likely case is
@@ -184,8 +186,13 @@ a simple check in your ".profile" script for "*.bad" files in the spool
 directory may be sufficient:
 
 	$ cat <<EOF >> ~/.profile
-	if test -f /usr/local/var/spool/emailrelay/*.envelope.bad ; then echo Failed mail >&2 ; fi
+	if test -f /var/spool/emailrelay/*.envelope.bad ; then echo Failed mail >&2 ; fi
 	EOF
+
+If you want failed e-mails to be retried a few times before bouncing back into
+your in-tray, you can run the "emailrelay-resubmit.sh" script. This simply
+removes the ".bad" suffix from files in the spool directory, as long as they
+have not been retried too many times already.
 
 Logging
 -------

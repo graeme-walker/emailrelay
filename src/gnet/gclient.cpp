@@ -335,7 +335,7 @@ std::string GNet::ClientImp::startConnecting( const Address & address , const st
 	m_s = new StreamSocket ;
 	if( !s().valid() )
 	{
-		return std::string( "error: cannot open socket" ) ;
+		return std::string( "cannot open socket" ) ;
 	}
 
 	// specifiy this as a 'write' event handler for the socket
@@ -380,7 +380,7 @@ GNet::ClientImp::Status GNet::ClientImp::connectCore( Address remote_address ,
 	bool bound = s().bind(local_address) ;
 	if( !bound )
 	{
-		error = "error: cannot bind socket" ;
+		error = "cannot bind socket" ;
 		return Retry ;
 	}
 	G_DEBUG( "GNet::ClientImp::connectCore: bound local address "
@@ -392,7 +392,7 @@ GNet::ClientImp::Status GNet::ClientImp::connectCore( Address remote_address ,
 	if( !s().connect( remote_address , &immediate ) )
 	{
 		G_DEBUG( "GNet::ClientImp::connect: immediate failure" ) ;
-		error = "error: cannot connect to " ;
+		error = "cannot connect to " ;
 		error.append( remote_address.displayString().c_str() ) ;
 
 		// we should return Failure here, but Microsoft's stack
@@ -433,7 +433,7 @@ void GNet::ClientImp::writeEvent()
 	}
 	else if( m_state == Connecting )
 	{
-		std::string message( "error: cannot connect to " ) ;
+		std::string message( "cannot connect to " ) ;
 		message.append( m_address.displayString().c_str() ) ;
 		setState( Failed ) ;
 		close() ;
@@ -492,12 +492,18 @@ void GNet::ClientImp::run()
 
 std::pair<bool,GNet::Address> GNet::ClientImp::localAddress() const
 {
-	return s().getLocalAddress() ;
+	return
+		m_s != NULL ?
+			s().getLocalAddress() :
+			std::make_pair(false,GNet::Address::invalidAddress()) ;
 }
 
 std::pair<bool,GNet::Address> GNet::ClientImp::peerAddress() const
 {
-	return s().getPeerAddress() ;
+	return
+		m_s != NULL ?
+			s().getPeerAddress() :
+			std::make_pair(false,GNet::Address::invalidAddress()) ;
 }
 
 std::string GNet::ClientImp::peerName() const

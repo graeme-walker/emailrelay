@@ -29,7 +29,4 @@
 #include "glog.h"
 #include "gassert.h"
 
-// backwards compatibility...
-//typedef LogOutput GDebug ;
-
 #endif

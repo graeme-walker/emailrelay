@@ -42,17 +42,30 @@ namespace GSmtp
 class GSmtp::Verifier
 {
 public:
-	typedef std::pair<bool,std::string> Status ;
+	struct Status
+	{
+		bool is_local ;
+		std::string full_name ;
+		std::string address ;
+	} ;
 
-        std::pair<bool,std::string> verify( const std::string & recipient_address ) const ;
+        Status verify( const std::string & recipient_address ) const ;
 		// Checks a recipient address returning
-		// <is-local>|<local-full-name>.
+		// a structure which indicates whether the
+		// address is local, what the full name is,
+		// and the canonical address.
 		//
-		// If syntactically local then 'first' is
-		// returned true. If local and valid then
-		// 'second' is set to the full description.
-		// If syntactically remote, then 'first'
-		// is returned false and 'second' is empty.
+		// If syntactically local then 'is_local' is
+		// set true. If local and valid then
+		// 'full_name' is set to the full description
+		// and 'address' is set to the
+		// canonical local address (without an
+		// at sign).
+		//
+		// If syntactically remote, then 'is_local'
+		// is set false, 'full_name' is empty,
+		// and 'address' is copied from
+		// 'recipient_address'.
 } ;
 
 #endif

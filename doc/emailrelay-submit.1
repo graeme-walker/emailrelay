@@ -21,7 +21,9 @@
 emailrelay-submit \- a submission utility for E-MailRelay
 .SH SYNOPSIS
 .B emailrelay-submit
-[--help] [--from
+[--help] [--spool-dir 
+.IR spool-directory ] 
+[--from
 .IR from-address ]
 .I to-address 
 .RI [ to-address \ ...]
@@ -33,6 +35,8 @@ command-line, and writes it into the
 .B E-MailRelay 
 spool directory.
 .SH SEE ALSO
-.BR emailrelay (1)
+.BR emailrelay (1),
+.BR emailrelay-poke (1),
+.BR emailrelay-passwd (1)
 .SH AUTHOR
 Graeme Walker, mailto:graeme_walker@users.sourceforge.net

@@ -19,13 +19,16 @@ div.two-column-menu
 	border-width: 1px ;
 	border-color: #999 ;
 
-	width: 150px ;
+	width: 230px ; /* IE5 */
+	voice-family: "\"}\"" ; /* IE5 trick */
+	voice-family: inherit ;
+	width: 190px ; /* STD */
 }
 
 body 
 {
-        font-family: verdana, arial, helvetica, sans-serif ;
-        background-color: white ;
+	font-family: verdana, arial, helvetica, sans-serif ;
+	background-color: white ;
 }
 
 div.div-main
@@ -37,12 +40,15 @@ div.div-main
 div.div-toc
 {
 	background: #eee ;
-	padding: 0.5em ;
 }
 
-div.two-column-menu div.div-toc
+p.p-toc
 {
-	padding: 0px ;
+	padding: 5px ;
+	margin-top: 0px ;
+	margin-bottom: 0px ;
+	margin-left: 0.5em ;
+	text-align: left ;
 }
 
 div.div-pre
@@ -57,7 +63,7 @@ div.div-pre
 h1
 {
 	text-align: center ;
-        color: #09c ;
+	color: #09c ;
 }
 
 img
@@ -67,12 +73,12 @@ img
 
 h2
 {
-        color: #09c ;
+	color: #09c ;
 }
 
 p 
 {
-        font: verdana, arial, helvetica, sans-serif ;
+	font: verdana, arial, helvetica, sans-serif ;
 	text-align: justify ;
 }
 
@@ -80,7 +86,6 @@ a.a-toc
 {
 	color: #09c ;
 	text-decoration: none ;
-	padding-left: 0% ;
 }
 
 a.a-toc:hover 
@@ -90,13 +95,13 @@ a.a-toc:hover
 
 a.a-header
 {
-        text-decoration:none ;
+	text-decoration:none ;
 }
 
 a.a-href
 {
 	text-decoration: none ;
-        font-weight: bold ;
+	font-weight: bold ;
 }
 
 a.a-href:link 
@@ -116,11 +121,11 @@ a.a-href:hover
 
 div.two-column-header
 {
-        background-color: #eee ;
+	background-color: #eee ;
 
-        border-style: solid ;
-        border-color: #999 ;
-        border-width: 1px 0px ; /* top/bottom left/right */
+	border-style: solid ;
+	border-color: #999 ;
+	border-width: 1px 0px ; /* top/bottom left/right */
 }
 
 em.quote
@@ -152,24 +157,6 @@ dd
 	padding-bottom: 4px ; /* for konqueror */
 }
 
-h3.h3-toc
-{
-	margin-bottom: 0px ;
-}
-
-ul.ul-toc
-{
-	list-style-type: none ;
-	margin-top: 0px ;
-	margin-bottom: 0px ;
-	padding-left: 15% ;
-}
-
-li.li-toc
-{
-	padding-top: 3%
-}
-
 span.span-mailto
 {
 	font-size: smaller ;
@@ -178,6 +165,6 @@ span.span-mailto
 #img-sourceforge
 {
 	border-width: 0px ;
-        border-style: none ; /* check */
+	border-style: none ; /* check */
 }
 

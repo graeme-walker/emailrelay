@@ -29,6 +29,8 @@
 #include "gmessagestore.h"
 #include "gdatetime.h"
 #include "gexception.h"
+#include "gnoncopyable.h"
+#include "groot.h"
 #include "gpath.h"
 #include <memory>
 #include <string>
@@ -36,6 +38,8 @@
 namespace GSmtp
 {
 	class FileStore ;
+	class FileReader ;
+	class FileWriter ;
 } ;
 
 // Class: GSmtp::FileStore
@@ -113,6 +117,34 @@ private:
 	bool m_optimise ;
 	bool m_empty ; // mutable
 	unsigned long m_pid_modifier ;
+} ;
+
+// Class: GSmtp::FileReader
+// Description: Used by GSmtp::FileStore, GSmtp::NewFile and
+// GSmtp::StoredFile to claim read permissions.
+// See also: G::Root
+//
+class GSmtp::FileReader : public G::noncopyable
+{
+public:
+	FileReader() ;
+	~FileReader() ;
+private:
+	G::Root * m_imp ;
+} ;
+
+// Class: GSmtp::FileWriter
+// Description: Used by GSmtp::FileStore, GSmtp::NewFile and
+// GSmtp::StoredFile to claim write permissions.
+// See also: G::Root
+//
+class GSmtp::FileWriter : public G::noncopyable
+{
+public:
+	FileWriter() ;
+	~FileWriter() ;
+private:
+	G::Root * m_imp ;
 } ;
 
 #endif

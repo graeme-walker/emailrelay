@@ -69,6 +69,9 @@ public:
 		// Returns true if doing logging.
 
 	bool verbose() const ;
+		// Returns true if doing verbose logging.
+
+	bool debug() const ;
 		// Returns true if doing debug-level logging.
 
 	bool syslog() const ;

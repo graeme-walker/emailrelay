@@ -29,7 +29,6 @@
 #include "gprocess.h"
 #include "gdirectory.h"
 #include "gmemory.h"
-#include "groot.h"
 #include "gpath.h"
 #include "gfile.h"
 #include "gstr.h"
@@ -119,14 +118,17 @@ std::string GSmtp::FileStore::format( int n )
 //static
 void GSmtp::FileStore::checkPath( const G::Path & directory_path )
 {
-	G::Root claim_root ;
-	// (void) G::File::mkdir( directory_path ) ;
+	FileWriter claim_writer ;
 	G::Directory dir_test( directory_path ) ;
-	if( ! dir_test.valid() )
+
+	bool test_for_creation = false ;
+	if( ! dir_test.valid(test_for_creation) )
 	{
 		throw InvalidDirectory( directory_path.str() ) ;
 	}
-	if( ! dir_test.valid(true) )
+
+	test_for_creation = true ;
+	if( ! dir_test.valid(test_for_creation) )
 	{
 		G_WARNING( "GSmtp::MessageStore: "
 			<< "directory not writable: \""
@@ -136,7 +138,7 @@ void GSmtp::FileStore::checkPath( const G::Path & directory_path )
 
 std::auto_ptr<std::ostream> GSmtp::FileStore::stream( const G::Path & path )
 {
-	G::Root claim_root ;
+	FileWriter claim_writer ;
 	std::auto_ptr<std::ostream> ptr(
 		new std::ofstream( path.pathCstr() ,
 			std::ios_base::binary | std::ios_base::out | std::ios_base::trunc ) ) ;
@@ -196,7 +198,7 @@ bool GSmtp::FileStore::empty() const
 
 bool GSmtp::FileStore::emptyCore() const
 {
-	G::Root claim_root ;
+	FileReader claim_reader ;
 	G::Directory dir( m_dir ) ;
 	G::DirectoryIterator iter( dir , "*.envelope" ) ;
 	const bool no_more = iter.error() || !iter.more() ;
@@ -205,7 +207,7 @@ bool GSmtp::FileStore::emptyCore() const
 
 GSmtp::MessageStore::Iterator GSmtp::FileStore::iterator()
 {
-	G::Root claim_root ;
+	FileReader claim_reader ;
 	return MessageStore::Iterator( new FileIterator(G::Directory(m_dir) ) ) ;
 }
 
@@ -234,5 +236,30 @@ std::auto_ptr<GSmtp::NewMessage> GSmtp::FileStore::newMessage( const std::string
 {
 	m_empty = false ;
 	return std::auto_ptr<NewMessage>( new NewFile(from,*this) ) ;
+}
+
+// ===
+
+GSmtp::FileReader::FileReader() :
+	m_imp(NULL)
+{
+}
+
+GSmtp::FileReader::~FileReader()
+{
+}
+
+// ===
+
+GSmtp::FileWriter::FileWriter() :
+	m_imp( new G::Root(false) )
+{
+	G::Process::setUmask( false ) ;
+}
+
+GSmtp::FileWriter::~FileWriter()
+{
+	delete m_imp ;
+	G::Process::setUmask( true ) ;
 }
 

@@ -41,7 +41,7 @@ GSmtp::ServerPeer::ServerPeer( GNet::StreamSocket * socket , GNet::Address peer_
 		m_pmessage( pmessage ) ,
 		m_protocol( *this, m_verifier, *m_pmessage.get(), thishost(), peer_address.displayString(false) )
 {
-	G_LOG( "GSmtp::ServerPeer: new connection from " << peer_address.displayString() ) ;
+	G_LOG_S( "GSmtp::ServerPeer: new connection from " << peer_address.displayString() ) ;
 	m_protocol.init( ident ) ;
 }
 
@@ -103,7 +103,7 @@ void GSmtp::ServerPeer::protocolSend( const std::string & line )
 
 void GSmtp::ServerPeer::protocolDone()
 {
-	G_LOG( "GSmtp::ServerPeer: disconnecting" ) ;
+	G_LOG_S( "GSmtp::ServerPeer: disconnecting from " << peerAddress().second.displayString() ) ;
 	doDelete() ; // onDelete() and "delete this"
 }
 
@@ -135,6 +135,7 @@ GSmtp::Server::Server( unsigned int port , bool allow_remote , const std::string
 void GSmtp::Server::bind( GSmtp::ServerImp & gnet_server , GNet::Address address , unsigned int port )
 {
 	address.setPort(port) ;
+	G_LOG_S( "GSmtp::Server::bind: listening on " << address.displayString() ) ;
 	gnet_server.init( address ) ;
 }
 

@@ -43,17 +43,26 @@ class G::LogOutput
 public:
  	enum SyslogFacility { User , Daemon , Mail , Cron } ; // etc.
 
-	explicit LogOutput( bool logging_enabled , bool verbose = true ) ;
-		// Constructor. If there is no LogOutput object,
-		// or if 'logging_enabled' is false, then there is no
-		// output of any sort. If both parameters are true
-		// then debug messages will be generated in addition
-		// to the log/warning/error messages (as long
-		// as it was compiled in).
-		//
-		// More than one LogOutput object may be created, but
-		// only the first one controls output.
-		
+	LogOutput( const std::string & prefix , bool output , bool with_logging ,
+		bool with_verbose_logging , bool with_debug , bool with_level ,
+		bool with_timestamp , bool strip_context ) ;
+			// Constructor. If there is no LogOutput object,
+			// or if 'output' is false, then there is no
+			// output of any sort. Otherwise at least
+			// warning and error messages are generated.
+			//
+			// If 'with-logging' is true then log[summary] messages
+			// are output. If 'with-verbose-logging' is true then
+			// log[verbose] messages are output. If 'with_debug' is
+			// true then debug messages will also be generated
+			// (but only if compiled in).
+			//
+			// More than one LogOutput object may be created, but
+			// only the first one controls output.
+
+	explicit LogOutput( bool output_with_logging , bool verbose_and_debug = true ) ;
+		// Constructor.
+
 	virtual ~LogOutput() ;
 		// Destructor.
 
@@ -61,12 +70,12 @@ public:
 		// Overridable. Used to do the final message
 		// output (with OutputDebugString() or stderr).
 		
-	static LogOutput *instance() ;
+	static LogOutput * instance() ;
 		// Returns a pointer to the controlling
 		// LogOutput object. Returns NULL if none.
 		
-	bool enable( bool debug_enabled = true ) ;
-		// Enables or disables debug output.
+	bool enable( bool enabled = true ) ;
+		// Enables or disables output.
 		// Returns the previous setting.
 
 	void syslog() ;
@@ -79,12 +88,8 @@ public:
 		// Enables logging to the syslog system under Unix,
 		// using the specified facility.
 	
-	static void output( G::Log::Severity s , const char *raw_output ) ;
-		// Generates debug output if there is an extant
-		// LogOutput object which is enabled. Uses rawOutput().
-
 	static void output( G::Log::Severity s , const char *file , unsigned line , const char *text ) ;
-		// Generates debug output if there is an extant
+		// Generates output if there is an existing
 		// LogOutput object which is enabled. Uses rawOutput().
 
 	static void assertion( const char *file , unsigned line , bool test , const char *test_string ) ;	
@@ -94,30 +99,42 @@ public:
 
 	virtual void onAssert() ;
 		// Called during an assertion failure. This allows
-		// Windows applications to stop timers etc. which
-		// cause reentrancy problems and infinitely recursive
-		// dialog box creation.
+		// Windows applications to stop timers etc. (Timers
+		// can cause reentrancy problems and infinitely
+		// recursive dialog box creation.)
 
 private:
 	LogOutput( const LogOutput & ) ;
 	void operator=( const LogOutput & ) ;
-	static void itoa( char *out , unsigned int ) ;
+	static const char * itoa( char * , size_t , unsigned int ) ;
 	static void addFileAndLine( char * , size_t , const char * , int ) ;
-	static void addTimestamp( char * , size_t , const char * ) ;
+	static void add( char * , size_t , const char * ) ;
+	static void add( char * , size_t , const std::string & ) ;
 	const char * timestampString() ;
 	static void halt() ;
 	void doOutput( G::Log::Severity , const char * ) ;
 	void doOutput( G::Log::Severity s , const char * , unsigned , const char * ) ;
+	void doAssertion( const char * , unsigned , const char * ) ;
+	const char * levelString( Log::Severity s ) ;
+	void init() ;
+	void cleanup() ;
 
 private:
 	static LogOutput * m_this ;
+	std::string m_prefix ;
 	bool m_enabled ;
-	bool m_verbose ;
+	bool m_summary_log ;
+	bool m_verbose_log ;
+	bool m_debug ;
+	bool m_level ;
+	bool m_strip ;
 	bool m_syslog ;
 	SyslogFacility m_facility ;
 	time_t m_time ;
 	char m_time_buffer[40U] ;
 	bool m_timestamp ;
+	HANDLE m_handle ; // windows
+	bool m_handle_set ;
 } ;
 
 #endif

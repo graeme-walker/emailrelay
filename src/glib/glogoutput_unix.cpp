@@ -40,7 +40,8 @@ namespace
 
 		if( severity == G::Log::s_Warning ) m |= LOG_WARNING ;
 		else if( severity == G::Log::s_Error ) m |= LOG_ERR ;
-		else if( severity == G::Log::s_Log ) m |= LOG_INFO ;
+		else if( severity == G::Log::s_LogSummary ) m |= LOG_INFO ;
+		else if( severity == G::Log::s_LogVerbose ) m |= LOG_INFO ;
 		else m |= LOG_CRIT ;
 	
 		return m ;
@@ -49,16 +50,18 @@ namespace
 
 void G::LogOutput::rawOutput( G::Log::Severity severity , const char *message )
 {
-	if( severity != G::Log::s_Debug && m_syslog && !(message[0]=='\n'&&message[1]=='\0') )
+	if( severity != G::Log::s_Debug && m_syslog )
 	{
 		::syslog( mode(m_facility,severity) , "%s" , message ) ;
 	}
-	std::cerr << message ;
-	std::cerr.flush() ;
+	std::cerr << message << std::endl ;
 }
 
-void G::LogOutput::syslog()
+void G::LogOutput::init()
 {
-	syslog( User ) ;
+}
+
+void G::LogOutput::cleanup()
+{
 }
 

@@ -144,7 +144,6 @@ public:
 
 	virtual std::pair<bool,Address> peerAddress() const ;
 		// Returns the peer address.
-		// Pair.first is false on error.
 
 protected:
 	virtual ~ServerPeer() ;

@@ -16,7 +16,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # 
-# ===
 
 EXTRA_DIST=gclient_win32.cpp \
 	gdescriptor_win32.cpp \

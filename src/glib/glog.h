@@ -49,7 +49,7 @@ class G::Log
 {
 public:
 	typedef std::ostream Stream ;
-	enum Severity { s_Log , s_Debug , s_Warning , s_Error , s_Assertion } ;
+	enum Severity { s_LogVerbose , s_LogSummary , s_Debug , s_Warning , s_Error , s_Assertion } ;
 
 	struct End // A private implementation class for Log. An End object from end() must be streamed out to flush a spooled message.
 		{ Severity m_s ; End(Severity s) : m_s(s) {} } ;
@@ -105,7 +105,7 @@ namespace G
 	}
 } ;
 
-// Macros: G_LOG, G_DEBUG, G_WARNING, G_ERROR
+// Macros: G_LOG, G_LOG_S, G_DEBUG, G_WARNING, G_ERROR
 // The debug macro is for debugging during development. The log macro
 // is used for progress logging, typically in long-lived server processes.
 // The warning and error macros are used for error warning/error messages.
@@ -113,16 +113,18 @@ namespace G
 // then warning/error messages should also get raised by some another
 // independent means.
 //
-#define G_LOG_OUTPUT( expr , severity ) { try { G::Log::stream() << G::Log::Line(__FILE__,__LINE__) << expr << G::Log::end(severity) ; } catch(...) {} }
+#define G_LOG_OUTPUT( expr , severity ) { G::Log::stream() << G::Log::Line(__FILE__,__LINE__) << expr << G::Log::end(severity) ; }
 #if defined(_DEBUG) && ! defined(G_NO_DEBUG)
 #define G_DEBUG( expr ) G_LOG_OUTPUT( expr , G::Log::s_Debug )
 #else
 #define G_DEBUG( expr )
 #endif
 #if ! defined(G_NO_LOG)
-#define G_LOG( expr ) G_LOG_OUTPUT( expr , G::Log::s_Log )
+#define G_LOG( expr ) G_LOG_OUTPUT( expr , G::Log::s_LogVerbose )
+#define G_LOG_S( expr ) G_LOG_OUTPUT( expr , G::Log::s_LogSummary )
 #else
 #define G_LOG( expr )
+#define G_LOG_S( expr )
 #endif
 #define G_WARNING( expr ) G_LOG_OUTPUT( expr , G::Log::s_Warning )
 #define G_ERROR( expr ) G_LOG_OUTPUT( expr , G::Log::s_Error )

@@ -37,9 +37,9 @@ GNet::ServerPeer::ServerPeer( StreamSocket * s , Address a )  :
 {
 	G_ASSERT( m_socket != NULL ) ;
 	G_DEBUG( "GNet::ServerPeer::ctor: fd " << m_socket->asString() << ": " << m_address.displayString() ) ;
-	if( Monitor::instance() ) Monitor::instance()->add(*this) ;
 	m_socket->addReadHandler( *this ) ;
 	m_socket->addExceptionHandler( *this ) ;
+	if( Monitor::instance() ) Monitor::instance()->add(*this) ;
 }
 
 GNet::ServerPeer::~ServerPeer()
@@ -117,8 +117,7 @@ std::pair<bool,GNet::Address> GNet::ServerPeer::localAddress() const
 
 std::pair<bool,GNet::Address> GNet::ServerPeer::peerAddress() const
 {
-	G_ASSERT( m_socket != NULL ) ;
-	return m_socket->getPeerAddress() ;
+	return std::pair<bool,Address>( true , m_address ) ;
 }
 
 // ===

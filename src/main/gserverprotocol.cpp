@@ -146,9 +146,9 @@ void GSmtp::ServerProtocol::doVrfy( const std::string & line , bool & )
 {
 	std::string mbox = parseMailbox( line ) ;
 	Verifier::Status rc = m_verifier.verify( mbox ) ;
-	bool local = rc.first ;
-	if( local && rc.second.length() )
-		sendVerified( rc.second ) ;
+	bool local = rc.is_local ;
+	if( local && rc.full_name.length() )
+		sendVerified( rc.full_name ) ;
 	else if( local )
 		sendNotVerified( mbox ) ;
 	else

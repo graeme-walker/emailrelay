@@ -30,11 +30,12 @@ G::Root * G::Root::m_this = NULL ;
 G::Process::Identity G::Root::m_special ;
 G::Process::Identity G::Root::m_nobody ;
 
-G::Root::Root()
+G::Root::Root( bool change_group ) :
+	m_change_group(change_group)
 {
 	if( m_this == NULL )
 	{
-		Process::beSpecial( m_special ) ;
+		Process::beSpecial( m_special , m_change_group ) ;
 		m_this = this ;
 	}
 }
@@ -46,7 +47,7 @@ G::Root::~Root()
 		if( m_this == this )
 		{
 			m_this = NULL ;
-			m_special = Process::beOrdinary( m_nobody ) ;
+			Process::beOrdinary( m_nobody , m_change_group ) ;
 		}
 	}
 	catch( std::exception & e )

@@ -22,7 +22,9 @@
 # emailrelay-process.sh
 #
 # An example pre-processing script for the E-MailRelay
-# system which does rot-13 masking.
+# SMTP server which does rot-13 masking. (The pre-processor
+# is specified using the "--filter" switch on the emailrelay 
+# command line.)
 #
 
 awk="awk"

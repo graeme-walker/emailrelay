@@ -216,9 +216,8 @@ State StateMachine<T,State,Event,Arg>::apply( T & t , Event event , const Arg & 
 	// look up in the multimap keyed on current-state + event
 	//
 	State state = m_state ;
-	bool done = false ;
 	Map::iterator p = m_map.find(event) ;
-	for( ; !done && p != m_map.end() && (*p).first == event ; ++p )
+	for( ; p != m_map.end() && (*p).first == event ; ++p )
 	{
 		if( (*p).second.from == m_any || (*p).second.from == m_state )
 		{
@@ -243,10 +242,10 @@ State StateMachine<T,State,Event,Arg>::apply( T & t , Event event , const Arg & 
 				State alt_state = (*p).second.alt ;
 				state = m_state = alt_state == m_same ? old_state : alt_state ;
 			}
-			done = true ;
+			return state ;
 		}
 	}
-	return done ? state : m_any ;
+	return m_any ;
 }
 
 } ; // namespace

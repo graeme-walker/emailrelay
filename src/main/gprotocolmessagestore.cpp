@@ -70,8 +70,8 @@ bool GSmtp::ProtocolMessageStore::addTo( const std::string & to , Verifier::Stat
 	G_ASSERT( m_msg.get() != NULL ) ;
 	if( to.length() > 0U && m_msg.get() != NULL )
 	{
-		const bool is_local = to_status.first ;
-		const bool is_valid = is_local && to_status.second.length() != 0U  ;
+		const bool is_local = to_status.is_local ;
+		const bool is_valid = is_local && to_status.full_name.length() != 0U  ;
 		if( is_local && !is_valid )
 		{
 			G_WARNING( "GSmtp::ProtocolMessage: rejecting local recipent (not postmaster): " << to ) ;
@@ -79,7 +79,7 @@ bool GSmtp::ProtocolMessageStore::addTo( const std::string & to , Verifier::Stat
 		}
 		else
 		{
-			m_msg->addTo( to , is_local ) ;
+			m_msg->addTo( to_status.address , is_local ) ;
 			return true ;
 		}
 	}

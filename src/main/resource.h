@@ -29,6 +29,9 @@
 #define IDI_ICON3                       106
 #define IDI_ICON4                       107
 #define IDC_EDIT1                       1000
+#define IDS_EVENTLOG_INFORMATION        1001
+#define IDS_EVENTLOG_WARNING            1002
+#define IDS_EVENTLOG_ERROR              1003
 #define IDM_OPEN                        40001
 #define IDM_QUIT                        40002
 #define IDM_CLOSE                       40005

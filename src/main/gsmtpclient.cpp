@@ -157,7 +157,7 @@ bool GSmtp::Client::sendNext()
 		std::auto_ptr<StoredMessage> message( m_iter.next() ) ;
 		if( message.get() == NULL )
 		{
-			G_LOG( "GSmtp::Client: no more messages to send" ) ;
+			G_LOG_S( "GSmtp::Client: no more messages to send" ) ;
 			GNet::Socket * s = m_socket ;
 			m_socket = NULL ;
 			s->close() ;
@@ -231,7 +231,7 @@ void GSmtp::Client::onData( const char * data , size_t size )
 
 void GSmtp::Client::onError( const std::string & error )
 {
-	G_WARNING( "GSmtp::Client: error: \"" << error << "\"" ) ;
+	G_WARNING( "GSmtp::Client: smtp client error: \"" << error << "\"" ) ;
 	doCallback( std::string("error on connection to server: ") + error ) ;
 }
 

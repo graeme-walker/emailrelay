@@ -40,8 +40,8 @@ namespace G
 class G::Root : private noncopyable
 {
 public:
-	Root() ;
-		// Default constructor. Aquires special
+	explicit Root( bool change_group = true ) ;
+		// Constructor. Aquires special
 		// privileges if possible.
 
 	~Root() ;
@@ -59,12 +59,10 @@ public:
 		// Precondition: init() called
 
 private:
-	void * operator new( size_t ) ;
-
-private:
 	static Root * m_this ;
 	static Process::Identity m_special ;
 	static Process::Identity m_nobody ;
+	bool m_change_group ;
 } ;
 
 #endif

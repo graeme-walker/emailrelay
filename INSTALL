@@ -1,16 +1,23 @@
 Introduction
 ============
+   What follows are generic installation instructions for doing a standard GNU 
+"./configure; make; make install" installation from source under Linux, FreeBSD 
+etc. The Windows installation instructions are in a separate document.
 
-   What follows are generic installation instructions for doing a 
-standard GNU "./configure; make; make install" installation from source. 
-The E-MailRelay userguide describes what you have to do after the "make 
-install" (under GNU/Linux) in order to get the emailrelay daemon to start 
-up at boot-time, automatically forward e-mail to your ISP when connected, 
-and bounce failed mail.
+   Note that a non-standard "configure" switch is available, "--enable-fhs",
+which overrides all other directory modifiers, forcing compliance with the File 
+Hierarchy Standard. There are also a set of variables which can be defined on 
+the "configure" command line for controlling all the installation directories 
+in more detail, augmenting the standard command-line switches like "--sbindir" 
+and "--libexecdir". For more information refer to the E-MailRelay reference 
+document.
+
+   The E-MailRelay user guide describes what needs to be done after the "make 
+install" in order to get the emailrelay daemon to start up at boot-time, 
+automatically forward e-mail and bounce failed mail.
 
 Basic Installation
 ==================
-
    The `configure' shell script attempts to guess correct values for
 various system-dependent variables used during compilation.  It uses
 those values to create a `Makefile' in each directory of the package.

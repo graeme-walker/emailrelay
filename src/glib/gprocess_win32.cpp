@@ -92,7 +92,7 @@ void G::Process::closeFiles( bool keep_stderr )
 	}
 }
 
-void G::Process::setUmask()
+void G::Process::setUmask( bool )
 {
 	// _umask() is available but not very useful
 	; // no-op
@@ -115,7 +115,7 @@ bool G::Process::cd( const Path & dir , NoThrow )
 	return 0 == ::_chdir( dir.str().c_str() ) ;
 }
 
-int G::Process::spawn( const Path & exe , const std::string & arg ,
+int G::Process::spawn( Identity , const Path & exe , const std::string & arg ,
 	int error_return )
 {
 	// open file descriptors are inherited across ::_spawn() --
@@ -129,24 +129,17 @@ int G::Process::spawn( const Path & exe , const std::string & arg ,
 
 	const int mode = _P_WAIT ;
 	::_flushall() ;
-	G_LOG( "G::Process::spawn: " << exe << " " << arg ) ;
 	int rc = ::_spawnv( mode , exe.str().c_str() , argv ) ;
-	G_LOG( "G::Process::spawn: done (" << rc << ")" ) ;
 	return rc < 0 ? error_return : rc ;
 }
 
-bool G::Process::privileged()
-{
-	return false ;
-}
-
-G::Process::Identity G::Process::beOrdinary( Identity identity )
+G::Process::Identity G::Process::beOrdinary( Identity identity , bool )
 {
 	// not implemented
 	return identity ;
 }
 
-void G::Process::beSpecial( Identity )
+void G::Process::beSpecial( Identity , bool )
 {
 	// not implemented
 }

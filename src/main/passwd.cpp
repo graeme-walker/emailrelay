@@ -63,7 +63,7 @@ int main( int argc , char * argv [] )
 	{
 		std::cerr << arg.prefix() << ": exception: " << e.what() << std::endl ;
 	}
-	catch( ... )
+	catch(...)
 	{
 		std::cerr << arg.prefix() << ": unknown exception" << std::endl ;
 	}

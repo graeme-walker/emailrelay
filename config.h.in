@@ -1,4 +1,4 @@
-/* config.h.in.  Generated automatically from configure.in by autoheader.  */
+/* config.h.in.  Generated automatically from configure.ac by autoheader.  */
 
 /* Define if you have the <dirent.h> header file, and it defines `DIR'. */
 #undef HAVE_DIRENT_H

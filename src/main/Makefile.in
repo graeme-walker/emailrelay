@@ -28,7 +28,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # 
-# ===
 
 # force symbol stripping on 'make install'
 
@@ -47,6 +46,7 @@ libexecdir = @libexecdir@
 datadir = @datadir@
 sysconfdir = @sysconfdir@
 sharedstatedir = @sharedstatedir@
+localstatedir = @localstatedir@
 libdir = @libdir@
 infodir = @infodir@
 mandir = @mandir@
@@ -82,6 +82,7 @@ AR = @AR@
 AWK = @AWK@
 CC = @CC@
 CXX = @CXX@
+GZIP = @GZIP@
 HAVE_DOXYGEN = @HAVE_DOXYGEN@
 HAVE_MAN2HTML = @HAVE_MAN2HTML@
 MAKE = @MAKE@
@@ -89,19 +90,23 @@ MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
+e_docdir = @e_docdir@
+e_examplesdir = @e_examplesdir@
+e_initdir = @e_initdir@
+e_libexecdir = @e_libexecdir@
+e_man1dir = @e_man1dir@
+e_sbindir = @e_sbindir@
+e_spooldir = @e_spooldir@
 
 AM_INSTALL_PROGRAM_FLAGS = -s
 
-# change the local-state directory from .../var to .../var/spool/emailrelay
-localstatedir = ${prefix}/var/spool/emailrelay
-
-EXTRA_DIST = commandline_win32.cpp main_win32.cpp gmessagestore_win32.cpp emailrelay.dsp icon-32.ico icon2.ico icon3.ico icon4.ico empty_file doxygen.cfg emailrelay.rc resource.h gsasl_cyrus.cpp
-INCLUDES = -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet
+EXTRA_DIST = commandline_win32.cpp main_win32.cpp gmessagestore_win32.cpp emailrelay.dsw emailrelay.dsp common.dsp submit.dsp passwd.dsp icon-32.ico icon2.ico icon3.ico icon4.ico doxygen.cfg emailrelay.rc resource.h gsasl_cyrus.cpp messages.mc
+INCLUDES = -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet -DG_SPOOLDIR=\"$(e_spooldir)\"
 
 noinst_LIBRARIES = libgsmtp.a
-sbin_PROGRAMS = emailrelay 
-libexec_PROGRAMS = emailrelay-passwd emailrelay-poke emailrelay-submit
-localstate_DATA = empty_file
+e_sbin_PROGRAMS = emailrelay emailrelay-submit emailrelay-passwd
+e_libexec_PROGRAMS = emailrelay-poke
+e_spool_DATA = 
 
 libgsmtp_a_SOURCES =  	gadminserver.cpp 	gadminserver.h 	gbase64.cpp 	gbase64.h 	gclientprotocol.cpp 	gclientprotocol.h 	gfilestore.cpp 	gfilestore.h 	gmessagestore.cpp 	gmessagestore.h 	gmessagestore_unix.cpp 	gnewfile.cpp 	gnewfile.h 	gnewmessage.cpp 	gnewmessage.h 	gprotocolmessage.cpp 	gprotocolmessage.h 	gprotocolmessageforward.cpp 	gprotocolmessageforward.h 	gprotocolmessagestore.cpp 	gprotocolmessagestore.h 	gsasl_native.cpp 	gsasl.h 	gsecrets.cpp 	gsecrets.h 	gserverprotocol.cpp 	gserverprotocol.h 	gsmtp.h 	gsmtpclient.cpp 	gsmtpclient.h 	gsmtpserver.cpp 	gsmtpserver.h 	gstoredfile.cpp 	gstoredfile.h 	gstoredmessage.cpp 	gstoredmessage.h 	gverifier.cpp 	gverifier.h 	gxtext.cpp 	gxtext.h
 
@@ -138,23 +143,23 @@ gnewmessage.o gprotocolmessage.o gprotocolmessageforward.o \
 gprotocolmessagestore.o gsasl_native.o gsecrets.o gserverprotocol.o \
 gsmtpclient.o gsmtpserver.o gstoredfile.o gstoredmessage.o gverifier.o \
 gxtext.o
-PROGRAMS =  $(libexec_PROGRAMS) $(sbin_PROGRAMS)
+PROGRAMS =  $(e_libexec_PROGRAMS) $(e_sbin_PROGRAMS)
 
-emailrelay_passwd_OBJECTS =  passwd.o
-emailrelay_passwd_DEPENDENCIES =  $(top_builddir)/src/glib/libglib.a
-emailrelay_passwd_LDFLAGS = 
 emailrelay_poke_OBJECTS =  poke.o
 emailrelay_poke_DEPENDENCIES = 
 emailrelay_poke_LDFLAGS = 
-emailrelay_submit_OBJECTS =  submit.o legal.o
-emailrelay_submit_DEPENDENCIES =  $(top_builddir)/src/main/libgsmtp.a \
-$(top_builddir)/src/glib/libglib.a $(top_builddir)/src/gnet/libgnet.a
-emailrelay_submit_LDFLAGS = 
 emailrelay_OBJECTS =  main_unix.o configuration.o legal.o run.o \
 commandline.o commandline_unix.o
 emailrelay_DEPENDENCIES =  $(top_builddir)/src/main/libgsmtp.a \
 $(top_builddir)/src/glib/libglib.a $(top_builddir)/src/gnet/libgnet.a
 emailrelay_LDFLAGS = 
+emailrelay_submit_OBJECTS =  submit.o legal.o
+emailrelay_submit_DEPENDENCIES =  $(top_builddir)/src/main/libgsmtp.a \
+$(top_builddir)/src/glib/libglib.a $(top_builddir)/src/gnet/libgnet.a
+emailrelay_submit_LDFLAGS = 
+emailrelay_passwd_OBJECTS =  passwd.o
+emailrelay_passwd_DEPENDENCIES =  $(top_builddir)/src/glib/libglib.a
+emailrelay_passwd_LDFLAGS = 
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 CXXLD = $(CXX)
@@ -163,7 +168,7 @@ CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
-DATA =  $(localstate_DATA)
+DATA =  $(e_spool_DATA)
 
 DIST_COMMON =  Makefile.am Makefile.in
 
@@ -172,13 +177,13 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = tar
 GZIP_ENV = --best
-SOURCES = $(libgsmtp_a_SOURCES) $(emailrelay_passwd_SOURCES) $(emailrelay_poke_SOURCES) $(emailrelay_submit_SOURCES) $(emailrelay_SOURCES)
-OBJECTS = $(libgsmtp_a_OBJECTS) $(emailrelay_passwd_OBJECTS) $(emailrelay_poke_OBJECTS) $(emailrelay_submit_OBJECTS) $(emailrelay_OBJECTS)
+SOURCES = $(libgsmtp_a_SOURCES) $(emailrelay_poke_SOURCES) $(emailrelay_SOURCES) $(emailrelay_submit_SOURCES) $(emailrelay_passwd_SOURCES)
+OBJECTS = $(libgsmtp_a_OBJECTS) $(emailrelay_poke_OBJECTS) $(emailrelay_OBJECTS) $(emailrelay_submit_OBJECTS) $(emailrelay_passwd_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
 .SUFFIXES: .S .c .cpp .o .s
-$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
+$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.ac $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps src/main/Makefile
 
 Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
@@ -219,91 +224,91 @@ libgsmtp.a: $(libgsmtp_a_OBJECTS) $(libgsmtp_a_DEPENDENCIES)
 	$(AR) cru libgsmtp.a $(libgsmtp_a_OBJECTS) $(libgsmtp_a_LIBADD)
 	$(RANLIB) libgsmtp.a
 
-mostlyclean-libexecPROGRAMS:
+mostlyclean-e_libexecPROGRAMS:
 
-clean-libexecPROGRAMS:
-	-test -z "$(libexec_PROGRAMS)" || rm -f $(libexec_PROGRAMS)
+clean-e_libexecPROGRAMS:
+	-test -z "$(e_libexec_PROGRAMS)" || rm -f $(e_libexec_PROGRAMS)
 
-distclean-libexecPROGRAMS:
+distclean-e_libexecPROGRAMS:
 
-maintainer-clean-libexecPROGRAMS:
+maintainer-clean-e_libexecPROGRAMS:
 
-install-libexecPROGRAMS: $(libexec_PROGRAMS)
+install-e_libexecPROGRAMS: $(e_libexec_PROGRAMS)
 	@$(NORMAL_INSTALL)
-	$(mkinstalldirs) $(DESTDIR)$(libexecdir)
-	@list='$(libexec_PROGRAMS)'; for p in $$list; do \
+	$(mkinstalldirs) $(DESTDIR)$(e_libexecdir)
+	@list='$(e_libexec_PROGRAMS)'; for p in $$list; do \
 	  if test -f $$p; then \
-	    echo "  $(INSTALL_PROGRAM) $$p $(DESTDIR)$(libexecdir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`"; \
-	     $(INSTALL_PROGRAM) $$p $(DESTDIR)$(libexecdir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
+	    echo "  $(INSTALL_PROGRAM) $$p $(DESTDIR)$(e_libexecdir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`"; \
+	     $(INSTALL_PROGRAM) $$p $(DESTDIR)$(e_libexecdir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
 	  else :; fi; \
 	done
 
-uninstall-libexecPROGRAMS:
+uninstall-e_libexecPROGRAMS:
 	@$(NORMAL_UNINSTALL)
-	list='$(libexec_PROGRAMS)'; for p in $$list; do \
-	  rm -f $(DESTDIR)$(libexecdir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
+	list='$(e_libexec_PROGRAMS)'; for p in $$list; do \
+	  rm -f $(DESTDIR)$(e_libexecdir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
 	done
 
-mostlyclean-sbinPROGRAMS:
+mostlyclean-e_sbinPROGRAMS:
 
-clean-sbinPROGRAMS:
-	-test -z "$(sbin_PROGRAMS)" || rm -f $(sbin_PROGRAMS)
+clean-e_sbinPROGRAMS:
+	-test -z "$(e_sbin_PROGRAMS)" || rm -f $(e_sbin_PROGRAMS)
 
-distclean-sbinPROGRAMS:
+distclean-e_sbinPROGRAMS:
 
-maintainer-clean-sbinPROGRAMS:
+maintainer-clean-e_sbinPROGRAMS:
 
-install-sbinPROGRAMS: $(sbin_PROGRAMS)
+install-e_sbinPROGRAMS: $(e_sbin_PROGRAMS)
 	@$(NORMAL_INSTALL)
-	$(mkinstalldirs) $(DESTDIR)$(sbindir)
-	@list='$(sbin_PROGRAMS)'; for p in $$list; do \
+	$(mkinstalldirs) $(DESTDIR)$(e_sbindir)
+	@list='$(e_sbin_PROGRAMS)'; for p in $$list; do \
 	  if test -f $$p; then \
-	    echo "  $(INSTALL_PROGRAM) $$p $(DESTDIR)$(sbindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`"; \
-	     $(INSTALL_PROGRAM) $$p $(DESTDIR)$(sbindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
+	    echo "  $(INSTALL_PROGRAM) $$p $(DESTDIR)$(e_sbindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`"; \
+	     $(INSTALL_PROGRAM) $$p $(DESTDIR)$(e_sbindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
 	  else :; fi; \
 	done
 
-uninstall-sbinPROGRAMS:
+uninstall-e_sbinPROGRAMS:
 	@$(NORMAL_UNINSTALL)
-	list='$(sbin_PROGRAMS)'; for p in $$list; do \
-	  rm -f $(DESTDIR)$(sbindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
+	list='$(e_sbin_PROGRAMS)'; for p in $$list; do \
+	  rm -f $(DESTDIR)$(e_sbindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
 	done
-
-emailrelay-passwd: $(emailrelay_passwd_OBJECTS) $(emailrelay_passwd_DEPENDENCIES)
-	@rm -f emailrelay-passwd
-	$(CXXLINK) $(emailrelay_passwd_LDFLAGS) $(emailrelay_passwd_OBJECTS) $(emailrelay_passwd_LDADD) $(LIBS)
 
 emailrelay-poke: $(emailrelay_poke_OBJECTS) $(emailrelay_poke_DEPENDENCIES)
 	@rm -f emailrelay-poke
 	$(LINK) $(emailrelay_poke_LDFLAGS) $(emailrelay_poke_OBJECTS) $(emailrelay_poke_LDADD) $(LIBS)
 
+emailrelay: $(emailrelay_OBJECTS) $(emailrelay_DEPENDENCIES)
+	@rm -f emailrelay
+	$(CXXLINK) $(emailrelay_LDFLAGS) $(emailrelay_OBJECTS) $(emailrelay_LDADD) $(LIBS)
+
 emailrelay-submit: $(emailrelay_submit_OBJECTS) $(emailrelay_submit_DEPENDENCIES)
 	@rm -f emailrelay-submit
 	$(CXXLINK) $(emailrelay_submit_LDFLAGS) $(emailrelay_submit_OBJECTS) $(emailrelay_submit_LDADD) $(LIBS)
 
-emailrelay: $(emailrelay_OBJECTS) $(emailrelay_DEPENDENCIES)
-	@rm -f emailrelay
-	$(CXXLINK) $(emailrelay_LDFLAGS) $(emailrelay_OBJECTS) $(emailrelay_LDADD) $(LIBS)
+emailrelay-passwd: $(emailrelay_passwd_OBJECTS) $(emailrelay_passwd_DEPENDENCIES)
+	@rm -f emailrelay-passwd
+	$(CXXLINK) $(emailrelay_passwd_LDFLAGS) $(emailrelay_passwd_OBJECTS) $(emailrelay_passwd_LDADD) $(LIBS)
 .cpp.o:
 	$(CXXCOMPILE) -c $<
 
-install-localstateDATA: $(localstate_DATA)
+install-e_spoolDATA: $(e_spool_DATA)
 	@$(NORMAL_INSTALL)
-	$(mkinstalldirs) $(DESTDIR)$(localstatedir)
-	@list='$(localstate_DATA)'; for p in $$list; do \
+	$(mkinstalldirs) $(DESTDIR)$(e_spooldir)
+	@list='$(e_spool_DATA)'; for p in $$list; do \
 	  if test -f $(srcdir)/$$p; then \
-	    echo " $(INSTALL_DATA) $(srcdir)/$$p $(DESTDIR)$(localstatedir)/$$p"; \
-	    $(INSTALL_DATA) $(srcdir)/$$p $(DESTDIR)$(localstatedir)/$$p; \
+	    echo " $(INSTALL_DATA) $(srcdir)/$$p $(DESTDIR)$(e_spooldir)/$$p"; \
+	    $(INSTALL_DATA) $(srcdir)/$$p $(DESTDIR)$(e_spooldir)/$$p; \
 	  else if test -f $$p; then \
-	    echo " $(INSTALL_DATA) $$p $(DESTDIR)$(localstatedir)/$$p"; \
-	    $(INSTALL_DATA) $$p $(DESTDIR)$(localstatedir)/$$p; \
+	    echo " $(INSTALL_DATA) $$p $(DESTDIR)$(e_spooldir)/$$p"; \
+	    $(INSTALL_DATA) $$p $(DESTDIR)$(e_spooldir)/$$p; \
 	  fi; fi; \
 	done
 
-uninstall-localstateDATA:
+uninstall-e_spoolDATA:
 	@$(NORMAL_UNINSTALL)
-	list='$(localstate_DATA)'; for p in $$list; do \
-	  rm -f $(DESTDIR)$(localstatedir)/$$p; \
+	list='$(e_spool_DATA)'; for p in $$list; do \
+	  rm -f $(DESTDIR)$(e_spooldir)/$$p; \
 	done
 
 tags: TAGS
@@ -422,9 +427,9 @@ gfilestore.o: gfilestore.cpp ../../src/glib/gdef.h ../../config.h \
 	gmessagestore.h gnewmessage.h gstoredmessage.h \
 	../../src/glib/gstrings.h ../../src/glib/gpath.h \
 	../../src/glib/gexception.h ../../src/glib/gdatetime.h \
-	gnewfile.h gstoredfile.h ../../src/glib/gprocess.h \
+	../../src/glib/gnoncopyable.h ../../src/glib/groot.h \
+	../../src/glib/gprocess.h gnewfile.h gstoredfile.h \
 	../../src/glib/gdirectory.h ../../src/glib/gmemory.h \
-	../../src/glib/groot.h ../../src/glib/gnoncopyable.h \
 	../../src/glib/gfile.h ../../src/glib/gstr.h \
 	../../src/glib/gassert.h ../../src/glib/glogoutput.h
 gmessagestore.o: gmessagestore.cpp ../../src/glib/gdef.h ../../config.h \
@@ -448,8 +453,8 @@ gnewfile.o: gnewfile.cpp ../../src/glib/gdef.h ../../config.h \
 	gnewmessage.h gstoredmessage.h ../../src/glib/gstrings.h \
 	../../src/glib/gpath.h ../../src/glib/gexception.h gnewfile.h \
 	gfilestore.h ../../src/glib/gdatetime.h \
-	../../src/glib/gmemory.h ../../src/glib/gprocess.h \
-	../../src/glib/groot.h ../../src/glib/gnoncopyable.h \
+	../../src/glib/gnoncopyable.h ../../src/glib/groot.h \
+	../../src/glib/gprocess.h ../../src/glib/gmemory.h \
 	../../src/glib/gfile.h gxtext.h ../../src/glib/gassert.h \
 	../../src/glib/glogoutput.h
 gnewmessage.o: gnewmessage.cpp ../../src/glib/gdef.h ../../config.h \
@@ -565,10 +570,11 @@ gstoredfile.o: gstoredfile.cpp ../../src/glib/gdef.h ../../config.h \
 	gmessagestore.h gnewmessage.h gstoredmessage.h \
 	../../src/glib/gstrings.h ../../src/glib/gpath.h \
 	../../src/glib/gexception.h ../../src/glib/gdatetime.h \
-	gstoredfile.h ../../src/glib/gmemory.h ../../src/glib/groot.h \
-	../../src/glib/gprocess.h ../../src/glib/gnoncopyable.h \
-	gxtext.h ../../src/glib/gfile.h ../../src/glib/gstr.h \
-	../../src/glib/gassert.h ../../src/glib/glogoutput.h
+	../../src/glib/gnoncopyable.h ../../src/glib/groot.h \
+	../../src/glib/gprocess.h gstoredfile.h \
+	../../src/glib/gmemory.h gxtext.h ../../src/glib/gfile.h \
+	../../src/glib/gstr.h ../../src/glib/gassert.h \
+	../../src/glib/glogoutput.h
 gstoredmessage.o: gstoredmessage.cpp ../../src/glib/gdef.h \
 	../../config.h ../../lib/gcc2.95/iostream \
 	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
@@ -601,13 +607,13 @@ main_unix.o: main_unix.cpp ../../src/glib/gdef.h ../../config.h \
 	../../src/glib/ggetopt.h ../../src/glib/gexception.h \
 	../../src/gnet/geventloop.h ../../src/gnet/geventhandler.h \
 	../../src/glib/gcredentials.h ../../src/glib/gdatetime.h \
-	../../src/gnet/gdescriptor.h ../../src/glib/gdaemon.h \
-	gmessagestore.h gnewmessage.h gstoredmessage.h gsmtpclient.h \
-	gsecrets.h ../../src/gnet/glinebuffer.h \
-	../../src/gnet/gclient.h ../../src/gnet/gaddress.h \
-	../../src/gnet/gconnection.h ../../src/gnet/gsocket.h \
-	../../src/gnet/gevent.h gclientprotocol.h gsasl.h \
-	../../src/gnet/gtimer.h
+	../../src/gnet/gdescriptor.h ../../src/glib/glogoutput.h \
+	../../src/glib/gdaemon.h gmessagestore.h gnewmessage.h \
+	gstoredmessage.h gsmtpclient.h gsecrets.h \
+	../../src/gnet/glinebuffer.h ../../src/gnet/gclient.h \
+	../../src/gnet/gaddress.h ../../src/gnet/gconnection.h \
+	../../src/gnet/gsocket.h ../../src/gnet/gevent.h \
+	gclientprotocol.h gsasl.h ../../src/gnet/gtimer.h
 passwd.o: passwd.cpp ../../src/glib/gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits \
@@ -624,30 +630,34 @@ run.o: run.cpp ../../src/glib/gdef.h ../../config.h \
 	../../src/glib/ggetopt.h ../../src/glib/gexception.h \
 	../../src/gnet/geventloop.h ../../src/gnet/geventhandler.h \
 	../../src/glib/gcredentials.h ../../src/glib/gdatetime.h \
-	../../src/gnet/gdescriptor.h ../../src/glib/gdaemon.h \
-	gmessagestore.h gnewmessage.h gstoredmessage.h gsmtpclient.h \
-	gsecrets.h ../../src/gnet/glinebuffer.h \
-	../../src/gnet/gclient.h ../../src/gnet/gaddress.h \
-	../../src/gnet/gconnection.h ../../src/gnet/gsocket.h \
-	../../src/gnet/gevent.h gclientprotocol.h gsasl.h \
-	../../src/gnet/gtimer.h gsmtpserver.h ../../src/gnet/gserver.h \
-	../../src/gnet/gselect.h gverifier.h gserverprotocol.h \
-	gprotocolmessage.h ../../src/glib/gstatemachine.h gfilestore.h \
-	gnewfile.h gadminserver.h ../../src/gnet/gmonitor.h \
-	../../src/gnet/glocal.h ../../src/glib/groot.h \
-	../../src/glib/gprocess.h ../../src/glib/gnoncopyable.h \
-	../../src/glib/gmemory.h ../../src/glib/glogoutput.h \
-	../../src/glib/gdebug.h ../../src/glib/gassert.h
+	../../src/gnet/gdescriptor.h ../../src/glib/glogoutput.h \
+	../../src/glib/gdaemon.h gmessagestore.h gnewmessage.h \
+	gstoredmessage.h gsmtpclient.h gsecrets.h \
+	../../src/gnet/glinebuffer.h ../../src/gnet/gclient.h \
+	../../src/gnet/gaddress.h ../../src/gnet/gconnection.h \
+	../../src/gnet/gsocket.h ../../src/gnet/gevent.h \
+	gclientprotocol.h gsasl.h ../../src/gnet/gtimer.h gsmtpserver.h \
+	../../src/gnet/gserver.h ../../src/gnet/gselect.h gverifier.h \
+	gserverprotocol.h gprotocolmessage.h \
+	../../src/glib/gstatemachine.h gfilestore.h \
+	../../src/glib/gnoncopyable.h ../../src/glib/groot.h \
+	../../src/glib/gprocess.h gnewfile.h gadminserver.h \
+	../../src/gnet/gmonitor.h ../../src/gnet/glocal.h \
+	../../src/glib/gmemory.h ../../src/glib/gdebug.h \
+	../../src/glib/gassert.h
 submit.o: submit.cpp ../../src/glib/gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits \
 	../../src/gnet/gnet.h gsmtp.h ../../src/glib/glog.h \
 	../../src/gnet/glocal.h ../../src/gnet/gaddress.h \
-	../../src/glib/gexception.h ../../src/glib/garg.h \
-	../../src/glib/gstrings.h ../../src/glib/gstr.h \
-	../../src/glib/ggetopt.h ../../src/glib/gpath.h gfilestore.h \
-	gmessagestore.h gnewmessage.h gstoredmessage.h \
-	../../src/glib/gdatetime.h legal.h
+	../../src/glib/gexception.h ../../src/gnet/geventloop.h \
+	../../src/gnet/geventhandler.h ../../src/glib/gcredentials.h \
+	../../src/glib/gdatetime.h ../../src/gnet/gdescriptor.h \
+	../../src/glib/garg.h ../../src/glib/gstrings.h \
+	../../src/glib/gstr.h ../../src/glib/ggetopt.h \
+	../../src/glib/gpath.h gverifier.h gfilestore.h gmessagestore.h \
+	gnewmessage.h gstoredmessage.h ../../src/glib/gnoncopyable.h \
+	../../src/glib/groot.h ../../src/glib/gprocess.h legal.h
 
 info-am:
 info: info-am
@@ -657,26 +667,26 @@ check-am: all-am
 check: check-am
 installcheck-am:
 installcheck: installcheck-am
-install-exec-am: install-libexecPROGRAMS install-sbinPROGRAMS \
-		install-localstateDATA
+install-exec-am: install-e_libexecPROGRAMS install-exec-local
 install-exec: install-exec-am
 
-install-data-am:
+install-data-am: install-e_sbinPROGRAMS install-e_spoolDATA \
+		install-data-local
 install-data: install-data-am
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 install: install-am
-uninstall-am: uninstall-libexecPROGRAMS uninstall-sbinPROGRAMS \
-		uninstall-localstateDATA
+uninstall-am: uninstall-e_libexecPROGRAMS uninstall-e_sbinPROGRAMS \
+		uninstall-e_spoolDATA
 uninstall: uninstall-am
 all-am: Makefile $(LIBRARIES) $(PROGRAMS) $(DATA)
 all-redirect: all-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install
 installdirs:
-	$(mkinstalldirs)  $(DESTDIR)$(libexecdir) $(DESTDIR)$(sbindir) \
-		$(DESTDIR)$(localstatedir)
+	$(mkinstalldirs)  $(DESTDIR)$(e_libexecdir) $(DESTDIR)$(e_sbindir) \
+		$(DESTDIR)$(e_spooldir)
 
 
 mostlyclean-generic:
@@ -689,27 +699,28 @@ distclean-generic:
 
 maintainer-clean-generic:
 mostlyclean-am:  mostlyclean-noinstLIBRARIES mostlyclean-compile \
-		mostlyclean-libexecPROGRAMS mostlyclean-sbinPROGRAMS \
-		mostlyclean-tags mostlyclean-generic
+		mostlyclean-e_libexecPROGRAMS \
+		mostlyclean-e_sbinPROGRAMS mostlyclean-tags \
+		mostlyclean-generic
 
 mostlyclean: mostlyclean-am
 
-clean-am:  clean-noinstLIBRARIES clean-compile clean-libexecPROGRAMS \
-		clean-sbinPROGRAMS clean-tags clean-generic \
+clean-am:  clean-noinstLIBRARIES clean-compile clean-e_libexecPROGRAMS \
+		clean-e_sbinPROGRAMS clean-tags clean-generic \
 		mostlyclean-am
 
 clean: clean-am
 
 distclean-am:  distclean-noinstLIBRARIES distclean-compile \
-		distclean-libexecPROGRAMS distclean-sbinPROGRAMS \
+		distclean-e_libexecPROGRAMS distclean-e_sbinPROGRAMS \
 		distclean-tags distclean-generic clean-am
 
 distclean: distclean-am
 
 maintainer-clean-am:  maintainer-clean-noinstLIBRARIES \
 		maintainer-clean-compile \
-		maintainer-clean-libexecPROGRAMS \
-		maintainer-clean-sbinPROGRAMS maintainer-clean-tags \
+		maintainer-clean-e_libexecPROGRAMS \
+		maintainer-clean-e_sbinPROGRAMS maintainer-clean-tags \
 		maintainer-clean-generic distclean-am
 	@echo "This command is intended for maintainers to use;"
 	@echo "it deletes files that may require special tools to rebuild."
@@ -719,19 +730,29 @@ maintainer-clean: maintainer-clean-am
 .PHONY: mostlyclean-noinstLIBRARIES distclean-noinstLIBRARIES \
 clean-noinstLIBRARIES maintainer-clean-noinstLIBRARIES \
 mostlyclean-compile distclean-compile clean-compile \
-maintainer-clean-compile mostlyclean-libexecPROGRAMS \
-distclean-libexecPROGRAMS clean-libexecPROGRAMS \
-maintainer-clean-libexecPROGRAMS uninstall-libexecPROGRAMS \
-install-libexecPROGRAMS mostlyclean-sbinPROGRAMS distclean-sbinPROGRAMS \
-clean-sbinPROGRAMS maintainer-clean-sbinPROGRAMS uninstall-sbinPROGRAMS \
-install-sbinPROGRAMS uninstall-localstateDATA install-localstateDATA \
-tags mostlyclean-tags distclean-tags clean-tags maintainer-clean-tags \
+maintainer-clean-compile mostlyclean-e_libexecPROGRAMS \
+distclean-e_libexecPROGRAMS clean-e_libexecPROGRAMS \
+maintainer-clean-e_libexecPROGRAMS uninstall-e_libexecPROGRAMS \
+install-e_libexecPROGRAMS mostlyclean-e_sbinPROGRAMS \
+distclean-e_sbinPROGRAMS clean-e_sbinPROGRAMS \
+maintainer-clean-e_sbinPROGRAMS uninstall-e_sbinPROGRAMS \
+install-e_sbinPROGRAMS uninstall-e_spoolDATA install-e_spoolDATA tags \
+mostlyclean-tags distclean-tags clean-tags maintainer-clean-tags \
 distdir info-am info dvi-am dvi check check-am installcheck-am \
-installcheck install-exec-am install-exec install-data-am install-data \
-install-am install uninstall-am uninstall all-redirect all-am all \
-installdirs mostlyclean-generic distclean-generic clean-generic \
+installcheck install-exec-local install-exec-am install-exec \
+install-data-local install-data-am install-data install-am install \
+uninstall-am uninstall all-redirect all-am all installdirs \
+mostlyclean-generic distclean-generic clean-generic \
 maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 
+
+install-data-local:
+	-chgrp daemon $(DESTDIR)$(e_spooldir)
+	-chmod 775 $(DESTDIR)$(e_spooldir)
+	-chgrp daemon $(DESTDIR)$(e_sbindir)/emailrelay-submit
+	-chmod g+s $(DESTDIR)$(e_sbindir)/emailrelay-submit
+
+install-exec-local:
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

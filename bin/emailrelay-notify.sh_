@@ -21,8 +21,8 @@
 # 
 # emailrelay-notify.sh
 #
-# An example script which looks for failed mail in the E-MailRelay spool
-# directory, and sends failure notification messages using 'procmail'.
+# Looks for failed mail in the E-MailRelay spool directory, and sends failure 
+# notification messages using 'procmail'.
 #
 # usage: emailrelay-notify.sh [<spool-dir>]
 #
@@ -31,11 +31,11 @@
 # approach might be more appropriate -- for example, a line like this in
 # a ".profile" script:
 #
-#   if test -f /usr/local/var/spool/emailrelay/*.envelope.bad ; then echo Failed mail >&2 ; fi
+#   if test -f /var/spool/emailrelay/*.envelope.bad ; then echo Failed mail >&2 ; fi
 #
 # or perhaps a cron entry like this (since output from a cron job gets sent as mail):
 #
-#   0 0 * * * /bin/cat /usr/local/var/spool/emailrelay/*.envelope.bad 2>/dev/null
+#   0 0 * * * /bin/cat /var/spool/emailrelay/*.envelope.bad 2>/dev/null
 #
 
 tmp="/tmp/`basename $0`.$$.tmp"
@@ -44,7 +44,7 @@ procmail="procmail"
 
 # parse the command line
 #
-store="/usr/local/var/spool/emailrelay"
+store="__SPOOL_DIR__/emailrelay"
 if test $# -ge 1
 then
 	store="${1}"
@@ -72,7 +72,7 @@ do
 		deliver_to="${from}"
 		if test "${deliver_to}" = "" 
 		then 
-			deliver_to="postmaster"
+			deliver_to="root"
 		fi
 
 		# create a notification message header

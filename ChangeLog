@@ -1,11 +1,28 @@
 E-MailRelay Change Log
 ======================
 
+0.9.8 -> 0.9.9
+--------------
+* More flexible logging options ("--verbose" and "--debug" work better).
+* File Hierarchy Standard (FHS) option for "configure" ("--enable-fhs").
+* FHS-compatible RPMs.
+* Spool files writeable by preprocessor when server started as root.
+* Default directories in executables and scripts come from "configure".
+* The "init.d" script is renamed "emailrelay" (was "emailrelay.sh").
+* Man pages are gzippped when installed.
+* Fix for access violation under Windows NT when client disconnects.
+* Use of event log when compiled on Windows NT.
+* Fix for info-after-flush bug when using the administration interface. [rc2]
+* New "resubmit" script. [rc2]
+* Submit utility works under Windows. [rc2]
+* Improved Windows project files. [rc2]
+
 0.9.7 -> 0.9.8
 --------------
 * Fix for running preprocessor ("--filter") as root.
 * Ignore bogus "AUTH=LOGIN" lines in EHLO response.
 * Submit utility improved to work with mutt.
+* Installation of submit man page.
 
 0.9.6 -> 0.9.7
 --------------

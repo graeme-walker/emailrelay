@@ -19,18 +19,18 @@
 # 
 # ===
 #
-# emailrelay.sh
+# emailrelay
 # 
 # A shell-script wrapper for E-MailRelay designed for
 # use in the SysV-init system (/etc/init.d).
 #
-# usage: emailrelay.sh { start [<emailrelay-switches>] | stop }
+# usage: emailrelay { start [<emailrelay-switches>] | stop }
 #
 
 # configuration
 #
 var_run="/var/run"
-emailrelay="/usr/local/sbin/emailrelay"
+emailrelay="__SBIN_DIR__/emailrelay"
 switches=""
 
 # configuration fallback

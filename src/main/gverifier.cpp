@@ -46,21 +46,21 @@ GSmtp::Verifier::Status GSmtp::Verifier::verify( const std::string & address ) c
 	G::Str::toUpper( host ) ;
 	G::Str::toUpper( user ) ;
 
+	Status status ;
+	status.is_local = false ;
+	status.address = address ;
 	if( user == "POSTMASTER" && ( host.empty() || host == "LOCALHOST" || host == fqdn ) )
 	{
 		// accept 'postmaster' for local delivery
-		std::string full_name( "Local postmaster <postmaster@localhost>" ) ;
-		return std::make_pair( true , full_name ) ;
+		status.is_local = true ;
+		status.full_name = "Local postmaster <postmaster@localhost>" ;
+		status.address = "postmaster" ;
 	}
 	else if( host.empty() || host == "LOCALHOST" )
 	{
 		// reject local addressees
-		return std::make_pair( true , std::string() ) ;
+		status.is_local = true ;
 	}
-	else
-	{
-		// forward
-		return std::make_pair( false , std::string() ) ;
-	}
+	return status ;
 }
 

@@ -16,21 +16,17 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # 
-# ===
 
 # force symbol stripping on 'make install'
 AM_INSTALL_PROGRAM_FLAGS=-s
 
-# change the local-state directory from .../var to .../var/spool/emailrelay
-localstatedir = ${prefix}/var/spool/emailrelay
-
-EXTRA_DIST=commandline_win32.cpp main_win32.cpp gmessagestore_win32.cpp emailrelay.dsp icon-32.ico icon2.ico icon3.ico icon4.ico empty_file doxygen.cfg emailrelay.rc resource.h gsasl_cyrus.cpp
-INCLUDES = -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet
+EXTRA_DIST=commandline_win32.cpp main_win32.cpp gmessagestore_win32.cpp emailrelay.dsw emailrelay.dsp common.dsp submit.dsp passwd.dsp icon-32.ico icon2.ico icon3.ico icon4.ico doxygen.cfg emailrelay.rc resource.h gsasl_cyrus.cpp messages.mc
+INCLUDES = -I$(top_srcdir)/lib/gcc2.95 -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet -DG_SPOOLDIR=\"$(e_spooldir)\"
 
 noinst_LIBRARIES = libgsmtp.a
-sbin_PROGRAMS = emailrelay 
-libexec_PROGRAMS = emailrelay-passwd emailrelay-poke emailrelay-submit
-localstate_DATA = empty_file
+e_sbin_PROGRAMS = emailrelay emailrelay-submit emailrelay-passwd
+e_libexec_PROGRAMS = emailrelay-poke
+e_spool_DATA = 
 
 libgsmtp_a_SOURCES = \
 	gadminserver.cpp \
@@ -102,4 +98,13 @@ emailrelay_submit_LDADD = \
 	$(top_builddir)/src/main/libgsmtp.a \
 	$(top_builddir)/src/glib/libglib.a \
 	$(top_builddir)/src/gnet/libgnet.a
+
+install-data-local:
+	-chgrp daemon $(DESTDIR)$(e_spooldir)
+	-chmod 775 $(DESTDIR)$(e_spooldir)
+	-chgrp daemon $(DESTDIR)$(e_sbindir)/emailrelay-submit
+	-chmod g+s $(DESTDIR)$(e_sbindir)/emailrelay-submit
+
+install-exec-local:
+
 

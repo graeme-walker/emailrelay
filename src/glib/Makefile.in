@@ -28,7 +28,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 # 
-# ===
 
 
 SHELL = @SHELL@
@@ -81,6 +80,7 @@ AR = @AR@
 AWK = @AWK@
 CC = @CC@
 CXX = @CXX@
+GZIP = @GZIP@
 HAVE_DOXYGEN = @HAVE_DOXYGEN@
 HAVE_MAN2HTML = @HAVE_MAN2HTML@
 MAKE = @MAKE@
@@ -88,6 +88,13 @@ MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
+e_docdir = @e_docdir@
+e_examplesdir = @e_examplesdir@
+e_initdir = @e_initdir@
+e_libexecdir = @e_libexecdir@
+e_man1dir = @e_man1dir@
+e_sbindir = @e_sbindir@
+e_spooldir = @e_spooldir@
 
 EXTRA_DIST = garg_win32.cpp 	gdaemon_win32.cpp 	gdatetime_win32.cpp 	gdirectory_win32.cpp 	gfs_win32.cpp 	glogoutput_win32.cpp 	gprocess_win32.cpp 	gfile_win32.cpp 	md5c.c 	md5.h
 
@@ -132,7 +139,7 @@ OBJECTS = $(libglib_a_OBJECTS)
 all: all-redirect
 .SUFFIXES:
 .SUFFIXES: .S .c .cpp .o .s
-$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
+$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.ac $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps src/glib/Makefile
 
 Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status

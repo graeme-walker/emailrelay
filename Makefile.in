@@ -10,6 +10,25 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
+# 
+# Copyright (C) 2001-2002 Graeme Walker <graeme_walker@users.sourceforge.net>
+# 
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later
+# version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# 
+
 
 SHELL = @SHELL@
 
@@ -61,6 +80,7 @@ AR = @AR@
 AWK = @AWK@
 CC = @CC@
 CXX = @CXX@
+GZIP = @GZIP@
 HAVE_DOXYGEN = @HAVE_DOXYGEN@
 HAVE_MAN2HTML = @HAVE_MAN2HTML@
 MAKE = @MAKE@
@@ -68,16 +88,27 @@ MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
+e_docdir = @e_docdir@
+e_examplesdir = @e_examplesdir@
+e_initdir = @e_initdir@
+e_libexecdir = @e_libexecdir@
+e_man1dir = @e_man1dir@
+e_sbindir = @e_sbindir@
+e_spooldir = @e_spooldir@
 
-EXTRA_DIST = emailrelay.spec
+EXTRA_DIST = emailrelay.spec ChangeLog
 SUBDIRS = src bin lib doc
+e_doc_DATA = NEWS README changelog.gz
+CLEANFILES = changelog.gz
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES = 
+DATA =  $(e_doc_DATA)
+
 DIST_COMMON =  README ./stamp-h.in AUTHORS COPYING ChangeLog INSTALL \
-Makefile.am Makefile.in NEWS aclocal.m4 config.h.in configure \
-configure.in install-sh missing mkinstalldirs
+Makefile.am Makefile.in NEWS acinclude.m4 aclocal.m4 config.h.in \
+configure configure.ac install-sh missing mkinstalldirs
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
@@ -86,19 +117,19 @@ TAR = tar
 GZIP_ENV = --best
 all: all-redirect
 .SUFFIXES:
-$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
+$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.ac $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps Makefile
 
 Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	cd $(top_builddir) \
 	  && CONFIG_FILES=$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
-$(ACLOCAL_M4):  configure.in 
+$(ACLOCAL_M4):  configure.ac  acinclude.m4
 	cd $(srcdir) && $(ACLOCAL)
 
 config.status: $(srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
-$(srcdir)/configure: $(srcdir)/configure.in $(ACLOCAL_M4) $(CONFIGURE_DEPENDENCIES)
+$(srcdir)/configure: $(srcdir)/configure.ac $(ACLOCAL_M4) $(CONFIGURE_DEPENDENCIES)
 	cd $(srcdir) && $(AUTOCONF)
 
 config.h: stamp-h
@@ -116,7 +147,7 @@ $(srcdir)/config.h.in: $(srcdir)/stamp-h.in
 		rm -f $(srcdir)/stamp-h.in; \
 		$(MAKE) $(srcdir)/stamp-h.in; \
 	else :; fi
-$(srcdir)/stamp-h.in: $(top_srcdir)/configure.in $(ACLOCAL_M4) 
+$(srcdir)/stamp-h.in: $(top_srcdir)/configure.ac $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOHEADER)
 	@echo timestamp > $(srcdir)/stamp-h.in 2> /dev/null
 
@@ -128,6 +159,25 @@ distclean-hdr:
 	-rm -f config.h
 
 maintainer-clean-hdr:
+
+install-e_docDATA: $(e_doc_DATA)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(e_docdir)
+	@list='$(e_doc_DATA)'; for p in $$list; do \
+	  if test -f $(srcdir)/$$p; then \
+	    echo " $(INSTALL_DATA) $(srcdir)/$$p $(DESTDIR)$(e_docdir)/$$p"; \
+	    $(INSTALL_DATA) $(srcdir)/$$p $(DESTDIR)$(e_docdir)/$$p; \
+	  else if test -f $$p; then \
+	    echo " $(INSTALL_DATA) $$p $(DESTDIR)$(e_docdir)/$$p"; \
+	    $(INSTALL_DATA) $$p $(DESTDIR)$(e_docdir)/$$p; \
+	  fi; fi; \
+	done
+
+uninstall-e_docDATA:
+	@$(NORMAL_UNINSTALL)
+	list='$(e_doc_DATA)'; for p in $$list; do \
+	  rm -f $(DESTDIR)$(e_docdir)/$$p; \
+	done
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run `make' without going through this Makefile.
@@ -290,25 +340,27 @@ all-recursive-am: config.h
 install-exec-am:
 install-exec: install-exec-recursive
 
-install-data-am:
+install-data-am: install-e_docDATA
 install-data: install-data-recursive
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 install: install-recursive
-uninstall-am:
+uninstall-am: uninstall-e_docDATA
 uninstall: uninstall-recursive
-all-am: Makefile config.h
+all-am: Makefile $(DATA) config.h
 all-redirect: all-recursive-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install
 installdirs: installdirs-recursive
 installdirs-am:
+	$(mkinstalldirs)  $(DESTDIR)$(e_docdir)
 
 
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-rm -f Makefile $(CONFIG_CLEAN_FILES)
@@ -337,7 +389,8 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f config.status
 
 .PHONY: mostlyclean-hdr distclean-hdr clean-hdr maintainer-clean-hdr \
-install-data-recursive uninstall-data-recursive install-exec-recursive \
+uninstall-e_docDATA install-e_docDATA install-data-recursive \
+uninstall-data-recursive install-exec-recursive \
 uninstall-exec-recursive installdirs-recursive uninstalldirs-recursive \
 all-recursive check-recursive installcheck-recursive info-recursive \
 dvi-recursive mostlyclean-recursive distclean-recursive clean-recursive \
@@ -349,6 +402,8 @@ install uninstall-am uninstall all-redirect all-am all installdirs-am \
 installdirs mostlyclean-generic distclean-generic clean-generic \
 maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 
+changelog.gz: ChangeLog
+	if test -n "$(GZIP)" ; then $(GZIP) -c $< > changelog.tmp && mv changelog.tmp changelog.gz ; fi
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

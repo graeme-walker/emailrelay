@@ -83,7 +83,7 @@ public:
 	static void closeStderr() ;
 		// Closes stderr.
 
-	static void setUmask() ;
+	static void setUmask( bool tightest = true ) ;
 		// Sets a tight umask.
 
 	static void cd( const Path & dir ) ;
@@ -108,12 +108,12 @@ public:
 	static int errno_() ;
 		// Returns the process's current 'errno' value.
 
-	static void beSpecial( Identity special ) ;
+	static void beSpecial( Identity special , bool change_group = true ) ;
 		// Aquires special privileges (either root
 		// or suid). The parameter must have come from
 		// a previous call to beOrdinary().
 
-	static Identity beOrdinary( Identity nobody ) ;
+	static Identity beOrdinary( Identity nobody , bool change_group = true ) ;
 		// Revokes special privileges (root or suid).
 		// If really root (as opposed to suid root)
 		// then the effective id is changed to that

@@ -41,7 +41,7 @@ int main( int argc , char * argv [] )
 	{
 		std::cerr << G::Arg::prefix(argv) << ": exception: " << e.what() << std::endl ;
 	}
-	catch( ... )
+	catch(...)
 	{
 		std::cerr << G::Arg::prefix(argv) << ": unrecognised exception" << std::endl ;
 	}
