@@ -123,10 +123,14 @@ libgsmtp_a_SOURCES = \
 	gprotocolmessage.h \
 	gprotocolmessageforward.cpp \
 	gprotocolmessageforward.h \
+	gprotocolmessagescanner.cpp \
+	gprotocolmessagescanner.h \
 	gprotocolmessagestore.cpp \
 	gprotocolmessagestore.h \
 	gsasl_native.cpp \
 	gsasl.h \
+	gscannerclient.cpp \
+	gscannerclient.h \
 	gsecrets.cpp \
 	gsecrets.h \
 	gserverprotocol.cpp \
@@ -158,11 +162,12 @@ am_libgsmtp_a_OBJECTS = gadminserver.$(OBJEXT) gbase64.$(OBJEXT) \
 	gmessagestore.$(OBJEXT) gmessagestore_unix.$(OBJEXT) \
 	gnewfile.$(OBJEXT) gnewmessage.$(OBJEXT) \
 	gprotocolmessage.$(OBJEXT) gprotocolmessageforward.$(OBJEXT) \
+	gprotocolmessagescanner.$(OBJEXT) \
 	gprotocolmessagestore.$(OBJEXT) gsasl_native.$(OBJEXT) \
-	gsecrets.$(OBJEXT) gserverprotocol.$(OBJEXT) \
-	gsmtpclient.$(OBJEXT) gsmtpserver.$(OBJEXT) \
-	gstoredfile.$(OBJEXT) gstoredmessage.$(OBJEXT) \
-	gverifier.$(OBJEXT) gxtext.$(OBJEXT)
+	gscannerclient.$(OBJEXT) gsecrets.$(OBJEXT) \
+	gserverprotocol.$(OBJEXT) gsmtpclient.$(OBJEXT) \
+	gsmtpserver.$(OBJEXT) gstoredfile.$(OBJEXT) \
+	gstoredmessage.$(OBJEXT) gverifier.$(OBJEXT) gxtext.$(OBJEXT)
 libgsmtp_a_OBJECTS = $(am_libgsmtp_a_OBJECTS)
 
 DEFS = @DEFS@
@@ -181,8 +186,11 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/gnewfile.Po ./$(DEPDIR)/gnewmessage.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gprotocolmessage.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gprotocolmessageforward.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gprotocolmessagescanner.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gprotocolmessagestore.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gsasl_native.Po ./$(DEPDIR)/gsecrets.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gsasl_native.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gscannerclient.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gsecrets.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gserverprotocol.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gsmtpclient.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gsmtpserver.Po \
@@ -237,8 +245,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gnewmessage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gprotocolmessage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gprotocolmessageforward.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gprotocolmessagescanner.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gprotocolmessagestore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gsasl_native.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gscannerclient.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gsecrets.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gserverprotocol.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gsmtpclient.Po@am__quote@

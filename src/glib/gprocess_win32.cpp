@@ -36,6 +36,7 @@ namespace G
 {
 	const int g_stderr_fileno = 2 ;
 	const int g_sc_open_max = 256 ; // 32 in limits.h !?
+	const HANDLE HNULL = INVALID_HANDLE_VALUE ;
 	class Pipe ;
 } ;
 
@@ -43,14 +44,17 @@ class G::Pipe
 {
 public:
 	G_EXCEPTION( Error , "pipe error" ) ;
-	explicit Pipe( bool active ) ;
+	explicit Pipe( bool active , bool do_throw = true ) ;
 	~Pipe() ;
-	int fd() const ;
-	std::string read() ;
+	HANDLE h() const ;
+	std::string read( bool do_throw = true ) ;
+private:
+	static HANDLE create( HANDLE & h_write , bool do_throw ) ;
+	static HANDLE duplicate( HANDLE h , bool do_throw ) ;
 private:
 	bool m_active ;
-	int m_fds[2] ;
-	int m_fd_writer ;
+	HANDLE m_read ;
+	HANDLE m_write ;
 } ;
 
 class G::Process::IdImp
@@ -61,18 +65,20 @@ public:
 
 // ===
 
-G::Pipe::Pipe( bool active ) :
+G::Pipe::Pipe( bool active , bool do_throw ) :
 	m_active(active) ,
-	m_fd_writer(-1)
+	m_read(HNULL) ,
+	m_write(HNULL)
 {
-	m_fds[0] = m_fds[1] = -1 ;
 	if( m_active )
 	{
-		int rc = ::_pipe( m_fds , 256 , _O_BINARY | _O_NOINHERIT ) ;
-		if( rc < 0 ) throw Error() ;
-		m_fd_writer = ::_dup( m_fds[1] ) ; // inherited
-		::_close( m_fds[1] ) ;
-		m_fds[1] = -1 ;
+		const bool do_throw = true ;
+		HANDLE h = create( m_write , do_throw ) ;
+		if( h != HNULL )
+		{
+			// dont let child processes inherit the read end
+			m_read = duplicate( h , do_throw ) ;
+		}
 	}
 }
 
@@ -80,25 +86,76 @@ G::Pipe::~Pipe()
 {
 	if( m_active )
 	{
-		::_close( m_fds[0] ) ;
-		::_close( m_fds[1] ) ;
-		::_close( m_fd_writer ) ;
+		if( m_read != HNULL ) ::CloseHandle( m_read ) ;
+		if( m_write != HNULL ) ::CloseHandle( m_write ) ;
 	}
 }
 
-int G::Pipe::fd() const
+//static
+HANDLE G::Pipe::create( HANDLE & h_write , bool do_throw )
 {
-	return m_fd_writer ;
+	static SECURITY_ATTRIBUTES zero_attributes ;
+	SECURITY_ATTRIBUTES attributes( zero_attributes ) ;
+	attributes.nLength = sizeof(attributes) ;
+	attributes.lpSecurityDescriptor = NULL ;
+	attributes.bInheritHandle = TRUE ;
+
+	HANDLE h_read = HNULL ;
+	h_write = HNULL ;
+	BOOL rc = ::CreatePipe( &h_read , &h_write , &attributes , 0 ) ;
+	if( rc == 0 )
+	{
+		DWORD error = ::GetLastError() ;
+		G_ERROR( "G::Pipe::create: pipe error: create: " << error ) ;
+		if( do_throw ) throw Error( "create" ) ;
+		h_read = h_write = HNULL ;
+	}
+	return h_read ;
 }
 
-std::string G::Pipe::read()
+//static
+HANDLE G::Pipe::duplicate( HANDLE h , bool do_throw )
+{
+	HANDLE result = HNULL ;
+	BOOL rc = ::DuplicateHandle( GetCurrentProcess() , h , GetCurrentProcess() ,
+		&result , 0 , FALSE , DUPLICATE_SAME_ACCESS ) ;
+	if( rc == 0 || result == HNULL )
+	{
+		DWORD error = ::GetLastError() ;
+		::CloseHandle( h ) ;
+		G_ERROR( "G::Pipe::duplicate: pipe error: dup: " << error ) ;
+		if( do_throw ) throw Error( "dup" ) ;
+		result = HNULL ;
+	}
+	::CloseHandle( h ) ;
+	return result ;
+}
+
+HANDLE G::Pipe::h() const
+{
+	return m_write ;
+}
+
+std::string G::Pipe::read( bool do_throw )
 {
 	if( ! m_active ) return std::string() ;
-	::_close( m_fd_writer ) ;
+	::CloseHandle( m_write ) ; m_write = HNULL ;
 	char buffer[4096] ;
-	int rc = m_fds[0] == -1 ? 0 : ::_read( m_fds[0] , buffer , sizeof(buffer) ) ;
-	if( rc < 0 ) throw Error() ;
-	return std::string( buffer , rc ) ;
+	DWORD n = sizeof(buffer) ;
+	DWORD m = 0UL ;
+	BOOL rc = ::ReadFile( m_read , buffer , n , &m , NULL ) ;
+	DWORD error = ::GetLastError() ;
+	::CloseHandle( m_read ) ; m_read = HNULL ;
+	if( !rc )
+	{
+		G_DEBUG( "G::Pipe::read: error: " << m << " byte(s): error=" << error ) ;
+		if( error != ERROR_BROKEN_PIPE )
+		{
+			G_ERROR( "G::Pipe::read: pipe read error: " << error ) ;
+			if( do_throw ) throw Error( "read" ) ;
+		}
+	}
+	return std::string( buffer , m ) ;
 }
 
 // ===
@@ -173,38 +230,64 @@ int G::Process::errno_()
 	return errno ;
 }
 
-int G::Process::spawn( Identity , const Path & exe , const Strings & args_ ,
+int G::Process::spawn( Identity , const Path & exe , const Strings & args ,
 	std::string * pipe_result_p , int error_return )
 {
-	// open file descriptors are inherited across ::_spawn() --
-	// no fcntl() is available to set close-on-exec -- but see
-	// also ::CreateProcess()
-
-	Strings args( args_ ) ; // non-const copy
-	Pipe pipe( pipe_result_p != NULL ) ;
-	if( pipe_result_p != NULL )
-		args.push_front( Str::fromInt(pipe.fd()) ) ; // kludge -- child must write on fd passed as argv[1]
-
 	G_DEBUG( "G::Process::spawn: \"" << exe << "\": \"" << Str::join(args,"\",\"") << "\"" ) ;
 
-	char ** argv = new char* [ args.size() + 2U ] ;
-	argv[0U] = const_cast<char*>( exe.pathCstr() ) ;
-	unsigned int argc = 1U ;
-	for( Strings::const_iterator arg_p = args.begin() ; arg_p != args.end() ; ++arg_p , argc++ )
-		argv[argc] = const_cast<char*>(arg_p->c_str()) ;
-	argv[argc] = NULL ;
+	std::string command_line = std::string("\"") + exe.str() + "\"" ;
+	for( Strings::const_iterator arg_p = args.begin() ; arg_p != args.end() ; ++arg_p )
+	{
+		std::string arg = *arg_p ;
+		if( arg.find(" ") != std::string::npos && arg.find("\"") != 0U )
+			arg = std::string("\"") + arg + "\"" ;
+		command_line += ( std::string(" ") + arg ) ;
+	}
 
-	const int mode = _P_WAIT ;
-	::_flushall() ;
-	int rc = ::_spawnv( mode , exe.str().c_str() , argv ) ;
-	int error = errno_() ;
-	delete [] argv ;
-	G_DEBUG( "G::Process::spawn: _spawnv(): rc=" << rc << ": errno=" << error ) ;
+	Pipe pipe( pipe_result_p != NULL ) ;
 
-	if( pipe_result_p != NULL )
-		*pipe_result_p = pipe.read() ;
+	SECURITY_ATTRIBUTES * process_attributes = NULL ;
+	SECURITY_ATTRIBUTES * thread_attributes = NULL ;
+	BOOL inherit = TRUE ;
+	DWORD flags = CREATE_NO_WINDOW ;
+	LPVOID env = NULL ;
+	LPCTSTR cwd = NULL ;
+	static STARTUPINFO zero_start ;
+	STARTUPINFO start(zero_start) ;
+	start.cb = sizeof(start) ;
+	start.dwFlags = STARTF_USESTDHANDLES ;
+	start.hStdInput = HNULL ;
+	start.hStdOutput = pipe.h() ;
+	start.hStdError = HNULL ;
+	PROCESS_INFORMATION info ;
+	char * command_line_p = const_cast<char*>(command_line.c_str()) ;
+	BOOL rc = ::CreateProcess( exe.str().c_str() , command_line_p ,
+		process_attributes , thread_attributes , inherit ,
+		flags , env , cwd , &start , &info ) ;
 
-	return rc < 0 ? error_return : rc ;
+	bool ok = !!rc ;
+	DWORD exit_code = error_return ;
+	if( !ok )
+	{
+		DWORD e = ::GetLastError() ;
+		G_ERROR( "G::Process::spawn: create-process error " << e << ": " << command_line ) ;
+	}
+	else
+	{
+		DWORD timeout_ms = 30000UL ;
+		if( WAIT_TIMEOUT == ::WaitForSingleObject( info.hProcess , timeout_ms ) )
+		{
+			G_ERROR( "G::Process::spawn: child process has not terminated: still waiting" ) ;
+			::WaitForSingleObject( info.hProcess , INFINITE ) ;
+		}
+		::GetExitCodeProcess( info.hProcess , &exit_code ) ;
+		G_LOG( "G::Process::spawn: exit " << exit_code << " from \"" << exe << "\": " << exit_code ) ;
+
+		if( pipe_result_p != NULL )
+			*pipe_result_p = pipe.read(false) ;
+	}
+
+	return exit_code ;
 }
 
 G::Identity G::Process::beOrdinary( Identity identity , bool )
@@ -214,6 +297,11 @@ G::Identity G::Process::beOrdinary( Identity identity , bool )
 }
 
 void G::Process::beSpecial( Identity , bool )
+{
+	// not implemented
+}
+
+void G::Process::revokeExtraGroups()
 {
 	// not implemented
 }

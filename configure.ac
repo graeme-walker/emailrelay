@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl
 
 AC_INIT(src/gsmtp/gsmtp.h)
-AM_INIT_AUTOMAKE(emailrelay,1.1.1)
+AM_INIT_AUTOMAKE(emailrelay,1.1.2)
 AM_CONFIG_HEADER(config.h)
 
 dnl ===
@@ -60,6 +60,7 @@ ACLOCAL_TYPE_SOCKLEN_T
 ACLOCAL_CHECK_BUGGY_CTIME
 ACLOCAL_CHECK_GMTIME_R
 ACLOCAL_CHECK_LOCALTIME_R
+ACLOCAL_CHECK_SETGROUPS
 
 dnl ===
 dnl "--enable-debug"

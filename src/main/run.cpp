@@ -50,7 +50,7 @@
 //static
 std::string Main::Run::versionNumber()
 {
-	return "1.1.1" ;
+	return "1.1.2" ;
 }
 
 Main::Run::Run( Main::Output & output , const G::Arg & arg , const std::string & switch_spec ) :
@@ -147,21 +147,41 @@ void Main::Run::run()
 	}
 }
 
+void Main::Run::checkPort( const std::string & interface_ , unsigned int port )
+{
+	GNet::Address address =
+		interface_.length() ?
+			GNet::Address(interface_,port) :
+			GNet::Address(port) ;
+	GNet::Server::canBind( address , true ) ;
+}
+
+void Main::Run::checkPorts() const
+{
+	if( cfg().doServing() && cfg().doSmtp() )
+		checkPort( cfg().interface_() , cfg().port() ) ;
+
+	if( cfg().doServing() && cfg().doAdmin() )
+		checkPort( cfg().interface_() , cfg().adminPort() ) ;
+}
+
 void Main::Run::runCore()
 {
 	// fqdn override option
 	//
 	GNet::Local::fqdn( cfg().fqdn() ) ;
 
-	// daemonising
+	// tighten the umask
 	//
-	G::PidFile pid_file ;
 	G::Process::Umask::set( G::Process::Umask::Tightest ) ;
-	if( cfg().daemon() ) closeFiles() ; // before opening any sockets or message-store streams
-	if( cfg().usePidFile() ) pid_file.init( G::Path(cfg().pidFile()) ) ;
-	if( cfg().daemon() ) G::Daemon::detach( pid_file ) ;
 
-	// release root privileges
+	// close inherited file descriptors to avoid locking file
+	// systems when running as a daemon -- this has to be done
+	// early, before opening any sockets or message-store streams
+	//
+	if( cfg().daemon() ) closeFiles() ;
+
+	// release root privileges and extra group memberships
 	//
 	G::Root::init( cfg().nobody() ) ;
 
@@ -171,6 +191,10 @@ void Main::Run::runCore()
 	std::auto_ptr<GNet::EventLoop> event_loop(GNet::EventLoop::create()) ;
 	if( ! event_loop->init() )
 		throw G::Exception( "cannot initialise network layer" ) ;
+
+	// early check on socket bindability
+	//
+	checkPorts() ;
 
 	// network monitor singleton
 	//
@@ -188,6 +212,12 @@ void Main::Run::runCore()
 	//
 	m_client_secrets <<= new GSmtp::Secrets( cfg().clientSecretsFile() , "client" ) ;
 	GSmtp::Secrets server_secrets( cfg().serverSecretsFile() , "server" ) ;
+
+	// daemonise
+	//
+	G::PidFile pid_file ;
+	if( cfg().usePidFile() ) pid_file.init( G::Path(cfg().pidFile()) ) ;
+	if( cfg().daemon() ) G::Daemon::detach( pid_file ) ;
 
 	// run as forwarding agent
 	//
@@ -228,7 +258,10 @@ void Main::Run::doServing( GSmtp::MessageStore & store , const GSmtp::Secrets & 
 			cfg().immediate() ? cfg().serverAddress() : std::string() ,
 			cfg().responseTimeout() ,
 			cfg().connectionTimeout() ,
-			client_secrets ) ;
+			client_secrets ,
+			cfg().scannerAddress() ,
+			cfg().scannerResponseTimeout() ,
+			cfg().scannerConnectionTimeout() ) ;
 	}
 
 	if( cfg().doAdmin() )

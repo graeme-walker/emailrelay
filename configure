@@ -1459,7 +1459,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=emailrelay
- VERSION=1.1.1
+ VERSION=1.1.2
 
 
 cat >>confdefs.h <<_ACEOF
@@ -4565,7 +4565,7 @@ if test "${aclocal_cv_type_socklen_t+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
-  cat >conftest.$ac_ext <<_ACEOF
+	cat >conftest.$ac_ext <<_ACEOF
 #line $LINENO "configure"
 #include "confdefs.h"
 #include <sys/types.h>
@@ -4607,19 +4607,19 @@ rm -f conftest.$ac_objext conftest.$ac_ext
 fi
 echo "$as_me:$LINENO: result: $aclocal_cv_type_socklen_t" >&5
 echo "${ECHO_T}$aclocal_cv_type_socklen_t" >&6
-  if test $aclocal_cv_type_socklen_t = yes; then
+	if test $aclocal_cv_type_socklen_t = yes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_SOCKLEN_T 1
 _ACEOF
 
-  else
+	else
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_SOCKLEN_T 0
 _ACEOF
 
-  fi
+	fi
 
 echo "$as_me:$LINENO: checking for buggy ctime" >&5
 echo $ECHO_N "checking for buggy ctime... $ECHO_C" >&6
@@ -4801,6 +4801,69 @@ _ACEOF
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_LOCALTIME_R 0
+_ACEOF
+
+	fi
+
+echo "$as_me:$LINENO: checking for setgroups" >&5
+echo $ECHO_N "checking for setgroups... $ECHO_C" >&6
+if test "${aclocal_cv_setgroups+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+
+	cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+#include "confdefs.h"
+#include <sys/types.h>
+#include <unistd.h>
+#include <grp.h>
+#ifdef F77_DUMMY_MAIN
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+#endif
+int
+main ()
+{
+setgroups(0,0) ;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  aclocal_cv_setgroups=yes
+else
+  echo "$as_me: failed program was:" >&5
+cat conftest.$ac_ext >&5
+aclocal_cv_setgroups=no
+fi
+rm -f conftest.$ac_objext conftest.$ac_ext
+
+fi
+echo "$as_me:$LINENO: result: $aclocal_cv_setgroups" >&5
+echo "${ECHO_T}$aclocal_cv_setgroups" >&6
+	if test $aclocal_cv_setgroups = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_SETGROUPS 1
+_ACEOF
+
+	else
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_SETGROUPS 0
 _ACEOF
 
 	fi

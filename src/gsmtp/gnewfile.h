@@ -70,6 +70,9 @@ public:
 		// Defines a program which is used for pre-processing
 		// messages before they are stored.
 
+	G::Path contentPath() const ;
+		// Returns the path of the content file.
+
 private:
 	FileStore & m_store ;
 	unsigned long m_seq ;
@@ -90,8 +93,9 @@ private:
 	const std::string & crlf() const ;
 	static bool isEightBit( const std::string & line ) ;
 	void deliver( const G::Strings & , const G::Path & , const G::Path & , const G::Path & ) ;
-	bool preprocess( const G::Path & , bool & ) ;
-	int preprocessCore( const G::Path & ) ;
+	bool preprocess( const G::Path & , bool & , std::string & ) ;
+	int preprocessCore( const G::Path & , std::string & ) ;
+	std::string parseOutput( std::string ) const ;
 	bool commit( const G::Path & , const G::Path & ) ;
 	void rollback() ;
 	void cleanup() ;

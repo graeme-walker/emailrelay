@@ -144,6 +144,17 @@ void GNet::Server::init( const Address & listening_address )
 	m_socket->addReadHandler( *this ) ;
 }
 
+//static
+bool GNet::Server::canBind( const Address & address , bool do_throw )
+{
+	G::Root claim_root ;
+	StreamSocket s ;
+	bool ok = s.canBindHint( address ) ;
+	if( !ok && do_throw )
+		throw CannotBind( address.displayString() ) ;
+	return ok ;
+}
+
 GNet::Server::~Server()
 {
 	serverCleanup() ;
