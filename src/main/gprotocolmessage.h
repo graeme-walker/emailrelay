@@ -51,6 +51,10 @@ public:
 	{
 		public: virtual ~Callback() ;
 		public: virtual void processDone( bool success , unsigned long id , const std::string & reason ) = 0 ;
+			// Signals that ProtocolMessage::process() has completed.
+			// As a special case, if success is true and id is zero then
+			// the message processing was cancelled.
+
 		private: void operator=( const Callback & ) ; // not implemented
 	} ;
 
@@ -86,12 +90,19 @@ public:
 		// Precondition: at least one
 		// successful addTo() call
 
-	virtual void process( Callback & callback ) = 0 ;
-		// Starts asynchronous processing of the
-		// message. Once processing is complete the
-		// message state is cleared and the callback
-		// is triggered. The callback may be called
-		// before process() returns.
+	virtual void process( Callback & callback , const std::string & authenticated_client_id ,
+		const std::string & peer_ip_address ) = 0 ;
+			// Starts asynchronous processing of the
+			// message. Once processing is complete the
+			// message state is cleared and the callback
+			// is triggered. The callback may be called
+			// before process() returns.
+			//
+			// The client-id parameter is used to propogate
+			// authentication information from the SMTP
+			// AUTH command into individual messages.
+			// It is the empty string for unauthenticated
+			// clients. See also GSmtp::Sasl::id().
 
 private:
 	void operator=( const ProtocolMessage & ) ; // not implemented

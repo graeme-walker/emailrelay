@@ -36,9 +36,12 @@
 
 # configuration
 #
-exe="../src/main/emailrelay"
-poke="../src/main/emailrelay-poke"
+exe_dir="../src/main"
+if test "${1}" != "" ; then exe_dir="${1}" ; fi
+exe="${exe_dir}/emailrelay"
+poke="${exe_dir}/emailrelay-poke"
 null_filter="/bin/touch"
+content_file="/etc/services"
 pp="1001" # port-prefix
 
 # configuration fallback
@@ -51,6 +54,7 @@ fi
 # initialisation
 #
 base_dir="/tmp/`basename $0`.$$.tmp"
+summary_log="/tmp/`basename $0`.out"
 exit_code="1"
 
 Cleanup()
@@ -58,10 +62,11 @@ Cleanup()
 	kill `cat ${base_dir}/pid-* 2>/dev/null` 2>/dev/null
 	if test -d ${base_dir}
 	then
-		grep "MailRelay-Reason" ${base_dir}/*/*envelope*bad > /tmp/`basename $0`.out 2>/dev/null
-		grep "." ${base_dir}/log-? >> /tmp/`basename $0`.out 2>/dev/null
+		grep "MailRelay-Reason" ${base_dir}/*/*envelope*bad > "${summary_log}" 2>/dev/null
+		grep "." ${base_dir}/log-? >> "${summary_log}" 2>/dev/null
+		ls -lR ${base_dir} >> "${summary_log}" 2>/dev/null
+		diff -w ${base_dir}/store-4/*content "${content_file}" >> "${summary_log}" 2>/dev/null
 	fi
-	rm -rf ${base_dir} 2>/dev/null
 }
 
 Trap() 
@@ -109,17 +114,19 @@ Content()
 	echo "Subject: test message 1"
 	echo "From: sender"
 	echo " "
-	echo "Content"
+	cat "${content_file}"
 }
 
 Envelope()
 {
-	echo "X-MailRelay-Format: #2821.2"
+	echo "X-MailRelay-Format: #2821.3"
 	echo "X-MailRelay-Content: 8bit"
 	echo "X-MailRelay-From: sender"
 	echo "X-MailRelay-ToCount: 2"
 	echo "X-MailRelay-To-Remote: recipient-1@localhost"
 	echo "X-MailRelay-To-Remote: recipient-2@localhost"
+	echo "X-MailRelay-Authentication: "
+	echo "X-MailRelay-Client: 127.0.0.1"
 	echo "X-MailRelay-End: 1"
 }
 
@@ -135,13 +142,13 @@ CheckResults()
 		exit_code="0"
 		echo `basename $0`: succeeded
 	else
-		echo `basename $0`: failed: see /tmp/`basename $0`.out >&2
+		echo `basename $0`: failed: see ${summary_log} >&2
 	fi
 }
 
 StartTimer()
 {
-	( sleep 5 ; Cleanup ) &
+	( sleep 30 ; Cleanup ) &
 }
 
 CreateMessages()
@@ -151,14 +158,33 @@ CreateMessages()
 	Envelope | CrLf > ${base_dir}/store-1/emailrelay.0.1.envelope
 }
 
+CreateAuth()
+{
+	mkdir -p "${base_dir}"
+
+	file="${base_dir}/server.auth"
+	echo "# server.auth" > ${file}
+	echo "login server fred freds_password" >> ${file}
+	echo "login server joe joe+00s_password" >> ${file}
+	echo "login client dummy pwd" >> ${file}
+	echo "cram-md5 client dummy digest" >> ${file}
+
+	file="${base_dir}/client.auth"
+	echo "# client.auth" > ${file}
+	echo "cram-md5 client foo bar" >> ${file}
+	echo "login client joe joe+00s_password" >> ${file}
+	echo "login server abc def" >> ${file}
+}
+
 trap "Trap ; exit" 1 2 3 13 15
 trap "Trap 0 ; exit" 0
 
 StartTimer
+CreateAuth
 RunServer ${pp}1 store-2 log-1 pid-1
 RunServer ${pp}2 store-2 log-2 pid-2 "--admin ${pp}9 --forward-to localhost:${pp}3"
-RunServer ${pp}3 store-3 log-3 pid-3 "--immediate --forward-to localhost:${pp}4 --filter ${null_filter}"
-RunServer ${pp}4 store-4 log-4 pid-4
+RunServer ${pp}3 store-3 log-3 pid-3 "--immediate --forward-to localhost:${pp}4 --filter ${null_filter} --client-auth ${base_dir}/client.auth"
+RunServer ${pp}4 store-4 log-4 pid-4 "--server-auth ${base_dir}/server.auth"
 CreateMessages
 RunClient localhost:${pp}1 store-1 log-c pid-5
 RunPoke ${pp}9 log-p

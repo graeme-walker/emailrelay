@@ -40,18 +40,14 @@ GGui::ApplicationBase::~ApplicationBase()
 {
 }
 
-bool GGui::ApplicationBase::createWindow( int show_style , bool do_show )
+void GGui::ApplicationBase::createWindow( int show_style , bool do_show )
 {
 	G_DEBUG( "GGui::ApplicationBase::createWindow" ) ;
 
 	// first => register a window class
 	if( m_previous == 0 )
 	{
-		if( !initFirst() )
-		{
-			G_DEBUG( "GGui::ApplicationBase::init: cannot register window class" ) ;
-			//return false ;
-		}
+		initFirst() ;
 	}
 
 	// create the main window
@@ -62,8 +58,7 @@ bool GGui::ApplicationBase::createWindow( int show_style , bool do_show )
 			NULL , // menu handle: 0 => use class's menu
 			hinstance() ) )
 	{
-		G_DEBUG( "GGui::ApplicationBase::init: cannot create main window" ) ;
-		return false ;
+		throw CreateError() ;
 	}
 
 	if( do_show )
@@ -71,8 +66,6 @@ bool GGui::ApplicationBase::createWindow( int show_style , bool do_show )
 		show( show_style ) ;
 		update() ;
 	}
-
-	return true ;
 }
 
 bool GGui::ApplicationBase::firstInstance() const
@@ -80,23 +73,24 @@ bool GGui::ApplicationBase::firstInstance() const
 	return m_previous == 0 ;
 }
 
-bool GGui::ApplicationBase::initFirst()
+void GGui::ApplicationBase::initFirst()
 {
 	UINT id = resource() ;
 	HICON icon = id ? ::LoadIcon(hinstance(),MAKEINTRESOURCE(id)) : 0 ;
-
-	G_DEBUG( "GGui::ApplicationBase::initFirst: "
-		<< "registering main window class \"" << className()
-		<< "\", hinstance " << hinstance() ) ;
+	if( icon == 0 )
+		icon = classIcon() ;
 
 	const char * menu = MAKEINTRESOURCE( id ) ;
-	return registerWindowClass( className() ,
+	bool ok = registerWindowClass( className() ,
 		hinstance() ,
 		classStyle() ,
-		icon ? icon : GGui::Window::classIcon() ,
-		GGui::Window::classCursor() ,
+		icon ,
+		classCursor() ,
 		backgroundBrush() ,
 		menu ) ;
+
+	if( !ok )
+		throw RegisterError( className() ) ;
 }
 
 void GGui::ApplicationBase::close() const
@@ -169,8 +163,9 @@ void GGui::ApplicationBase::messageBox( const std::string & message )
 void GGui::ApplicationBase::messageBox( const std::string & title , const std::string & message )
 {
 	HWND box_parent = NULL ;
-	::MessageBox( box_parent , message.c_str() , title.c_str() ,
-		MB_OK | MB_ICONEXCLAMATION ) ;
+	unsigned int type = MB_OK | MB_ICONEXCLAMATION | MB_TASKMODAL | MB_SETFOREGROUND ;
+
+	::MessageBox( box_parent , message.c_str() , title.c_str() , type ) ;
 }
 
 

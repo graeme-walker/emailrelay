@@ -27,6 +27,7 @@
 #include "gdef.h"
 #include "gappinst.h"
 #include "gwindow.h"
+#include "gexception.h"
 
 namespace GGui
 {
@@ -54,6 +55,9 @@ namespace GGui
 class GGui::ApplicationBase : public Window , public ApplicationInstance
 {
 public:
+	G_EXCEPTION( RegisterError, "cannot register application's window class" ) ;
+	G_EXCEPTION( CreateError , "cannot create application window" ) ;
+
 	ApplicationBase( HINSTANCE current, HINSTANCE previous, const char *name );
 		// Constructor. Applications should declare
 		// a ApplicationBase object on the stack within
@@ -66,10 +70,9 @@ public:
 	virtual ~ApplicationBase() ;
 		// Virtual destructor.
 
-	bool createWindow( int show , bool do_show = true ) ;
+	void createWindow( int show , bool do_show = true ) ;
 		// Initialisation (was init()). Creates the main
-		// window, etc. Returns false on error.
-		// Should be called from WinMain().
+		// window, etc. Should be called from WinMain().
 
 	void run( bool with_idle = true ) ;
 		// GetMessage()/DispatchMessage() message pump.
@@ -127,11 +130,11 @@ protected:
 		// so that the task terminates when its main
 		// window is destroyed.
 
-	virtual bool initFirst() ;
+	virtual void initFirst() ;
 		// Called from init() for the first application
 		// instance. Registers the main window class.
 		// If resource() returns non-zero then it is used
-		// as the icon id. Returns false on error.
+		// as the icon id.
 		//
 		// May be overridden only if this base class
 		// implementation is called first.

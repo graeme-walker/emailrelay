@@ -57,8 +57,8 @@ bool GNet::Socket::open( int domain, int type, int protocol )
 }
 
 GNet::Socket::Socket( Descriptor s ) :
-	m_socket(s) ,
-	m_reason( 0 )
+	m_reason(0) ,
+	m_socket(s)
 {
 	;
 }
@@ -168,7 +168,7 @@ ssize_t GNet::Socket::write( const char *buf, size_t len )
 		G_DEBUG( "GNet::Socket::write: write error " << m_reason ) ;
 		return -1 ;
 	}
-	else if( nsent < len )
+	else if( nsent < 0 || static_cast<size_t>(nsent) < len )
 	{
 		m_reason = reason() ;
 	}
@@ -183,7 +183,7 @@ void GNet::Socket::setNoLinger()
 	options.l_onoff = 0 ;
 	options.l_linger = 0 ;
 	socklen_t sizeof_options = sizeof(options) ;
-	(void)setsockopt( m_socket , SOL_SOCKET , SO_LINGER ,
+	(void)::setsockopt( m_socket , SOL_SOCKET , SO_LINGER ,
 		(char*)&options , sizeof_options ) ;
 }
 

@@ -38,7 +38,8 @@ namespace GNet
 
 // Class: GNet::Request
 // Description: A base class for making
-// asynchronous DNS requests.
+// asynchronous DNS requests under Windows.
+// See also: WSAAsyncGetHostByName()
 //
 class GNet::Request
 {
@@ -56,7 +57,9 @@ protected:
 protected:
 	explicit Request( bool host ) ;
 		// Constructor. Derived class constructors
-		// should issue the appropriate request.
+		// should issue the appropriate WSAAsync..()
+		// request, with m_buffer[] given as the
+		// result buffer.
 
 public:
 	virtual ~Request() ;
@@ -90,7 +93,14 @@ class GNet::HostRequest : public GNet:: Request
 {
 public:
 	HostRequest( std::string host_name , HWND hwnd , unsigned msg ) ;
-	Address result() const ; // zero port
+		// Constructor.
+
+	Address result() const ;
+		// Returns the resolved address with a zero port number.
+
+	std::string fqdn() const ;
+		// Returns the fully-qualified canonical hostname, if
+		// available.
 
 private:
 	bool numeric( std::string s , Address & address ) ;
@@ -104,8 +114,12 @@ private:
 class GNet::ServiceRequest : public GNet:: Request
 {
 public:
-	ServiceRequest( std::string service_name , bool udp , HWND hwnd , unsigned msg ) ;
-	Address result() const ; // zero host address
+	ServiceRequest( std::string service_name , bool udp ,
+		HWND hwnd , unsigned msg ) ;
+			// Constructor.
+
+	Address result() const ;
+		// Returns the address with a zeroed host part.
 
 private:
 	static const char * protocol( bool udp ) ;

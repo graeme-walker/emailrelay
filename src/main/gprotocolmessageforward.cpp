@@ -67,17 +67,18 @@ void GSmtp::ProtocolMessageForward::addText( const std::string & line )
 	m_pm.addText( line ) ;
 }
 
-void GSmtp::ProtocolMessageForward::process( ProtocolMessage::Callback & callback )
+void GSmtp::ProtocolMessageForward::process( ProtocolMessage::Callback & callback , const std::string & auth_id ,
+	const std::string & client_ip )
 {
 	m_callback = & callback ;
-	m_pm.process( *this ) ;
+	m_pm.process( *this , auth_id , client_ip ) ;
 }
 
 void GSmtp::ProtocolMessageForward::processDone( bool success , unsigned long id , const std::string & reason_in )
 {
 	std::string reason( reason_in ) ;
-	bool nothing_to_do = false ;
-	if( success )
+	bool nothing_to_do = success && id == 0UL ;
+	if( success && id != 0UL )
 	{
 		m_id = id ;
 		success = forward( id , nothing_to_do , &reason ) ;

@@ -21,8 +21,8 @@ to create GUI windows in order to process network events. The extra GUI and
 event classes are put into a separate library in the "src/win32" directory,
 using the namespace "GGui".
 
-Class structure overview
-------------------------
+Class structure
+---------------
 The message-store functionality uses three abstract interfaces: "MessageStore",
 "NewMessage" and "StoredMessage". The "NewMessage" interface is used to create
 messages within the store, and the "StoredMessage" interface is used for
@@ -37,6 +37,9 @@ another for immediate forwarding ("ProtocolMessageForward").
 
 The protocol and message-store functionality are brought together by the
 high-level "GSmtp::Server" and "GSmtp::Client" classes.
+
+Simplified class diagrams for the *GNet* [graphics/gnet-classes.png] and
+*GSmtp* [graphics/gsmtp-classes.png] namespaces are available.
 
 Directory structure
 -------------------
@@ -142,11 +145,27 @@ If porting to a good ANSI C++ compiler then start by removing files from the
 review the following header files: "src/glib/gdef.h", "src/gnet/gnet.h",
 "src/glib/gmemory.h".
 
-IPv6
-----
-IPv6 is supported at compile-time by selecting source files in the "src/gnet"
-directory ending "_ipv6.cpp" rather than "_ipv4.cpp". The code has been tested
-to a limited extent on Linux.
+Compile-time features
+---------------------
+The following features are available to source-code hackers:
+
+# IPv6
+
+  IPv6 is supported at compile-time by selecting source files in the "src/gnet"
+  directory ending "_ipv6.cpp" rather than "_ipv4.cpp". The code has been tested
+  to a limited extent on Linux.
+
+# Verbose logging
+
+  Verbose logging can be enabled by defining the pre-processor symbol "_DEBUG".
+  (See "src/glib/glog.h".)
+
+# Multiple listening ports
+
+  Refer to the Server constructor in "src/main/gsmtpserver.cpp". Set "normal"
+  to false and edit the hard-coded address strings. If the addresses
+  need different port numbers then pass them to bind() in the third
+  parameter.
 
 Windows build
 -------------
@@ -227,6 +246,11 @@ Other patterns:
 + Finite state machine
 
   - GSmtp::ServerProtocol
+
+Idioms
+------
+The "<<=" operator defined in "src/glib/gmemory.h" is used idiomatically
+to reassign a std::auto_ptr<>.
 
 
 

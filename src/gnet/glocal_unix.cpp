@@ -51,8 +51,8 @@ std::string GNet::Local::domainname()
 	if( pos == std::string::npos )
 		throw Error( "invalid fqdn" ) ;
 
-	G_DEBUG( "GNet::Local::domainname: \"" << full.substr(0U,pos) << "\"" ) ;
-	return full.substr( 0U , pos ) ;
+	G_DEBUG( "GNet::Local::domainname: \"" << full.substr(pos+1U) << "\"" ) ;
+	return full.substr( pos+1U ) ;
 }
 
 GNet::Address GNet::Local::canonicalAddress()

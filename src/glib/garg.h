@@ -76,6 +76,11 @@ public:
 		// Returns the basename of v(0) without
 		// any extension.
 
+	static const char * prefix( char * argv[] ) ; // throw()
+		// An exception-free version of prefix() which can
+		// be used in main() outside of the outermost try
+		// block.
+
 	bool contains( const std::string & sw , size_t sw_args = 0U ) const ;
 		// Returns true if the command line
 		// contains the given switch with enough

@@ -47,11 +47,13 @@ public:
 	virtual void addText( const std::string & line ) = 0 ;
 		// Adds a line of content.
 
-	virtual void store() = 0 ;
+	virtual bool store( const std::string & auth_id , const std::string & client_ip ) = 0 ;
 		// Stores the message in the message store.
+		// Returns true if storage was deliberately
+		// cancelled.
 
 	virtual unsigned long id() const = 0 ;
-		// Returns the message's unique identifier.
+		// Returns the message's unique non-zero identifier.
 
 	virtual ~NewMessage() ;
 		// Destructor.

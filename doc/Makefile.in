@@ -1,6 +1,6 @@
-# Makefile.in generated automatically by automake 1.4 from Makefile.am
+# Makefile.in generated automatically by automake 1.4-p5 from Makefile.am
 
-# Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
+# Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -69,10 +69,10 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-EXTRA_DIST = developer.txt reference.txt userguide.txt index.html emailrelay.1 emailrelay-poke.1 doxygen_header.html graphics/bullet.gif
+EXTRA_DIST = developer.txt reference.txt userguide.txt windows.txt index.html emailrelay.1 emailrelay-poke.1 doxygen_header.html graphics/bullet.gif
 
 noinst_SCRIPTS = .dox
-pkgdata_DATA = readme.html developer.html reference.html userguide.html man.html index.html
+pkgdata_DATA = readme.html developer.html reference.html userguide.html man.html index.html windows.html changelog.html
 CLEANFILES = $(noinst_SCRIPTS) html *.ht readme.html developer.html reference.html userguide.html man.html
 
 SUFFIXES = .txt .html .ht
@@ -141,7 +141,7 @@ distdir: $(DISTFILES)
 	@for file in $(DISTFILES); do \
 	  d=$(srcdir); \
 	  if test -d $$d/$$file; then \
-	    cp -pr $$/$$file $(distdir)/$$file; \
+	    cp -pr $$d/$$file $(distdir)/$$file; \
 	  else \
 	    test -f $(distdir)/$$file \
 	    || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
@@ -236,6 +236,9 @@ developer.html reference.html userguide.html: $(converter)
 
 readme.html: $(top_srcdir)/README $(converter)
 	$(converter) -a "$(AWK)" $(top_srcdir)/README > readme.html
+
+changelog.html: $(top_srcdir)/ChangeLog $(converter)
+	$(converter) -a "$(AWK)" $(top_srcdir)/ChangeLog > changelog.html
 
 install-data-local:
 	$(mkinstalldirs) $(destdir)$(mandir)/man1

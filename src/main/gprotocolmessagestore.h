@@ -66,8 +66,9 @@ public:
 	virtual void addText( const std::string & ) ;
 		// See ProtocolMessage.
 
-	virtual void process( ProtocolMessage::Callback & callback ) ;
-		// See ProtocolMessage.
+	virtual void process( ProtocolMessage::Callback & callback , const std::string & auth_id ,
+		const std::string & client_ip ) ;
+			// See ProtocolMessage.
 
 private:
 	void operator=( const ProtocolMessageStore & ) ; // not implemented

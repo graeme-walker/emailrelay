@@ -1,6 +1,6 @@
-# Makefile.in generated automatically by automake 1.4 from Makefile.am
+# Makefile.in generated automatically by automake 1.4-p5 from Makefile.am
 
-# Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
+# Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -211,7 +211,7 @@ distdir: $(DISTFILES)
 	@for file in $(DISTFILES); do \
 	  d=$(srcdir); \
 	  if test -d $$d/$$file; then \
-	    cp -pr $$/$$file $(distdir)/$$file; \
+	    cp -pr $$d/$$file $(distdir)/$$file; \
 	  else \
 	    test -f $(distdir)/$$file \
 	    || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
@@ -249,22 +249,23 @@ gdatetime_unix.o: gdatetime_unix.cpp gdef.h ../../config.h \
 gdirectory.o: gdirectory.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gdirectory.h \
-	gpath.h gstrings.h gfs.h glog.h
+	gpath.h gstrings.h gexception.h gfs.h glog.h
 gdirectory_unix.o: gdirectory_unix.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gdirectory.h \
-	gpath.h gstrings.h gfs.h gdebug.h glogoutput.h glog.h gassert.h
+	gpath.h gstrings.h gexception.h gfs.h gfile.h gdebug.h \
+	glogoutput.h glog.h gassert.h
 gexception.o: gexception.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gexception.h
 gfile.o: gfile.cpp gdef.h ../../config.h ../../lib/gcc2.95/iostream \
 	../../lib/gcc2.95/sstream ../../lib/gcc2.95/xlocale \
 	../../lib/gcc2.95/limits gfile.h gpath.h gstrings.h \
-	gexception.h glog.h
+	gexception.h gprocess.h glog.h
 gfile_unix.o: gfile_unix.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gfile.h \
-	gpath.h gstrings.h gexception.h
+	gpath.h gstrings.h gexception.h gprocess.h
 gfs_unix.o: gfs_unix.cpp gdef.h ../../config.h \
 	../../lib/gcc2.95/iostream ../../lib/gcc2.95/sstream \
 	../../lib/gcc2.95/xlocale ../../lib/gcc2.95/limits gfs.h

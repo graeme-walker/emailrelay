@@ -31,6 +31,7 @@
 #include "gselect.h"
 #include "gevent.h"
 #include <list>
+#include <memory>
 #include <string>
 
 namespace GNet
@@ -52,13 +53,20 @@ public:
 	G_EXCEPTION( CannotListen , "cannot listen" ) ;
 
 	explicit Server( unsigned int listening_port ) ;
-		// Constructor. Throws exceptions on
-		// error.
+		// Constructor taking a port number. The server
+		// listens on all local interfaces.
+
+	explicit Server( const Address & listening_address ) ;
+		// Constructor. The server listens only on the
+		// specific (local) interface.
 
 	Server() ;
 		// Default constructor. Initialise with init().
 
 	void init( unsigned int listening_port ) ;
+		// Iniailisation after default construction.
+
+	void init( const Address & listening_address ) ;
 		// Iniailisation after default construction.
 
 	virtual ~Server() ;
@@ -90,7 +98,7 @@ private:
 	virtual void exceptionEvent() ; // from EventHandler
 
 private:
-	StreamSocket * m_socket ;
+	std::auto_ptr<StreamSocket> m_socket ;
 } ;
 
 // Class: GNet::ServerPeer

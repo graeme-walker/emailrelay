@@ -27,6 +27,8 @@
 #include "gappinst.h"
 #include "gwinhid.h"
 #include "gwinsock.h"
+#include "gexception.h"
+#include "gtimer.h"
 #include "gassert.h"
 #include "gdebug.h"
 #include "glog.h"
@@ -45,7 +47,8 @@ class GNet::WinsockWindow : public GGui::WindowHidden
 public:
 	WinsockWindow( Winsock & ws , HINSTANCE h ) ;
 private:
-	virtual LRESULT onUser( WPARAM , LPARAM ) ;
+	virtual void onWinsock( WPARAM , LPARAM ) ;
+	virtual void onTimer( unsigned int ) ;
 	Winsock & m_ws ;
 } ;
 
@@ -55,11 +58,15 @@ GNet::WinsockWindow::WinsockWindow( Winsock & ws , HINSTANCE hinstance ) :
 {
 }
 
-// (wm_winsock is WM_USER -- should be called onWinsock())
-LRESULT GNet::WinsockWindow::onUser( WPARAM w , LPARAM l )
+void GNet::WinsockWindow::onWinsock( WPARAM w , LPARAM l )
 {
 	m_ws.onMessage( w , l ) ;
-	return 0 ;
+}
+
+void GNet::WinsockWindow::onTimer( unsigned int timer_id )
+{
+	G_DEBUG( "GNet::WinsockWindow::onTimer: " << timer_id ) ;
+	m_ws.onTimer() ;
 }
 
 // ===
@@ -71,7 +78,8 @@ GNet::Winsock::Winsock() :
 	m_exception_list("exception") ,
 	m_success(false) ,
 	m_hwnd(0) ,
-	m_msg(0)
+	m_msg(0) ,
+	m_timer_id(1U)
 {
 }
 
@@ -95,13 +103,14 @@ bool GNet::Winsock::init()
 		G_WARNING( "GNet::Winsock::init: cannot create hidden window" ) ;
 		return false ;
 	}
-	return attach( m_window->handle() , GGui::Cracker::wm_winsock() ) ;
+	return attach( m_window->handle() , GGui::Cracker::wm_winsock() , 1U ) ;
 }
 
-bool GNet::Winsock::attach( HWND hwnd , unsigned msg )
+bool GNet::Winsock::attach( HWND hwnd , unsigned msg , unsigned int timer_id )
 {
 	m_hwnd = hwnd ;
 	m_msg = msg ;
+	m_timer_id = timer_id ;
 
 	WSADATA info ;
 	WORD version = MAKEWORD( 1 , 1 ) ;
@@ -245,6 +254,36 @@ void GNet::Winsock::onMessage( WPARAM wparam , LPARAM lparam )
 	else
 	{
 		G_DEBUG( "GNet::Winsock::processMessage: unwanted winsock event: " << event ) ;
+	}
+}
+
+void GNet::Winsock::onTimer()
+{
+	G_DEBUG( "GNet::Winsock::onTimer" ) ;
+	::KillTimer( m_hwnd , m_timer_id ) ; // since periodic
+	TimerList::instance().doTimeouts() ;
+}
+
+void GNet::Winsock::setTimeout( G::DateTime::EpochTime t )
+{
+	G_DEBUG( "GNet::Winsock::setTimeout: " << t ) ;
+	if( t != 0U )
+	{
+		G::DateTime::EpochTime now = G::DateTime::now() ;
+		unsigned int interval = t > now ? (t - now) : 0U ;
+		unsigned long ms = interval ;
+		ms *= 1000UL ;
+		G_DEBUG( "GNet::Winsock::setTimeout: SetTimer(): " << ms << "ms" ) ;
+		::KillTimer( m_hwnd , m_timer_id ) ;
+		unsigned int rc = ::SetTimer( m_hwnd , m_timer_id , ms , NULL ) ;
+		if( rc == 0U )
+			throw G::Exception( "GNet::Winsock: SetTimer() failure" ) ;
+		G_ASSERT( rc == m_timer_id ) ;
+	}
+	else
+	{
+		G_DEBUG( "GNet::Winsock::setTimeout: KillTimer()" ) ;
+		::KillTimer( m_hwnd , m_timer_id ) ;
 	}
 }
 

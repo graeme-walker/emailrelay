@@ -23,10 +23,39 @@
 	
 #include "gdef.h"
 #include "gfile.h"
+#include "gprocess.h"
+#include <errno.h>
 #include <sys/stat.h>
+#include <sstream>
 
 bool G::File::mkdir( const Path & dir , const NoThrow & )
 {
 	return 0 == ::mkdir( dir.str().c_str() , S_IRUSR | S_IWUSR | S_IXUSR ) ;
+}
+
+bool G::File::exists( const char * path , bool & enoent )
+{
+	struct stat statbuf ;
+	if( 0 == ::stat( path , &statbuf ) )
+	{
+		return true ;
+	}
+	else
+	{
+		int error = G::Process::errno_() ;
+		enoent = error == ENOENT || error == ENOTDIR ;
+		return false ;
+	}
+}
+
+std::string G::File::sizeString( const Path & path )
+{
+	struct stat statbuf ;
+	if( 0 != ::stat( path.pathCstr() , &statbuf ) )
+		return std::string() ;
+
+	std::stringstream ss ;
+	ss << statbuf.st_size ;
+	return ss.str() ;
 }
 

@@ -38,6 +38,7 @@
 #include "gmemory.h"
 #include "glog.h"
 #include "glogoutput.h"
+#include "gassert.h"
 
 namespace
 {
@@ -45,22 +46,24 @@ namespace
 	{
 		public: virtual void callback() = 0 ;
 	} ;
+
 	class Form : public GGui::Dialog
 	{
 	public:
 		Form( GGui::ApplicationBase & , Callback & , const Main::Configuration & cfg ) ;
 		void close() ;
-		void set( const std::string & text ) ;
 	private:
 		virtual bool onInit() ;
 		virtual void onNcDestroy() ;
 		virtual void onClose() ;
+		std::string text() const ;
 	private:
 		Callback & m_callback ;
 		GGui::EditBox m_edit_box ;
 		Main::Configuration m_cfg ;
 	} ;
-	class App : public GGui::ApplicationBase , public Callback
+
+	class App : public GGui::ApplicationBase , private Callback
 	{
 	public:
 		G_EXCEPTION( Error , "application error" ) ;
@@ -88,16 +91,19 @@ namespace
 		bool m_use_tray ;
 		unsigned int m_icon ;
 	} ;
+
 	class Menu
 	{
+	public:
 		G_EXCEPTION( Error , "menu error" ) ;
-		public: explicit Menu( unsigned int resource_id ) ;
-		public: ~Menu() ;
-		public: int popup( const GGui::WindowBase & w , int sub_pos = 0 ) ;
-		private: HMENU m_hmenu ;
-		private: HMENU m_hmenu_popup ;
-		private: Menu( const Menu & ) ;
-		private: void operator=( const Menu & ) ;
+		explicit Menu( unsigned int resource_id ) ;
+		~Menu() ;
+		int popup( const GGui::WindowBase & w , int sub_pos = 0 ) ;
+	private:
+		HMENU m_hmenu ;
+		HMENU m_hmenu_popup ;
+		Menu( const Menu & ) ;
+		void operator=( const Menu & ) ;
 	} ;
 } ;
 
@@ -112,6 +118,12 @@ Form::Form( GGui::ApplicationBase & app , Callback & cb , const Main::Configurat
 }
 
 bool Form::onInit()
+{
+	m_edit_box.set( text() ) ;
+	return true ;
+}
+
+std::string Form::text() const
 {
 	const std::string crlf( "\r\n" ) ;
 
@@ -128,16 +140,11 @@ bool Form::onInit()
 		GNet::Monitor::instance()->report( ss , "* " , crlf ) ;
 	}
 
-	ss << crlf << Main::CommandLine::warranty(crlf) << crlf << Main::CommandLine::copyright() ;
+	ss
+		<< crlf << Main::CommandLine::warranty(crlf)
+		<< crlf << Main::CommandLine::copyright() ;
 
-	m_edit_box.set( ss.str() ) ;
-
-	return true ;
-}
-
-void Form::set( const std::string & text )
-{
-	m_edit_box.set( text ) ;
+	return ss.str() ;
 }
 
 void Form::onClose()
@@ -169,7 +176,7 @@ void App::init( const Main::Configuration & cfg )
 {
 	m_use_tray = cfg.daemon() ;
 	m_cfg <<= new Main::Configuration(cfg) ;
-	m_icon = m_cfg->icon() ;
+	m_icon = m_cfg->icon() % 4U ;
 }
 
 void App::callback()
@@ -185,6 +192,10 @@ void App::onDimension( int & dx , int & dy )
 {
 	if( m_form.get() )
 	{
+		// (force main window's internal size to be
+		// the same size as the form, but x and y
+		// are the window's external size)
+
 		const bool has_menu = false ;
 		GGui::Size size = m_form->externalSize() ;
 		GGui::Size border = GGui::Window::borderSize(has_menu) ;
@@ -205,8 +216,11 @@ DWORD App::windowStyle() const
 
 UINT App::resource() const
 {
-	// (menu and icon resource id, but we have no menus)
-	return m_icon == 1U ? IDI_ICON2 : (m_icon == 2U ? IDI_ICON3 : IDI_ICON1) ;
+	// (resource() provides the combined menu and icon id, but we have no menus)
+	if( m_icon == 0U ) return IDI_ICON1 ;
+	if( m_icon == 1U ) return IDI_ICON2 ;
+	if( m_icon == 2U ) return IDI_ICON3 ;
+	G_ASSERT( m_icon == 3U ) ; return IDI_ICON4 ;
 }
 
 bool App::onCreate()
@@ -266,14 +280,14 @@ bool App::onClose()
 {
 	if( m_use_tray )
 	{
-		if( m_quit )
+		if( m_quit ) // if called as a result of doQuit()
 		{
 			return true ;
 		}
 		else
 		{
 			doClose() ;
-			return false ;
+			return false ; // false <= keep running
 		}
 	}
 	else
@@ -285,7 +299,7 @@ bool App::onClose()
 bool App::onSysCommand( SysCommand sc )
 {
 	if( sc == scMaximise || sc == scSize )
-		return true ; // true <= processed as no-op
+		return true ; // true <= processed as no-op => dont change
 	else
 		return false ;
 }
@@ -305,14 +319,20 @@ int Menu::popup( const GGui::WindowBase & w , int sub_pos )
 	POINT p ;
 	::GetCursorPos( &p ) ;
 	::SetForegroundWindow( w.handle() ) ;
+
+	// TrackPopup() only works with a sub-menu, although
+	// you would never guess from the documentation
+	//
 	m_hmenu_popup = ::GetSubMenu( m_hmenu , sub_pos ) ;
 
+	// make the "open" menu item bold
+	//
 	const int default_pos = 0 ;
 	::SetMenuDefaultItem( m_hmenu_popup , default_pos , TRUE ) ;
 
 	BOOL rc = ::TrackPopupMenuEx( m_hmenu_popup ,
 		TPM_RETURNCMD , p.x , p.y , w.handle() , NULL ) ;
-	return static_cast<int>(rc) ; // !!
+	return static_cast<int>(rc) ; // BOOL->int!, only in Microsoft wonderland
 }
 
 Menu::~Menu()

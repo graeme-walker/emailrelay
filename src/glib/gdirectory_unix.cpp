@@ -24,6 +24,7 @@
 #include "gdef.h"
 #include "gdirectory.h"
 #include "gfs.h"
+#include "gfile.h"
 #include "gdebug.h"
 #include "glog.h"
 #include <unistd.h>
@@ -236,6 +237,7 @@ std::string G::DirectoryIteratorImp::modificationTimeString() const
 
 std::string G::DirectoryIteratorImp::sizeString() const
 {
-	return std::string("0") ; // for now
+	std::string s = G::File::sizeString( filePath() ) ;
+	return s.empty() ? std::string("0") : s ;
 }
 

@@ -29,6 +29,10 @@ emailrelay \- e-mail transfer agent
 .B emailrelay
 --as-client 
 .I server-address
+.LP
+.B emailrelay
+--as-proxy 
+.I server-address
 .SH DESCRIPTION
 .I emailrelay
 is an simple e-mail message transfer agent. It is intended to be used
@@ -50,90 +54,77 @@ In this mode all messages are forwarded immediately to the downstream
 server.
 .SH OPTIONS
 .TP
-.B \-V,--version 
-Displays version information and exits.
-.TP
 .B \-a,--admin \fIadmin-port\fR
 Enables the administration interface and specifies its listening port number.
 .TP
+.B \-q,--as-client \fIhost:port\fR
+Equivalent to \fI--log\fR \fI--no-syslog\fR \fI--no-daemon\fR \fI--dont-serve\fR \fI--forward\fR \fI--forward-to\fR.
+.TP
+.B \-y,--as-proxy \fIhost:port\fR
+Equivalent to \fI--log\fR \fI--close-stderr\fR \fI--immediate\fR \fI--forward-to\fR.
+.TP
 .B \-d,--as-server 
-Equivalent to \fI--close-stderr\fR \fI--log\fR.
+Equivalent to \fI--log\fR \fI--close-stderr\fR.
+.TP
+.B \-C,--client-auth \fIfile\fR
+Enables authentication with remote server, using the given secrets file.
 .TP
 .B \-e,--close-stderr 
-Closes the standard error stream when daemonising.
+Closes the standard error stream after start-up.
 .TP
-.B \-f,--forward 
-Forwards stored mail on startup (requires \fI--forward-to\fR).
-.TP
-.B \-h,--help 
-Displays help text and exits.
-.TP
-.B \-i,--pid-file \fIpid-file\fR
-Records the daemon process-id in the given file.
-.TP
-.B \-l,--log 
-Writes log information on standard error (if open) and syslog (if not disabled).
-.TP
-.B \-m,--immediate 
-Forwards each message as soon as it is received (requires \fI--forward-to\fR).
-.TP
-.B \-n,--no-syslog 
-Disables syslog output.
-.TP
-.B \-o,--forward-to \fIhost:port\fR
-Specifies the remote smtp server (required by \fI--forward\fR and \fI--admin\fR).
-.TP
-.B \-p,--port \fIport\fR
-Specifies the smtp listening port number.
-.TP
-.B \-q,--as-client \fIhost:port\fR
-Equivalent to \fI--no-syslog\fR \fI--no-daemon\fR \fI--log\fR \fI--dont-serve\fR \fI--forward\fR \fI--forward-to\fR.
-.TP
-.B \-r,--remote-clients 
-Allows remote clients to connect.
-.TP
-.B \-s,--spool-dir \fIdir\fR
-Specifies the spool directory (default is \fI/usr/local/var/spool/emailrelay\fR).
-.TP
-.B \-t,--no-daemon 
-Does not detach from the terminal.
-.TP
-.B \-v,--verbose 
-Generates more verbose logging (if compiled-in and logging enabled and stderr open).
+.B \-U,--connection-timeout \fItime\fR
+Sets the client-side connection timeout in seconds (default is 40).
 .TP
 .B \-x,--dont-serve 
 Stops the process acting as a server (usually used with \fI--forward\fR).
 .TP
-.B \-y,--as-proxy \fIhost:port\fR
-Equivalent to \fI--close-stderr\fR \fI--log\fR \fI--immediate\fR \fI--forward-to\fR.
-.TP
 .B \-z,--filter \fIprogram\fR
-Defines a mail preprocessor (disallowed if running as root).
-.SH "DIAGNOSTICS"
-If the 
-.IR --log ,
-.I --as-client 
-or 
-.I --as-server 
-switches are in force then warning and error messages 
-are sent to 
-.I syslog 
-(using the 
-.BR LOG_MAIL 
-facility) and to
-.IR stderr .
-Output to
-.I syslog 
-can be disabled with 
-.IR --no-syslog ,
-and output to stderr can be disabled in daemon mode with
-.IR --close-stderr .
-.PP
-Failed e-mail messages are kept in the spool directory and given 
-a
-.I .bad
-filename suffix. The failure reason is usually recorded within the
-envelope file itself.
+Defines a mail pre-processor (disallowed if running as root).
+.TP
+.B \-f,--forward 
+Forwards stored mail on startup (requires \fI--forward-to\fR).
+.TP
+.B \-o,--forward-to \fIhost:port\fR
+Specifies the remote smtp server (required by \fI--forward\fR and \fI--admin\fR).
+.TP
+.B \-h,--help 
+Displays help text and exits.
+.TP
+.B \-m,--immediate 
+Forwards each message as soon as it is received (requires \fI--forward-to\fR).
+.TP
+.B \-l,--log 
+Writes log information on standard error (if open) and syslog (if not disabled).
+.TP
+.B \-t,--no-daemon 
+Does not detach from the terminal.
+.TP
+.B \-n,--no-syslog 
+Disables syslog output.
+.TP
+.B \-i,--pid-file \fIpid-file\fR
+Records the daemon process-id in the given file.
+.TP
+.B \-p,--port \fIport\fR
+Specifies the smtp listening port number.
+.TP
+.B \-r,--remote-clients 
+Allows remote clients to connect.
+.TP
+.B \-T,--response-timeout \fItime\fR
+Sets the client-side response timeout in seconds (default is 1800).
+.TP
+.B \-S,--server-auth \fIfile\fR
+Enables authentication of remote clients, using the given secrets file.
+.TP
+.B \-s,--spool-dir \fIdir\fR
+Specifies the spool directory (default is \fI/usr/local/var/spool/emailrelay\fR).
+.TP
+.B \-v,--verbose 
+Generates more verbose logging (if compiled-in and logging enabled and stderr open).
+.TP
+.B \-V,--version 
+Displays version information and exits.
 .SH FILES
 .IP \(bu 2
 /usr/local/sbin/emailrelay

@@ -107,9 +107,12 @@ std::string GSmtp::FileStore::x()
 }
 
 //static
-std::string GSmtp::FileStore::format()
+std::string GSmtp::FileStore::format( int n )
 {
-	return "#2821.2" ;
+	if( n == 0 )
+		return "#2821.3" ; // current -- includes message authentication and client ip
+	else
+		return "#2821.2" ; // old
 }
 
 //static
@@ -168,7 +171,10 @@ G::Path GSmtp::FileStore::fullPath( const std::string & filename ) const
 
 unsigned long GSmtp::FileStore::newSeq()
 {
-	return m_seq++ ;
+	m_seq++ ;
+	if( m_seq == 0UL )
+		m_seq++ ;
+	return m_seq ;
 }
 
 bool GSmtp::FileStore::empty() const

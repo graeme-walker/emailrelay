@@ -101,8 +101,8 @@
 		#include <sys/stat.h>
 	#endif
 
-	// Define Windows-style types (under unix these
-	// are only used for unimplemented declarations)
+	// Define Windows-style types (only used for
+	// unimplemented declarations under unix)
 	//
 	#if ! defined( G_WINDOWS )
 		typedef unsigned char BOOL ;
@@ -111,7 +111,8 @@
 		typedef unsigned int HANDLE ;
 	#endif
 
-	// Include commonly-used system headers
+	// Include commonly-used system headers (good for
+	// pre-compilation)
 	//
 	#include <iostream>
 	#include <fstream>
@@ -126,6 +127,8 @@
 	//
 	typedef unsigned long g_uint32_t ;
 	typedef unsigned short g_uint16_t ;
+	typedef long g_int32_t ;
+	typedef short g_int16_t ;
 
 	// Define short-name types
 	//
@@ -155,6 +158,7 @@
 		#pragma warning( disable : 4511 ) // cannot create default copy ctor
 		#pragma warning( disable : 4512 ) // cannot create default op=()
 		#pragma warning( disable : 4786 ) // truncation in debug info
+		#pragma warning( disable : 4275 ) // dll-interface stuff in <complex>
 	#endif
 
 #endif

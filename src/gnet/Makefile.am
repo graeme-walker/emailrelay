@@ -46,6 +46,7 @@ libgnet_a_SOURCES = gaddress_ipv4.cpp \
 	gserver.cpp \
 	gsocket.cpp \
 	gsocket_unix.cpp \
+	gtimer.cpp \
 	gaddress.h \
 	gclient.h \
 	gconnection.h \
@@ -61,4 +62,5 @@ libgnet_a_SOURCES = gaddress_ipv4.cpp \
 	gselect.h \
 	gserver.h \
 	gsocket.h \
+	gtimer.h \
 	gwinsock.h

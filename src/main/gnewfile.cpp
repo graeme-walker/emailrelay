@@ -28,6 +28,7 @@
 #include "gmemory.h"
 #include "gprocess.h"
 #include "gfile.h"
+#include "gxtext.h"
 #include "gassert.h"
 #include "glog.h"
 #include <iostream>
@@ -37,8 +38,8 @@ bool GSmtp::NewFile::m_preprocess = false ;
 G::Path GSmtp::NewFile::m_preprocessor ;
 
 GSmtp::NewFile::NewFile( const std::string & from , FileStore & store ) :
-	m_from(from) ,
 	m_store(store),
+	m_from(from) ,
 	m_eight_bit(false)
 {
 	m_seq = store.newSeq() ;
@@ -72,17 +73,17 @@ void GSmtp::NewFile::addText( const std::string & line )
 
 bool GSmtp::NewFile::isEightBit( const std::string & line )
 {
-	const size_t n = line.length() ;
-	for( size_t i = 0U ; i < n ; --i )
+	std::string::const_iterator end = line.end() ;
+	for( std::string::const_iterator p = line.begin() ; p != end ; ++p )
 	{
-		const unsigned char c = static_cast<unsigned char>(line.at(i)) ;
+		const unsigned char c = static_cast<unsigned char>(*p) ;
 		if( c > 0x7fU )
 			return true ;
 	}
 	return false ;
 }
 
-void GSmtp::NewFile::store()
+bool GSmtp::NewFile::store( const std::string & auth_id , const std::string & client_ip )
 {
 	// flush the content file
 	//
@@ -99,17 +100,19 @@ void GSmtp::NewFile::store()
 	std::string reason = p0.str() ;
 	{
 		std::auto_ptr<std::ostream> envelope_stream = m_store.stream( p0 ) ;
-		ok = saveEnvelope( *(envelope_stream.get()) , p0.str() ) ;
+		ok = saveEnvelope( *(envelope_stream.get()) , p0.str() , auth_id , client_ip ) ;
 	}
 
 	// shell out to a message pre-processor
 	//
+	bool cancelled = false ;
 	if( ok )
 	{
-		ok = preprocess( m_content_path ) ;
+		ok = preprocess( m_content_path , cancelled ) ;
 		if( !ok )
 			reason = "pre-processing failed" ;
 	}
+	G_ASSERT( !(ok&&cancelled) ) ;
 
 	// deliver to local mailboxes
 	//
@@ -124,18 +127,32 @@ void GSmtp::NewFile::store()
 	{
 		G_ASSERT( m_content_path.str().length() != 0U ) ;
 		G::File::remove( m_content_path , G::File::NoThrow() ) ;
-		throw GSmtp::MessageStore::WriteError( reason ) ;
+		if( !cancelled )
+			throw GSmtp::MessageStore::StorageError( reason ) ;
 	}
+
+	return cancelled ;
 }
 
-bool GSmtp::NewFile::preprocess( const G::Path & path )
+bool GSmtp::NewFile::preprocess( const G::Path & path , bool & cancelled )
 {
 	if( m_preprocess )
 	{
 		G_LOG( "GSmtp::NewFile::preprocess: " << m_preprocessor << " " << path ) ;
 		int exit_code = G::Process::spawn( m_preprocessor , path.str() ) ;
 		G_LOG( "GSmtp::NewFile::preprocess: exit status " << exit_code ) ;
-		if( exit_code != 0 )
+		if( exit_code == 100 )
+		{
+			// a special exit-code for pre-processors which
+			// do their own message handling -- the pre-processor
+			// should delete the files before returning this
+			// exit code
+			//
+			cancelled = true ;
+			G_LOG( "GSmtp::NewFile: message processing cancelled by preprocessor" ) ;
+			return false ;
+		}
+		else if( exit_code != 0 )
 		{
 			G_WARNING( "GSmtp::NewFile::preprocess: pre-processing failed: exit code " << exit_code ) ;
 			return false ;
@@ -144,7 +161,7 @@ bool GSmtp::NewFile::preprocess( const G::Path & path )
 	return true ;
 }
 
-void GSmtp::NewFile::deliver( const G::Strings & to ,
+void GSmtp::NewFile::deliver( const G::Strings & /*to*/ ,
 	const G::Path & content_path , const G::Path & envelope_path_now ,
 	const G::Path & envelope_path_later )
 {
@@ -158,7 +175,8 @@ void GSmtp::NewFile::deliver( const G::Strings & to ,
 	G::File::copy( envelope_path_now.str() , envelope_path_later.str()+".local" ) ;
 }
 
-bool GSmtp::NewFile::saveEnvelope( std::ostream & stream , const std::string & where ) const
+bool GSmtp::NewFile::saveEnvelope( std::ostream & stream , const std::string & where ,
+	const std::string & auth_id , const std::string & client_ip ) const
 {
 	G_LOG( "GSmtp::NewMessage: envelope file: " << where ) ;
 
@@ -178,14 +196,17 @@ bool GSmtp::NewFile::saveEnvelope( std::ostream & stream , const std::string & w
 		for( ; to_p != m_to_remote.end() ; ++to_p )
 			stream << x << "To-Remote: " << *to_p << crlf() ;
 	}
+	stream << x << "Authentication: " << Xtext::encode(auth_id) << crlf() ;
+	stream << x << "Client: " << client_ip << crlf() ;
 	stream << x << "End: 1" << crlf() ;
 	stream.flush() ;
 	return stream.good() ;
 }
 
-std::string GSmtp::NewFile::crlf() const
+const std::string & GSmtp::NewFile::crlf() const
 {
-	return std::string( "\015\012" ) ;
+	static std::string s( "\015\012" ) ;
+	return s ;
 }
 
 unsigned long GSmtp::NewFile::id() const

@@ -14,65 +14,77 @@ The "emailrelay" program supports the following command-line usage:
 
 where <switch> is:
 
-# --version (-V)
-  Displays version information and exits.
-
 # --admin (-a)
   Enables the administration interface and specifies its listening port number.
 
+# --as-client (-q)
+  Equivalent to "--log --no-syslog --no-daemon --dont-serve --forward --forward-to".
+
+# --as-proxy (-y)
+  Equivalent to "--log --close-stderr --immediate --forward-to".
+
 # --as-server (-d)
-  Equivalent to "--close-stderr --log".
+  Equivalent to "--log --close-stderr".
+
+# --client-auth (-C)
+  Enables authentication with remote server, using the given secrets file.
 
 # --close-stderr (-e)
-  Closes the standard error stream when daemonising.
+  Closes the standard error stream after start-up.
 
-# --forward (-f)
-  Forwards stored mail on startup (requires --forward-to).
-
-# --help (-h)
-  Displays help text and exits.
-
-# --pid-file (-i)
-  Records the daemon process-id in the given file.
-
-# --log (-l)
-  Writes log information on standard error (if open) and syslog (if not disabled).
-
-# --immediate (-m)
-  Forwards each message as soon as it is received (requires --forward-to).
-
-# --no-syslog (-n)
-  Disables syslog output.
-
-# --forward-to (-o)
-  Specifies the remote smtp server (required by --forward and --admin).
-
-# --port (-p)
-  Specifies the smtp listening port number.
-
-# --as-client (-q)
-  Equivalent to "--no-syslog --no-daemon --log --dont-serve --forward --forward-to".
-
-# --remote-clients (-r)
-  Allows remote clients to connect.
-
-# --spool-dir (-s)
-  Specifies the spool directory (default is "/usr/local/var/spool/emailrelay").
-
-# --no-daemon (-t)
-  Does not detach from the terminal.
-
-# --verbose (-v)
-  Generates more verbose logging (if compiled-in and logging enabled and stderr open).
+# --connection-timeout (-U)
+  Sets the client-side connection timeout in seconds (default is 40).
 
 # --dont-serve (-x)
   Stops the process acting as a server (usually used with --forward).
 
-# --as-proxy (-y)
-  Equivalent to "--close-stderr --log --immediate --forward-to".
-
 # --filter (-z)
   Defines a mail pre-processor (disallowed if running as root).
+
+# --forward (-f)
+  Forwards stored mail on startup (requires --forward-to).
+
+# --forward-to (-o)
+  Specifies the remote smtp server (required by --forward and --admin).
+
+# --help (-h)
+  Displays help text and exits.
+
+# --immediate (-m)
+  Forwards each message as soon as it is received (requires --forward-to).
+
+# --log (-l)
+  Writes log information on standard error (if open) and syslog (if not disabled).
+
+# --no-daemon (-t)
+  Does not detach from the terminal.
+
+# --no-syslog (-n)
+  Disables syslog output.
+
+# --pid-file (-i)
+  Records the daemon process-id in the given file.
+
+# --port (-p)
+  Specifies the smtp listening port number.
+
+# --remote-clients (-r)
+  Allows remote clients to connect.
+
+# --response-timeout (-T)
+  Sets the client-side response timeout in seconds (default is 1800).
+
+# --server-auth (-S)
+  Enables authentication of remote clients, using the given secrets file.
+
+# --spool-dir (-s)
+  Specifies the spool directory (default is "/usr/local/var/spool/emailrelay").
+
+# --verbose (-v)
+  Generates more verbose logging (if compiled-in and logging enabled and stderr open).
+
+# --version (-V)
+  Displays version information and exits.
 
 If no command-line switches are supplied at all then the default
 behaviour is:
@@ -127,6 +139,11 @@ and the failure reason is written into the file.
 
 SMTP issues
 -----------
+# Authentication:
+
+  The AUTH extension is supported in V0.9.6, but only with the unofficial LOGIN
+  mechanism.
+
 # Local delivery:
 
   E-MailRelay will reject all local recipients, with the exception of
@@ -149,9 +166,9 @@ SMTP issues
 
 # Timeouts:
 
-  Client-side timeouts are not implemented. If the ISP server is very slow then
-  in a typical setup the dial-up line will be dropped due to inactivity. This
-  will have the desired effect of aborting the message submission.
+  A simple client-side timeout is implemented which will abort the transaction
+  if the server fails to respond to any of the client's SMTP commands within the
+  given time period.
 
 # Message loops:
 
@@ -200,16 +217,51 @@ forwards the mail on to the system's default MTA (on port 25):
 	  --filter ${HOME}/.emailrelay/filter \
 	  --spool-dir ${HOME}/.emailrelay/spool
 
+The pre-processor program should terminate with an exit code of zero to indicate
+success. An exit code of 100 can be used to cancel all further processing of the
+message, and any other non-zero exit code is used to indicate an error.
+
+For example, the following pre-processor shell script examines the client's
+IP address and conditionally dumps the message into "sendmail" (using the
+sendmail command-line interface rather than SMTP):
+
+	#!/bin/sh
+	#
+	content="${1}"
+	envelope="`echo \"${content}\" | sed 's/content/envelope/'`"
+	ip="`awk '/MailRelay-Client:/ {print $2;exit}' \"${envelope}\"`"
+	if test "${ip}" = "192.168.0.2"
+	then
+		cat "${content}" | /usr/sbin/sendmail -t
+		rm -f "${envelope}" "${content}"
+		exit 100 # <= cancel further processing by emailrelay
+	fi
+	exit 0
+
+An example pre-processor script which does simple rot-13 masking of messages is
+also provided in the distribution ("share/emailrelay/emailrelay-process.sh").
+This could be used as a template for a more sophisticated message encryption
+system.
+
 Security issues
 ---------------
 A major security concern is the use of an external mail pre-processor (using the
---filter switch). In this release this feature is simply disabled if the process
-is running as root (effective userid is zero). The pre-processor will run as the
-same userid as the E-MailRelay program, but with an almost empty set of
-environment variables, and no open file descriptors other than
+"--filter" switch). In this release this feature is simply disabled if the
+process is running as root (effective userid is zero). The pre-processor will
+run as the same userid as the E-MailRelay program, but with an almost empty set
+of environment variables, and no open file descriptors other than
 "stdin"/"stdout"/"stderr" open onto "/dev/null". The pre-processor filename has
 to be configured using a full path, so there is no dependence on the current
 working directory or the PATH variable.
+
+Security issues which relate to the SMTP protocol itself are beyond the scope of
+this document, but RFC2821 makes the following observation: "SMTP mail is
+inherently insecure in that it is feasible for even [..] casual users to [..]
+create messages that will trick a [..] recipient into believing that they came
+from somewhere else. [..] Real [..] security lies [..] in end-to-end methods [..]
+such as those which use digital signatures."
+
+The "Authentication" section below also relates to security.
 
 Some other points are:
 * The program runs with a "umask" of 177 so files are created with "-rw-------" permissions.
@@ -218,28 +270,85 @@ Some other points are:
 * No configuration parameters can be changed through the administrative interface.
 * No exec(), system() or popen() calls are used other than execve() to spawn the mail pre-processor.
 
+Authentication
+--------------
+E-MailRelay has some support for the ESMTP "AUTH" extension, as defined in
+RFC2554, on both the server-side and client-side. The only authentication
+mechanism currently provided is the non-standard (but widely used) "LOGIN"
+mechanism, using plaintext passwords. A future release may add "CRAM-MD5"
+(RFC2195).
+
+Authentication is enabled with the "--auth-client" and "--auth-server"
+command-line switches. The switch parameter is the name of a "secrets" file,
+containing (in the current release) plaintext passwords.
+
+The secrets file has a line-based format: blank lines are ignored and the hash
+character (#) is used for comments. Lines have four white-space delimited
+fields: "mechanism", "client-or-server", "userid", and "secret". The "mechanism"
+field must be "login" (case-insensitive); the "client-or-server" field must be
+"client" or "server"; the "userid" field is xtext-encoded user identifier; and
+the "secret" field is the xtext-encoded plaintext password. (The "xtext"
+encoding scheme is defined in RFC1891.) A client-side secrets file should
+contain at least one "login client" entry, and a server-side secrets file should
+contains zero or more "login server" entries. The same secrets file may be
+specified for both "--auth-client" and "--auth-server" switches.
+
+For example, the following secrets file defines "jsmith" as the username to be
+used when E-MailRelay authenticates with a downstream server, and defines two
+usernames ("user1" and "user2") which can be used by clients when they
+authenticate with the E-MailRelay server:
+
+	#
+	# emailrelay secrets file
+	#
+	login client jsmith my+20password
+	login server user1 secret
+	login server user2 ignorance+3Ddeath
+
+Clearly storing plaintext passwords in a file and then sending them unencypted
+over a network is a bad thing. You should at least make sure that the secrets
+file has tight permissions, and that the passwords in it are not also used for
+anything important (such as root access).
+
+On the server side authentication is advertised in the response to the SMTP
+"EHLO" command, but authentication by the client is optional. If the client does
+authenticate then the authenticated user-id is stored with the message and
+then passed on to a downstream server using an "AUTH=userid" parameter on the
+SMTP "MAIL FROM" command. If the client chooses not to authenticate then the
+submitted messages will be forwarded using "AUTH=<>" on the "MAIL FROM"
+command. Note that any "AUTH=userid" information on incoming submitted messages
+is ignored and discarded: it is the authorised userid from the AUTH command
+which is propogated, not the userid from the incoming "MAIL FROM" command's
+"AUTH=" parameter.
+
+On the client side authentication is performed when the client has connected to
+a server which supports the AUTH extension with the LOGIN mechanism. If client
+authentication is enabled (with the "--auth-client" switch) but the server does not
+support the AUTH extension, or does not support the LOGIN mechanism, then the
+client will fail the first message and terminate with an error message.
+
+Note that some ISPs require separate POP/IMAP authentication before SMTP access
+from a particular IP address is allowed. This type of POP-before-SMTP
+authentication can be done outside the E-MailRelay system by POP/IMAP utilities
+such as "fetchmail".
+
 Files
 -----
 By default "make install" installs files in the following locations:
-* /usr/local/sbin/emailrelay
 * /usr/local/libexec/emailrelay-poke
 * /usr/local/libexec/emailrelay.sh
+* /usr/local/sbin/emailrelay
 * /usr/local/var/spool/emailrelay/empty_file
 * /usr/local/share/emailrelay/emailrelay-notify.sh
 * /usr/local/share/emailrelay/emailrelay-deliver.sh
 * /usr/local/share/emailrelay/emailrelay-process.sh
 * /usr/local/share/emailrelay/*.html
+* /usr/local/share/emailrelay/graphics/bullet.gif
+* /usr/local/man/man1/emailrelay.1
+* /usr/local/man/man1/emailrelay-poke.1
 
-This directory structure is constrained by the "autoconf" and GNU standards.
-Preferred locations for a GNU/Linux distribution would be something like this:
-* /usr/sbin/emailrelay
-* /opt/emailrelay/bin/emailrelay-poke
-* /sbin/init.d/emailrelay.sh
-* /var/spool/emailrelay/
-* /opt/emailrelay/examples/emailrelay-notify.sh
-* /opt/emailrelay/examples/emailrelay-deliver.sh
-* /opt/emailrelay/examples/emailrelay-process.sh
-* /usr/share/doc/packages/emailrelay/*.html
+This directory structure is constrained by the GNU/"autoconf" conventions rather
+than the Filesystem Hierarchy Standard.
 
 
 

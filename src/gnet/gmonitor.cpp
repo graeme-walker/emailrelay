@@ -27,6 +27,9 @@
 #include "gassert.h"
 #include <set>
 
+// Class: GNet::MontiorImp
+// Description: A pimple pattern implementation class for GNet::Monitor.
+//
 class GNet::MonitorImp
 {
 public:

@@ -67,7 +67,8 @@ public:
 		// operation.)
 
 	static std::string offsetString( Offset offset ) ;
-		// Uses the five-character format "+/-hhmm".
+		// Converts the given utc/localtime offset into a five-character
+		// "+/-hhmm" string.
 		// See also RFC2822.
 
 private:

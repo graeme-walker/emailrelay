@@ -39,8 +39,8 @@ GSmtp::AdminClient::AdminClient( AdminPeer & admin_peer ) :
 GSmtp::AdminPeer::AdminPeer( GNet::StreamSocket * s , GNet::Address a , AdminServer & server ,
 	const std::string & server_address ) :
 		GNet::ServerPeer( s , a ) ,
-		m_server(server) ,
 		m_buffer(crlf()) ,
+		m_server(server) ,
 		m_server_address(server_address)
 {
 	// dont prompt() here -- it confuses the poke program
@@ -146,7 +146,7 @@ void GSmtp::AdminPeer::prompt()
 {
 	std::string p( "E-MailRelay> " ) ;
 	ssize_t rc = socket().write( p.data() , p.length() ) ;
-	if( rc < p.length() )
+	if( rc < 0 || static_cast<size_t>(rc) < p.length() )
 		doDelete() ; // onDelete() and "delete this"
 }
 
@@ -154,7 +154,7 @@ void GSmtp::AdminPeer::send( std::string line )
 {
 	line.append( crlf() ) ;
 	ssize_t rc = socket().write( line.data() , line.length() ) ;
-	if( rc < line.length() )
+	if( rc < 0 || static_cast<size_t>(rc) < line.length() )
 		doDelete() ; // onDelete() and "delete this"
 }
 

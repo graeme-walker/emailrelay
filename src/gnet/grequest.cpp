@@ -160,6 +160,21 @@ GNet::Address GNet::HostRequest::result() const
 	}
 }
 
+std::string GNet::HostRequest::fqdn() const
+{
+	G_ASSERT( m_done && m_handle == 0 ) ;
+	if( m_numeric )
+	{
+		return std::string() ;
+	}
+	else
+	{
+		const hostent *h = reinterpret_cast<const hostent*>(m_buffer) ;
+		G_ASSERT( h != NULL && h->h_name != NULL ) ;
+		return std::string( h->h_name ) ;
+	}
+}
+
 // SERVICE...
 
 GNet::ServiceRequest::ServiceRequest( std::string service_name , bool udp , HWND hwnd , unsigned msg ) :

@@ -30,6 +30,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 IDI_ICON1               ICON    DISCARDABLE     "icon-32.ico"
 IDI_ICON2               ICON    DISCARDABLE     "icon2.ico"
 IDI_ICON3               ICON    DISCARDABLE     "icon3.ico"
+IDI_ICON4               ICON    DISCARDABLE     "icon4.ico"
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

@@ -79,6 +79,7 @@ private:
 	Select( const Select & ) ;
 	void operator=( const Select & ) ;
 	void runOnce() ;
+	virtual void setTimeout( G::DateTime::EpochTime t ) ;
 
 private:
 	bool m_quit ;

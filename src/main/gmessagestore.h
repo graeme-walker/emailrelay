@@ -54,6 +54,7 @@ class GSmtp::MessageStore
 {
 public:
 	G_EXCEPTION( WriteError , "error writing file" ) ;
+	G_EXCEPTION( StorageError , "error storing message" ) ;
 	G_EXCEPTION( NoInstance , "no message store instance" ) ;
 	G_EXCEPTION( FormatError , "format error" ) ;
 	class IteratorImp // A base class for MessageStore::Iterator implementations.

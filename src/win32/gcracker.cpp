@@ -258,28 +258,38 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 
 		case WM_LBUTTONDOWN:
 		{
-			const int x = static_cast<int>(LOWORD(lparam)) ;
-			const int y = static_cast<int>(HIWORD(lparam)) ;
-			const bool shift = !!( wparam & MK_SHIFT ) ;
-			const bool control = !!( wparam & MK_CONTROL ) ;
-			//const bool left = !!( wparam & MK_LBUTTON ) ;
-			//const bool right = !!( wparam & MK_RBUTTON ) ;
-			//const bool middle = !!( wparam & MK_MBUTTON ) ;
-			(void)onLeftMouseButtonDown( x , y , shift , control ) ;
-			return 0 ;
+			return doMouseButton( onLeftMouseButtonDown , Mouse_Left ,
+				Mouse_Down , message , wparam , lparam ) ;
 		}
 
 		case WM_LBUTTONUP:
 		{
-			const int x = static_cast<int>(LOWORD(lparam)) ;
-			const int y = static_cast<int>(HIWORD(lparam)) ;
-			const bool shift = !!( wparam & MK_SHIFT ) ;
-			const bool control = !!( wparam & MK_CONTROL ) ;
-			//const bool left = !!( wparam & MK_LBUTTON ) ;
-			//const bool right = !!( wparam & MK_RBUTTON ) ;
-			//const bool middle = !!( wparam & MK_MBUTTON ) ;
-			(void)onLeftMouseButtonUp( x , y , shift , control ) ;
-			return 0 ;
+			return doMouseButton( onLeftMouseButtonUp , Mouse_Left ,
+				Mouse_Up , message , wparam , lparam ) ;
+		}
+
+		case WM_MBUTTONDOWN:
+		{
+			return doMouseButton( onMiddleMouseButtonDown , Mouse_Middle ,
+				Mouse_Down , message , wparam , lparam ) ;
+		}
+
+		case WM_MBUTTONUP:
+		{
+			return doMouseButton( onMiddleMouseButtonUp , Mouse_Middle ,
+				Mouse_Up , message , wparam , lparam ) ;
+		}
+
+		case WM_RBUTTONDOWN:
+		{
+			return doMouseButton( onRightMouseButtonDown , Mouse_Right ,
+				Mouse_Down , message , wparam , lparam ) ;
+		}
+
+		case WM_RBUTTONUP:
+		{
+			return doMouseButton( onRightMouseButtonUp , Mouse_Right ,
+				Mouse_Up , message , wparam , lparam ) ;
 		}
 
 		case WM_MOUSEMOVE:
@@ -337,6 +347,17 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 			return 0 ;
 		}
 
+		case WM_USER+4U: // see wm_winsock()
+		{
+			onWinsock( wparam , lparam ) ;
+			return 0 ;
+		}
+
+		case WM_USER+123U:
+		{
+			return onUserOther( wparam , lparam ) ;
+		}
+
 		case WM_TIMER:
 		{
 			onTimer( wparam ) ;
@@ -370,7 +391,7 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 }
 
 //static
-unsigned int GGui::Cracker::wm_winsock()
+unsigned int GGui::Cracker::wm_user()
 {
 	return WM_USER ;
 }
@@ -391,6 +412,18 @@ unsigned int GGui::Cracker::wm_tray()
 unsigned int GGui::Cracker::wm_quit()
 {
 	return WM_USER+3U ;
+}
+
+//static
+unsigned int GGui::Cracker::wm_winsock()
+{
+	return WM_USER+4U ;
+}
+
+//static
+unsigned int GGui::Cracker::wm_user_other()
+{
+	return WM_USER + 123U ;
 }
 
 // trivial default implementations of virtual functions...
@@ -511,6 +544,11 @@ LRESULT GGui::Cracker::onUser( WPARAM , LPARAM )
 	return 0 ;
 }
 
+LRESULT GGui::Cracker::onUserOther( WPARAM , LPARAM )
+{
+	return 0 ;
+}
+
 bool GGui::Cracker::onEraseBackground( HDC hdc )
 {
 	WPARAM wparam = reinterpret_cast<WPARAM>(hdc) ;
@@ -524,12 +562,37 @@ void GGui::Cracker::onMouseMove( unsigned x , unsigned y ,
 {
 }
 
+void GGui::Cracker::onMouseButton( MouseButton , MouseButtonDirection ,
+	int , int , bool , bool )
+{
+}
+
 void GGui::Cracker::onLeftMouseButtonDown( int x , int y ,
 	bool shift_key_down , bool control_key_down )
 {
 }
 
 void GGui::Cracker::onLeftMouseButtonUp( int x , int y ,
+	bool shift_key_down , bool control_key_down )
+{
+}
+
+void GGui::Cracker::onMiddleMouseButtonDown( int x , int y ,
+	bool shift_key_down , bool control_key_down )
+{
+}
+
+void GGui::Cracker::onMiddleMouseButtonUp( int x , int y ,
+	bool shift_key_down , bool control_key_down )
+{
+}
+
+void GGui::Cracker::onRightMouseButtonDown( int x , int y ,
+	bool shift_key_down , bool control_key_down )
+{
+}
+
+void GGui::Cracker::onRightMouseButtonUp( int x , int y ,
 	bool shift_key_down , bool control_key_down )
 {
 }
@@ -543,4 +606,23 @@ void GGui::Cracker::onPaletteChange()
 {
 }
 
+void GGui::Cracker::onWinsock( WPARAM , LPARAM )
+{
+}
+
+LRESULT GGui::Cracker::doMouseButton( Fn fn , MouseButton button ,
+	MouseButtonDirection  direction , unsigned int ,
+	WPARAM wparam , LPARAM lparam )
+{
+	const int x = static_cast<int>(LOWORD(lparam)) ;
+	const int y = static_cast<int>(HIWORD(lparam)) ;
+	const bool shift = !!( wparam & MK_SHIFT ) ;
+	const bool control = !!( wparam & MK_CONTROL ) ;
+	const bool left = !!( wparam & MK_LBUTTON ) ;
+	const bool right = !!( wparam & MK_RBUTTON ) ;
+	const bool middle = !!( wparam & MK_MBUTTON ) ;
+	onMouseButton( button , direction , x , y , shift , control ) ;
+	(this->*fn)( x , y , shift , control ) ;
+	return 0 ;
+}
 

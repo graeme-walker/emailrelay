@@ -101,16 +101,19 @@ void GSmtp::ProtocolMessageStore::addText( const std::string & line )
 		m_msg->addText( line ) ;
 }
 
-void GSmtp::ProtocolMessageStore::process( Callback & callback )
+void GSmtp::ProtocolMessageStore::process( Callback & callback , const std::string & auth_id ,
+	const std::string & client_ip )
 {
 	try
 	{
 		G_ASSERT( m_msg.get() != NULL ) ;
 		unsigned long id = 0UL ;
+		bool cancelled = false ;
 		if( m_msg.get() != NULL )
 		{
-			m_msg->store() ;
-			id = m_msg->id() ;
+			cancelled = m_msg->store( auth_id , client_ip ) ;
+			if( !cancelled )
+				id = m_msg->id() ;
 		}
 		clear() ;
 		callback.processDone( true , id , std::string() ) ;

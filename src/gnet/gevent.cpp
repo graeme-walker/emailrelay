@@ -83,7 +83,8 @@ GNet::EventHandlerList::EventHandlerList( std::string type ) :
 //static
 bool GNet::EventHandlerList::contains( const EventHandlerListImp & list , Descriptor fd )
 {
-	for( List::const_iterator p = list.begin() ; p != list.end() ; ++p )
+	const List::const_iterator end = list.end() ;
+	for( List::const_iterator p = list.begin() ; p != end ; ++p )
 	{
 		if( (*p).m_fd == fd )
 			return true ;
@@ -153,37 +154,14 @@ void GNet::EventHandlerList::remove( Descriptor fd )
 
 GNet::EventHandler * GNet::EventHandlerList::find( Descriptor fd )
 {
-	for( List::iterator p = m_list.begin() ; p != m_list.end() ; ++p )
+	const List::iterator end = m_list.end() ;
+	for( List::iterator p = m_list.begin() ; p != end ; ++p )
 	{
 		if( (*p).m_fd == fd )
 			return (*p).m_handler ;
 	}
 	//G_DEBUG( "GNet::EventHandlerList::find: cannot find entry for " << fd ) ;
 	return NULL ;
-}
-
-GNet::EventHandlerList::Iterator GNet::EventHandlerList::begin() const
-{
-	return m_list.begin() ;
-}
-
-GNet::EventHandlerList::Iterator GNet::EventHandlerList::end() const
-{
-	return m_list.end() ;
-}
-
-//static
-GNet::Descriptor GNet::EventHandlerList::fd( Iterator i )
-{
-	return (*i).m_fd ;
-}
-
-//static
-GNet::EventHandler & GNet::EventHandlerList::handler( Iterator i )
-{
-	EventHandler * p = (*i).m_handler ;
-	G_ASSERT( p != NULL ) ;
-	return *p ;
 }
 
 void GNet::EventHandlerList::lock()

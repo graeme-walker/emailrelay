@@ -31,6 +31,9 @@
 #include <sys/stat.h>
 #include <fcntl.h> // open()
 
+// Class: G::Process::IdImp
+// Description: A private implementation class used by G::Process.
+//
 class G::Process::IdImp
 {
 public:
@@ -56,13 +59,15 @@ bool G::Process::cd( const Path & dir , NoThrow )
 void G::Process::setUmask()
 {
 	mode_t new_mode = 0177 ; // create as -rw-------
-	mode_t old_mode = ::umask( new_mode ) ;
+	(void) ::umask( new_mode ) ;
 }
 
 //static
 void G::Process::closeStderr()
 {
 	::close( STDERR_FILENO ) ;
+	::open( G::FileSystem::nullDevice() , O_WRONLY ) ;
+	::fcntl( STDERR_FILENO , F_SETFD , 0 ) ; // close-on-exec false
 }
 
 //static
@@ -76,8 +81,24 @@ void G::Process::closeFiles( bool keep_stderr )
 	for( int fd = 0 ; fd < n ; fd++ )
 	{
 		if( !keep_stderr || fd != STDERR_FILENO )
+		{
 			::close( fd ) ;
+		}
 	}
+
+	// reopen standard fds to prevent accidental use
+	// of arbitrary files or sockets as standard
+	// streams
+	//
+	::open( G::FileSystem::nullDevice() , O_RDONLY ) ;
+	::open( G::FileSystem::nullDevice() , O_WRONLY ) ;
+	if( !keep_stderr )
+	{
+		::open( G::FileSystem::nullDevice() , O_WRONLY ) ;
+		::fcntl( STDERR_FILENO , F_SETFD , 0 ) ; // close-on-exec false
+	}
+	::fcntl( STDIN_FILENO , F_SETFD , 0 ) ; // close-on-exec false
+	::fcntl( STDOUT_FILENO , F_SETFD , 0 ) ; // close-on-exec false
 }
 
 G::Process::Who G::Process::fork()
@@ -160,9 +181,6 @@ void G::Process::exec( const G::Path & exe , const std::string & arg )
 		throw InvalidPath( exe.str() ) ;
 
 	closeFiles() ;
-	(void) ::open( G::FileSystem::nullDevice() , O_RDONLY ) ; // stdin
-	(void) ::open( G::FileSystem::nullDevice() , O_WRONLY ) ; // stdout
-	(void) ::open( G::FileSystem::nullDevice() , O_WRONLY ) ; // stderr
 
 	// TODO: more security stuff required here -- setuid() etc.
 

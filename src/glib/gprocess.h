@@ -110,9 +110,11 @@ public:
 		// Returns true if this process has enhanced security
 		// privileges.
 
+	static int errno_() ;
+		// Returns the process's current 'errno' value.
+
 private:
 	Process() ;
-	static int errno_() ;
 	static void execCore( const Path & , const std::string & ) ;
 } ;
 

@@ -59,8 +59,11 @@ public:
 		// WinSock library, passing it the handle
 		// of an internally-created hidden window.
 		// Returns false on error.
+		//
+		// Use either init() for an internally-created
+		// window, or attach().
 
-	bool attach( HWND hwnd , unsigned int msg ) ;
+	bool attach( HWND hwnd , unsigned int msg , unsigned int timer_id = 0U ) ;
 		// Initialises the WinSock library, passing
 		// it the specified window handle and
 		// message number. WinSock events are sent
@@ -68,6 +71,10 @@ public:
 		//
 		// For simple, synchronous programs
 		// the window handle may be zero.
+		//
+		// Use either init() or attach().
+		//
+		// See also onMessage() and onTimer().
 
 	std::string reason() const ;
 		// Returns the reason for initialisation
@@ -83,9 +90,13 @@ public:
 		// if this is the last Winsock object.
 
 	void onMessage( WPARAM wparam , LPARAM lparam ) ;
-		// To be called on receipt of a window
-		// message corresponding to the constructor's
-		// 'msg' parameter.
+		// To be called when the attach()ed window
+		// receives a message with a message-id
+		// equal to attach() 'msg' parameter.
+
+	void onTimer() ;
+		// To be called when the attach()ed window
+		// receives a WM_TIMER message.
 
 	virtual void run() ;
 		// Override from EventSources. Calls GGui::Pump::run().
@@ -100,6 +111,7 @@ protected:
 	virtual void dropRead( Descriptor fd ) ;
 	virtual void dropWrite( Descriptor fd ) ;
 	virtual void dropException( Descriptor fd ) ;
+	virtual void setTimeout( G::DateTime::EpochTime ) ;
 
 private:
 	Winsock( const Winsock & other ) ;
@@ -119,6 +131,7 @@ private:
 	EventHandlerList m_read_list ;
 	EventHandlerList m_write_list ;
 	EventHandlerList m_exception_list ;
+	unsigned int m_timer_id ;
 } ;
 
 #endif

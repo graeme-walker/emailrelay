@@ -45,6 +45,7 @@ private:
 	bool m_udp ;
 
 	Address m_result ;
+	std::string m_fqdn ;
 
 public:
 	explicit ResolverImp( Resolver & resolver ) ;
@@ -59,11 +60,9 @@ private:
 	ResolverImp( const ResolverImp & ) ;
 	const char *errorString( bool host_error , int error ) ;
 	void cleanup() ;
-	void saveHost( const Address &address ) ;
+	void saveHost( const Address &address , const std::string & fqdn ) ;
 	void saveService( const Address &address ) ;
-
-protected:
-	LRESULT onUser( WPARAM wparam , LPARAM lparam ) ;
+	virtual LRESULT onUser( WPARAM wparam , LPARAM lparam ) ;
 } ;
 
 // ===
@@ -97,7 +96,7 @@ bool GNet::ResolverImp::resolveReq( std::string host_part, std::string service_p
 	m_service = service_part ;
 	m_udp = udp ;
 
-	m_host_request = new HostRequest( host_part , handle() , WM_USER ) ;
+	m_host_request = new HostRequest( host_part , handle() , Cracker::wm_user() ) ;
 	if( !m_host_request->valid() )
 	{
 		std::string reason = m_host_request->reason() ; // not used
@@ -129,9 +128,10 @@ bool GNet::ResolverImp::busy() const
 		m_host_request != NULL ;
 }
 
-void GNet::ResolverImp::saveHost( const Address & address )
+void GNet::ResolverImp::saveHost( const Address & address , const std::string & fqdn )
 {
 	m_result = address ;
+	m_fqdn = fqdn ;
 }
 
 void GNet::ResolverImp::saveService( const Address & address )
@@ -148,10 +148,10 @@ LRESULT GNet::ResolverImp::onUser( WPARAM wparam , LPARAM lparam )
 	{
 		if( m_host_request->onMessage( wparam , lparam ) )
 		{
-			saveHost( m_host_request->result() ) ;
+			saveHost( m_host_request->result() , m_host_request->fqdn() ) ;
 			cleanup() ;
 
-			m_service_request = new ServiceRequest( m_service , m_udp , handle() , WM_USER ) ;
+			m_service_request = new ServiceRequest( m_service , m_udp , handle() , Cracker::wm_user() ) ;
 			if( !m_service_request->valid() )
 			{
 				std::string reason = m_service_request->reason() ;
@@ -173,7 +173,7 @@ LRESULT GNet::ResolverImp::onUser( WPARAM wparam , LPARAM lparam )
 			saveService( m_service_request->result() ) ;
 			Address address( m_result ) ;
 			cleanup() ;
-			m_if.resolveCon( true , address , std::string() ) ; // success
+			m_if.resolveCon( true , address , m_fqdn ) ; // success
 		}
 		else
 		{

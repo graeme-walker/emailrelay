@@ -32,6 +32,7 @@
 namespace G
 {
 	class File ;
+	class DirectoryIteratorImp ;
 } ;
 
 // Class: G::File
@@ -41,10 +42,12 @@ namespace G
 class G::File
 {
 public:
+	G_EXCEPTION( StatError , "cannot stat() file" ) ;
 	G_EXCEPTION( CannotRemove , "cannot delete file" ) ;
 	G_EXCEPTION( CannotRename , "cannot rename file" ) ;
 	G_EXCEPTION( CannotCopy , "cannot copy file" ) ;
 	G_EXCEPTION( CannotMkdir , "cannot mkdir" ) ;
+	G_EXCEPTION( SizeOverflow , "file size overflow" ) ;
 	class NoThrow // An overload discriminator class for File methods.
 		{} ;
 
@@ -71,6 +74,25 @@ public:
 
 	static void mkdir( const Path & dir ) ;
 		// Creates a directory.
+
+	static std::string sizeString( const Path & file ) ;
+		// Returns the file's size in string format.
+		// Returns the empty string on error.
+
+	static bool exists( const Path & file ) ;
+		// Returns true if the file (or link or device etc.)
+		// exists. Throws an exception if permission denied
+		// or too many symlinks etc.
+
+	static bool exists( const Path & file , const NoThrow & ) ;
+		// Returns true if the file (or link or device etc.)
+		// exists. Returns false on error.
+
+private:
+	friend class G::DirectoryIteratorImp ;
+	static std::string sizeString( g_uint32_t hi , g_uint32_t lo ) ; // win32
+	static bool exists( const Path & , bool , bool ) ;
+	static bool exists( const char * , bool & ) ; // o/s-specific
 } ;
 
 #endif

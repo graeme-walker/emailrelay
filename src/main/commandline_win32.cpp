@@ -30,8 +30,9 @@ Main::CommandLine::Show * Main::CommandLine::Show::m_this = NULL ;
 //static
 std::string Main::CommandLine::osSwitchSpec()
 {
-	// (could use empty descriptions here so that G::GetOpt does
-	// not put them in the --help listing)
+	// (could use empty descriptions for some switches so that they
+	// do not appear in the "--help" listing, but that might be
+	// confusing)
 
 	std::stringstream ss ;
 	ss
@@ -40,11 +41,18 @@ std::string Main::CommandLine::osSwitchSpec()
 		<< "n!no-syslog!has no effect on windows!0!|"
 		<< "q!as-client!equivalent to \"--log --no-daemon --dont-serve --forward --forward-to\"!" << "1!host:port|"
 		<< "d!as-server!equivalent to \"--log --close-stderr\" (has little effect on windows)!0!|"
-		<< "I!icon!chooses the application icon!1!icon index {0,1,2}"
-
+		<< "I!icon!selects the application icon!1!0^|1^|2^|3"
 		;
+
 	return ss.str() ;
 }
+
+unsigned int Main::CommandLine::ttyColumns() const
+{
+	return 120U ;
+}
+
+// ===
 
 Main::CommandLine::Show::Show( bool )
 {
@@ -67,10 +75,4 @@ Main::CommandLine::Show::~Show()
 		::MessageBox( NULL , m_ss.str().c_str() , "E-MailRelay" , MB_OK ) ;
 	}
 }
-
-unsigned int Main::CommandLine::ttyColumns() const
-{
-	return 120U ;
-}
-
 

@@ -27,11 +27,12 @@
 #include "gmonitor.h"
 #include "gdebug.h"
 #include "gassert.h"
+#include "gmemory.h"
 
 GNet::ServerPeer::ServerPeer( StreamSocket * s , Address a )  :
-	m_socket(s) ,
+	m_ref_count(1U) ,
 	m_address(a) ,
-	m_ref_count(1U)
+	m_socket(s)
 {
 	G_ASSERT( m_socket != NULL ) ;
 	G_DEBUG( "GNet::ServerPeer::ctor: fd " << m_socket->asString() << ": " << m_address.displayString() ) ;
@@ -121,32 +122,31 @@ std::pair<bool,GNet::Address> GNet::ServerPeer::peerAddress() const
 
 // ===
 
-GNet::Server::Server( unsigned int listening_port ) :
-	m_socket(NULL)
+GNet::Server::Server( unsigned int listening_port )
 {
-	try
-	{
-		init( listening_port ) ;
-	}
-	catch(...)
-	{
-		delete m_socket ;
-		throw ;
-	}
+	init( listening_port ) ;
 }
 
-GNet::Server::Server() :
-	m_socket(NULL)
+GNet::Server::Server( const Address & listening_address )
+{
+	init( listening_address ) ;
+}
+
+GNet::Server::Server()
 {
 }
 
 void GNet::Server::init( unsigned int listening_port )
 {
-	m_socket = new StreamSocket ;
-	G_DEBUG( "GNet::Server::init: " << (void*)this << ": listening on port " << listening_port ) ;
-	Address local_address( listening_port ) ;
-	if( ! m_socket->bind( local_address ) )
-		throw CannotBind( local_address.displayString() ) ;
+	init( Address(listening_port) ) ;
+}
+
+void GNet::Server::init( const Address & listening_address )
+{
+	m_socket <<= new StreamSocket ;
+	G_DEBUG( "GNet::Server::init: listening on " << listening_address.displayString() ) ;
+	if( ! m_socket->bind( listening_address ) )
+		throw CannotBind( listening_address.displayString() ) ;
 	if( ! m_socket->listen() )
 		throw CannotListen() ;
 	m_socket->addReadHandler( *this ) ;
@@ -154,7 +154,6 @@ void GNet::Server::init( unsigned int listening_port )
 
 GNet::Server::~Server()
 {
-	delete m_socket ;
 }
 
 void GNet::Server::readEvent()
@@ -162,7 +161,7 @@ void GNet::Server::readEvent()
 	// read-event-on-listening-port => new connection to accept
 
 	G_DEBUG( "GNet::Server::readEvent: " << (void*)this ) ;
-	G_ASSERT( m_socket != NULL ) ;
+	G_ASSERT( m_socket.get() != NULL ) ;
 	AcceptPair pair = m_socket->accept() ;
 	if( pair.first.get() == NULL )
 	{

@@ -26,6 +26,7 @@
 #include "gfilestore.h"
 #include "gstoredfile.h"
 #include "gmemory.h"
+#include "gxtext.h"
 #include "gfile.h"
 #include "gstr.h"
 #include "glog.h"
@@ -71,6 +72,12 @@ void GSmtp::StoredFile::readEnvelopeCore( bool check )
 	readFlag( stream ) ;
 	readFrom( stream ) ;
 	readToList( stream ) ;
+	if( m_format == FileStore::format() )
+	{
+		readAuthentication( stream ) ;
+		readClientIp( stream ) ;
+	}
+	readEnd( stream ) ;
 
 	if( check && m_to_remote.size() == 0U )
 		throw NoRecipients() ;
@@ -82,26 +89,27 @@ void GSmtp::StoredFile::readEnvelopeCore( bool check )
 void GSmtp::StoredFile::readFormat( std::istream & stream )
 {
 	std::string format_line = getline(stream) ;
-	if( value(format_line) != FileStore::format() )
-		throw InvalidFormat( value(format_line) + "!=" + FileStore::format() ) ;
+	m_format = value(format_line,"Format") ;
+	if( m_format != FileStore::format() && m_format != FileStore::format(-1) )
+		throw InvalidFormat( m_format ) ;
 }
 
 void GSmtp::StoredFile::readFlag( std::istream & stream )
 {
 	std::string content_line = getline(stream) ;
-	m_eight_bit = value(content_line) == "8bit" ;
+	m_eight_bit = value(content_line,"Content") == "8bit" ;
 }
 
 void GSmtp::StoredFile::readFrom( std::istream & stream )
 {
-	m_from = value(getline(stream)) ;
+	m_from = value(getline(stream),"From") ;
 	G_DEBUG( "GSmtp::StoredFile::readFrom: from \"" << m_from << "\"" ) ;
 }
 
 void GSmtp::StoredFile::readToList( std::istream & stream )
 {
 	std::string to_count_line = getline(stream) ;
-	unsigned int to_count = G::Str::toUInt( value(to_count_line) ) ;
+	unsigned int to_count = G::Str::toUInt( value(to_count_line,"ToCount") ) ;
 
 	for( unsigned int i = 0U ; i < to_count ; i++ )
 	{
@@ -121,6 +129,16 @@ void GSmtp::StoredFile::readToList( std::istream & stream )
 		else
 			m_to_remote.push_back( value(to_line) ) ;
 	}
+}
+
+void GSmtp::StoredFile::readAuthentication( std::istream & stream )
+{
+	m_authentication = Xtext::decode(value(getline(stream),"Authentication")) ;
+}
+
+void GSmtp::StoredFile::readClientIp( std::istream & stream )
+{
+	m_client_ip = value(getline(stream),"Client") ;
 }
 
 void GSmtp::StoredFile::readEnd( std::istream & stream )
@@ -163,12 +181,20 @@ std::string GSmtp::StoredFile::getline( std::istream & stream ) const
 	return G::Str::readLineFrom( stream , crlf() ) ;
 }
 
-std::string GSmtp::StoredFile::value( const std::string & s ) const
+std::string GSmtp::StoredFile::value( const std::string & s , const std::string & key ) const
 {
-	size_t pos = s.find(' ') ;
+	size_t pos = s.find(":") ;
 	if( pos == std::string::npos )
-		throw MessageStore::FormatError() ;
-	return s.substr(pos+1U) ;
+		throw MessageStore::FormatError(key) ;
+
+	if( !key.empty() )
+	{
+		size_t key_pos = s.find(key) ;
+		if( key_pos == std::string::npos || (key_pos+key.length()) != pos )
+			throw MessageStore::FormatError(key) ;
+	}
+
+	return s.substr(pos+2U) ;
 }
 
 std::string GSmtp::StoredFile::crlf() const
@@ -260,3 +286,7 @@ size_t GSmtp::StoredFile::remoteRecipientCount() const
 	return m_to_remote.size() ;
 }
 
+std::string GSmtp::StoredFile::authentication() const
+{
+	return m_authentication ;
+}

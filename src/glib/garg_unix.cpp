@@ -25,7 +25,7 @@
 #include "garg.h"
 #include "gdebug.h"
 
-std::string G::Arg::moduleName( HINSTANCE hinstance )
+std::string G::Arg::moduleName( HINSTANCE )
 {
 	return std::string() ;
 }

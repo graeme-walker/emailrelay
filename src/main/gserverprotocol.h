@@ -28,6 +28,7 @@
 #include "gsmtp.h"
 #include "gprotocolmessage.h"
 #include "gverifier.h"
+#include "gsasl.h"
 #include <map>
 
 namespace GSmtp
@@ -112,6 +113,8 @@ private:
 		eMail ,
 		eVrfy ,
 		eHelp ,
+		eAuth ,
+		eAuthData ,
 		eUnknown
 	} ;
 	enum State
@@ -123,6 +126,7 @@ private:
 		sGotRcpt ,
 		sData ,
 		sProcessing ,
+		sAuth ,
 		s_Any ,
 		s_Same
 	} ;
@@ -142,7 +146,7 @@ private:
 	void operator=( const ServerProtocol & ) ; // not implemented
 	State applyEvent( Event , const std::string & ) ;
 	void send( std::string ) ;
-	static Event commandEvent( const std::string & ) ;
+	Event commandEvent( const std::string & ) const ;
 	std::string commandWord( const std::string & line ) const ;
 	std::string commandLine( const std::string & line ) const ;
 	static std::string crlf() ;
@@ -154,6 +158,8 @@ private:
 	void doQuit( const std::string & , bool & ) ;
 	void doEhlo( const std::string & , bool & ) ;
 	void doHelo( const std::string & , bool & ) ;
+	void doAuth( const std::string & , bool & ) ;
+	void doAuthData( const std::string & , bool & ) ;
 	void doMail( const std::string & line , bool & ) ;
 	void doRcpt( const std::string & line , bool & ) ;
 	void doUnknown( const std::string & line , bool & ) ;
@@ -162,6 +168,7 @@ private:
 	void doVrfy( const std::string & line , bool & ) ;
 	void doNoRecipients( const std::string & line , bool & ) ;
 	void sendBadFrom( const std::string & line ) ;
+	void sendChallenge( const std::string & line ) ;
 	void sendBadTo( const std::string & line ) ;
 	void sendOutOfSequence( const std::string & line ) ;
 	void sendGreeting( const std::string & , const std::string & ) ;
@@ -179,6 +186,7 @@ private:
 	void sendVerified( const std::string & ) ;
 	void sendNotVerified( const std::string & ) ;
 	void sendWillAccept( const std::string & ) ;
+	void sendAuthDone( bool ok ) ;
 	void sendOk() ;
 	std::string parseFrom( const std::string & ) const ;
 	std::string parseTo( const std::string & ) const ;
@@ -196,6 +204,8 @@ private:
 	std::string m_thishost ;
 	std::string m_peer_name ;
 	std::string m_peer_address ;
+	bool m_authenticated ;
+	SaslServer m_sasl ;
 } ;
 
 #endif

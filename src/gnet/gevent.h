@@ -26,6 +26,7 @@
 
 #include "gdef.h"
 #include "gnet.h"
+#include "gdatetime.h"
 #include "gdescriptor.h"
 #include <list>
 #include <string>
@@ -55,9 +56,20 @@ class GNet::EventHandler
 {
 public:
 	virtual ~EventHandler() ;
-	virtual void readEvent() /*=0*/ ;
-	virtual void writeEvent() /*=0*/ ;
-	virtual void exceptionEvent() /*=0*/ ;
+		// Destructor.
+
+	virtual void readEvent() ;
+		// Called for a read event. The default
+		// implementation does nothing.
+
+	virtual void writeEvent() ;
+		// Called for a write event. The default
+		// implementation does nothing.
+
+	virtual void exceptionEvent() ;
+		// Called for an exception event. The default
+		// implementation does nothing.
+
 private:
 	void operator=( const EventHandler & ) ; // not implemented
 } ;
@@ -80,9 +92,6 @@ private:
 //
 class GNet::EventSources
 {
-private:
-	static EventSources *m_this ;
-
 protected:
 	EventSources() ;
 		// Constructor.
@@ -139,6 +148,17 @@ public:
 		// Removes the given event source descriptor
 		// from the list of exception sources.
 		// See also Socket::dropExceptionHandler().
+
+	virtual void setTimeout( G::DateTime::EpochTime t ) = 0 ;
+		// Used by GNet::TimerList. Sets the time at which
+		// TimerList::doTimeouts() is to be called.
+		// A parameter of zero is used to cancel the
+		// timer. Some concrete implementations of this
+		// interface may use TimerList::interval()
+		// rather than setTimeout()/doTimeouts().
+
+private:
+	static EventSources * m_this ;
 } ;
 
 
@@ -152,9 +172,15 @@ public:
 	Descriptor m_fd ;
 	EventHandler * m_handler ;
 	EventHandlerListItem( Descriptor fd = Descriptor__invalid() ,
-		EventHandler * handler = NULL ) :
-			m_fd(fd) , m_handler(handler) {}
+		EventHandler * handler = NULL ) ;
 } ;
+
+inline
+GNet::EventHandlerListItem::EventHandlerListItem( Descriptor fd , EventHandler * handler ) :
+	m_fd(fd) ,
+	m_handler(handler)
+{
+}
 
 namespace GNet
 {
@@ -164,7 +190,7 @@ namespace GNet
 
 // Class: GNet::EventHandlerList
 // Description: A class which can be used in the implemention
-// of classes derived from GEventSources.
+// of classes derived from GNet::EventSources.
 //
 class GNet::EventHandlerList
 {
@@ -231,6 +257,31 @@ private:
 	bool m_copied ;
 } ;
 
+inline
+GNet::EventHandlerList::Iterator GNet::EventHandlerList::begin() const
+{
+	return m_list.begin() ;
+}
+
+inline
+GNet::EventHandlerList::Iterator GNet::EventHandlerList::end() const
+{
+	return m_list.end() ;
+}
+
+//static
+inline
+GNet::Descriptor GNet::EventHandlerList::fd( Iterator i )
+{
+	return (*i).m_fd ;
+}
+
+//static
+inline
+GNet::EventHandler & GNet::EventHandlerList::handler( Iterator i )
+{
+	return *((*i).m_handler) ;
+}
 
 #endif
 

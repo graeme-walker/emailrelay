@@ -27,6 +27,7 @@
 #include "gstr.h"
 #include "gdebug.h"
 #include "gassert.h"
+#include <cstring>
 
 G::Arg::Arg()
 {
@@ -136,5 +137,16 @@ std::string G::Arg::v( size_t i ) const
 std::string G::Arg::prefix() const
 {
 	return m_prefix ;
+}
+
+//static
+const char * G::Arg::prefix( char * argv [] ) // throw()
+{
+	const char * exe = argv[0] ;
+	const char * p1 = std::strrchr( exe , '/' ) ;
+	const char * p2 = std::strrchr( exe , '\\' ) ;
+	p1 = p1 ? (p1+1U) : exe ;
+	p2 = p2 ? (p2+1U) : exe ;
+	return p1 > p2 ? p1 : p2 ;
 }
 

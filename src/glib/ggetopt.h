@@ -91,8 +91,11 @@ public:
 		const std::string & args , size_t tab_stop = 30U ,
 		size_t wrap_width = wrapDefault() ) const ;
 			// Streams out multi-line usage text using
-			// usageSummary() and usageHelp(). Does nothing
-			// about non-switch arguments.
+			// usageSummary() and usageHelp().
+
+	void showUsage( std::ostream & stream , const std::string & args ) const ;
+		// Streams out multi-line usage text using
+		// usageSummary() and usageHelp().
 
 	bool hasErrors() const ;
 		// Returns true if there are errors.
@@ -102,6 +105,9 @@ public:
 			// A convenience function which streams out each errorList()
 			// item to the given stream, prefixed with the given
 			// prefix(es). The two prefixes are simply concatenated.
+
+	void showErrors( std::ostream & stream ) const ;
+		// An overload which uses prefix() as <prefix_1>.
 
 	void show( std::ostream & stream , std::string prefix ) const ;
 		// For debugging.
@@ -134,8 +140,8 @@ private:
 		SwitchSpec(char c_,const std::string &name_,const std::string &description_,
 			bool v_,const std::string &vd_) :
 				c(c_) , name(name_) , description(description_) ,
-				hidden(description_.empty()) ,
-				valued(v_) , value_description(vd_) {}
+				valued(v_) , hidden(description_.empty()) ,
+				value_description(vd_) {}
 	} ;
 	typedef std::map<std::string,SwitchSpec GLessAllocator(char,SwitchSpec) > SwitchSpecMap ;
 	typedef std::pair<bool,std::string> Value ;

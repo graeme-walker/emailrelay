@@ -184,6 +184,89 @@ directory may be sufficient:
 	EOF
 
 
+Troubleshooting
+---------------
+A useful technique for troubleshooting SMTP problems is to telnet into the
+remote server and drive the SMTP protocol manually. Telnet can be told to
+connect to the remote SMTP port by putting the port number (25) on the command
+line after the remote hostname, for example: "telnet smtp.myisp.net 25".
+
+Once connected you should get a startup banner from the server, which will
+probably tell you what server software you have connected to. From there you
+should type something like "EHLO myhost.mydomain". The response to the EHLO
+command should contain a list of SMTP extensions which the server software
+supports. If this includes the AUTH extension then the set of supported
+authentication mechanisms (such as LOGIN, CRAM-MD5 etc.) will be listed on the
+same line.
+
+After the EHLO response you should type "MAIL FROM:<myhost.mydomain>", retaining
+the angle brackets but substituing your own address. If this is accepted then
+enter a "RCPT TO:<me@myhost.mydomain>" command to say where the e-mail is going.
+(Again, retain the angle brackets but substitute an appropriate address.)
+
+After one or more "RCPT TO" commands you should enter the "DATA" command,
+followed by the message content. The message content should include an RFC822
+header, followed by a blank line, followed by the message text. For testing
+purposes you might get away without having any header/body structure at all, but
+to do things properly you should have at least a "To:" line, a "From:" line and
+a "Subject:" line in the header.
+
+At the end of the message text type a "." on a line of its own. At that point the
+message should get dispatched, and end up in your in-box in the usual way
+(assuming you put your own address in the "RCPT TO" command).
+
+The following is an example SMTP dialogue, with ">>" and "<<" marks added to
+show what was typed and what was received:
+	>> telnet smtp.myisp.net 25
+	<< Trying 12.34.56.78...
+	<< Connected to smtp.myisp.net.
+	<< Escape character is '^]'.
+	<< 220 mail12.myisp.net ESMTP Exim 3.13 #0 Sat, 17 Nov 2001 16:22:39 +0000
+	>> EHLO myhost.myisp.net
+	<< 250-mail12.myisp.net Hello modem-185.myisp.net [12.34.56.78]
+	<< 250-SIZE 104857600
+	<< 250-PIPELINING
+	<< 250 HELP
+	>> MAIL FROM:<me@myhost.myisp.net>
+	<< 250 <me@myhost.myisp.net> is syntactically correct
+	>> RCPT TO:<me@myhost.myisp.net>
+	<< 250 <me@myhost.myisp.net> verified
+	>> DATA
+	<< 354 Enter message, ending with "." on a line by itself
+	>> To: me@myhost.myisp.net
+	>> From: me@myhost.myisp.net
+	>> Subject: test
+	>>
+	>> Test message.
+	>> .
+	<< 250 OK id=1658Fp-0000Il-00
+	>> QUIT
+	<< 221 mail12.myisp.net closing connection
+	<< Connection closed by foreign host.
+
+If you get some sort of "access denied" errors when talking to a server which
+does not support the AUTH extension, then your ISP may be using POP-before-SMTP
+authentication. In this scheme you are required to conduct an authenticated POP
+or IMAP dialogue before you try to use SMTP. The POP/IMAP dialogue is done
+separately from the SMTP connection, but bear in mind that there might be a time
+limit so that your SMTP connection has to be made soon after the POP/IMAP
+authentication. You should be able to use an e-mail front-end program, or
+something like "fetchmail" to do the POP/IMAP authentication.
+
+If you can send mail messages sucessfully using telnet, then you should look at
+the E-MailRelay log output and compare what you do interactively with what
+the program does. Usually when running as a server E-MailRelay logging goes to
+the "syslog" system, and when running as a client it goes to the standard error
+stream ("stderr"). To get the server to log onto stderr, replace the
+"--as-server" command-line switch with "--log --no-syslog". Refer to the
+reference guide for more information.
+
+On Windows things are a bit more difficult because there is no syslog equivalent
+on Win9x, and the standard error stream often gets lost. Starting E-MailRelay
+from cygwin/bash on Win98 keeps stderr open (albeit with dreadful performance),
+whereas the standard command prompt does not. If necessary the environment
+variable "GLOGOUTPUT_FILE" can be defined as the name of a log file.
+
 Glossary
 --------
 

@@ -173,6 +173,36 @@ std::string Main::Configuration::filter() const
 
 unsigned int Main::Configuration::icon() const
 {
-	return m_cl.contains("icon") ? G::Str::toUInt(m_cl.value("icon")) : 0U ;
+	unsigned int n = 0U ;
+	if( m_cl.contains("icon") )
+	{
+		n = G::Str::toUInt(m_cl.value("icon")) ;
+		n %= 4U ;
+	}
+	return n ;
+}
+
+std::string Main::Configuration::clientSecretsFile() const
+{
+	return m_cl.contains("client-auth") ? m_cl.value("client-auth") : std::string() ;
+}
+
+std::string Main::Configuration::serverSecretsFile() const
+{
+	return m_cl.contains("server-auth") ? m_cl.value("server-auth") : std::string() ;
+}
+
+unsigned int Main::Configuration::responseTimeout() const
+{
+	const unsigned int default_timeout = 30U * 60U ;
+	return m_cl.contains("response-timeout") ?
+		G::Str::toUInt(m_cl.value("response-timeout")) : default_timeout ;
+}
+
+unsigned int Main::Configuration::connectionTimeout() const
+{
+	const unsigned int default_timeout = 40U ;
+	return m_cl.contains("connection-timeout") ?
+		G::Str::toUInt(m_cl.value("connection-timeout")) : default_timeout ;
 }
 

@@ -89,12 +89,16 @@ public:
 		// Destructor.
 
 	virtual std::pair<bool,Address> localAddress() const ;
-		// Returns the local address.
+		// Override from Connection. Returns the local address.
 		// Pair.first is false on error.
 
 	virtual std::pair<bool,Address> peerAddress() const ;
-		// Returns the peer address.
+		// Override from Connection. Returns the peer address.
 		// Pair.first is false on error.
+
+	std::string peerName() const ;
+		// Returns the peer's canonical name if available.
+		// Returns the empty string if not.
 
 protected:
 	friend class ClientImp ;

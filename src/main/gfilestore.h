@@ -63,7 +63,7 @@ public:
 		// directory by other processes.
 
 	unsigned long newSeq() ;
-		// Hands out a new sequence number.
+		// Hands out a new non-zero sequence number.
 
 	std::auto_ptr<std::ostream> stream( const G::Path & path );
 		// Returns a stream to the given content.
@@ -93,9 +93,10 @@ public:
 	static std::string x() ;
 		// Returns the prefix for envelope header lines.
 
-	static std::string format() ;
+	static std::string format( int n = 0 ) ;
 		// Returns an identifier for the storage format
-		// implemented by this class.
+		// implemented by this class. If n is -1 then
+		// it returns the previous format (etc.).
 
 private:
 	static void checkPath( const G::Path & dir ) ;

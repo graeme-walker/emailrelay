@@ -131,9 +131,13 @@ function dequote( line )
 {
 	quote = "\""
 	not_quote = "[^" quote "]"
-	gsub( quote not_quote "*" quote , "<b><em>&</em></b>" , line )
-	gsub( "<em>" quote , "<em>" , line )
-	gsub( quote "</em>" , "</em>" , line )
+	#start_tag="<kbd><b>"
+	#end_tag="</b></kbd>"
+	start_tag="<b>"
+	end_tag="</b>"
+	gsub( quote not_quote "*" quote , start_tag "&" end_tag , line )
+	gsub( start_tag quote , start_tag , line )
+	gsub( quote end_tag , end_tag , line )
 	return line
 }
 
@@ -151,6 +155,11 @@ function output( line )
 function tagOutput( line , tag )
 {
 	printf( "<%s>%s</%s>\n" , tag , fn(dequote(escape(line))) , tag )
+}
+
+function tagOutputRaw( line , tag )
+{
+	printf( "<%s>%s</%s>\n" , tag , escape(line) , tag )
 }
 
 function process( line , next_ )
@@ -176,7 +185,7 @@ function process( line , next_ )
 	}
 	else if( is_code )
 	{
-		tagOutput( line , "pre" )
+		tagOutputRaw( line , "pre" )
 	}
 	else if( is_definition_term )
 	{
@@ -211,13 +220,13 @@ function process( line , next_ )
 	{
 		major += 1
 		minor = 0
-		printf( "<h1><a name=\"H_%d\">%s</h1>" , major , line )
+		printf( "<h1><a name=\"H_%d\">%s</a></h1>" , major , line )
 		printf( "<!-- index:1:H:%d::%s -->\n" , major , line )
 	}
 	else if( is_sub_heading )
 	{
 		minor += 1
-		printf( "<h2><a name=\"SH_%d_%d\">%s</h2>" , major , minor , line )
+		printf( "<h2><a name=\"SH_%d_%d\">%s</a></h2>" , major , minor , line )
 		printf( "<!-- index:2:SH:%d:%d:%s -->\n" , major , minor , line )
 	}
 	else if( !is_heading_line && !is_sub_heading_line )
@@ -245,7 +254,13 @@ END {
 # ===
 # AugmentLists()
 #
-# Adds list begin/end tags around a set of list items.
+# Adds list begin/end tags around a set of list items
+# eg. <ul> and </ul> tags either side of a set of 
+# contiguous <li> lines.
+#
+# The 'ignore' parameters can be used to make sure that
+# list-item lines separated with 'ignore' patterns are
+# treated as being contiguous.
 #
 AugmentLists()
 {
@@ -310,15 +325,17 @@ ${awk} -v tag="${1}" '
 # ===
 # Decorate()
 #
-# Adds additional stuff after a given opening tag.
-# The tag is expected to be at the start of the line.
+# Adds additional stuff after a given opening tag
+# and optionally before a closing tag. The opening 
+# tag is expected to be at the start of the line.
 #
 Decorate()
 {
-${awk} -v tag="${1}" -v decoration="${2}" '
+${awk} -v tag="${1}" -v first="${2}" -v second="${3}" '
 {
 	line = $0
-	sub( "^<" tag ">" , "<" tag ">" decoration , line )
+	sub( "^<" tag ">" , "<" tag ">" first , line )
+	sub( "</" tag ">" , second "</" tag ">" , line )
 	print line
 } '
 }
@@ -371,21 +388,33 @@ END {
 # ===
 # Anchorise_1()
 #
-# Converts [[-foo-bar-]] to <a href="foo">bar</a>.
+# Converts "*foo* [bar]" to <a href="bar">foo</a>.
 #
 Anchorise_1()
 {
-	sed 's/\[\[-\([^-]*\)-\([^-]*\)-\]\]/<a href="\1">\2<\/a>/g'
+	sed 's/\*\([^[:space:]]*\)\* \[\([^[:space:]]*\)\]/<a href="\2">\1<\/a>/g'
 }
 
 # ===
 # Anchorise_2()
 #
-# Converts [[foo]] to <a href="../foo">foo</a>.
+# Converts [[-foo-bar-]] to <a href="foo">bar</a>.
+# Deprecated.
 #
 Anchorise_2()
 {
-	sed 's/\[\[\([^\]*\)\]\]/<a href=..\/"\1">\1<\/a>/g'
+	sed 's/\[\[-\([^-]*\)-\([^-]*\)-\]\]/<a href="\1" type="deprecated">\2<\/a>/g'
+}
+
+# ===
+# Anchorise_3()
+#
+# Converts [[foo]] to <a href="../foo">foo</a>.
+# Deprecated.
+#
+Anchorise_3()
+{
+	sed 's/\[\[\([^\]*\)\]\]/<a href=..\/"\1" type="deprecated">\1<\/a>/g'
 }
 
 # ===
@@ -444,8 +473,7 @@ Cat "${file}" | \
 	Elide "dd" | \
 	Elide "pre" | \
 	Decorate dt "<img src=\"graphics/bullet.gif\">\\\&nbsp;" | \
-	Decorate dd "<p>" | \
+	Decorate dd "<p>" "<p>" | \
 	Anchorise_1 | \
-	Anchorise_2 | \
 	MoveIndex
 

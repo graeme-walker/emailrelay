@@ -26,6 +26,7 @@
 
 #include "gdef.h"
 #include "gpath.h"
+#include "gexception.h"
 #include <string>
 #include <sys/types.h>
 

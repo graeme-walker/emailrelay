@@ -32,19 +32,14 @@ void G::LogOutput::rawOutput( G::Log::Severity severity , const char *message )
 	std::cerr << message ;
 	std::cerr.flush() ;
 
-	if( std::getenv("GLOGOUTPUT_DEBUGGER") != NULL )
+	static bool debugger = std::getenv("GLOGOUTPUT_DEBUGGER") != NULL ;
+	if( debugger )
 	{
 		::OutputDebugString( message ) ;
 	}
 
-	static bool first = true ;
-	static const char * filename = NULL ;
-	if( first )
-	{
-		first = false ;
-		const char * key = "GLOGOUTPUT_FILE" ;
-		filename = std::getenv(key) ;
-	}
+	static const char * key = "GLOGOUTPUT_FILE" ;
+	static const char * filename = std::getenv( key ) ;
 	if( filename != NULL && *filename != '\0' )
 	{
 		static std::ofstream file( filename ) ;

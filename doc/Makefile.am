@@ -1,7 +1,7 @@
-EXTRA_DIST = developer.txt reference.txt userguide.txt index.html emailrelay.1 emailrelay-poke.1 doxygen_header.html graphics/bullet.gif
+EXTRA_DIST = developer.txt reference.txt userguide.txt windows.txt index.html emailrelay.1 emailrelay-poke.1 doxygen_header.html graphics/bullet.gif
 
 noinst_SCRIPTS = .dox
-pkgdata_DATA = readme.html developer.html reference.html userguide.html man.html index.html
+pkgdata_DATA = readme.html developer.html reference.html userguide.html man.html index.html windows.html changelog.html
 CLEANFILES = $(noinst_SCRIPTS) html *.ht readme.html developer.html reference.html userguide.html man.html
 
 SUFFIXES = .txt .html .ht
@@ -35,6 +35,9 @@ developer.html reference.html userguide.html: $(converter)
 
 readme.html: $(top_srcdir)/README $(converter)
 	$(converter) -a "$(AWK)" $(top_srcdir)/README > readme.html
+
+changelog.html: $(top_srcdir)/ChangeLog $(converter)
+	$(converter) -a "$(AWK)" $(top_srcdir)/ChangeLog > changelog.html
 
 install-data-local:
 	$(mkinstalldirs) $(destdir)$(mandir)/man1

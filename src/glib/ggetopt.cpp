@@ -148,6 +148,11 @@ size_t G::GetOpt::widthLimit( size_t w )
 	return (w != 0U && w < 50U) ? 50U : w ;
 }
 
+void G::GetOpt::showUsage( std::ostream & stream , const std::string & args ) const
+{
+	showUsage( stream , m_args.prefix() , args ) ;
+}
+
 void G::GetOpt::showUsage( std::ostream & stream , const std::string & exe , const std::string & args ,
 	size_t tab_stop , size_t width ) const
 {
@@ -494,7 +499,12 @@ bool G::GetOpt::hasErrors() const
 	return m_errors.size() != 0U ;
 }
 
-void G::GetOpt::showErrors( std::ostream &stream , std::string prefix_1 ,
+void G::GetOpt::showErrors( std::ostream & stream ) const
+{
+	showErrors( stream , m_args.prefix() ) ;
+}
+
+void G::GetOpt::showErrors( std::ostream & stream , std::string prefix_1 ,
 	std::string prefix_2 ) const
 {
 	if( m_errors.size() != 0U )

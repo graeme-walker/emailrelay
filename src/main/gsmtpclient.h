@@ -27,12 +27,14 @@
 #include "gdef.h"
 #include "gnet.h"
 #include "gsmtp.h"
+#include "gsecrets.h"
 #include "glinebuffer.h"
 #include "gclient.h"
 #include "gclientprotocol.h"
 #include "gmessagestore.h"
 #include "gstoredmessage.h"
 #include "gsocket.h"
+#include "gtimer.h"
 #include "gstrings.h"
 #include "gexception.h"
 #include <memory>
@@ -49,8 +51,9 @@ namespace GSmtp
 // messages from a message store and forwarding them to
 // a remote SMTP server.
 //
-class GSmtp::Client : private GNet::Client ,
-	private GSmtp:: ClientProtocol::Sender , private GSmtp:: ClientProtocol::Callback
+class GSmtp::Client : private GNet::Client , private GNet::TimeoutHandler ,
+	private GSmtp:: ClientProtocol::Sender ,
+	private GSmtp:: ClientProtocol::Callback
 {
 public:
 	G_EXCEPTION( NotConnected , "not connected" ) ;
@@ -68,20 +71,21 @@ public:
 		// GNet::EventSources::quit().
 
 	Client( MessageStore & store , ClientCallback & callback , bool quit_on_disconnect ) ;
-		// Constructor. The references are kept.
-		//
-		// The callback is used to signal that
-		// all message processing has finished
-		// or that the server connection has
-		// been lost.
+			// Constructor. The message-store and callback
+			// references are kept.
+			//
+			// The callback is used to signal that
+			// all message processing has finished
+			// or that the server connection has
+			// been lost.
 
 	Client( std::auto_ptr<StoredMessage> message , ClientCallback & callback ) ;
-		// Constructor for sending a single message.
-		//
-		// The callback is used to signal that
-		// all message processing has finished
-		// or that the server connection has
-		// been lost.
+			// Constructor for sending a single message.
+			//
+			// The callback is used to signal that
+			// all message processing has finished
+			// or that the server connection has
+			// been lost.
 
 	std::string init( const std::string & server_address_string ) ;
 		// Starts the sending process. Messages
@@ -100,6 +104,15 @@ public:
 		// Returns true if the client is still
 		// busy processing messages.
 
+	static unsigned int responseTimeout( unsigned int new_timeout ) ;
+		// Sets the response timeout value. Returns the
+		// previous value.
+
+	static unsigned int connectionTimeout( unsigned int new_timeout ) ;
+		// Sets the connection timeout value. Returns the
+		// previous value.
+
+
 private:
 	virtual void onConnect( GNet::Socket & socket ) ; // GNet::Client
 	virtual void onDisconnect() ; // GNet::Client
@@ -107,7 +120,8 @@ private:
 	virtual void onWriteable() ; // GNet::Client
 	virtual void onError( const std::string & error ) ; // GNet::Client
 	virtual bool protocolSend( const std::string & ) ; // ClientProtocol::Sender
-	virtual void protocolDone( bool , const std::string & ) ; // ClientProtocol::Callback
+	virtual void protocolDone( bool , bool , const std::string & ) ; // ClientProtocol::Callback
+	virtual void onTimeout( GNet::Timer & ) ; // GNet::TimeoutHandler
 	std::string init( const std::string & , const std::string & ) ;
 	GNet::Socket & socket() ;
 	static std::string crlf() ;
@@ -125,6 +139,10 @@ private:
 	GNet::Socket * m_socket ;
 	std::string m_pending ;
 	ClientCallback * m_callback ;
+	std::string m_host ;
+	GNet::Timer m_connect_timer ;
+	static unsigned int m_response_timeout ;
+	static unsigned int m_connection_timeout ;
 } ;
 
 #endif

@@ -132,8 +132,8 @@ public:
 
 	static LRESULT sendUserString( HWND hwnd , const char *string ) ;
 		// Sends a string to a specified window.
-		// The other window will receive a WM_USER_STRING
-		// message (defined above) -- see onUserString().
+		// The other window will receive a
+		// onUserString() message.
 
 	static UINT classStyle( bool redraw = false ) ;
 		// Returns a general-purpose value for
@@ -172,6 +172,7 @@ public:
 
 	static HICON classIcon() ;
 		// Returns a default for registerWindowClass(..hicon..).
+		// Only called if LoadIcon(resource()) fails.
 
 	static HCURSOR classCursor() ;
 		// Returns a default for registerWindowClass(..hcursor..).
@@ -179,7 +180,7 @@ public:
 protected:		
 	virtual LRESULT onUserString( const char *string ) ;
 		// Overridable. Called when the window
-		// receives a WM_USER_STRING message.
+		// receives a message from sendUserString().
 
 	static WNDPROC windowProcedure() ;
 		// Returns the address of the exported 'C' window
@@ -202,6 +203,7 @@ private:
 	LRESULT wndProc( UINT message , WPARAM wparam , LPARAM lparam ) ;
 	LRESULT wndProcCore( UINT , WPARAM , LPARAM , bool & ) ;
 	bool onCreateCore() ;
+	virtual LRESULT onUserOther( WPARAM , LPARAM ) ;
 	Window( const Window &other ) ; // not implemented
 	Window &operator=( const Window &other ) ; // not implemented
 } ;

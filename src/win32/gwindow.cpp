@@ -158,7 +158,12 @@ LRESULT GGui::Window::wndProc( HWND hwnd , UINT msg , WPARAM wparam , LPARAM lpa
 LRESULT GGui::Window::sendUserString( HWND hwnd , const char *string )
 {
 	G_ASSERT( string != NULL ) ;
-	return ::SendMessage( hwnd , WM_USER_STRING , 0 , (LPARAM)(const char far *)string ) ;
+	return ::SendMessage( hwnd , Cracker::wm_user_other() , 0 , (LPARAM)(const char far *)string ) ;
+}
+
+LRESULT GGui::Window::onUserOther( WPARAM , LPARAM lparam )
+{
+	return onUserString( reinterpret_cast<char *>(lparam) ) ;
 }
 
 LRESULT GGui::Window::onUserString( const char * )
@@ -168,28 +173,12 @@ LRESULT GGui::Window::onUserString( const char * )
 
 LRESULT GGui::Window::wndProc( unsigned message , WPARAM wparam , LPARAM lparam )
 {
-	if( message == WM_USER_STRING )
-	{
-		G_DEBUG( "GGui::Window::onUserString" ) ;
-		if( lparam )
-		{
-			std::string s( (const char far *)lparam ) ; // far to near
-			return onUserString( s.c_str() ) ;
-		}
-		else
-		{
-			return onUserString( "" ) ;
-		}
-	}
+	bool defolt ;
+	LRESULT rc = wndProcCore( message , wparam , lparam , defolt ) ;
+	if( defolt )
+		return ::DefWindowProc( m_hwnd , message , wparam , lparam ) ;
 	else
-	{
-		bool defolt ;
-		LRESULT rc = wndProcCore( message , wparam , lparam , defolt ) ;
-		if( defolt )
-			return ::DefWindowProc( m_hwnd , message , wparam , lparam ) ;
-		else
-			return rc ;
-	}
+		return rc ;
 }
 
 LRESULT GGui::Window::wndProcCore( unsigned msg , WPARAM wparam , LPARAM lparam ,
@@ -320,4 +309,5 @@ void GGui::Window::onException( std::exception & e )
 	//
 	throw ;
 }
+
 

@@ -127,6 +127,10 @@ SOURCE=..\..\src\glib\garg_win32.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\gbase64.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\gnet\gclient.cpp
 # End Source File
 # Begin Source File
@@ -307,7 +311,15 @@ SOURCE=..\..\src\gnet\gresolve_win32.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\gsasl_login.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\win32\gscmap.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsecrets.cpp
 # End Source File
 # Begin Source File
 
@@ -351,6 +363,10 @@ SOURCE=..\..\src\glib\gtime.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\gnet\gtimer.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\win32\gtray.cpp
 # End Source File
 # Begin Source File
@@ -372,6 +388,10 @@ SOURCE=..\win32\gwinhid.cpp
 # Begin Source File
 
 SOURCE=..\..\src\gnet\gwinsock.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\gxtext.cpp
 # End Source File
 # Begin Source File
 

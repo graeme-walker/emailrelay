@@ -28,7 +28,10 @@
 #include "gnet.h"
 #include "gsmtp.h"
 #include "gmessagestore.h"
+#include "gsasl.h"
+#include "gsecrets.h"
 #include "gstrings.h"
+#include "gtimer.h"
 #include "gexception.h"
 #include <memory>
 #include <iostream>
@@ -64,13 +67,15 @@ public:
 	} ;
 	enum Value
 	{
-		Invalid = 0 ,
 		ServiceReady_220 = 220 ,
-		SyntaxError_500 = 500 ,
-		BadSequence_503 = 503 ,
-		NotImplemented_502 = 502 ,
+		Ok_250 = 250 ,
+		Authenticated_235 = 235 ,
+		Challenge_334 = 334 ,
 		OkForData_354 = 354 ,
-		Ok_250 = 250
+		SyntaxError_500 = 500 ,
+		NotImplemented_502 = 502 ,
+		BadSequence_503 = 503 ,
+		Invalid = 0 ,
 	} ;
 	explicit ClientProtocolReply( const std::string & line = std::string() ) ;
 	bool incomplete() const ;
@@ -80,6 +85,7 @@ public:
 	bool is( Value v ) const ;
 	unsigned int value() const ;
 	std::string text() const ;
+	std::string textLine( const std::string & prefix ) const ;
 	Type type() const ;
 	SubType subType() const ;
 	bool textContains( std::string s ) const ;
@@ -95,7 +101,7 @@ private:
 // Class: GSmtp::ClientProtocol
 // Description: Implements the client-side SMTP protocol.
 //
-class GSmtp::ClientProtocol
+class GSmtp::ClientProtocol : private GNet::Timer
 {
 public:
 	G_EXCEPTION( NotReady , "not ready" ) ;
@@ -121,26 +127,44 @@ public:
 
 	class Callback // A callback interface used by ClientProtocol.
 	{
-		public: virtual void protocolDone( bool ok , const std::string & reason ) = 0 ;
+		public: virtual void protocolDone( bool ok , bool abort , const std::string & reason ) = 0 ;
 			// Called once the protocol has finished with
 			// a given message. See ClientProtocol::start().
+			//
+			// If 'ok' is false then 'abort' indicates
+			// whether there is any point in trying to
+			// send more messages to the same server.
+			// The 'abort' parameter will be true if,
+			// for example, authentication failed -- if
+			// it failed for one message then it will
+			// fail for all the others.
 
 		private: void operator=( const Callback & ) ; // not implemented
 		public: virtual ~Callback() ;
 	} ;
 
-	ClientProtocol( Sender & sender , const std::string & thishost ) ;
-		// Constructor. The sender reference is kept.
-		// The Sender interface is used to send
-		// protocol messages to the peer.
+	ClientProtocol( Sender & sender , const std::string & thishost_name ,
+		unsigned int timeout , bool must_authenticate ) ;
+			// Constructor. The 'sender' and 'secrets' references
+			// are kept.
+			//
+			// The Sender interface is used to send protocol
+			// messages to the peer.
+			//
+			// The 'thishost_name' parameter is used in the
+			// SMTP EHLO request.
 
 	void start( const std::string & from , const G::Strings & to , bool eight_bit ,
+		std::string authentication , std::string server_name ,
 		std::auto_ptr<std::istream> content , Callback & callback ) ;
 			// Starts transmission of the given message.
 			//
-			// The 'callback' parameter is used to
-			// signal that the message has been
-			// processed.
+			// The 'callback' parameter is used to signal that the
+			// message has been processed.
+			//
+			// The 'server_name' parameter is passed to the SASL
+			// authentication code. It should be a fully-qualified
+			// domain name where possible.
 
 	void sendDone() ;
 		// Called when a blocked connection becomes unblocked.
@@ -154,16 +178,19 @@ public:
 
 private:
 	bool send( const std::string & , bool eot = false , bool log = true ) ;
-	bool sendLine() ;
+	bool sendLine( std::string & ) ;
+	size_t sendLines() ;
 	void sendMail() ;
 	bool endOfContent() const ;
-	static std::string crlf() ;
+	static const std::string & crlf() ;
 	void applyEvent( const Reply & event ) ;
 	static bool parseReply( Reply & , const std::string & , std::string & ) ;
-	void doCallback( bool , const std::string & ) ;
+	void doCallback( bool , bool , const std::string & ) ;
+	G::Strings serverAuthMechanisms( const ClientProtocolReply & reply ) const ;
+	void onTimeout() ;
 
 private:
-	enum State { sStart , sSentEhlo , sSentHelo , sSentMail ,
+	enum State { sStart , sSentEhlo , sSentHelo , sAuth1 , sAuth2 , sSentMail ,
 		sSentRcpt , sSentData , sData , sDone , sEnd , sReset } ;
 	Sender & m_sender ;
 	std::string m_thishost ;
@@ -175,7 +202,13 @@ private:
 	bool m_server_has_8bitmime ;
 	bool m_said_hello ;
 	bool m_message_is_8bit ;
+	std::string m_message_authentication ;
 	Reply m_reply ;
+	bool m_authenticated_with_server ;
+	std::string m_auth_mechanism ;
+	std::auto_ptr<SaslClient> m_sasl ;
+	bool m_must_authenticate ;
+	unsigned int m_timeout ;
 } ;
 
 #endif

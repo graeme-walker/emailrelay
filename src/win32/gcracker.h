@@ -43,18 +43,19 @@ namespace GGui
 class GGui::Cracker : public WindowBase
 {
 public:
+
 	explicit Cracker( HWND hwnd ) ;
 		// Constructor.
-		
+
 	virtual ~Cracker() ;
 		// Virtual destructor.
 
 	Cracker( const Cracker &other ) ;
 		// Copy constructor.
-		
+
 	Cracker & operator=( const Cracker & other ) ;
 		// Assignment operator.
-	
+
 	LRESULT crack( unsigned msg , WPARAM w , LPARAM l , bool &defolt ) ;
 		// Cracks the given message, calling
 		// virtual functions as appropriate.
@@ -63,9 +64,12 @@ public:
 		// user should then normally call
 		// DefWindowProc().
 
+	static unsigned int wm_user() ;
+		// Returns the WM_USER message number. See onUser().
+
 	static unsigned int wm_winsock() ;
 		// Returns a message number which is recommended for
-		// winsock messages.
+		// winsock messages. See onWinsock().
 
 	static unsigned int wm_idle() ;
 		// Returns a message number which should be used for
@@ -79,6 +83,9 @@ public:
 	static unsigned int wm_quit() ;
 		// Returns a message number which can be used
 		// as an alternative to WM_QUIT. See also GGui::Pump.
+
+	static unsigned int wm_user_other() ;
+		// Returns a message number used for onUserOther().
 
 protected:
 	virtual bool onEraseBackground( HDC hdc ) ;
@@ -110,7 +117,7 @@ protected:
 		// receives a WM_CREATE message.
 		// The main window should return false
 		// if the application should fail to start up.
-		
+
 	virtual bool onPaintMessage() ;
 		// Overridable. Called when the window
 		// receives a WM_PAINT message, before
@@ -124,7 +131,7 @@ protected:
 		// Overridable. Called when the window
 		// receives a WM_PAINT message,
 		// after ::BeginPaint().
-		
+
 	virtual bool onClose() ;
 		// Overridable. Called when the window
 		// receives a WM_CLOSE message. The main
@@ -134,16 +141,16 @@ protected:
 	virtual void onDestroy() ;
 		// Overridable. Called when the window
 		// receives a WM_DESTROY message.
-		
+
 	virtual void onNcDestroy() ;
 		// Overridable. Called when the window
 		// receives a WM_NCDESTROY message.
-		
+
 	virtual void onMenuCommand( UINT id ) ;
 		// Overridable. Called when the window
 		// receives a WM_COMMAND message resulting
 		// from a menu action.
-		
+
 	virtual void onControlCommand( HWND hwnd , UINT message , UINT id ) ;
 		// Overridable. Called when the window
 		// receives a WM_COMMAND message from a
@@ -159,11 +166,11 @@ protected:
 	virtual void onSize( SizeType type , unsigned dx , unsigned dy ) ;
 		// Overridable. Called on receipt of
 		// a WM_SIZE message.
-		
+
 	virtual void onMove( int x , int y ) ;
 		// Overridable. Called on receipt of
 		// a WM_MOVE message.
-		
+
 	virtual void onLooseFocus( HWND to ) ;
 		// Overridable. Called on receipt of
 		// a WM_KILLFOCUS message.
@@ -175,7 +182,7 @@ protected:
 		// Typically this is overridden with a
 		// call to ::SetFocus(), passing focus on to
 		// some more appropriate window.
-		
+
 	virtual void onChar( WORD vkey , unsigned repeat_count ) ;
 		// Overridable. Called on receipt of
 		// a WM_CHAR message.
@@ -221,6 +228,14 @@ protected:
 		// Overridable. Called on receipt of a WM_USER
 		// message.
 
+	virtual LRESULT onUserOther( WPARAM wparam , LPARAM lparam ) ;
+		// Overridable. Called on receipt of a wm_user_other()
+		// message.
+
+	virtual void onWinsock( WPARAM wparam , LPARAM lparam ) ;
+		// Overridable. Called on receipt of a wm_winsock()
+		// message.
+
 	virtual void onInitMenuPopup( HMENU hmenu , unsigned position , bool system_menu ) ;
 		// Overridable. Called just before a popup menu
 		// is displayed. Overrides will normally enable
@@ -232,6 +247,15 @@ protected:
 		bool right_button_down ) ;
 			// Overridable. Called on receipt of a mouse-move message.
 
+	enum MouseButton { Mouse_Left , Mouse_Middle , Mouse_Right } ;
+	enum MouseButtonDirection { Mouse_Up , Mouse_Down } ;
+
+	virtual void onMouseButton( MouseButton , MouseButtonDirection ,
+		int x , int y , bool shift_key_down , bool control_key_down ) ;
+			// Overridable. Called on receipt of a mouse
+			// button-down/button-up message. Called
+			// before the separate functions below.
+
 	virtual void onLeftMouseButtonDown( int x , int y ,
 		bool shift_key_down , bool control_key_down ) ;
 			// Overridable. Called on receipt of a mouse left-button-down
@@ -240,6 +264,26 @@ protected:
 	virtual void onLeftMouseButtonUp( int x , int y ,
 		bool shift_key_down , bool control_key_down ) ;
 			// Overridable. Called on receipt of a mouse left-button-up
+			// message.
+
+	virtual void onMiddleMouseButtonDown( int x , int y ,
+		bool shift_key_down , bool control_key_down ) ;
+			// Overridable. Called on receipt of a mouse middle-button-down
+			// message.
+
+	virtual void onMiddleMouseButtonUp( int x , int y ,
+		bool shift_key_down , bool control_key_down ) ;
+			// Overridable. Called on receipt of a mouse middle-button-up
+			// message.
+
+	virtual void onRightMouseButtonDown( int x , int y ,
+		bool shift_key_down , bool control_key_down ) ;
+			// Overridable. Called on receipt of a mouse right-button-down
+			// message.
+
+	virtual void onRightMouseButtonUp( int x , int y ,
+		bool shift_key_down , bool control_key_down ) ;
+			// Overridable. Called on receipt of a mouse right-button-up
 			// message.
 
 	virtual bool onPalette() ;
@@ -267,6 +311,11 @@ protected:
 		// If true is returned then it is called again
 		// (as long as the queue is still empty).
 		// See also: GGui::Pump
+
+private:
+	typedef void (Cracker::*Fn)(int,int,bool,bool) ;
+	LRESULT doMouseButton( Fn fn , MouseButton , MouseButtonDirection ,
+		unsigned int , WPARAM , LPARAM ) ;
 } ;
 
 inline

@@ -63,6 +63,9 @@ public:
 		// contains a character with the most significant
 		// bit set.
 
+	virtual std::string authentication() const = 0 ;
+		// Returns the message authentication string.
+
 	virtual size_t remoteRecipientCount() const = 0 ;
 		// Returns the number of non-local recipients.
 

@@ -182,7 +182,7 @@ unsigned int G::Str::toUInt( const std::string &s , bool limited )
 unsigned long G::Str::toULong( const std::string &s , bool limited )
 {
 	char * end = NULL ;
-	unsigned long result = ::strtoul( s.c_str(), &end, 0 ) ;
+	unsigned long result = ::strtoul( s.c_str(), &end, 10 ) ;
 
 	if( end == 0 || end[0] != '\0' )
 		throw InvalidFormat( s ) ;
@@ -257,6 +257,10 @@ std::string G::Str::toPrintableAscii( char c , char escape )
 	{
 		result.append( 1U , 't' ) ;
 	}
+	else if( c == '\0' )
+	{
+		result.append( 1U , '0' ) ;
+	}
 	else
 	{
 		unsigned int n = c ;
@@ -270,7 +274,7 @@ std::string G::Str::toPrintableAscii( char c , char escape )
 std::string G::Str::toPrintableAscii( const std::string & in , char escape )
 {
 	std::string result ;
-	for( const char * p = in.c_str() ; *p ; ++p )
+	for( std::string::const_iterator p = in.begin() ; p != in.end() ; ++p )
 		result.append( toPrintableAscii(*p,escape) ) ;
 	return result ;
 }
@@ -293,8 +297,16 @@ std::string G::Str::readLineFrom( std::istream & stream , char ignore )
 
 std::string G::Str::readLineFrom( std::istream & stream , const std::string & eol )
 {
+	std::string result ;
+	readLineFrom( stream , eol , result ) ;
+	return result ;
+}
+
+void G::Str::readLineFrom( std::istream & stream , const std::string & eol , std::string & line )
+{
+	line.erase() ;
+
 	const size_t eol_length = eol.length() ;
-	std::string line ;
 	char c ;
 	for( size_t line_length = 1U ; stream.get(c) ; ++line_length )
 	{
@@ -305,11 +317,10 @@ std::string G::Str::readLineFrom( std::istream & stream , const std::string & eo
 			if( line.find(eol,offset) == offset )
 			{
 				line.erase(offset) ;
-				return line ;
+				break ;
 			}
 		}
 	}
-	return line ;
 }
 
 std::string G::Str::wrap( std::string text , const std::string & prefix_1 ,

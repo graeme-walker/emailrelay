@@ -74,8 +74,8 @@ public:
 		// A zero-length host_name defaults to "0.0.0.0". A
 		// zero-length service name defaults to "0".
 
-	virtual void resolveCon( bool success, const Address &address,
-		std::string failure_reason ) ;
+	virtual void resolveCon( bool success, const Address & address ,
+		std::string fqdn_or_failure_reason ) ;
 			// Called when the resolution process is complete.
 			// This function is never called from within
 			// resolveReq().

@@ -23,6 +23,7 @@
 	
 #include "gdef.h"
 #include "gfile.h"
+#include "gprocess.h"
 #include "glog.h"
 #include <iostream>
 #include <cstdio>
@@ -38,7 +39,7 @@ void G::File::remove( const Path & path )
 {
 	if( 0 != std::remove( path.pathCstr() ) )
 	{
-		//int error = std::errno ;
+		//int error = G::Process::errno_() ;
 		throw CannotRemove( path.str() ) ;
 	}
 	G_DEBUG( "G::File::remove: \"" << path << "\"" ) ;
@@ -55,7 +56,7 @@ void G::File::rename( const Path & from , const Path & to )
 {
 	if( 0 != std::rename( from.pathCstr() , to.pathCstr() ) )
 	{
-		//int error = std::errno ;
+		//int error = G::Process::errno_() ;
 		throw CannotRename( from.str() ) ;
 	}
 	G_DEBUG( "G::File::rename: \"" << from << "\" -> \"" << to << "\"" ) ;
@@ -81,5 +82,34 @@ void G::File::mkdir( const Path & dir )
 {
 	if( ! mkdir( dir , NoThrow() ) )
 		throw CannotMkdir( dir.str() ) ;
+}
+
+bool G::File::exists( const Path & path )
+{
+	return exists( path , false , true ) ;
+}
+
+bool G::File::exists( const Path & path , const NoThrow & )
+{
+	return exists( path , false , false ) ;
+}
+
+bool G::File::exists( const Path & path , bool on_error , bool do_throw )
+{
+	bool enoent = false ;
+	bool rc = exists( path.pathCstr() , enoent ) ; // o/s-specific
+	if( !rc && enoent )
+	{
+		return false ;
+	}
+	else if( !rc && do_throw )
+	{
+		throw StatError( path.str() ) ;
+	}
+	else if( !rc )
+	{
+		return on_error ;
+	}
+	return true ;
 }
 

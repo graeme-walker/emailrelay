@@ -80,6 +80,7 @@ private:
 	ClientResolver m_resolver ;
 	StreamSocket * m_s ;
 	Address m_address ;
+	std::string m_peer_name ;
 	Client & m_interface ;
 	bool m_priviledged ;
 	enum Status { Success , Failure , Retry , ImmediateSuccess } ;
@@ -96,7 +97,7 @@ public:
 	void writeEvent() ;
 	void exceptionEvent() ;
 	bool connect( std::string host , std::string service , std::string *error , bool sync_dns ) ;
-	std::string startConnecting( const Address & , bool & ) ;
+	std::string startConnecting( const Address & , const std::string & , bool & ) ;
 	Status connectCore( Address , std::string * , bool , unsigned int ) ;
 	void disconnect() ;
 	StreamSocket & s() ;
@@ -108,6 +109,7 @@ public:
 	void setState( State ) ;
 	std::pair<bool,Address> localAddress() const ;
 	std::pair<bool,Address> peerAddress() const ;
+	std::string peerName() const ;
 
 private:
 	ClientImp( const ClientImp & ) ;
@@ -166,17 +168,22 @@ std::pair<bool,GNet::Address> GNet::Client::peerAddress() const
 	return m_imp->peerAddress() ;
 }
 
+std::string GNet::Client::peerName() const
+{
+	return m_imp->peerName() ;
+}
+
 // ===
 
 bool GNet::ClientImp::m_first = true ;
 
 GNet::ClientImp::ClientImp( Client &intaface , bool priviledged , bool quit_on_disconnect ) :
-	m_interface(intaface) ,
-	m_state(Idle) ,
-	m_s(NULL) ,
 	m_resolver(*this) ,
-	m_priviledged(priviledged) ,
+	m_s(NULL) ,
 	m_address(Address::invalidAddress()) ,
+	m_interface(intaface) ,
+	m_priviledged(priviledged) ,
+	m_state(Idle) ,
 	m_quit_on_disconnect(quit_on_disconnect)
 {
 	G_DEBUG( "ClientImp::ctor" ) ;
@@ -252,7 +259,7 @@ bool GNet::ClientImp::connect( std::string host , std::string service ,
 			return false ;
 		}
 		bool immediate = false ;
-		std::string connect_reason = startConnecting( pair.first.address , immediate ) ;
+		std::string connect_reason = startConnecting( pair.first.address, pair.first.canonical_name, immediate);
 		if( connect_reason.length() != 0U )
 		{
 			error = connect_reason ;
@@ -295,8 +302,9 @@ void GNet::ClientImp::resolveCon( bool success , const Address &address ,
 	if( success )
 	{
 		G_DEBUG( "GNet::ClientImp::resolveCon: " << address.displayString() ) ;
+		std::string peer_name = resolve_reason ;
 		bool immediate = false ;
-		std::string connect_reason = startConnecting( address , immediate ) ;
+		std::string connect_reason = startConnecting( address , peer_name , immediate ) ;
 		if( connect_reason.length() )
 		{
 			close() ;
@@ -314,11 +322,12 @@ void GNet::ClientImp::resolveCon( bool success , const Address &address ,
 	}
 }
 
-std::string GNet::ClientImp::startConnecting( const Address & address , bool & immediate )
+std::string GNet::ClientImp::startConnecting( const Address & address , const std::string & peer_name , bool & immediate )
 {
 	// save the target address
 	G_DEBUG( "GNet::ClientImp::startConnecting: " << address.displayString() ) ;
 	m_address = address ;
+	m_peer_name = peer_name ;
 
 	// create and open a socket
 	//
@@ -444,7 +453,7 @@ void GNet::ClientImp::readEvent()
 	else if( n != -1 )
 	{
 		G_ASSERT( n <= sizeof(buffer) ) ;
-		G_DEBUG( "GNet::ClientImp::readEvent: " << n << " byte(s)" ) ;
+		//G_DEBUG( "GNet::ClientImp::readEvent: " << n << " byte(s)" ) ;
 		m_interface.onData( buffer , n ) ;
 	}
 	else
@@ -487,6 +496,11 @@ std::pair<bool,GNet::Address> GNet::ClientImp::localAddress() const
 std::pair<bool,GNet::Address> GNet::ClientImp::peerAddress() const
 {
 	return s().getPeerAddress() ;
+}
+
+std::string GNet::ClientImp::peerName() const
+{
+	return m_peer_name ;
 }
 
 // ===

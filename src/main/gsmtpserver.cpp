@@ -36,10 +36,10 @@
 GSmtp::ServerPeer::ServerPeer( GNet::StreamSocket * socket , GNet::Address peer_address ,
 	Server & server , std::auto_ptr<ProtocolMessage> pmessage , const std::string & ident ) :
 		GNet::ServerPeer( socket , peer_address ) ,
-		m_pmessage( pmessage ) ,
-		m_protocol( *this , m_verifier , *m_pmessage.get() , thishost() , peer_address.displayString(false) ) ,
+		m_server( server ) ,
 		m_buffer( crlf() ) ,
-		m_server( server )
+		m_pmessage( pmessage ) ,
+		m_protocol( *this, m_verifier, *m_pmessage.get(), thishost(), peer_address.displayString(false) )
 {
 	G_LOG( "GSmtp::ServerPeer: new connection from " << peer_address.displayString() ) ;
 	m_protocol.init( ident ) ;
@@ -57,7 +57,7 @@ std::string GSmtp::ServerPeer::crlf()
 
 void GSmtp::ServerPeer::onDelete()
 {
-	G_WARNING( "GSmtp::ServerPeer: peer disconnected" ) ;
+	G_DEBUG( "GSmtp::ServerPeer: peer disconnected" ) ;
 }
 
 void GSmtp::ServerPeer::onData( const char * p , size_t n )
@@ -87,7 +87,7 @@ void GSmtp::ServerPeer::protocolSend( const std::string & line )
 	{
 		doDelete() ; // onDelete() and "delete this"
 	}
-	else if( rc < line.length() )
+	else if( rc < 0 || static_cast<size_t>(rc) < line.length() )
 	{
 		G_ERROR( "GSmtp::ServerPeer::protocolSend: " <<
 			"flow-control asserted: connection blocked" ) ;
@@ -111,12 +111,31 @@ void GSmtp::ServerPeer::protocolDone()
 
 GSmtp::Server::Server( unsigned int port , bool allow_remote , const std::string & ident ,
 	const std::string & downstream_server ) :
-		GNet::Server( port ) ,
 		m_ident( ident ) ,
 		m_allow_remote( allow_remote ) ,
-		m_downstream_server(downstream_server)
+		m_downstream_server(downstream_server) ,
+		m_gnet_server_1( *this ) ,
+		m_gnet_server_2( *this ) ,
+		m_gnet_server_3( *this )
 {
-	//G_LOG( "GSmtp::Server: listening on port " << port ) ;
+	// hacking opportunity to listen on specific hard-coded interfaces...
+	bool normal = true ;
+	if( normal )
+	{
+		bind( m_gnet_server_1 , GNet::Address(port) , port ) ;
+	}
+	else
+	{
+		bind( m_gnet_server_1 , GNet::Address("192.168.0.1:0") , port ) ;
+		bind( m_gnet_server_2 , GNet::Address("192.168.0.2:0") , port ) ;
+		bind( m_gnet_server_3 , GNet::Address("192.168.0.3:0") , port ) ;
+	}
+}
+
+void GSmtp::Server::bind( GSmtp::ServerImp & gnet_server , GNet::Address address , unsigned int port )
+{
+	address.setPort(port) ;
+	gnet_server.init( address ) ;
 }
 
 GNet::ServerPeer * GSmtp::Server::newPeer( GNet::StreamSocket * socket , GNet::Address peer_address )
@@ -142,5 +161,17 @@ GNet::ServerPeer * GSmtp::Server::newPeer( GNet::StreamSocket * socket , GNet::A
 			static_cast<ProtocolMessage*>(new ProtocolMessageStore) ) ;
 
 	return new ServerPeer( socket_ptr.release() , peer_address , *this , pmessage , m_ident ) ;
+}
+
+// ===
+
+GSmtp::ServerImp::ServerImp( GSmtp::Server & server ) :
+	m_server(server)
+{
+}
+
+GNet::ServerPeer * GSmtp::ServerImp::newPeer( GNet::StreamSocket * socket , GNet::Address peer_address )
+{
+	return m_server.newPeer( socket , peer_address ) ;
 }
 

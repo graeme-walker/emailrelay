@@ -43,6 +43,7 @@ std::string GNet::Local::domainname()
 	size_t pos = full.find( '.' ) ;
 	if( pos == std::string::npos )
 		throw Error( std::stringstream() << "invalid fqdn: no dots in \"" << full << "\"" ) ;
+
 	return full.substr(pos+1U) ;
 }
 
@@ -85,6 +86,13 @@ std::string GNet::Local::fqdn()
 			throw Error( std::stringstream() << "resolve: " << rc.second ) ;
 
 		result = rc.first.canonical_name ;
+
+		size_t pos = result.find( '.' ) ;
+		if( pos == std::string::npos )
+		{
+			G_WARNING( "GNet::Local: no valid domain in \"" << result << "\": defaulting to \".local\"" ) ;
+			result.append( ".local" ) ;
+		}
 	}
 	return result ;
 }

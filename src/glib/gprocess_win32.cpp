@@ -141,6 +141,7 @@ bool G::Process::privileged()
 }
 
 // not implemented...
+// int G::Process::errno_()
 // Who G::Process::fork() {}
 // Who G::Process::fork( Id & child ) {}
 // void G::Process::exec( const Path & exe , const std::string & arg ) {}

@@ -25,9 +25,55 @@
 #include "gfile.h"
 #include <sys/stat.h>
 #include <direct.h>
+#include <iomanip>
+#include <sstream>
 
 bool G::File::mkdir( const Path & dir , const NoThrow & )
 {
 	return 0 == ::_mkdir( dir.str().c_str() ) ;
+}
+
+std::string G::File::sizeString( const Path & path )
+{
+	WIN32_FIND_DATA info ;
+	HANDLE h = ::FindFirstFile( path.str().c_str() , &info ) ;
+	if( h == INVALID_HANDLE_VALUE )
+		return std::string() ;
+
+	const DWORD & hi = info.nFileSizeHigh ;
+	const DWORD & lo = info.nFileSizeLow ;
+
+	::FindClose( h ) ;
+
+	return sizeString( hi , lo ) ;
+}
+
+std::string G::File::sizeString( g_uint32_t hi , g_uint32_t lo )
+{
+	__int64 n = hi ;
+	n <<= 32U ;
+	n |= lo ;
+	if( n < 0 )
+		throw SizeOverflow() ;
+
+	if( n == 0 )
+		return std::string("0") ;
+
+	std::string s ;
+	while( n != 0 )
+	{
+		size_t i = n % 10U ;
+		s.insert( 0U , 1U , '0' + i ) ;
+		n /= 10U ;
+	}
+	return s ;
+}
+
+bool G::File::exists( const char * path , bool & enoent )
+{
+	struct _stat statbuf ;
+	bool ok = 0 == ::_stat( path , &statbuf ) ;
+	enoent = !ok ;
+	return ok ;
 }
 

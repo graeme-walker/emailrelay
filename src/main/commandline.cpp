@@ -36,6 +36,8 @@ std::string Main::CommandLine::switchSpec()
 	std::stringstream ss ;
 	ss
 		<< osSwitchSpec() << "|"
+		<< "C!client-auth!enables authentication with remote server, using the given secrets file!1!file|"
+		<< "S!server-auth!enables authentication of remote clients, using the given secrets file!1!file|"
 		<< "y!as-proxy!equivalent to \"--log --close-stderr --immediate --forward-to\"!1!host:port|"
 		<< "e!close-stderr!closes the standard error stream after start-up!0!|"
 		<< "a!admin!enables the administration interface and specifies its listening port number!1!admin-port|"
@@ -44,6 +46,8 @@ std::string Main::CommandLine::switchSpec()
 		<< "f!forward!forwards stored mail on startup (requires --forward-to)!0!|"
 		<< "o!forward-to!specifies the remote smtp server (required by --forward and --admin)!1!host:port|"
 		<< "h!help!displays help text and exits!0!|"
+		<< "T!response-timeout!sets the client-side response timeout in seconds (default is 1800)!1!time|"
+		<< "U!connection-timeout!sets the client-side connection timeout in seconds (default is 40)!1!time|"
 		<< "m!immediate!forwards each message as soon as it is received (requires --forward-to)!0!|"
 		<< "i!pid-file!records the daemon process-id in the given file!1!pid-file|"
 		<< "p!port!specifies the smtp listening port number!1!port|"
@@ -81,7 +85,7 @@ void Main::CommandLine::showUsage( bool e ) const
 {
 	Show show( e ) ;
 	unsigned int columns = ttyColumns() ;
-	m_getopt.showUsage( show.s() , m_arg.prefix() , "" , 30U , columns ) ;
+	m_getopt.showUsage( show.s() , m_arg.prefix() , "" , 33U , columns ) ;
 }
 
 bool Main::CommandLine::contains( const std::string & name ) const
@@ -106,6 +110,14 @@ std::string Main::CommandLine::semanticError() const
 	{
 		return "in daemon mode the spool-dir must "
 			"be an absolute path" ;
+	}
+
+	if( cfg().daemon() && (
+		( !cfg().clientSecretsFile().empty() && G::Path(cfg().clientSecretsFile()).isRelative() ) ||
+		( !cfg().serverSecretsFile().empty() && G::Path(cfg().serverSecretsFile()).isRelative() ) ) )
+	{
+		return "in daemon mode the authorisation secrets file(s) must "
+			"be absolute paths" ;
 	}
 
 	if( !m_getopt.contains("forward-to") && (

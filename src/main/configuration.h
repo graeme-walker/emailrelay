@@ -109,6 +109,20 @@ public:
 	unsigned int icon() const ;
 		// Returns the icon selector.
 
+	unsigned int responseTimeout() const ;
+		// Returns the client-side protocol timeout value.
+
+	unsigned int connectionTimeout() const ;
+		// Returns the client-side connection timeout value.
+
+	std::string clientSecretsFile() const ;
+		// Returns the client-side autentication secrets (password) file.
+		// Returns the empty string if none.
+
+	std::string serverSecretsFile() const ;
+		// Returns the server-side autentication secrets (password) file.
+		// Returns the empty string if none.
+
 private:
 	const CommandLine & m_cl ;
 

@@ -59,7 +59,7 @@ bool GSmtp::Verifier::isPostmaster( std::string user )
 }
 
 //static
-std::string GSmtp::Verifier::fullName( const std::string & user )
+std::string GSmtp::Verifier::fullName( const std::string & /*user*/ )
 {
 	return "Local postmaster <postmaster@localhost>" ;
 }

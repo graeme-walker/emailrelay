@@ -26,6 +26,8 @@
 #include "run.h"
 #include "gsmtpserver.h"
 #include "gsmtpclient.h"
+#include "gsasl.h"
+#include "gsecrets.h"
 #include "gevent.h"
 #include "garg.h"
 #include "gdaemon.h"
@@ -43,7 +45,7 @@
 //static
 std::string Main::Run::versionNumber()
 {
-	return "0.9.5" ;
+	return "0.9.6" ;
 }
 
 Main::Run::Run( const G::Arg & arg ) :
@@ -134,8 +136,13 @@ void Main::Run::run()
 	if( cfg().useFilter() )
 		GSmtp::NewFile::setPreprocessor( G::Path(cfg().filter()) ) ;
 
-	// event loop singleton
+	// authentication singleton
 	//
+	GSmtp::Sasl sasl_library( "emailrelay" , cfg().clientSecretsFile() , cfg().serverSecretsFile() ) ;
+
+	// event loop singletons
+	//
+	GNet::TimerList timer_list ;
 	std::auto_ptr<GNet::EventSources> event_loop(GNet::EventSources::create()) ;
 	if( ! event_loop->init() )
 		throw G::Exception( "cannot initialise network layer" ) ;
@@ -172,6 +179,8 @@ void Main::Run::doServing( G::Daemon::PidFile & pid_file ,
 	std::auto_ptr<GSmtp::AdminServer> admin_server ;
 	if( cfg().doAdmin() )
 	{
+		GSmtp::Client::responseTimeout( cfg().responseTimeout() ) ;
+		GSmtp::Client::connectionTimeout( cfg().connectionTimeout() ) ;
 		admin_server <<= new GSmtp::AdminServer( cfg().adminPort() ,
 			cfg().allowRemoteClients() , cfg().serverAddress() ) ;
 	}
@@ -182,10 +191,11 @@ void Main::Run::doServing( G::Daemon::PidFile & pid_file ,
 	event_loop.run() ;
 }
 
-void Main::Run::doForwarding( GSmtp::MessageStore & store ,
-	GNet::EventSources & event_loop )
+void Main::Run::doForwarding( GSmtp::MessageStore & store , GNet::EventSources & event_loop )
 {
 	const bool quit_on_disconnect = true ;
+	GSmtp::Client::responseTimeout( cfg().responseTimeout() ) ;
+	GSmtp::Client::connectionTimeout( cfg().connectionTimeout() ) ;
 	GSmtp::Client client( store , *this , quit_on_disconnect ) ;
 	std::string error = client.init( cfg().serverAddress() ) ;
 	if( error.length() )

@@ -59,9 +59,9 @@ private:
 // ===
 
 GNet::ResolverImp::ResolverImp( Resolver & resolver , unsigned int port ) :
-	m_s(NULL) ,
+	m_address(Address::localhost(port)) ,
 	m_outer(resolver) ,
-	m_address(Address::localhost(port))
+	m_s(NULL)
 {
 }
 
@@ -131,10 +131,14 @@ void GNet::ResolverImp::readEvent()
 	{
 		std::string result( buffer , rc ) ;
 		G_DEBUG( "GNet::ResolverImp::readEvent: \"" << result << "\"" ) ;
-		G::Str::trimRight( result , " \n" ) ;
-		if( Address::validString(result) )
+		G::Str::trim( result , " \n" ) ;
+		size_t pos = result.find( ' ' ) ;
+		std::string head = pos == std::string::npos ? result : result.substr(0U,pos) ;
+		std::string tail = pos == std::string::npos ? std::string() : result.substr(pos+1U) ;
+		if( Address::validString(head) )
 		{
-			m_outer.resolveCon( true , Address(result) , "" ) ;
+			G::Str::trim( tail , " \n" ) ;
+			m_outer.resolveCon( true , Address(result) , tail ) ;
 		}
 		else
 		{

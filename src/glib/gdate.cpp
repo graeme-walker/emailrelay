@@ -86,7 +86,6 @@ void G::Date::init( const G::DateTime::BrokenDownTime & tm )
 
 std::string G::Date::string( Format format ) const
 {
-	const char * sep = format == yyyy_mm_dd_slash ? "/" : "" ;
 	std::stringstream ss ;
 	if( format == yyyy_mm_dd_slash )
 		ss << m_year << "/" << m_month << "/" << m_day ;

@@ -47,7 +47,7 @@ class GSmtp::StoredFile : public GSmtp:: StoredMessage
 {
 public:
 	G_EXCEPTION( InvalidFormat , "invalid format field in envelope" ) ;
-	G_EXCEPTION( NoEnd , "invalid envelope file: no end marker" ) ;
+	G_EXCEPTION( NoEnd , "invalid envelope file: misplaced end marker" ) ;
 	G_EXCEPTION( InvalidTo , "invalid 'to' line in envelope file" ) ;
 	G_EXCEPTION( NoRecipients , "no remote recipients" ) ;
 	G_EXCEPTION( OpenError , "cannot open the envelope" ) ;
@@ -80,6 +80,9 @@ public:
 	virtual const G::Strings & to() const ;
 		// From StoredMessage.
 
+	virtual std::string authentication() const ;
+		// From StoredMessage.
+
 	virtual void destroy() ;
 		// From StoredMessage.
 
@@ -97,13 +100,15 @@ private:
 	void operator=( const StoredFile & ) ;
 	std::string crlf() const ;
 	std::string getline( std::istream & stream ) const ;
-	std::string value( const std::string & s ) const ;
+	std::string value( const std::string & s , const std::string & k = std::string() ) const ;
 	G::Path contentPath() const ;
 	void readFormat( std::istream & stream ) ;
 	void readFlag( std::istream & stream ) ;
 	void readFrom( std::istream & stream ) ;
 	void readToList( std::istream & stream ) ;
 	void readEnd( std::istream & stream ) ;
+	void readAuthentication( std::istream & stream ) ;
+	void readClientIp( std::istream & stream ) ;
 	void readEnvelopeCore( bool ) ;
 
 private:
@@ -113,6 +118,9 @@ private:
 	G::Path m_envelope_path ;
 	std::auto_ptr<std::istream> m_content ;
 	bool m_eight_bit ;
+	std::string m_authentication ;
+	std::string m_format ;
+	std::string m_client_ip ;
 } ;
 
 #endif

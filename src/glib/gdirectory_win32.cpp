@@ -24,6 +24,7 @@
 #include "gdef.h"
 #include "gdirectory.h"
 #include "gfs.h"
+#include "gfile.h"
 #include "gdebug.h"
 #include "glog.h"
 #include <iomanip>
@@ -295,8 +296,6 @@ std::string G::DirectoryIteratorImp::sizeString() const
 	const DWORD & hi = m_context.nFileSizeHigh ;
 	const DWORD & lo = m_context.nFileSizeLow ;
 
-	std::stringstream ss ;
-	ss << hi << std::setw(8) << std::setfill('0') << lo ;
-	return ss.str() ;
+	return G::File::sizeString( hi , lo ) ;
 }
 

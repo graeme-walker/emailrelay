@@ -39,10 +39,14 @@ namespace GSmtp
 } ;
 
 // Class: GSmtp::ProtocolMessageForward
-// Description: A concrete implementation of the
-// ProtocolMessage interface which stores incoming
-// messages in the message store and then immediately
-// forwards them on to the downstream server.
+// Description: A concrete implementation of the ProtocolMessage
+// interface which stores incoming messages in the message store
+// and then immediately forwards them on to the downstream server.
+//
+// The implementation delegates to an instance of the ProtocolMessageStore
+// class (ie. its sibling class) to do the storage, and to an instance
+// of the Client class to do the forwarding.
+//
 // See also: ProtocolMessageStore
 //
 class GSmtp::ProtocolMessageForward : public GSmtp:: ProtocolMessage ,
@@ -71,8 +75,9 @@ public:
 	virtual void addText( const std::string & ) ;
 		// See ProtocolMessage.
 
-	virtual void process( ProtocolMessage::Callback & callback ) ;
-		// See ProtocolMessage.
+	virtual void process( ProtocolMessage::Callback & callback , const std::string & auth_id ,
+		const std::string & client_ip ) ;
+			// See ProtocolMessage.
 
 private:
 	void operator=( const ProtocolMessageForward & ) ; // not implemented

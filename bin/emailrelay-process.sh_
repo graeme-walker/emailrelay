@@ -27,7 +27,7 @@
 
 awk="awk"
 tmp="/tmp/`basename $0`.$$.tmp"
-log="/tmp/`basename $0`.$$.out"
+log="/tmp/`basename $0`.out"
 trap "rm -f ${tmp} >/dev/null 2>&1 ; exit" 0 1 2 3 13 15
 
 ###
@@ -56,10 +56,10 @@ ProcessContent()
 
 	function rot_s( n , string )
 	{
-		result = ""
+		rot_s_result = ""
 		for( i = 1 ; i <= length(string) ; i++ )
-			result = result rot_c(n,substr(string,i,1))
-		return result
+			rot_s_result = rot_s_result rot_c(n,substr(string,i,1))
+		return rot_s_result
 	}
 
 	{
@@ -117,10 +117,10 @@ Wrap()
 
 			is_mime_content = match($0,"^Content-")
 			is_continuation = match($0,"^[[:space:]][[:space:]]*[^[:space:]]")
-			block = is_mime_content || (was_mime_content && is_continuation)
-			was_mime_content = block
+			suppress = is_mime_content || (was_mime_content && is_continuation)
+			was_mime_content = suppress
 
-			if( ! block )
+			if( ! suppress )
 				print
 		}
 		else
@@ -141,6 +141,11 @@ Main()
 	cp ${tmp} "${1}"
 }
 
-# Main $@ > ${log} 2>&1
-Main $@
+debug="0"
+if test "${debug}" -eq 1
+then
+	Main $@ > ${log} 2>&1
+else
+	Main $@
+fi
 

@@ -29,9 +29,9 @@
 
 int main( int argc , char * argv [] )
 {
-	G::Arg arg( argc , argv ) ;
 	try
 	{
+		G::Arg arg( argc , argv ) ;
 		Main::Run main( arg ) ;
 		if( main.prepare() )
 			main.run() ;
@@ -39,11 +39,11 @@ int main( int argc , char * argv [] )
 	}
 	catch( std::exception & e )
 	{
-		std::cerr << arg.prefix() << ": exception: " << e.what() << std::endl ;
+		std::cerr << G::Arg::prefix(argv) << ": exception: " << e.what() << std::endl ;
 	}
 	catch( ... )
 	{
-		std::cerr << arg.prefix() << ": unrecognised exception" << std::endl ;
+		std::cerr << G::Arg::prefix(argv) << ": unrecognised exception" << std::endl ;
 	}
 	return EXIT_FAILURE ;
 }

@@ -59,11 +59,13 @@ public:
 	virtual void addText( const std::string & line ) ;
 		// Adds a line of content.
 
-	virtual void store() ;
+	virtual bool store( const std::string & auth_id , const std::string & client_ip ) ;
 		// Stores the message in the message store.
+		// Returns true if storage was deliberately
+		// cancelled.
 
 	virtual unsigned long id() const ;
-		// Returns the message's unique identifier.
+		// Returns the message's unique non-zero identifier.
 
 	static void setPreprocessor( const G::Path & exe ) ;
 		// Defines a program which is used for pre-processing
@@ -82,11 +84,12 @@ private:
 	static G::Path m_preprocessor ;
 
 private:
-	bool saveEnvelope( std::ostream & stream , const std::string & where ) const ;
-	std::string crlf() const ;
+	bool saveEnvelope( std::ostream & , const std::string & where ,
+		const std::string & auth_id , const std::string & client_ip ) const ;
+	const std::string & crlf() const ;
 	static bool isEightBit( const std::string & line ) ;
 	void deliver( const G::Strings & , const G::Path & , const G::Path & , const G::Path & ) ;
-	bool preprocess( const G::Path & ) ;
+	bool preprocess( const G::Path & , bool & ) ;
 } ;
 
 #endif

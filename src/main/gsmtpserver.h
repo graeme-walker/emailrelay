@@ -39,6 +39,7 @@ namespace GSmtp
 {
 	class Server ;
 	class ServerPeer ;
+	class ServerImp ;
 } ;
 
 // Class: GSmtp::ServerPeer
@@ -72,10 +73,30 @@ private:
 	ServerProtocol m_protocol ; // order dependency -- third
 } ;
 
+// Class: GSmtp::ServerImp
+// Description: A private implementation class for GSmtp::Server.
+//
+class GSmtp::ServerImp : public GNet::Server
+{
+public:
+	explicit ServerImp( GSmtp::Server & ) ;
+		// Constructor.
+
+	virtual GNet::ServerPeer * newPeer( GNet::StreamSocket * , GNet::Address ) ;
+		// ServerPeer factory method.
+
+private:
+	ServerImp( const ServerImp & ) ; // not implemented
+	void operator=( const ServerImp & ) ; // not implemented
+
+private:
+	GSmtp::Server & m_server ;
+} ;
+
 // Class: GSmtp::Server
 // Description: An SMTP server class.
 //
-class GSmtp::Server : private GNet::Server
+class GSmtp::Server
 {
 public:
 	Server( unsigned int port , bool allow_remote , const std::string & ident ,
@@ -85,15 +106,21 @@ public:
 			// If the 'downstream-server-address' parameter is
 			// given then all messages are forwarded immediately.
 
+	GNet::ServerPeer * newPeer( GNet::StreamSocket * , GNet::Address ) ;
+		// ServerPeer factory method used by ServerImp.
+
 private:
-	virtual GNet::ServerPeer * newPeer( GNet::StreamSocket * , GNet::Address ) ;
 	Server( const Server & ) ;
 	void operator=( const Server & ) ;
+	void bind( ServerImp & , GNet::Address , unsigned int ) ;
 
 private:
 	std::string m_ident ;
 	bool m_allow_remote ;
 	std::string m_downstream_server ;
+	ServerImp m_gnet_server_1 ;
+	ServerImp m_gnet_server_2 ; // not used
+	ServerImp m_gnet_server_3 ; // not used
 } ;
 
 #endif
