@@ -39,6 +39,7 @@ EXTRA_DIST=\
 	passwd.dsp \
 	poke.dsp \
 	resource.h \
+	scanner.cpp \
 	submit.dsp \
 	winapp.cpp \
 	winapp.h \

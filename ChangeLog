@@ -1,6 +1,13 @@
 E-MailRelay Change Log
 ======================
 
+1.3 -> 1.3.1
+------------
+* Windows resource leak from CreateProcess() fixed.
+* Windows dialog box double-close fix.
+* Some documentation for the "--scanner" switch.
+* New usage patterns section in the user guide.
+
 1.2 -> 1.3
 ----------
 * Client protocol waits for a greeting from the server on startup [bug-id 842156].

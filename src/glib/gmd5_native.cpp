@@ -33,7 +33,6 @@ namespace
 	typedef md5::big_t big_t ;
 	typedef md5::digest_stream md5_state_t ;
 	typedef md5::digest::state_type state_type ;
-	typedef md5::message message ;
 	typedef md5::format format ;
 
 	void init( md5_state_t & )

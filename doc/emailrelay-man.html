@@ -97,7 +97,7 @@ Enables authentication with remote server, using the given secrets file.
 <DT><B>-Y,--client-filter </B><I>program</I>
 
 <DD>
-Defines a mail processor program for when forwarding.
+Specifies an external program to process messages when they are forwarded.
 <DT><B>-e,--close-stderr </B>
 
 <DD>
@@ -117,15 +117,15 @@ Sets an override for the host's fully qualified domain name.
 <DT><B>-X,--dont-listen </B>
 
 <DD>
-Dont listen for smtp connections (usually used with <I>--admin</I>).
+Disables listening for smtp connections (usually used with <I>--admin</I>).
 <DT><B>-x,--dont-serve </B>
 
 <DD>
-Dont act as a server (usually used with <I>--forward</I>).
+Disables acting as a server (usually used with <I>--forward</I>).
 <DT><B>-z,--filter </B><I>program</I>
 
 <DD>
-Defines a mail processor program for when storing.
+Specifies an external program to process messages as they are stored.
 <DT><B>-f,--forward </B>
 
 <DD>
@@ -141,11 +141,11 @@ Displays help text and exits.
 <DT><B>-m,--immediate </B>
 
 <DD>
-Forwards each message as soon as it is received (requires <I>--forward-to</I>).
+Enables immediating forwarding of messages as soon as they are received (requires <I>--forward-to</I>).
 <DT><B>-I,--interface </B><I>ip-address</I>
 
 <DD>
-Listen on a specific interface.
+Defines the listening interface for new connections.
 <DT><B>-l,--log </B>
 
 <DD>
@@ -165,7 +165,7 @@ Disables syslog output.
 <DT><B>-i,--pid-file </B><I>pid-file</I>
 
 <DD>
-Records the daemon process-id in the given file.
+Defines a file for storing the daemon process-id.
 <DT><B>-O,--poll </B><I>period</I>
 
 <DD>
@@ -177,7 +177,7 @@ Specifies the smtp listening port number.
 <DT><B>-P,--postmaster </B>
 
 <DD>
-Allow delivery to postmaster but reject all other local mailbox addresses.
+Allows delivery to the postmaster but rejects all other local mailbox addresses.
 <DT><B>-r,--remote-clients </B>
 
 <DD>
@@ -186,6 +186,10 @@ Allows remote clients to connect.
 
 <DD>
 Sets the response timeout (in seconds) when talking to a remote server (default is 1800).
+<DT><B>-R,--scanner </B><I>host:port</I>
+
+<DD>
+Specifies an external network server to process messages when they are stored.
 <DT><B>-S,--server-auth </B><I>file</I>
 
 <DD>
@@ -205,7 +209,7 @@ Generates more verbose output (works with <I>--help</I> and <I>--log</I>).
 <DT><B>-Z,--verifier </B><I>program</I>
 
 <DD>
-Defines an external address verifier program.
+Specifies an external program for address verification.
 <DT><B>-V,--version </B>
 
 <DD>
@@ -464,7 +468,7 @@ Graeme Walker, mailto:<A HREF="mailto:graeme_walker@users.sourceforge.net">graem
 This document was created by
 <A HREF="http://localhost/cgi-bin/man/man2html">man2html</A>,
 using the manual pages.<BR>
-Time: 20:53:37 GMT, February 26, 2004
+Time: 15:37:43 GMT, May 09, 2004
 </BODY>
 </HTML>
 <!-- Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved. -->
