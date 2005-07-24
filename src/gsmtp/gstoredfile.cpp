@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -33,10 +33,9 @@
 #include "gassert.h"
 #include <fstream>
 
-GSmtp::StoredFile::StoredFile( FileStore & store , Processor & store_preprocessor , const G::Path & path ) :
+GSmtp::StoredFile::StoredFile( FileStore & store , const G::Path & envelope_path ) :
 	m_store(store) ,
-	m_store_preprocessor(store_preprocessor) ,
-	m_envelope_path(path) ,
+	m_envelope_path(envelope_path) ,
 	m_eight_bit(false) ,
 	m_errors(0U) ,
 	m_locked(false)
@@ -63,9 +62,19 @@ std::string GSmtp::StoredFile::name() const
 	return m_name ;
 }
 
+std::string GSmtp::StoredFile::location() const
+{
+	return contentPath().str() ;
+}
+
 bool GSmtp::StoredFile::eightBit() const
 {
 	return m_eight_bit ;
+}
+
+void GSmtp::StoredFile::sync()
+{
+	readEnvelopeCore( true ) ;
 }
 
 bool GSmtp::StoredFile::readEnvelope( std::string & reason , bool check )
@@ -131,6 +140,9 @@ void GSmtp::StoredFile::readFrom( std::istream & stream )
 
 void GSmtp::StoredFile::readToList( std::istream & stream )
 {
+	m_to_local.clear() ;
+	m_to_remote.clear() ;
+
 	std::string to_count_line = getline(stream) ;
 	unsigned int to_count = G::Str::toUInt( value(to_count_line,"ToCount") ) ;
 
@@ -232,7 +244,8 @@ std::string GSmtp::StoredFile::value( const std::string & s , const std::string 
 	return s.substr(pos+2U) ;
 }
 
-std::string GSmtp::StoredFile::crlf() const
+//static
+std::string GSmtp::StoredFile::crlf()
 {
 	return std::string( "\015\012" ) ;
 }
@@ -271,27 +284,38 @@ void GSmtp::StoredFile::fail( const std::string & reason )
 {
 	try
 	{
-		FileWriter claim_writer ;
-
-		// write the reason into the file
+		if( G::File::exists( m_envelope_path ) ) // client-side preprocessing may have removed it
 		{
-			std::ofstream file( m_envelope_path.str().c_str() ,
-				std::ios_base::binary | std::ios_base::app ) ; // app not ate for win32
-			file << FileStore::x() << "Reason: " << reason << crlf() ;
+			addReason( m_envelope_path , reason ) ;
+
+			G::Path bad_path = badPath( m_envelope_path ) ;
+			G_LOG_S( "GSmtp::StoredMessage: failing file: "
+				<< "\"" << m_envelope_path.basename() << "\" -> "
+				<< "\"" << bad_path.basename() << "\"" ) ;
+
+			FileWriter claim_writer ;
+			G::File::rename( m_envelope_path , bad_path , G::File::NoThrow() ) ;
 		}
-
-		G::Path env_temp( m_envelope_path ) ; // "foo.envelope.busy"
-		env_temp.removeExtension() ; // "foo.envelope"
-		G::Path bad( env_temp.str() + ".bad" ) ; // "foo.envelope.bad"
-		G_LOG_S( "GSmtp::StoredMessage: failing file: "
-			<< "\"" << m_envelope_path.basename() << "\" -> "
-			<< "\"" << bad.basename() << "\"" ) ;
-
-		G::File::rename( m_envelope_path , bad , G::File::NoThrow() ) ;
 	}
 	catch(...)
 	{
 	}
+}
+
+//static
+void GSmtp::StoredFile::addReason( const G::Path & path , const std::string & reason )
+{
+	FileWriter claim_writer ;
+	std::ofstream file( path.str().c_str() ,
+		std::ios_base::binary | std::ios_base::app ) ; // app not ate for win32
+	file << FileStore::x() << "Reason: " << reason << crlf() ;
+}
+
+//static
+G::Path GSmtp::StoredFile::badPath( G::Path busy_path )
+{
+	busy_path.removeExtension() ; // "foo.envelope.busy" -> "foo.envelope"
+	return G::Path( busy_path.str() + ".bad" ) ; // "foo.envelope.bad"
 }
 
 void GSmtp::StoredFile::destroy()
@@ -320,11 +344,6 @@ const std::string & GSmtp::StoredFile::from() const
 const G::Strings & GSmtp::StoredFile::to() const
 {
 	return m_to_remote ;
-}
-
-bool GSmtp::StoredFile::preprocess()
-{
-	return m_store_preprocessor.process( contentPath().str() ) ;
 }
 
 std::auto_ptr<std::istream> GSmtp::StoredFile::extractContentStream()

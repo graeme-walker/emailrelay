@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -29,6 +29,7 @@
 #include "gnewmessage.h"
 #include "gstoredmessage.h"
 #include "gexception.h"
+#include "gslot.h"
 #include "gstrings.h"
 #include "gpath.h"
 
@@ -106,6 +107,20 @@ public:
 		// As a side effect of iteration when 'lock' is true,
 		// then some stored messages may be marked as bad,
 		// or deleted (if they have no recipients).
+
+	virtual void repoll() = 0 ;
+		// Ensures that the next updated() signal() has
+		// its parameter set to true.
+
+	virtual void updated() = 0 ;
+		// Called by associated classes to indicate that the
+		// store has changed. Results in the signal() being
+		// emited.
+
+	virtual G::Signal1<bool> & signal() = 0 ;
+		// Provides a signal which is activated when something might
+		// have changed in the store. The boolean parameter is used
+		// to indicate that repoll()ing is requested.
 
 private:
 	void operator=( const MessageStore & ) ; // not implemented

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -32,12 +32,15 @@
 #include "glog.h"
 
 GSmtp::ProtocolMessageScanner::ProtocolMessageScanner( MessageStore & store ,
+	const G::Executable & newfile_preprocessor ,
+	const GSmtp::Client::Config & client_config ,
 	const Secrets & client_secrets ,
 	const std::string & smtp_server ,
-	unsigned int smtp_response_timeout , unsigned int smtp_connection_timeout ,
+	unsigned int smtp_connection_timeout ,
 	const std::string & scanner_server ,
 	unsigned int scanner_response_timeout , unsigned int scanner_connection_timeout ) :
-		ProtocolMessageForward(store,client_secrets,smtp_server,smtp_response_timeout,smtp_connection_timeout),
+		ProtocolMessageForward(store,newfile_preprocessor,client_config,
+			client_secrets,smtp_server,smtp_connection_timeout),
 		m_store(store) ,
 		m_scanner_server(scanner_server) ,
 		m_scanner_response_timeout(scanner_response_timeout) ,

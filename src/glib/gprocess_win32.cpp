@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,6 +26,7 @@
 #include "gexception.h"
 #include "gstr.h"
 #include "glog.h"
+#include <sstream>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <process.h>
@@ -148,8 +149,15 @@ int G::Process::errno_()
 	return errno ;
 }
 
+std::string G::Process::strerror( int errno_ )
+{
+	std::stringstream ss ;
+	ss << errno_ ; // could do better
+	return ss.str() ;
+}
+
 int G::Process::spawn( Identity , const Path & exe_path , const Strings & args ,
-	std::string * pipe_result_p , int error_return )
+	std::string * pipe_result_p , int error_return , std::string (*fn)(int) )
 {
 	G_DEBUG( "G::Process::spawn: [" << exe_path << "]: [" << Str::join(args,"],[") << "]" ) ;
 
@@ -163,6 +171,8 @@ int G::Process::spawn( Identity , const Path & exe_path , const Strings & args ,
 	{
 		DWORD e = ::GetLastError() ;
 		G_ERROR( "G::Process::spawn: create-process error " << e << ": " << command_line ) ;
+		if( fn != 0 && pipe_result_p != NULL )
+			*pipe_result_p = (*fn)(static_cast<int>(e)) ;
 		return error_return ;
 	}
 

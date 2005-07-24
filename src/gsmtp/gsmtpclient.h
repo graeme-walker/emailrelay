@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -33,10 +33,12 @@
 #include "gclientprotocol.h"
 #include "gmessagestore.h"
 #include "gstoredmessage.h"
+#include "gprocessor.h"
 #include "gsocket.h"
 #include "gslot.h"
 #include "gtimer.h"
 #include "gstrings.h"
+#include "gexe.h"
 #include "gexception.h"
 #include <memory>
 #include <iostream>
@@ -57,20 +59,25 @@ class GSmtp::Client : private GNet::Client , private GNet::TimeoutHandler , priv
 public:
 	G_EXCEPTION( NotConnected , "not connected" ) ;
 
-	Client( MessageStore & store ,
-		const Secrets & secrets , const GNet::Address & local_address ,
-		bool quit_on_disconnect , unsigned int response_timeout ) ;
-			// Constructor. The 'store' and 'secrets'
-			// references are kept.
+	struct Config // A structure containing GSmtp::Client configuration parameters.
+	{
+		G::Executable storedfile_preprocessor ;
+		GNet::Address local_address ;
+		ClientProtocol::Config client_protocol_config ;
+		Config( G::Executable , GNet::Address , ClientProtocol::Config ) ;
+	} ;
+
+	Client( MessageStore & store , const Secrets & secrets , Config config , bool quit_on_disconnect ) ;
+			// Constructor for sending messages from the message
+			// store. The 'store' and 'secrets' references are
+			// kept.
 			//
 			// The doneSignal() is used to indicate that
 			// all message processing has finished
 			// or that the server connection has
 			// been lost.
 
-	Client( std::auto_ptr<StoredMessage> message ,
-		const Secrets & secrets , const GNet::Address & local_address ,
-		unsigned int response_timeout ) ;
+	Client( std::auto_ptr<StoredMessage> message , const Secrets & secrets , Config config ) ;
 			// Constructor for sending a single message.
 			// The 'secrets' reference is kept.
 			//
@@ -84,6 +91,9 @@ public:
 
 	virtual ~Client() ;
 		// Destructor.
+
+	void reset() ;
+		// Resets the object so that it becomes a non-functional zombie.
 
 	G::Signal1<std::string> & doneSignal() ;
 		// Returns a signal which indicates that client processing
@@ -130,6 +140,8 @@ private:
 	virtual void onError( const std::string & error ) ; // GNet::Client
 	virtual bool protocolSend( const std::string & , size_t ) ; // ClientProtocol::Sender
 	void protocolDone( bool , bool , std::string ) ; // ClientProtocol::doneSignal()
+	void preprocessorStart() ;
+	void preprocessorDone( bool ) ;
 	virtual void onTimeout( GNet::Timer & ) ; // GNet::TimeoutHandler
 	std::string init( const std::string & , const std::string & , unsigned int ) ;
 	GNet::Socket & socket() ;
@@ -145,6 +157,7 @@ private:
 
 private:
 	MessageStore * m_store ;
+	Processor m_storedfile_preprocessor ;
 	std::auto_ptr<StoredMessage> m_message ;
 	MessageStore::Iterator m_iter ;
 	GNet::LineBuffer m_buffer ;
@@ -155,8 +168,6 @@ private:
 	G::Signal2<std::string,std::string> m_event_signal ;
 	std::string m_host ;
 	GNet::Timer m_connect_timer ;
-	GNet::Timer m_preprocess_timer ;
-	unsigned int m_message_index ;
 	bool m_busy ;
 	bool m_force_message_fail ;
 } ;

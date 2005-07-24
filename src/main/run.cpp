@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -52,7 +52,7 @@
 //static
 std::string Main::Run::versionNumber()
 {
-	return "1.3.1" ;
+	return "1.3.3" ;
 }
 
 Main::Run::Run( Main::Output & output , const G::Arg & arg , const std::string & switch_spec ) :
@@ -142,12 +142,12 @@ void Main::Run::run()
 	}
 	catch( std::exception & e )
 	{
-		G_LOG( "Main::Run::run: exception: " << e.what() ) ;
+		G_ERROR( "Main::Run::run: exception: " << e.what() ) ;
 		throw ;
 	}
 	catch(...)
 	{
-		G_LOG( "Main::Run::run: unknown exception" ) ;
+		G_ERROR( "Main::Run::run: unknown exception" ) ;
 		throw ;
 	}
 }
@@ -208,8 +208,7 @@ void Main::Run::runCore()
 
 	// message store singleton
 	//
-	m_store <<= new GSmtp::FileStore( cfg().spoolDir() ,
-		G::Executable(cfg().filter()) , G::Executable(cfg().clientFilter()) ) ;
+	m_store <<= new GSmtp::FileStore( cfg().spoolDir() ) ;
 	m_store->signal().connect( G::slot(*this,&Run::raiseStoreEvent) ) ;
 
 	// authentication secrets
@@ -247,27 +246,17 @@ void Main::Run::doServing( GSmtp::MessageStore & store , const GSmtp::Secrets & 
 	std::auto_ptr<GSmtp::Server> smtp_server ;
 	if( cfg().doSmtp() )
 	{
-		GSmtp::Server::AddressList interfaces ;
-		if( cfg().listeningInterface().length() )
-			interfaces.push_back( GNet::Address(cfg().listeningInterface(),cfg().port()) ) ;
-
 		smtp_server <<= new GSmtp::Server(
 			store ,
+			client_secrets ,
 			server_secrets ,
 			GSmtp::Verifier(G::Executable(cfg().verifier()),cfg().deliverToPostmaster(),
 				cfg().rejectLocalMailboxes()) ,
-			smtpIdent() ,
-			cfg().allowRemoteClients() ,
-			cfg().port() ,
-			interfaces ,
+			serverConfig() ,
 			cfg().immediate() ? cfg().serverAddress() : std::string() ,
-			cfg().responseTimeout() ,
 			cfg().connectionTimeout() ,
-			client_secrets ,
-			cfg().scannerAddress() ,
-			cfg().scannerResponseTimeout() ,
-			cfg().scannerConnectionTimeout() ,
-			cfg().anonymous() ) ;
+			clientConfig() ) ;
+
 	}
 
 	if( cfg().doAdmin() )
@@ -290,12 +279,12 @@ void Main::Run::doServing( GSmtp::MessageStore & store , const GSmtp::Secrets & 
 
 		m_admin_server <<= new GSmtp::AdminServer(
 			store ,
+			clientConfig() ,
 			client_secrets ,
 			listening_address ,
 			cfg().allowRemoteClients() ,
 			local_address ,
 			cfg().serverAddress() ,
-			cfg().responseTimeout() ,
 			cfg().connectionTimeout() ,
 			extra_commands_map ,
 			cfg().withTerminate() ) ;
@@ -337,7 +326,7 @@ void Main::Run::doForwarding( GSmtp::MessageStore & store , const GSmtp::Secrets
 	GNet::Address local_address = cfg().clientInterface().length() ?
 		GNet::Address(cfg().clientInterface(),0U ) : GNet::Address( 0U ) ;
 
-	GSmtp::Client client( store , secrets , local_address , quit_on_disconnect , cfg().responseTimeout() ) ;
+	GSmtp::Client client( store , secrets , clientConfig() , quit_on_disconnect ) ;
 
 	client.doneSignal().connect( G::slot(*this,&Run::clientDone) ) ;
 	client.eventSignal().connect( G::slot(*this,&Run::clientEvent) ) ;
@@ -347,6 +336,43 @@ void Main::Run::doForwarding( GSmtp::MessageStore & store , const GSmtp::Secrets
 
 	closeMoreFiles() ;
 	event_loop.run() ;
+}
+
+GSmtp::Server::Config Main::Run::serverConfig() const
+{
+	GSmtp::Server::AddressList interfaces ;
+	if( cfg().listeningInterface().length() )
+		interfaces.push_back( GNet::Address(cfg().listeningInterface(),cfg().port()) ) ;
+
+	return
+		GSmtp::Server::Config(
+			cfg().allowRemoteClients() ,
+			cfg().port() ,
+			interfaces ,
+			smtpIdent() ,
+			cfg().anonymous() ,
+			cfg().scannerAddress() ,
+			cfg().scannerResponseTimeout() ,
+			cfg().scannerConnectionTimeout() ,
+			G::Executable(cfg().filter()) ,
+			cfg().filterTimeout() ) ;
+}
+
+GSmtp::Client::Config Main::Run::clientConfig() const
+{
+	return
+		GSmtp::Client::Config(
+			G::Executable(cfg().clientFilter()) ,
+			cfg().clientInterface().length() ?
+				GNet::Address(cfg().clientInterface(),0U ) :
+				GNet::Address( 0U ) ,
+			GSmtp::ClientProtocol::Config(
+				GNet::Local::fqdn() ,
+				cfg().responseTimeout() ,
+				10U , // ("service ready" timeout)
+				cfg().filterTimeout() ,
+				true , // (must-authenticate)
+				false ) ) ;  // (eight-bit-strict)
 }
 
 void Main::Run::onTimeout( GNet::Timer & timer )
@@ -381,7 +407,7 @@ std::string Main::Run::doPoll()
 			GNet::Address(cfg().clientInterface(),0U ) : GNet::Address( 0U ) ;
 
 		m_client <<= new GSmtp::Client( *m_store.get() , *m_client_secrets.get() ,
-			local_address , quit_on_disconnect , cfg().responseTimeout() ) ;
+			clientConfig() , quit_on_disconnect ) ;
 
 		m_client->doneSignal().connect( G::slot(*this,&Run::clientDone) ) ;
 		m_client->eventSignal().connect( G::slot(*this,&Run::clientEvent) ) ;

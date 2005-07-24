@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -40,6 +40,7 @@
 #include "gmessagestore.h"
 #include "gfilestore.h"
 #include "gsmtpclient.h"
+#include "gsmtpserver.h"
 #include "gadminserver.h"
 #include <iostream>
 #include <exception>
@@ -110,6 +111,8 @@ private:
 	std::string doPoll() ;
 	void checkPorts() const ;
 	static void checkPort( const std::string & , unsigned int ) ;
+	GSmtp::Client::Config clientConfig() const ;
+	GSmtp::Server::Config serverConfig() const ;
 
 private:
 	Output & m_output ;

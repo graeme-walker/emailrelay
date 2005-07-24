@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -20,6 +20,8 @@
 //
 // md5.h
 //
+// An implementation of the RFC-1321 message digest algorithm.
+//
 // This code was developed from main body of RFC 1321 without reference to the
 // RSA reference implementation in the appendix.
 //
@@ -34,14 +36,15 @@
 #ifndef MD5_GHW_H
 #define MD5_GHW_H
 
-#include <string>
+#include <string> // std::string
+#include <cstdlib> // std::size_t
 
 namespace md5
 {
 	typedef unsigned long big_t ; ///< To hold at least 32 bits, maybe more.
 	typedef unsigned int small_t ; ///< To hold at least a size_t.
 	typedef char assert_big_t_is_big_enough[sizeof(big_t)>=4U?1:-1] ; ///< A static assertion check.
-	typedef char assert_small_t_is_big_enough[sizeof(big_t)>=sizeof(size_t)?1:-1] ; ///< A static assertion check.
+	typedef char assert_small_t_is_big_enough[sizeof(big_t)>=sizeof(std::size_t)?1:-1] ; ///< A static assertion check.
 	class digest ;
 	class digest_stream ;
 	class format ;
@@ -63,10 +66,18 @@ namespace md5
 /// inconvenient, so the md5::digest_stream class is provided to allow
 /// calculation of digests from a stream of arbitrarily-sized data blocks.
 ///
+/// \code
+///	std::string hash( const std::string & in )
+///	{
+///		md5::digest d( in ) ;
+///		return md5::format::rfc( d ) ;
+///	}
+/// \endcode
+///
 class md5::digest
 {
 public:
-	struct state_type ///< Holds the md5 algorithm state. Used by md5::digest.
+	struct state_type /// Holds the md5 algorithm state. Used by md5::digest.
 		{ big_t a ; big_t b ; big_t c ; big_t d ; } ;
 
 	digest() ;
@@ -104,7 +115,6 @@ private:
 
 private:
 	explicit digest( const block & ) ;
-	digest( const digest & ) ;
 	void add( const digest & ) ;
 	void init() ;
 	void calculate( const block & ) ;
@@ -185,11 +195,12 @@ public:
 		///< padding. In practice 0..55 maps to 1, 56..119 maps to
 		///< 2, etc.
 
+	big_t X( small_t ) const ;
+		///< Returns a value from within the block. See RFC 1321.
+
 private:
-	friend class digest ;
 	block( const block & ) ; // not implemented
 	void operator=( const block & ) ; // not implemented
-	big_t X( small_t ) const ;
 	small_t x( small_t ) const ;
 	static small_t rounded( small_t n ) ;
 
@@ -208,6 +219,21 @@ private:
 /// allows incremental calculation of an md5 digest without
 /// requiring either the complete input string or precise
 /// 64-byte blocks.
+///
+/// \code
+///	std::string hash( std::istream & in )
+///	{
+///		md5::digest_stream d ;
+///		while( in.good() )
+///		{
+///			std::string line ;
+///			std::getline( in , line ) ;
+///			d.add( line ) ;
+///		}
+///		d.close() ;
+///		return md5::format::rfc( d ) ;
+///	}
+/// \endcode
 ///
 class md5::digest_stream
 {

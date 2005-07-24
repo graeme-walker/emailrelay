@@ -9,7 +9,7 @@ Section: User Commands  (1)<BR>Updated: local<BR><A HREF="#index">Index</A>
 <A NAME="lbAB">&nbsp;</A>
 <H2>NAME</H2>
 
-emailrelay - e-mail transfer agent
+emailrelay - e-mail transfer agent and proxy
 <A NAME="lbAC">&nbsp;</A>
 <H2>SYNOPSIS</H2>
 
@@ -40,8 +40,9 @@ emailrelay - e-mail transfer agent
 
 <I>emailrelay</I>
 
-is an simple e-mail message transfer agent. It does store-and-forward
-mail relay to a fixed next-hop server, without any routing. 
+is a simple SMTP proxy and store-and-forward message transfer agent.
+It does store-and-forward mail relay to a fixed next-hop server, without 
+any routing. 
 <P>
 
 It runs in two main modes: a storage daemon 
@@ -53,7 +54,7 @@ agent
 
 The storage daemon is an SMTP server which stores e-mail 
 messages in a local spool directory. The forwarding agent acts as an
-SMTP client, which passes the spooled e-mail messages on to the next
+SMTP client sending the spooled e-mail messages on to the next
 SMTP server in the chain.
 <P>
 
@@ -61,7 +62,8 @@ It can also run in a third mode, as a proxy server
 (<I>--as-proxy</I>).
 
 In this mode all messages are forwarded immediately to the next-hop
-server.
+server. Messages are only fully accepted from the sender once they
+have been successfully delivered to the next-hop server.
 <A NAME="lbAE">&nbsp;</A>
 <H2>OPTIONS</H2>
 
@@ -429,10 +431,10 @@ FHS style...
 <A NAME="lbAG">&nbsp;</A>
 <H2>SEE ALSO</H2>
 
-E-MailRelay user guide
+E-MailRelay user guide, (<A HREF="http://emailrelay.sourceforge.net/user.html).">http://emailrelay.sourceforge.net/user.html).</A>
 <BR>
 
-E-MailRelay reference
+E-MailRelay reference, (<A HREF="http://emailrelay.sourceforge.net/reference.html).">http://emailrelay.sourceforge.net/reference.html).</A>
 <BR>
 
 <B><A HREF="http://localhost/cgi-bin/man/man2html?1+emailrelay-submit">emailrelay-submit</A></B>(1),
@@ -468,7 +470,7 @@ Graeme Walker, mailto:<A HREF="mailto:graeme_walker@users.sourceforge.net">graem
 This document was created by
 <A HREF="http://localhost/cgi-bin/man/man2html">man2html</A>,
 using the manual pages.<BR>
-Time: 15:37:43 GMT, May 09, 2004
+Time: 14:38:57 GMT, July 24, 2005
 </BODY>
 </HTML>
-<!-- Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved. -->
+<!-- Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved. -->

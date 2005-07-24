@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -127,6 +127,10 @@ public:
 
 	std::string clientFilter() const ;
 		// Returns the path to a client-side pre-processor.
+
+	unsigned int filterTimeout() const ;
+		// Returns the timeout for executing an ansynchronous
+		// filter() or clientFilter() program.
 
 	unsigned int icon() const ;
 		// Returns the icon selector (win32).

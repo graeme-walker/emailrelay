@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -45,15 +45,14 @@ public:
 	virtual std::string name() const = 0 ;
 		// Returns some sort of unique identifier for the message.
 
+	virtual std::string location() const = 0 ;
+		// Returns another sort of unique identifier for the message.
+
 	virtual const std::string & from() const = 0 ;
 		// Returns the envelope 'from' field.
 
 	virtual const G::Strings & to() const = 0 ;
 		// Returns the envelope 'to' fields.
-
-	virtual bool preprocess() = 0 ;
-		// Does synchronous pre-processing. Returns false
-		// on error.
 
 	virtual std::auto_ptr<std::istream> extractContentStream() = 0 ;
 		// Extracts the content stream.
@@ -78,6 +77,10 @@ public:
 
 	virtual size_t errorCount() const = 0 ;
 		// Returns the number of accumulated submission errors.
+
+	virtual void sync() = 0 ;
+		// Syncronises the message object with the underlying
+		// storage.
 
 	virtual ~StoredMessage() ;
 		// Destructor.

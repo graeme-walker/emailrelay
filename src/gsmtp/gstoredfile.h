@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -28,7 +28,6 @@
 #include "gsmtp.h"
 #include "gmessagestore.h"
 #include "gexe.h"
-#include "gprocessor.h"
 #include "gstoredmessage.h"
 #include "gexception.h"
 #include "gpath.h"
@@ -56,7 +55,7 @@ public:
 	G_EXCEPTION( StreamError , "envelope reading/parsing error" ) ;
 	G_EXCEPTION( InvalidFilename , "invalid filename" ) ;
 
-	StoredFile( FileStore & store , Processor & store_preprocessor , const G::Path & envelope_path ) ;
+	StoredFile( FileStore & store , const G::Path & envelope_path ) ;
 		// Constructor.
 
 	virtual ~StoredFile() ;
@@ -78,6 +77,9 @@ public:
 	virtual std::string name() const ;
 		// From StoredMessage.
 
+	virtual std::string location() const ;
+		// From StoredMessage.
+
 	virtual bool eightBit() const ;
 		// From StoredMessage.
 
@@ -88,9 +90,6 @@ public:
 		// From StoredMessage.
 
 	virtual std::string authentication() const ;
-		// From StoredMessage.
-
-	virtual bool preprocess() ;
 		// From StoredMessage.
 
 	virtual void destroy() ;
@@ -108,10 +107,13 @@ public:
 	virtual size_t errorCount() const ;
 		// From StoredMessage.
 
+	virtual void sync() ;
+		// From StoredMessage.
+
 private:
 	StoredFile( const StoredFile & ) ;
 	void operator=( const StoredFile & ) ;
-	std::string crlf() const ;
+	static std::string crlf() ;
 	std::string getline( std::istream & stream ) const ;
 	std::string value( const std::string & s , const std::string & k = std::string() ) const ;
 	G::Path contentPath() const ;
@@ -124,11 +126,12 @@ private:
 	void readAuthentication( std::istream & stream ) ;
 	void readClientIp( std::istream & stream ) ;
 	void readEnvelopeCore( bool ) ;
+	static void addReason( const G::Path & path , const std::string & reason ) ;
+	static G::Path badPath( G::Path ) ;
 	void unlock() ;
 
 private:
 	FileStore & m_store ;
-	Processor & m_store_preprocessor ;
 	G::Strings m_to_local ;
 	G::Strings m_to_remote ;
 	std::string m_from ;

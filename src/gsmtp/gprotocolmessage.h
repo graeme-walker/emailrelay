@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -29,6 +29,7 @@
 #include "gslot.h"
 #include "gstrings.h"
 #include "gverifier.h"
+#include "gexception.h"
 #include <string>
 
 namespace GSmtp
@@ -37,17 +38,36 @@ namespace GSmtp
 }
 
 // Class: GSmtp::ProtocolMessage
-// Description: An interface used by the ServerProtocol
-// class to assemble and process an incoming message.
-// It implements the three 'buffers' mentioned in
-// RFC2821 (esp. section 4.1.1).
+// Description: An interface used by the ServerProtocol class
+// to assemble and process an incoming message. It implements
+// the three 'buffers' mentioned in RFC2821 (esp. section 4.1.1).
 //
-// This interface serves to decouple the ServerProtocol class
-// from the MessageStore (or whatever else is downstream).
+// This interface serves to decouple the protocol class from
+// the downstream message processing -- hence the name. Derived
+// classes implement different types of downstream processing.
+// For store-and-forward behaviour the ProtocolMessageStore
+// class uses GSmtp::MessageStore to store messages; for proxying
+// behaviour the ProtocolMessageForward class uses GSmtp::Client
+// to do immediate forwarding.
+//
+// The interface is used by the protocol class in the following
+// sequence:
+// - clear()
+// - setFrom()
+// - prepare() -> preparedSignal() [async]
+// - addTo() [1..n]
+// - addReceived() [0..n]
+// - addText() [0..n]
+// - process() -> doneSignal() [async]
+//
+// The prepare() and process() methods are asynchronous, but
+// note that the completion signals may be emited before the
+// initiating call returns.
 //
 class GSmtp::ProtocolMessage
 {
 public:
+	G_EXCEPTION( ProcessingError , "error storing message" ) ;
 
 	virtual ~ProtocolMessage() ;
 		// Destructor.

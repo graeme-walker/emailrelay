@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -19,6 +19,8 @@
 // ===
 //
 // md5.cpp
+//
+// An implementation of the RFC-1321 message digest algorithm.
 //
 // This code was developed from main body of RFC 1321 without reference to the
 // RSA reference implementation in the appendix.
@@ -82,14 +84,6 @@ void md5::digest::init()
 	b = 0xefcdab89UL ;
 	c = 0x98badcfeUL ;
 	d = 0x10325476UL ;
-}
-
-md5::digest::digest( const digest & other ) :
-	a(other.a) ,
-	b(other.b) ,
-	c(other.c) ,
-	d(other.d)
-{
 }
 
 void md5::digest::add( const digest & other )
@@ -422,7 +416,8 @@ void md5::digest_stream::add( const std::string & s )
 
 void md5::digest_stream::close()
 {
-	m_digest.add( block(m_buffer,0U,block::end(m_length)) ) ;
+	block b( m_buffer , 0U , block::end(m_length) ) ;
+	m_digest.add( b ) ;
 	m_buffer.erase() ;
 }
 

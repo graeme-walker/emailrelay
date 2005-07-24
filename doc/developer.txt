@@ -38,6 +38,43 @@ high-level "GSmtp::Server" and "GSmtp::Client" classes.
 Simplified class diagrams for the *GNet* [gnet-classes.png] and
 *GSmtp* [gsmtp-classes.png] namespaces are available.
 
+Event model
+-----------
+The E-MailRelay server uses non-blocking socket i/o, with a select() event loop.
+This event model means that the server can handle multiple clients
+simultaneously from a single thread and the only significant blocking occurs
+when external programs are executed (see "--filter" and "--verifier").
+
+See *C10K Problem* [http://www.kegel.com/c10k.html] for a discussion of
+different network event models.
+
+At higher levels the slot/signal design pattern is used to propagate events
+between objects (not to be confused with operating system signals).
+
+Protocol implementation
+-----------------------
+The SMTP protocols (client-side and server-side) are implemented using state
+machines.  This fits well with the single-threaded, non-blocking event model
+since the protocol state can be stored as data within an object rather than
+being implicit in the progress of a thread's execution.
+
+Diagrams
+--------
+Class diagrams:
+* *GNet namespace* [gnet-classes.png]
+* *GSmtp namespace* [gsmtp-classes.png]
+
+State transition diagrams:
+* *GNet::Client* [gnet-client.png]
+* *GSmtp::ServerProtocol* [gsmtp-serverprotocol.png]
+* *GSmtp::ScannerClient* [gsmtp-scannerclient.png]
+
+Sequence diagrams:
+* *Proxy mode forwarding* [sequence-3.png]
+* *Scanning* [sequence-4.png]
+* *ProtocolMessage::prepare() returns false* [sequence-1.png]
+* *ProtocolMessage::prepare() returns true* [sequence-2.png]
+
 Directory structure
 -------------------
 
@@ -78,61 +115,22 @@ Directory structure
 
   Standard headers which are missing (or broken) in msvc6.0
 
-Event model
------------
-The E-MailRelay server uses non-blocking socket i/o, with a select() event loop.
-This event model means that the server can handle multiple clients simultaneously
-from a single thread. The only significant blocking occurs when external programs
-are executed (see "--filter" and "--verifier").
-
-At higher levels the slot/signal design pattern is used to propagate events
-between objects.
-
-Diagrams
---------
-Class diagrams:
-* *GNet namespace* [gnet-classes.png]
-* *GSmtp namespace* [gsmtp-classes.png]
-
-State transition diagrams:
-* *GNet::Client* [gnet-client.png]
-* *GSmtp::ServerProtocol* [gsmtp-serverprotocol.png]
-* *GSmtp::ScannerClient* [gsmtp-scannerclient.png]
-
-Sequence diagrams:
-* *Proxy mode forwarding* [sequence-3.png]
-* *Scanning* [sequence-4.png]
-* *ProtocolMessage::prepare() returns false* [sequence-1.png]
-* *ProtocolMessage::prepare() returns true* [sequence-2.png]
-
 Portability
 -----------
-The E-MailRelay code is written in ANSI C++, using the following
-language/library features:
-* templates
-* exceptions
-* namespaces
-* "explicit"
-* STL
-* std::string & std::stringstream
-* dynamic_cast<> & RTTI
-* static_cast<> & const_cast<>
-
-but not:
-* templated member functions
-* "mutable"
+The E-MailRelay code is written in ISO C++, although avoiding less-widely
+supported language features like "mutable", templated methods and "export".
 
 The header files "gdef.h" in "src/glib", and "gnet.h" in "src/gnet" are intended
-to be used to fix up portability issues such as missing standard types,
-non-standard system headers etc. Conditional compilation is not used outside
-of these headers (with the odd exception).
+to be used to fix up compiler portability issues such as missing standard types,
+non-standard system headers etc. Conditional compilation directives ("#if"
+etc.) are largely confined to these headers in order to improve readability.
 
-Deficiencies in the ANSI C++ headers files provided by the compiler are fixed up
-in the "lib" directory tree. For example, the msvc6.0 compiler sometimes does
-not put its names into the "std" namespace, even though the std-namespace
-headers are used. This can be worked round by additional "using" declarations
-in the "lib/msvc6.0" headers.  These work-rounds are kept out of the "src" tree
-because they are likely to be fixed in later compiler releases.
+Deficiencies in the ISO standard headers files provided by the compiler are
+fixed up by files in the "lib" directory tree. For example, the msvc6.0 compiler
+sometimes does not put its names into the "std" namespace, even though the
+std-namespace headers are used. This can be worked round by additional "using"
+declarations in the "lib/msvc6.0" headers.  These work-rounds are kept out of
+the "src" tree because they are likely to be fixed in later compiler releases.
 Standards-compliant compilers should not need to include any headers from the
 "lib" directory tree.
 
@@ -162,7 +160,8 @@ The following compile-time features can be enabled with some effort:
 
 # Verbose logging
 
-  Verbose logging can be enabled by defining the pre-processor symbol "_DEBUG".
+  Verbose logging is enabled by defining the pre-processor symbol "_DEBUG".
+  The configure script's "--enable-debug" switch can be used to do this.
   (See "src/glib/glog.h".)
 
 # Multiple listening ports
@@ -271,4 +270,4 @@ to reassign a std::auto_ptr<>.
 
 
 
-Copyright (C) 2001-2004 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
+Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
