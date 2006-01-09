@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -189,13 +189,13 @@ int G::Process::spawn( Identity , const Path & exe_path , const Strings & args ,
 
 G::Identity G::Process::beOrdinary( Identity identity , bool )
 {
-	// not implemented
+	// not implemented -- see also ImpersonateLoggedOnUser()
 	return identity ;
 }
 
 void G::Process::beSpecial( Identity , bool )
 {
-	// not implemented
+	// not implemented -- see also RevertToSelf()
 }
 
 void G::Process::revokeExtraGroups()

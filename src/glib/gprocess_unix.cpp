@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -300,11 +300,17 @@ std::string G::Process::strerror( int errno_ )
 	return std::string( p ? p : "" ) ;
 }
 
-void G::Process::beSpecial( Identity identity , bool change_group )
+void G::Process::beSpecial( Identity special_identity , bool change_group )
 {
-	const bool do_throw = false ; // only works if really root or if executable is suid
-	setEffectiveUserTo( identity , do_throw ) ;
-	if( change_group) setEffectiveGroupTo( identity , do_throw ) ;
+	// force a group change if not really root because change-group=false
+	// is only to avoid creating files with group ownership of "root"
+	// if started as root
+	if( ! Identity::real().isRoot() )
+		change_group = true ;
+
+	const bool do_throw = false ; // ignore errors
+	setEffectiveUserTo( special_identity , do_throw ) ;
+	if( change_group ) setEffectiveGroupTo( special_identity , do_throw ) ;
 }
 
 void G::Process::revokeExtraGroups()

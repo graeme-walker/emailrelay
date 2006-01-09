@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -28,8 +28,7 @@
 #include "gsmtp.h"
 #include "gpath.h"
 #include "gexception.h"
-#include <iostream>
-#include <map>
+#include "gsasl.h"
 
 namespace GSmtp
 {
@@ -43,33 +42,62 @@ namespace GSmtp
 //
 // See also: GSmtp::SaslClient, GSmtp::SaslServer
 //
-class GSmtp::Secrets
+class GSmtp::Secrets : public GSmtp::SaslClient::Secrets , public GSmtp::SaslServer::Secrets
 {
 public:
 	G_EXCEPTION( OpenError , "cannot read secrets file" ) ;
 
-	explicit Secrets( const std::string & storage_path , const std::string & debug_name = std::string() ) ;
-		// Constructor. In principle the storage_path can
-		// be a path to a file, a database connection
-		// string, etc.
+	explicit Secrets( const std::string & storage_path ,
+		const std::string & debug_name ,
+		const std::string & server_type = std::string() ) ;
+			// Constructor. In principle the repository 'storage-path'
+			// can be a path to a file, a database connection string,
+			// etc.
+			//
+			// The 'debug-name' is used in log and error messages to
+			// identify the repository.
+			//
+			// The 'server-type' parameter can be used to select
+			// a different set of server-side authentication records
+			// that may be stored in the same repository.
+			//
+			// Throws on error, although an empty path is not
+			// considered an error: see valid().
 
-	~Secrets() ;
+	virtual ~Secrets() ;
 		// Destructor.
 
-	bool valid() const ;
-		// Returns true if a valid file.
+	virtual bool valid() const ;
+		// Returns false if the path was empty.
+		//
+		// Override from Valid virtual base class.
 
-	std::string id( const std::string & mechanism ) const ;
+	virtual std::string id( const std::string & mechanism ) const ;
 		// Returns the default id for client-side
 		// authentication.
+		//
+		// Override from SaslClient::Secrets.
 
-	std::string secret( const std::string & mechanism ) const ;
+	virtual std::string secret( const std::string & mechanism ) const ;
 		// Returns the default secret for client-side
 		// authentication.
+		//
+		// Override from SaslClient::Secrets.
 
-	std::string secret(  const std::string & mechanism , const std::string & id ) const ;
-		// Returns the given user's secret. Returns the
-		// empty string if not a valid id.
+	virtual std::string secret(  const std::string & mechanism , const std::string & id ) const ;
+		// Returns the given user's secret for server-side
+		// authentication. Returns the empty string if not a
+		// valid id.
+		//
+		// Override from SaslServer::Secrets.
+
+	virtual bool contains( const std::string & mechanism ) const ;
+		// Returns true if there is one or more server
+		// secrets using the given mechanism. This can
+		// be used to limit the list of mechanisms
+		// advertised by a server.
+		//
+		// Override from SaslServer::Secrets.
 
 private:
 	Secrets( const Secrets & ) ; // not implemented

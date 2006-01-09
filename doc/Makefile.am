@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License
@@ -29,7 +29,8 @@ png_files=gsmtp-classes.png gnet-classes.png sequence-1.png sequence-2.png seque
 
 EXTRA_DIST = $(man_files_in) $(txt_files) $(html_files_in) $(html_files_thru) $(png_files)
 noinst_SCRIPTS = .dox
-e_man1_DATA = $(man_files_out)
+man1_MANS = $(man_files_in)
+#man1_DATA = $(man_files_out)
 e_doc_DATA = $(txt_files) $(html_files_out) $(html_files_thru) $(png_files)
 CLEANFILES = $(noinst_SCRIPTS) $(man_files_out) $(html_files_out) doxygen/*
 
@@ -95,7 +96,7 @@ emailrelay-submit.1.gz : emailrelay-submit.1
 emailrelay-poke.1.gz: emailrelay-poke.1
 	if test -n "$(GZIP)" ; then $(GZIP) -c $(top_srcdir)/doc/emailrelay-poke.1 > emailrelay-poke.1.gz ; fi
 
-install-data-local: install-e_docDATA install-e_man1DATA
+install-data-local: install-e_docDATA
 	$(mkinstalldirs) $(DESTDIR)$(e_docdir)/doxygen
 	if test "$(HAVE_DOXYGEN)" = "yes" ; then for file in doxygen/* ; do $(INSTALL) $$file $(DESTDIR)$(e_docdir)/$$file ; done ; fi
 

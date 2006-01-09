@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,7 +26,6 @@
 
 #include "gdef.h"
 #include "gsmtp.h"
-#include "gsecrets.h"
 #include "gexception.h"
 #include "gaddress.h"
 #include "gstrings.h"
@@ -40,7 +39,20 @@ namespace GSmtp
 	class SaslClientImp ;
 	class SaslServer ;
 	class SaslServerImp ;
+	class Valid ;
 }
+
+// Class: GSmtp::Valid
+// Description: A mix-in interface containing a valid() method.
+class GSmtp::Valid
+{
+public:
+	virtual bool valid() const = 0 ;
+		// Returns true if a valid source of information.
+
+	virtual ~Valid() ;
+		// Destructor.
+} ;
 
 // Class: GSmtp::SaslServer
 // Description: A class for implementing the server-side SASL
@@ -48,14 +60,23 @@ namespace GSmtp
 // and the SMTP extension for authentication is described
 // in RFC2554.
 //
+// Common SASL mechanisms are:
+// - GSSAPI [RFC2222]
+// - CRAM-MD5 [RFC2195]
+// - PLAIN [RFC2595]
+// - DIGEST-MD5 [RFC2831]
+// - KERBEROS_V5
+// - LOGIN
+//
 // Usage:
 /// SaslServer sasl( secrets ) ;
-/// if( sasl.init("MD5") )
+/// client.advertise( sasl.mechanisms() ) ;
+/// if( sasl.init(client.preferredMechanism()) )
 /// {
 ///   client.send( sasl.initialChallenge() ) ;
 ///   for(;;)
 ///   {
-///     std::string reply = client.read() ;
+///     std::string reply = client.receive() ;
 ///     bool done = false ;
 ///     std::string challenge = sasl.apply( reply , done ) ;
 ///     if( done ) break ;
@@ -69,8 +90,24 @@ namespace GSmtp
 class GSmtp::SaslServer
 {
 public:
-	explicit SaslServer( const Secrets & ) ;
-		// Constructor. The reference is kept.
+	class Secrets : public virtual Valid // An interface used by GSmtp::SaslServer to obtain authentication secrets.
+	{
+		public: virtual std::string secret( const std::string & mechanism, const std::string & id ) const = 0 ;
+		public: virtual ~Secrets() ;
+		public: virtual bool contains( const std::string & mechanism ) const = 0 ;
+		private: void operator=( const Secrets & ) ; // not implemented
+	} ;
+
+	SaslServer( const Secrets & , bool strict , bool force_one_mechanism ) ;
+		// Constructor. The secrets reference is kept.
+		//
+		// If the 'strict' flag is false then LOGIN is treated
+		// as a standard mechanism and therefore advertised
+		// by mechanisms().
+		//
+		// If the 'force' flag is true then the list of
+		// mechanisms returned by mechanisms() will never
+		// be empty, even if no authentication is possible.
 
 	~SaslServer() ;
 		// Destructor.
@@ -78,6 +115,13 @@ public:
 	bool active() const ;
 		// Returns true if the constructor's "secrets" object
 		// was valid. See also Secrets::valid().
+
+	std::string mechanisms( char sep = ' ' ) const ;
+		// Returns a list of supported, standard mechanisms
+		// that can be advertised to the client.
+		//
+		// Mechanisms (eg. APOP) may still be accepted by
+		// init() even though they are not advertised.
 
 	bool init( const std::string & mechanism ) ;
 		// Initialiser. Returns true if a supported mechanism.
@@ -89,7 +133,9 @@ public:
 
 	bool mustChallenge() const ;
 		// Returns true if the mechanism must start with
-		// a non-empty server challenge.
+		// a non-empty server challenge. Returns false for
+		// the "LOGIN" mechanism since the initial challenge
+		// ("username:") is not essential.
 
 	std::string initialChallenge() const ;
 		// Returns the initial server challenge. May return
@@ -106,9 +152,6 @@ public:
 	std::string id() const ;
 		// Returns the authenticated or trusted identity. Returns the
 		// empty string if not authenticated and not trusted.
-
-	std::string mechanisms( char sep = ' ' ) const ;
-		// Returns a list of supported mechanisms.
 
 	bool trusted( GNet::Address ) const ;
 		// Returns true if a trusted client that
@@ -132,6 +175,14 @@ private:
 class GSmtp::SaslClient
 {
 public:
+	class Secrets : public virtual Valid // An interface used by GSmtp::SaslClient to obtain authentication secrets.
+	{
+		public: virtual std::string id( const std::string & mechanism ) const = 0 ;
+		public: virtual std::string secret( const std::string & id ) const = 0 ;
+		public: virtual ~Secrets() ;
+		private: void operator=( const Secrets & ) ; // not implemented
+	} ;
+
 	SaslClient( const Secrets & secrets , const std::string & server_name ) ;
 		// Constructor. The secrets reference is kept.
 

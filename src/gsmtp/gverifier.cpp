@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -32,6 +32,15 @@
 #include "glocal.h"
 #include "gassert.h"
 #include "glog.h"
+
+GSmtp::Verifier::Status::Status() :
+	is_valid(false) ,
+	is_local(false) ,
+	temporary(false)
+{
+}
+
+// ==
 
 GSmtp::Verifier::Verifier( const G::Executable & external , bool deliver_to_postmaster , bool reject_local ) :
 	m_external(external) ,
@@ -145,6 +154,7 @@ GSmtp::Verifier::Status GSmtp::Verifier::verifyExternal( const std::string & add
 	else
 	{
 		status.is_valid = false ;
+		status.temporary = rc == 3 ;
 		status.reason = response.empty() ? G::Str::fromInt(rc) : response ;
 		G::Str::replaceAll( status.reason , "\n" , " " ) ;
 		status.reason = G::Str::toPrintableAscii( status.reason ) ;

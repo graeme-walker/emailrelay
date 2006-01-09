@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -27,13 +27,15 @@
 
 G::Identity::Identity() :
 	m_uid(0) ,
-	m_gid(0)
+	m_gid(0) ,
+	m_h(0)
 {
 }
 
 G::Identity::Identity( const std::string & ) :
 	m_uid(0) ,
-	m_gid(0)
+	m_gid(0) ,
+	m_h(0)
 {
 }
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -28,6 +28,7 @@
 #include "gsmtp.h"
 #include "gnoncopyable.h"
 #include "gexe.h"
+#include "gsender.h"
 #include "gserver.h"
 #include "gsmtpclient.h"
 #include "glinebuffer.h"
@@ -53,7 +54,7 @@ namespace GSmtp
 // Instances are created on the heap by Server (only).
 // See also: GSmtp::Server
 //
-class GSmtp::ServerPeer : public GNet::ServerPeer , private GSmtp::ServerProtocol::Sender
+class GSmtp::ServerPeer : public GNet::Sender , private GSmtp::ServerProtocol::Sender
 {
 public:
 	ServerPeer( GNet::Server::PeerInfo , Server & server , std::auto_ptr<ProtocolMessage> pmessage ,
@@ -64,11 +65,10 @@ public:
 private:
 	ServerPeer( const ServerPeer & ) ;
 	void operator=( const ServerPeer & ) ;
-	virtual void protocolSend( const std::string & line , bool ) ; // from ServerProtocol::Sender
-	virtual void protocolDone() ; // from ServerProtocol::Sender
+	virtual void protocolSend( const std::string & line ) ; // from ServerProtocol::Sender
+	virtual void onResume() ; // from GNet::Sender
 	virtual void onDelete() ; // from GNet::ServerPeer
 	virtual void onData( const char * , size_t ) ; // from GNet::ServerPeer
-	bool processLine( const std::string & line ) ;
 	static std::string crlf() ;
 
 private:

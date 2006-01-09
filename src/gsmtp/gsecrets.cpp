@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -27,7 +27,14 @@
 #include "groot.h"
 #include "gxtext.h"
 #include "gstr.h"
+#include "gdatetime.h"
+#include "gfile.h"
+#include "gmemory.h"
+#include <map>
+#include <set>
 #include <fstream>
+#include <utility> // std::pair
+#include <sstream>
 
 // Class: GSmtp::SecretsImp
 // Description: A private pimple-pattern implemtation class used by GSmtp::Secrets.
@@ -35,30 +42,43 @@
 class GSmtp::SecretsImp
 {
 public:
-	SecretsImp( const G::Path & path , const std::string & name ) ;
+	SecretsImp( const G::Path & path , bool auto_ , const std::string & name , const std::string & type ) ;
 	~SecretsImp() ;
 	bool valid() const ;
 	std::string id( const std::string & mechanism ) const ;
 	std::string secret( const std::string & mechanism ) const ;
 	std::string secret(  const std::string & mechanism , const std::string & id ) const ;
+	std::string path() const ;
+	bool contains( const std::string & mechanism ) const ;
 
 private:
 	void process( std::string mechanism , std::string side , std::string id , std::string secret ) ;
+	void read( const G::Path & ) ;
 	void read( std::istream & ) ;
+	void reread() const ;
+	void reread(int) ;
 
 private:
 	typedef std::map<std::string,std::string> Map ;
+	typedef std::set<std::string> Set ;
 	G::Path m_path ;
+	bool m_auto ;
 	std::string m_debug_name ;
+	std::string m_server_type ;
 	bool m_valid ;
 	Map m_map ;
+	Set m_set ;
+	G::DateTime::EpochTime m_file_time ;
+	G::DateTime::EpochTime m_check_time ;
 } ;
 
 // ===
 
-GSmtp::Secrets::Secrets( const std::string & path , const std::string & name ) :
-	m_imp( new SecretsImp(G::Path(path),name) )
+GSmtp::Secrets::Secrets( const std::string & path , const std::string & name , const std::string & type ) :
+	m_imp(NULL)
 {
+	const bool is_auto = true ;
+	m_imp = new SecretsImp( path , is_auto , name , type ) ;
 }
 
 GSmtp::Secrets::~Secrets()
@@ -86,34 +106,72 @@ std::string GSmtp::Secrets::secret(  const std::string & mechanism , const std::
 	return m_imp->secret( mechanism , id ) ;
 }
 
+bool GSmtp::Secrets::contains( const std::string & mechanism ) const
+{
+	return m_imp->contains( mechanism ) ;
+}
+
 // ===
 
-GSmtp::SecretsImp::SecretsImp( const G::Path & path , const std::string & debug_name ) :
-	m_path(path) ,
-	m_debug_name(debug_name)
+GSmtp::SecretsImp::SecretsImp( const G::Path & path , bool auto_ , const std::string & debug_name ,
+	const std::string & server_type ) :
+		m_path(path) ,
+		m_auto(auto_) ,
+		m_debug_name(debug_name) ,
+		m_server_type(server_type) ,
+		m_file_time(0) ,
+		m_check_time(G::DateTime::now())
 {
+	m_server_type = m_server_type.empty() ? std::string("server") : m_server_type ;
 	G_DEBUG( "GSmtp::Secrets: " << m_debug_name << ": \"" << path << "\"" ) ;
+	m_valid = ! path.str().empty() ;
+	if( m_valid )
+		read(path) ;
+}
 
-	if( path.str().empty() )
-	{
-		m_valid = false ;
-	}
-	else
+bool GSmtp::SecretsImp::valid() const
+{
+	return m_valid ;
+}
+
+void GSmtp::SecretsImp::read( const G::Path & path )
+{
+	std::auto_ptr<std::ifstream> file ;
 	{
 		G::Root claim_root ;
-		std::ifstream file( path.str().c_str() ) ;
-		if( !file.good() )
-			throw Secrets::OpenError( path.str() ) ;
-
-		read( file ) ;
-		m_valid = m_map.size() != 0U ;
+		file <<= new std::ifstream( path.str().c_str() ) ;
 	}
+	if( !file->good() )
+		throw Secrets::OpenError( std::ostringstream()
+			<< "reading \"" << path << "\" for " << m_debug_name << " secrets" ) ;
 
-	const bool debug = true ;
-	if( debug )
+	m_map.clear() ;
+	m_set.clear() ;
+	m_file_time = G::File::time( path ) ;
+	read( *file.get() ) ;
+}
+
+void GSmtp::SecretsImp::reread() const
+{
+	(const_cast<SecretsImp*>(this))->reread(0) ;
+}
+
+void GSmtp::SecretsImp::reread( int )
+{
+	G_DEBUG( "GSmtp::SecretsImp::reread" ) ;
+	if( m_auto )
 	{
-		for( Map::iterator p = m_map.begin() ; p != m_map.end() ; ++p )
-			G_DEBUG( "GSmtp::Secrets::ctor: \"" << (*p).first << "\", \"" << (*p).second << "\"" ) ;
+		G::DateTime::EpochTime now = G::DateTime::now() ;
+		G_DEBUG( "GSmtp::SecretsImp::reread: file time checked at " << m_check_time << ": now " << now ) ;
+		if( now == m_check_time ) return ; // at most once a second
+		m_check_time = now ;
+		G::DateTime::EpochTime t = G::File::time( m_path ) ;
+		G_DEBUG( "GSmtp::SecretsImp::reread: current file time " << t << ": saved file time " << m_file_time ) ;
+		if( t != m_file_time )
+		{
+			G_LOG_S( "GSmtp::Secrets: re-reading secrets file: " << m_path ) ;
+			(void) read( m_path ) ;
+		}
 	}
 }
 
@@ -137,56 +195,65 @@ void GSmtp::SecretsImp::read( std::istream & file )
 void GSmtp::SecretsImp::process( std::string mechanism , std::string side , std::string id , std::string secret )
 {
 	G::Str::toUpper( mechanism ) ;
-	const bool client = side.at(0U) == 'c' || side.at(0U) == 'C' ;
-	std::string key ;
-	std::string value ;
-	if( client )
+	if( side.at(0U) == m_server_type.at(0U) )
 	{
-		key = mechanism + " client" ;
-		value = id + " " + secret ;
+		// server-side
+		std::string key = mechanism + ":" + id ;
+		std::string value = secret ;
+		m_map.insert( std::make_pair(key,value) ) ;
+		m_set.insert( mechanism ) ;
 	}
-	else
+	else if( side.at(0U) == 'c' || side.at(0U) == 'C' )
 	{
-		key = mechanism + " server " + id ;
-		value = secret ;
+		// client-side -- no userid in the key since only one secret
+		std::string key = mechanism + " client" ;
+		std::string value = id + " " + secret ;
+		m_map.insert( std::make_pair(key,value) ) ;
 	}
-	m_map.insert( std::make_pair(key,value) ) ;
 }
 
 GSmtp::SecretsImp::~SecretsImp()
 {
 }
 
-bool GSmtp::SecretsImp::valid() const
-{
-	return m_valid ;
-}
-
 std::string GSmtp::SecretsImp::id( const std::string & mechanism ) const
 {
+	reread() ;
 	Map::const_iterator p = m_map.find( mechanism+" client" ) ;
 	std::string result ;
 	if( p != m_map.end() && (*p).second.find(" ") != std::string::npos )
-		result = Xtext::decode( (*p).second.substr(0U,(*p).second.find(" ")) ) ;
-	G_DEBUG( "GSmtp::Secrets::id: " << m_debug_name << ": \"" << mechanism << "\" -> \"" << result << "\"" ) ;
+		result = G::Xtext::decode( (*p).second.substr(0U,(*p).second.find(" ")) ) ;
+	G_DEBUG( "GSmtp::Secrets::id: " << m_debug_name << ": \"" << mechanism << "\"" ) ;
 	return result ;
 }
 
 std::string GSmtp::SecretsImp::secret( const std::string & mechanism ) const
 {
+	reread() ;
 	Map::const_iterator p = m_map.find( mechanism+" client" ) ;
 	if( p == m_map.end() || (*p).second.find(" ") == std::string::npos )
 		return std::string() ;
 	else
-		return Xtext::decode( (*p).second.substr((*p).second.find(" ")+1U) ) ;
+		return G::Xtext::decode( (*p).second.substr((*p).second.find(" ")+1U) ) ;
 }
 
 std::string GSmtp::SecretsImp::secret(  const std::string & mechanism , const std::string & id ) const
 {
-	Map::const_iterator p = m_map.find( mechanism+" server "+Xtext::encode(id) ) ;
+	reread() ;
+	Map::const_iterator p = m_map.find( mechanism+":"+G::Xtext::encode(id) ) ;
 	if( p == m_map.end() )
 		return std::string() ;
 	else
-		return Xtext::decode( (*p).second ) ;
+		return G::Xtext::decode( (*p).second ) ;
+}
+
+std::string GSmtp::SecretsImp::path() const
+{
+	return m_path.str() ;
+}
+
+bool GSmtp::SecretsImp::contains( const std::string & mechanism ) const
+{
+	return m_set.find(mechanism) != m_set.end() ;
 }
 

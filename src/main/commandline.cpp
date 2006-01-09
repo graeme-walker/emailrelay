@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -27,6 +27,7 @@
 #include "configuration.h"
 #include "commandline.h"
 #include "gmessagestore.h"
+#include "gpopsecrets.h"
 #include "gstr.h"
 #include "gdebug.h"
 
@@ -34,6 +35,8 @@
 std::string Main::CommandLine::switchSpec( bool is_windows )
 {
 	std::string dir = GSmtp::MessageStore::defaultDirectory().str() ;
+	std::string pop_auth = GPop::Secrets::defaultPath() ;
+	std::string pop_level = pop_auth.empty() ? "0" : "3" ;
 	std::ostringstream ss ;
 	ss
 		<< (is_windows?switchSpec_windows():switchSpec_unix()) << "|"
@@ -51,15 +54,15 @@ std::string Main::CommandLine::switchSpec( bool is_windows )
 		<< "s!spool-dir!specifies the spool directory (default is \"" << dir << "\")!1!dir!2|"
 		<< "V!version!displays version information and exits!0!!2|"
 		<< ""
-		<< "g!debug!generates debug-level logging (if compiled-in)!0!!3|"
-		<< "C!client-auth!enables authentication with remote server, using the given secrets file!1!file!3|"
+		<< "g!debug!generates debug-level logging if compiled-in!0!!3|"
+		<< "C!client-auth!enables smtp authentication with remote server, using the given secrets file!1!file!3|"
 		<< "L!log-time!adds a timestamp to the logging output!0!!3|"
 		<< "S!server-auth!enables authentication of remote clients, using the given secrets file!1!file!3|"
 		<< "e!close-stderr!closes the standard error stream after start-up!0!!3|"
 		<< "a!admin!enables the administration interface and specifies its listening port number!"
 			<< "1!admin-port!3|"
-		<< "x!dont-serve!disables acting as a server (usually used with --forward)!0!!3|"
-		<< "X!dont-listen!disables listening for smtp connections (usually used with --admin)!0!!3|"
+		<< "x!dont-serve!disables acting as a server on any port (part of --as-client and usually used with --forward)!0!!3|"
+		<< "X!no-smtp!disables listening for smtp connections (usually used with --admin or --pop)!0!!3|"
 		<< "z!filter!specifies an external program to process messages as they are stored!1!program!3|"
 		<< "D!domain!sets an override for the host's fully qualified domain name!1!fqdn!3|"
 		<< "f!forward!forwards stored mail on startup (requires --forward-to)!0!!3|"
@@ -78,6 +81,11 @@ std::string Main::CommandLine::switchSpec( bool is_windows )
 		<< "R!scanner!specifies an external network server to process messages when they are stored!1!host:port!3|"
 		<< "Q!admin-terminate!enables the terminate command on the admin interface!0!!3|"
 		<< "A!anonymous!disables the smtp vrfy command and sends less verbose smtp responses!0!!3|"
+		<< "B!pop!enables the pop server if compiled-in!0!!" << pop_level << "|"
+		<< "E!pop-port!specifies the pop listening port number (requires --pop)!1!port!" << pop_level << "|"
+		<< "F!pop-auth!defines the pop server secrets file (default is \"" << pop_auth << "\")!1!file!" << pop_level << "|"
+		<< "G!pop-no-delete!disables message deletion via pop (requires --pop)!0!!" << pop_level << "|"
+		<< "J!pop-by-name!modifies the pop spool directory according to the user name (requires --pop)!0!!" << pop_level << "|"
 		;
 	return ss.str() ;
 }
@@ -162,10 +170,21 @@ std::string Main::CommandLine::value( const std::string & name ) const
 
 std::string Main::CommandLine::semanticError() const
 {
-	if( cfg().doAdmin() && cfg().adminPort() == cfg().port() )
+	if(
+		( cfg().doAdmin() && cfg().adminPort() == cfg().port() ) ||
+		( cfg().doPop() && cfg().popPort() == cfg().port() ) ||
+		( cfg().doPop() && cfg().doAdmin() && cfg().popPort() == cfg().adminPort() ) )
 	{
-		return "the smtp listening port and the "
-			"admin listening port must be different" ;
+		return "the listening ports must be different" ;
+	}
+
+	if( ! m_getopt.contains("pop") && (
+		m_getopt.contains("pop-port") ||
+		m_getopt.contains("pop-auth") ||
+		m_getopt.contains("pop-by-name") ||
+		m_getopt.contains("pop-no-delete") ) )
+	{
+		return "pop switches require --pop" ;
 	}
 
 	if( cfg().withTerminate() && !cfg().doAdmin() )
@@ -175,16 +194,15 @@ std::string Main::CommandLine::semanticError() const
 
 	if( cfg().daemon() && cfg().spoolDir().isRelative() )
 	{
-		return "in daemon mode the spool-dir must "
-			"be an absolute path" ;
+		return "in daemon mode the spool-dir must be an absolute path" ;
 	}
 
 	if( cfg().daemon() && (
 		( !cfg().clientSecretsFile().empty() && G::Path(cfg().clientSecretsFile()).isRelative() ) ||
-		( !cfg().serverSecretsFile().empty() && G::Path(cfg().serverSecretsFile()).isRelative() ) ) )
+		( !cfg().serverSecretsFile().empty() && G::Path(cfg().serverSecretsFile()).isRelative() ) ||
+		( !cfg().popSecretsFile().empty() && G::Path(cfg().popSecretsFile()).isRelative() ) ) )
 	{
-		return "in daemon mode the authorisation secrets file(s) must "
-			"be absolute paths" ;
+		return "in daemon mode the authorisation secrets file(s) must be absolute paths" ;
 	}
 
 	const bool forward_to =
@@ -214,9 +232,37 @@ std::string Main::CommandLine::semanticError() const
 
 	const bool not_serving = m_getopt.contains("dont-serve") || m_getopt.contains("as-client") ;
 
-	if( m_getopt.contains("filter") && not_serving )
+	if( not_serving ) // ie. if not serving admin, smtp or pop
 	{
-		return "the --filter switch cannot be used with --as-client or --dont-serve" ;
+		if( m_getopt.contains("filter") )
+			return "the --filter switch cannot be used with --as-client or --dont-serve" ;
+
+		if( m_getopt.contains("port") )
+			return "the --port switch cannot be used with --as-client or --dont-serve" ;
+
+		if( m_getopt.contains("server-auth") )
+			return "the --server-auth switch cannot be used with --as-client or --dont-serve" ;
+
+		if( m_getopt.contains("pop") )
+			return "the --pop switch cannot be used with --as-client or --dont-serve" ;
+
+		if( m_getopt.contains("admin") )
+			return "the --admin switch cannot be used with --as-client or --dont-serve" ;
+
+		if( m_getopt.contains("poll") )
+			return "the --poll switch cannot be used with --as-client or --dont-serve" ;
+	}
+
+	if( m_getopt.contains("no-smtp" ) ) // ie. if not serving smtp
+	{
+		if( m_getopt.contains("filter") )
+			return "the --filter switch cannot be used with --no-smtp" ;
+
+		if( m_getopt.contains("port") )
+			return "the --port switch cannot be used with --no-smtp" ;
+
+		if( m_getopt.contains("server-auth") )
+			return "the --server-auth switch cannot be used with --no-smtp" ;
 	}
 
 	const bool immediate =

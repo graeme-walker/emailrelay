@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -30,13 +30,15 @@
 
 G::Identity::Identity() :
 	m_uid(static_cast<uid_t>(-1)) ,
-	m_gid(static_cast<gid_t>(-1))
+	m_gid(static_cast<gid_t>(-1)) ,
+	m_h(0)
 {
 }
 
 G::Identity::Identity( const std::string & name ) :
 	m_uid(static_cast<uid_t>(-1)) ,
-	m_gid(static_cast<gid_t>(-1))
+	m_gid(static_cast<gid_t>(-1)) ,
+	m_h(0)
 {
 	::passwd * pw = ::getpwnam( name.c_str() ) ;
 	if( pw == NULL ) throw NoSuchUser(name) ;

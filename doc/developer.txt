@@ -1,14 +1,14 @@
-E-MailRelay Design and implementation
-=====================================
+E-MailRelay Internals
+=====================
 
 Module structure
 ----------------
-There are three C++ libraries in the E-MailRelay code: "glib" provides low-level
+There are four C++ libraries in the E-MailRelay code: "glib" provides low-level
 classes for file-system abstraction, date and time representation, string
 utility functions, logging, command line parsing etc., "gnet" provides network
-classes using the Berkley socket and Winsock APIs, and "gsmtp" contains SMTP and
-message-store classes. All three libraries are portable between POSIX-like
-systems (eg. Linux) and Windows.
+classes using the Berkley socket and Winsock APIs, "gsmtp" contains SMTP and
+message-store classes, and "gpop" contains POP3 classes. All four libraries are
+portable between POSIX-like systems (eg. Linux) and Windows.
 
 Under Windows there is an additional library for event handling. Windows has
 historically built network event processing on top of the GUI event system,
@@ -95,6 +95,10 @@ Directory structure
 
   An SMTP library.
 
+# src/gpop
+
+  A POP3 library.
+
 # src/win32
 
   Additional classes for windows event processing.
@@ -177,8 +181,10 @@ Windows build
 Simple MSVC project files are provided in the "src/main" directory, bundled into
 the "emailrelay.dws" workspace.
 
-Makefiles for the *MinGW* [http://www.mingw.org/] system (gcc on Windows) are also
-provided.
+Makefiles for the *MinGW* [http://www.mingw.org/] system (gcc on Windows) are
+also provided. If building from cygwin start by creating a "/mingw" mount to
+your MinGW installation directory (eg. "mount -u c:/sw/mingw /mingw"), and then
+run "make -f mingw.mak" from the E-MailRelay "src" directory.
 
 Style
 -----
@@ -270,4 +276,4 @@ to reassign a std::auto_ptr<>.
 
 
 
-Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
+Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.

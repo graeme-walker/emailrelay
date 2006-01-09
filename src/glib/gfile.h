@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -27,6 +27,7 @@
 #include "gdef.h"
 #include "gpath.h"
 #include "gexception.h"
+#include "gdatetime.h"
 #include <cstdio> // std::remove()
 
 namespace G
@@ -48,6 +49,8 @@ public:
 	G_EXCEPTION( CannotCopy , "cannot copy file" ) ;
 	G_EXCEPTION( CannotMkdir , "cannot mkdir" ) ;
 	G_EXCEPTION( SizeOverflow , "file size overflow" ) ;
+	G_EXCEPTION( TimeError , "cannot get file modification time" ) ;
+	typedef DateTime::EpochTime time_type ;
 	class NoThrow // An overload discriminator class for File methods.
 		{} ;
 
@@ -87,6 +90,13 @@ public:
 	static bool exists( const Path & file , const NoThrow & ) ;
 		// Returns true if the file (or link or device etc.)
 		// exists. Returns false on error.
+
+	static time_type time( const Path & file ) ;
+		// Returns the file's timestamp.
+
+	static time_type time( const Path & file , const NoThrow & ) ;
+		// Returns the file's timestamp. Returns zero on
+		// error.
 
 private:
 	friend class G::DirectoryIteratorImp ;

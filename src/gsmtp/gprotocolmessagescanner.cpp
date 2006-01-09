@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -49,19 +49,21 @@ GSmtp::ProtocolMessageScanner::ProtocolMessageScanner( MessageStore & store ,
 {
 	G_DEBUG( "GSmtp::ProtocolMessageScanner::ctor" ) ;
 	scannerInit() ;
-
-	// rewire the base class slot/signal
-	storageDoneSignal().disconnect() ;
-	storageDoneSignal().connect( G::slot(*this,&ProtocolMessageScanner::storageDone) ) ;
 }
 
 void GSmtp::ProtocolMessageScanner::scannerInit()
 {
-	storageDoneSignal().disconnect() ; // base-class signal
 	m_scanner_client <<=
 		new ScannerClient(m_scanner_server,m_scanner_connection_timeout,m_scanner_response_timeout) ;
+
 	m_scanner_client->connectedSignal().connect( G::slot(*this,&ProtocolMessageScanner::connectDone) ) ;
 	m_scanner_client->doneSignal().connect( G::slot(*this,&ProtocolMessageScanner::scannerDone) ) ;
+
+	// rewire the base class slot/signal so that the storage 'done' signal
+	// is delivered to this class
+	//
+	storageDoneSignal().disconnect() ;
+	storageDoneSignal().connect( G::slot(*this,&ProtocolMessageScanner::storageDone) ) ;
 }
 
 GSmtp::ProtocolMessageScanner::~ProtocolMessageScanner()

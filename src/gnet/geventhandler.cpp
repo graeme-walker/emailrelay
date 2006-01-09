@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -125,7 +125,7 @@ void GNet::EventHandlerList::add( Descriptor fd , EventHandler * handler )
 	List::iterator p = std::find_if( m_list.begin() , end , Eq(fd) ) ;
 	if( p != end )
 	{
-		G_ASSERT( (*p).m_handler == NULL ) ;
+		G_ASSERT( (*p).m_handler == NULL ) ; // assert not re-adding same fd
 		(*p).m_handler = handler ;
 	}
 	else

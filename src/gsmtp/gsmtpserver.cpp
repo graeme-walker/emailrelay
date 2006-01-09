@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -76,7 +76,7 @@ GSmtp::ServerPeer::ServerPeer( GNet::Server::PeerInfo peer_info ,
 	const Secrets & server_secrets , const Verifier & verifier ,
 	std::auto_ptr<ServerProtocol::Text> ptext ,
 	ServerProtocol::Config protocol_config ) :
-		GNet::ServerPeer( peer_info ) ,
+		GNet::Sender( peer_info , true ) ,
 		m_server( server ) ,
 		m_buffer( crlf() ) ,
 		m_verifier( verifier ) ,
@@ -99,60 +99,37 @@ void GSmtp::ServerPeer::onDelete()
 	G_LOG_S( "GSmtp::ServerPeer: smtp connection closed: " << peerAddress().second.displayString() ) ;
 }
 
-void GSmtp::ServerPeer::onData( const char * p , size_t n )
+void GSmtp::ServerPeer::onResume()
 {
-	for( m_buffer.add(p,n) ; m_buffer.more() ; m_buffer.discard() )
-	{
-		bool this_deleted = processLine( m_buffer.current() ) ;
-		if( this_deleted )
-			return ;
-	}
+	// never gets here -- see GNet::Sender ctor
 }
 
-bool GSmtp::ServerPeer::processLine( const std::string & line )
+void GSmtp::ServerPeer::onData( const char * p , size_t n )
 {
 	try
 	{
-		return m_protocol.apply( line ) ;
+		// apply lines to the protocol
+		for( m_buffer.add(p,n) ; m_buffer.more() ; m_buffer.discard() )
+		{
+			m_protocol.apply( m_buffer.current() ) ;
+		}
 	}
-	catch( Verifier::AbortRequest & e )
+	catch( Verifier::AbortRequest & )
 	{
 		G_WARNING( "GSmtp::ServerPeer::processLine: verifier abort request: disconnecting from " <<
 			peerAddress().second.displayString() ) ;
 		doDelete() ;
-		return true ;
 	}
-}
-
-void GSmtp::ServerPeer::protocolSend( const std::string & line , bool allow_delete_this )
-{
-	if( line.length() == 0U )
-		return ;
-
-	ssize_t rc = socket().write( line.data() , line.length() ) ;
-	if( rc < 0 && ! socket().eWouldBlock() )
+	catch( std::exception & e )
 	{
-		if( allow_delete_this )
-			doDelete() ; // onDelete() and "delete this"
-	}
-	else if( rc < 0 || static_cast<size_t>(rc) < line.length() )
-	{
-		G_ERROR( "GSmtp::ServerPeer::protocolSend: " <<
-			"flow-control asserted: connection blocked" ) ;
-
-		// an SMTP server only sends short status messages
-		// back to the client so it is pretty wierd if the
-		// client/network cannot cope -- so just drop the
-		// connection
-		//
+		G_LOG( "GSmtp::ServerPeer::onData: " << e.what() ) ;
 		doDelete() ;
 	}
 }
 
-void GSmtp::ServerPeer::protocolDone()
+void GSmtp::ServerPeer::protocolSend( const std::string & line )
 {
-	G_DEBUG( "GSmtp::ServerPeer: disconnecting from " << peerAddress().second.displayString() ) ;
-	doDelete() ; // onDelete() and "delete this"
+	send( line , 0U ) ; // GNet::Sender -- may throw SendError
 }
 
 // ===
@@ -215,20 +192,16 @@ void GSmtp::Server::report() const
 	{
 		Server * This = const_cast<Server*>(this) ;
 		if( This->imp(i).address().first )
-			G_LOG_S( "GSmtp::Server: listening on " << This->imp(i).address().second.displayString() ) ;
+			G_LOG_S( "GSmtp::Server: smtp server on " << This->imp(i).address().second.displayString() ) ;
 	}
 }
 
 GNet::ServerPeer * GSmtp::Server::newPeer( GNet::Server::PeerInfo peer_info )
 {
-	if( ! m_allow_remote &&
-		!peer_info.m_address.sameHost(GNet::Local::canonicalAddress()) &&
-		!peer_info.m_address.sameHost(GNet::Local::localhostAddress()) )
+	std::string reason ;
+	if( ! m_allow_remote && ! GNet::Local::isLocal(peer_info.m_address,reason) )
 	{
-		G_WARNING( "GSmtp::Server: configured to reject non-local connection: "
-			<< peer_info.m_address.displayString(false) << " is not one of "
-			<< GNet::Local::canonicalAddress().displayString(false) << ","
-			<< GNet::Local::localhostAddress().displayString(false) ) ;
+		G_WARNING( "GSmtp::Server: configured to reject non-local connection: " << reason ) ;
 		return NULL ;
 	}
 

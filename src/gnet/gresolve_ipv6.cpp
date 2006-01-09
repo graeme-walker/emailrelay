@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -20,14 +20,18 @@
 //
 // gresolve_ipv6.cpp
 //
+// Implements resolveHost() using one of:
+// - getaddrinfo() [POSIX] [RFC-2553] (TO DO)
+// - getipnodebyname() [RFC-2553]
+// - gethostbyname2() [RFC-2133] (obsoleted)
+//
 
 #include "gdef.h"
 #include "gresolve.h"
 #include "gdebug.h"
 #include "glog.h"
 
-#if defined( AI_DEFAULT )
-// RFC 2553
+#if defined(HAVE_GETIPNODEBYNAME) && HAVE_GETIPNODEBYNAME
 
 //static
 bool GNet::Resolver::resolveHost( const std::string & host_name , HostInfo & host_info )
@@ -54,7 +58,6 @@ bool GNet::Resolver::resolveHost( const std::string & host_name , HostInfo & hos
 }
 
 #else
-// RFC 2133 (obsolete)
 
 #include <resolv.h> // requires -D_USE_BSD
 extern "C" { struct hostent * gethostbyname2( const char * , int ) ; } ;
@@ -68,7 +71,6 @@ bool GNet::Resolver::resolveHost( const std::string & host_name , HostInfo & hos
 	hostent * host = ::gethostbyname2( host_name.c_str() , AF_INET6 ) ;
 	if( host != NULL )
 	{
-G_DEBUG( "GNet::Resolver::resolveHost: canonical name of \"" << host_name << "\" is \"" << host->h_name << "\"" ) ;
 		host_info.canonical_name = std::string(host->h_name) ;
 		host_info.address = Address( *host , 0U ) ;
 	}

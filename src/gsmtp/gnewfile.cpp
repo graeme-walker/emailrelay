@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -223,7 +223,7 @@ void GSmtp::NewFile::writeEnvelope( std::ostream & stream , const std::string & 
 		for( ; to_p != m_to_remote.end() ; ++to_p )
 			stream << x << "To-Remote: " << *to_p << crlf() ;
 	}
-	stream << x << "Authentication: " << Xtext::encode(auth_id) << crlf() ;
+	stream << x << "Authentication: " << G::Xtext::encode(auth_id) << crlf() ;
 	stream << x << "Client: " << client_ip << crlf() ;
 	stream << x << "End: 1" << crlf() ;
 	stream.flush() ;

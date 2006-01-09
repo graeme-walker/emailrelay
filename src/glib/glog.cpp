@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -25,45 +25,26 @@
 #include "glog.h"
 #include "glogoutput.h"
 
-namespace G
+G::Log::Log( Severity severity , const char * file , int line ) :
+	m_severity(severity) ,
+	m_file(file) ,
+	m_line(line)
 {
-	class LogImp ;
 }
 
-// Class: LogImp
-// Description: An implementation class used by G::Log.
-//
-class G::LogImp
+G::Log::~Log()
 {
-public:
-	static std::ostringstream & s() ;
-	static bool active() ;
-	static void empty() ;
-	static const char * m_file ;
-	static int m_line ;
-	static std::ostringstream * m_ss ;
-} ;
-
-const char * G::LogImp::m_file = NULL ;
-std::ostringstream * G::LogImp::m_ss = NULL ;
-int G::LogImp::m_line = 0 ;
-
-std::ostringstream & G::LogImp::s()
-{
-	if( m_ss == NULL )
+	try
 	{
-		m_ss = new std::ostringstream ;
+		flush() ;
 	}
-	return *m_ss ;
+	catch(...)
+	{
+	}
 }
 
-void G::LogImp::empty()
-{
-	delete m_ss ;
-	m_ss = NULL ;
-}
 
-bool G::LogImp::active()
+bool G::Log::active()
 {
 	LogOutput * output = G::LogOutput::instance() ;
 	if( output == NULL )
@@ -72,44 +53,29 @@ bool G::LogImp::active()
 	}
 	else
 	{
+		// (enable it just to get the original state, then restore it)
 		bool a = output->enable(true) ;
 		output->enable(a) ;
 		return a ;
 	}
 }
 
-// ===
-
-G::Log::End G::Log::end( G::Log::Severity severity )
+void G::Log::flush()
 {
-	return End(severity) ;
-}
-
-G::Log::Stream & G::Log::stream()
-{
-	return G::LogImp::s() ;
-}
-
-void G::Log::onEnd( G::Log::Severity severity )
-{
-	if( G::LogImp::active() )
+	if( active() )
 	{
-		G::LogOutput::output( severity , G::LogImp::m_file , G::LogImp::m_line ,
-			G::LogImp::s().str().c_str() ) ;
+		G::LogOutput::output( m_severity , m_file , m_line , m_ss.str().c_str() ) ;
 	}
-
-	G::LogImp::empty() ; // empty the stream
-	G::LogImp::m_file = NULL ;
-	G::LogImp::m_line = 0 ;
 }
 
-void G::Log::setFile( const char * file )
+std::ostream & G::Log::operator<<( const char * s )
 {
-	G::LogImp::m_file = file ;
+	s = s ? s : "" ;
+	return m_ss << s ;
 }
 
-void G::Log::setLine( int line )
+std::ostream & G::Log::operator<<( const std::string & s )
 {
-	G::LogImp::m_line = line ;
+	return m_ss << s ;
 }
 

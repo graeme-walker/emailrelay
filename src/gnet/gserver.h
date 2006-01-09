@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -29,7 +29,6 @@
 #include "gsocket.h"
 #include "gconnection.h"
 #include "gevent.h"
-#include "gserver.h" // Peer::c_buffer_size
 #include <utility>
 #include <list>
 #include <memory>
@@ -135,12 +134,9 @@ protected:
 		// disappears. But the Server also deletes remaining
 		// peers during its destruction.
 		//
-		// The 'socket' parameter points to a socket
-		// object on the heap. Ownership is transferred.
-		//
-		// The implementation shoud pass the 'PeerInfo'
-		// parameter through to the ServerPeer
-		// base-class constructor.
+		// The implementation should pass the 'PeerInfo'
+		// parameter through to the ServerPeer base-class
+		// constructor.
 		//
 		// May return NULL.
 

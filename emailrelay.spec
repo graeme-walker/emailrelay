@@ -1,11 +1,11 @@
 Summary: Simple e-mail message transfer agent and proxy using SMTP
 Name: emailrelay
-Version: 1.3.3
+Version: 1.4
 Release: 1
 License: GPL
 Group: System Environment/Daemons
 URL: http://emailrelay.sourceforge.net/
-Source: http://kent.dl.sourceforge.net/sourceforge/emailrelay/emailrelay-src-1.3.3.tar.gz
+Source: http://kent.dl.sourceforge.net/sourceforge/emailrelay/emailrelay-src-1.4.tar.gz
 BuildRoot: /tmp/emailrelay-install
 
 %description
@@ -19,6 +19,8 @@ SMTP server on request.
 Because of its functional simplicity E-MailRelay is easy to configure, typically
 only requiring the address of the target SMTP server to be put on the command 
 line.
+
+E-MailRelay can also run as a POP3 server.
 
 C++ source code is available for Linux, FreeBSD, MacOS X etc, and Windows.
 Distribution is under the GNU General Public License.
@@ -45,8 +47,9 @@ test "$RPM_BUILD_ROOT" = "/" || rm -rf "$RPM_BUILD_ROOT"
 %files
 
 %config /etc/emailrelay.conf
+/etc/emailrelay.conf.template
 /etc/init.d/emailrelay
-/usr/lib/emailrelay/emailrelay-poke
+/usr/lib/emailrelay-poke
 /usr/sbin/emailrelay
 /usr/sbin/emailrelay-passwd
 /usr/sbin/emailrelay-submit
@@ -60,6 +63,7 @@ test "$RPM_BUILD_ROOT" = "/" || rm -rf "$RPM_BUILD_ROOT"
 /usr/share/doc/emailrelay/examples/emailrelay-notify.sh
 /usr/share/doc/emailrelay/examples/emailrelay-process.sh
 /usr/share/doc/emailrelay/examples/emailrelay-resubmit.sh
+/usr/share/doc/emailrelay/examples/emailrelay-submit.sh
 /usr/share/doc/emailrelay/index.html
 /usr/share/doc/emailrelay/NEWS
 /usr/share/doc/emailrelay/*.png

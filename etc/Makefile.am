@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License
@@ -17,5 +17,7 @@
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ## 
 #
-EXTRA_DIST = emailrelay.conf
-e_sysconf_DATA = emailrelay.conf
+EXTRA_DIST = emailrelay.conf.template
+sysconf_DATA = emailrelay.conf.template
+install-data-hook:
+	if test -f "$(DESTDIR)$(sysconfdir)/emailrelay.conf" ; then : ; else cp "$(DESTDIR)$(sysconfdir)/emailrelay.conf.template" "$(DESTDIR)$(sysconfdir)/emailrelay.conf" ; fi

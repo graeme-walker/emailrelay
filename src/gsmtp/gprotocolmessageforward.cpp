@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -112,6 +112,7 @@ void GSmtp::ProtocolMessageForward::process( const std::string & auth_id ,
 
 void GSmtp::ProtocolMessageForward::processDone( bool success , unsigned long id , std::string reason )
 {
+	G_DEBUG( "ProtocolMessageForward::processDone: " << (success?1:0) << ", " << id << ", \"" << reason << "\"" ) ;
 	if( success && id != 0UL )
 	{
 		m_id = id ;

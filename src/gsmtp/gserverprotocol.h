@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -30,8 +30,10 @@
 #include "gaddress.h"
 #include "gverifier.h"
 #include "gsasl.h"
+#include "gsecrets.h"
 #include "gstatemachine.h"
 #include "gtimer.h"
+#include "gexception.h"
 #include <map>
 #include <utility>
 
@@ -51,25 +53,15 @@ namespace GSmtp
 // Uses the ServerProtocol::Sender as its "sideways"
 // interface to talk back to the email-sending client.
 //
-// A special feature of the implementation (which is
-// important to the ServerPeer class) is that once
-// Sender::protocolDone() has been called (from within
-// ServerProtocol::apply()) no non-static method of
-// ServerProtocol is called and no non-static data-member
-// is accessed. This allows the ServerProtocol object to
-// be deleted from within Sender::protocolDone(), and therefore
-// allows the ServerPeer implementation to contain an
-// instance of ServerProtocol as a data member.
-//
 // See also: GSmtp::ProtocolMessage, RFC2821
 //
 class GSmtp::ServerProtocol : private GNet::Timer
 {
 public:
+	G_EXCEPTION( ProtocolDone , "smtp protocol done" ) ;
 	class Sender // An interface used by ServerProtocol to send protocol replies.
 	{
-		public: virtual void protocolSend( const std::string & s , bool allow_delete_this ) = 0 ;
-		public: virtual void protocolDone() = 0 ;
+		public: virtual void protocolSend( const std::string & s ) = 0 ;
 		public: virtual ~Sender() ;
 		private: void operator=( const Sender & ) ; // not implemented
 	} ;
@@ -112,11 +104,9 @@ public:
 	virtual ~ServerProtocol() ;
 		// Destructor.
 
-	bool apply( const std::string & line ) ;
+	void apply( const std::string & line ) ;
 		// Called on receipt of a string from the client.
 		// The string is expected to be CR-LF terminated.
-		// Returns true if the protocol has completed
-		// and Sender::protocolDone() has been called.
 
 private:
 	enum Event
@@ -159,7 +149,7 @@ private:
 	ServerProtocol( const ServerProtocol & ) ; // not implemented
 	void operator=( const ServerProtocol & ) ; // not implemented
 	virtual void onTimeout() ;
-	void send( std::string , bool = true ) ;
+	void send( std::string ) ;
 	Event commandEvent( const std::string & ) const ;
 	std::string commandWord( const std::string & line ) const ;
 	std::string commandLine( const std::string & line ) const ;
@@ -189,7 +179,7 @@ private:
 	void doNoRecipients( const std::string & , bool & ) ;
 	void sendBadFrom( std::string ) ;
 	void sendChallenge( const std::string & ) ;
-	void sendBadTo( const std::string & ) ;
+	void sendBadTo( const std::string & , bool ) ;
 	void sendOutOfSequence( const std::string & ) ;
 	void sendGreeting( const std::string & ) ;
 	void sendClosing() ;
@@ -207,7 +197,7 @@ private:
 	void sendNoRecipients() ;
 	void sendMissingParameter() ;
 	void sendVerified( const std::string & ) ;
-	void sendNotVerified( const std::string & ) ;
+	void sendNotVerified( const std::string & , bool ) ;
 	void sendWillAccept( const std::string & ) ;
 	void sendAuthDone( bool ok ) ;
 	void sendOk() ;

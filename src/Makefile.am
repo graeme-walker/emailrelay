@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License
@@ -17,5 +17,5 @@
 ## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ## 
 #
-EXTRA_DIST = mingw.mak mingw-common.mak emailrelay.xcode/root.pbxuser emailrelay.xcode/root.mode1 emailrelay.xcode/project.pbxproj
-SUBDIRS = glib gnet gsmtp main win32
+EXTRA_DIST = mingw.mak mingw-common.mak emailrelay.dsw
+SUBDIRS = glib gnet gsmtp gpop main win32

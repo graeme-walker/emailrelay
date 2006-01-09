@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -43,6 +43,16 @@ bool G::Directory::valid( bool for_creation ) const
 		return false ;
 	}
 	return ( attributes & FILE_ATTRIBUTE_DIRECTORY ) != 0 ;
+}
+
+std::string G::Directory::tmp()
+{
+	return std::string() ;
+}
+
+bool G::Directory::writeable( std::string ) const
+{
+	return true ; // not implemented
 }
 
 // ===

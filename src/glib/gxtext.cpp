@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -22,7 +22,6 @@
 //
 
 #include "gdef.h"
-#include "gsmtp.h"
 #include "gxtext.h"
 #include "gassert.h"
 
@@ -39,7 +38,7 @@ namespace
 	}
 }
 
-std::string GSmtp::Xtext::encode( const std::string & s )
+std::string G::Xtext::encode( const std::string & s )
 {
 	std::string result ;
 	for( std::string::const_iterator p = s.begin() ; p != s.end() ; ++p )
@@ -60,7 +59,7 @@ std::string GSmtp::Xtext::encode( const std::string & s )
 	return result ;
 }
 
-std::string GSmtp::Xtext::decode( const std::string & s )
+std::string G::Xtext::decode( const std::string & s )
 {
 	std::string result ;
 	for( const char * p = s.c_str() ; *p ; p++ )

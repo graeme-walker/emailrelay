@@ -7,6 +7,9 @@
    */
 #undef HAVE_DIRENT_H
 
+/* Define if getipnodebyname() is available */
+#undef HAVE_GETIPNODEBYNAME
+
 /* Define to 1 if you have the `glob' function. */
 #undef HAVE_GLOB
 
@@ -15,6 +18,9 @@
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
+
+/* Define if ipv6 is available */
+#undef HAVE_IPV6
 
 /* Define if localtime_r in time.h */
 #undef HAVE_LOCALTIME_R
@@ -27,6 +33,9 @@
 
 /* Define if setgroups is available */
 #undef HAVE_SETGROUPS
+
+/* Define if sockaddr_in6 has a sin6_len member */
+#undef HAVE_SIN6_LEN
 
 /* Define if socklen_t type definition in sys/socket.h */
 #undef HAVE_SOCKLEN_T

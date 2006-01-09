@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -168,7 +168,7 @@ void GSmtp::StoredFile::readToList( std::istream & stream )
 
 void GSmtp::StoredFile::readAuthentication( std::istream & stream )
 {
-	m_authentication = Xtext::decode(value(getline(stream),"Authentication")) ;
+	m_authentication = G::Xtext::decode(value(getline(stream),"Authentication")) ;
 }
 
 void GSmtp::StoredFile::readClientIp( std::istream & stream )

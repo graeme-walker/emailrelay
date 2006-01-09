@@ -309,7 +309,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE RANLIB ac_ct_RANLIB MAKE AR GZIP HAVE_DOXYGEN HAVE_MAN2HTML COMPILER_VERSION CPP EGREP e_sbindir e_libexecdir e_sysconfdir e_docdir e_initdir e_spooldir e_man1dir e_examplesdir LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE RANLIB ac_ct_RANLIB MAKE AR GZIP HAVE_DOXYGEN HAVE_MAN2HTML COMPILER_VERSION CPP EGREP POPLIB IP e_docdir e_initdir e_spooldir e_examplesdir LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -853,20 +853,28 @@ if test -n "$ac_init_help"; then
 Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-maintainer-mode  enable make rules and dependencies not useful
+			  (and sometimes confusing) to the casual installer
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
-  --enable-debug          enable extra debug messages at compile-time
-  --enable-fastbuild      enable experimental faster building; requires
+  --enable-debug          enable extra debug messages at compile-time (default
+                          disabled)
+  --enable-fastbuild      enable faster building (default disabled); requires
                           --disable-dependency-tracking
+  --enable-pop            enable pop server code (default enabled)
+  --enable-ipv6           enable ipv6 (default disabled)
   --enable-fhs            force FHS-compliant directories, ignoring --prefix
-                          etc
+                          etc (default disabled)
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-workshop         use Sun WorkShop 'CC -xar' as the 'ar' tool
+  --with-workshop         use Sun WorkShop 'CC -xar' as the 'ar' tool (default
+                          disabled)
   --with-doxygen          generate source code documentation with doxygen
-  --with-man2html         convert man pages to html using man2html
+                          (default auto)
+  --with-man2html         convert man pages to html using man2html (default
+                          auto)
 
 Some influential environment variables:
   CC          C compiler command
@@ -1616,7 +1624,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=emailrelay
- VERSION=1.3.3
+ VERSION=1.4
 
 
 cat >>confdefs.h <<_ACEOF
@@ -1743,6 +1751,30 @@ INSTALL_STRIP_PROGRAM="\${SHELL} \$(install_sh) -c -s"
 
 
           ac_config_headers="$ac_config_headers config.h"
+
+echo "$as_me:$LINENO: checking whether to enable maintainer-specific portions of Makefiles" >&5
+echo $ECHO_N "checking whether to enable maintainer-specific portions of Makefiles... $ECHO_C" >&6
+    # Check whether --enable-maintainer-mode or --disable-maintainer-mode was given.
+if test "${enable_maintainer_mode+set}" = set; then
+  enableval="$enable_maintainer_mode"
+  USE_MAINTAINER_MODE=$enableval
+else
+  USE_MAINTAINER_MODE=no
+fi;
+  echo "$as_me:$LINENO: result: $USE_MAINTAINER_MODE" >&5
+echo "${ECHO_T}$USE_MAINTAINER_MODE" >&6
+
+
+if test $USE_MAINTAINER_MODE = yes; then
+  MAINTAINER_MODE_TRUE=
+  MAINTAINER_MODE_FALSE='#'
+else
+  MAINTAINER_MODE_TRUE='#'
+  MAINTAINER_MODE_FALSE=
+fi
+
+  MAINT=$MAINTAINER_MODE_TRUE
+
 
 
 ac_ext=c
@@ -5325,6 +5357,222 @@ _ACEOF
 
 	fi
 
+echo "$as_me:$LINENO: checking for ipv6" >&5
+echo $ECHO_N "checking for ipv6... $ECHO_C" >&6
+if test "${aclocal_cv_ipv6+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+
+	cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+int
+main ()
+{
+sockaddr_in6 * p = 0;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  aclocal_cv_ipv6=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+aclocal_cv_ipv6=no
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+
+fi
+echo "$as_me:$LINENO: result: $aclocal_cv_ipv6" >&5
+echo "${ECHO_T}$aclocal_cv_ipv6" >&6
+	if test $aclocal_cv_ipv6 = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_IPV6 1
+_ACEOF
+
+	else
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_IPV6 0
+_ACEOF
+
+	fi
+
+echo "$as_me:$LINENO: checking for getipnodebyname" >&5
+echo $ECHO_N "checking for getipnodebyname... $ECHO_C" >&6
+if test "${aclocal_cv_getipnodebyname+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+
+	cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+int
+main ()
+{
+int i=0; getipnodebyname("",AF_INET6,AI_DEFAULT,&i);
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  aclocal_cv_getipnodebyname=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+aclocal_cv_getipnodebyname=no
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+
+fi
+echo "$as_me:$LINENO: result: $aclocal_cv_getipnodebyname" >&5
+echo "${ECHO_T}$aclocal_cv_getipnodebyname" >&6
+	if test $aclocal_cv_getipnodebyname = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_GETIPNODEBYNAME 1
+_ACEOF
+
+	else
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_GETIPNODEBYNAME 0
+_ACEOF
+
+	fi
+
+echo "$as_me:$LINENO: checking for sin6_len" >&5
+echo $ECHO_N "checking for sin6_len... $ECHO_C" >&6
+if test "${aclocal_cv_sin6_len+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+
+	cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+int
+main ()
+{
+struct sockaddr_in6 s; s.sin6_len = 1;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  aclocal_cv_sin6_len=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+aclocal_cv_sin6_len=no
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+
+fi
+echo "$as_me:$LINENO: result: $aclocal_cv_sin6_len" >&5
+echo "${ECHO_T}$aclocal_cv_sin6_len" >&6
+	if test $aclocal_cv_sin6_len = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_SIN6_LEN 1
+_ACEOF
+
+	else
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_SIN6_LEN 0
+_ACEOF
+
+	fi
+
 echo "$as_me:$LINENO: checking for buggy ctime" >&5
 echo $ECHO_N "checking for buggy ctime... $ECHO_C" >&6
 if test "${aclocal_cv_buggy_ctime+set}" = set; then
@@ -5636,6 +5884,43 @@ then
 fi
 
 
+# Check whether --enable-pop or --disable-pop was given.
+if test "${enable_pop+set}" = set; then
+  enableval="$enable_pop"
+
+fi;
+
+if test "$enable_pop" = "no"
+then
+	POPLIB="libgnopop.a"
+else
+	POPLIB="libgpop.a"
+fi
+
+
+
+# Check whether --enable-ipv6 or --disable-ipv6 was given.
+if test "${enable_ipv6+set}" = set; then
+  enableval="$enable_ipv6"
+
+fi;
+
+if test "$enable_ipv6" = "yes"
+then
+	if test "$aclocal_cv_ipv6" != "yes"
+	then
+		{ echo "$as_me:$LINENO: WARNING: ignoring --enable-ipv6" >&5
+echo "$as_me: WARNING: ignoring --enable-ipv6" >&2;}
+		IP="ipv4"
+	else
+		IP="ipv6"
+	fi
+else
+	IP="ipv4"
+fi
+
+
+
 
 # Check whether --with-workshop or --without-workshop was given.
 if test "${with_workshop+set}" = set; then
@@ -5662,7 +5947,8 @@ if test "$with_doxygen" != ""
 then
 	if test "$with_doxygen" = "yes" -a "$HAVE_DOXYGEN" != "yes"
 	then
-		echo ignoring --with-doxygen
+		{ echo "$as_me:$LINENO: WARNING: ignoring --with-doxygen" >&5
+echo "$as_me: WARNING: ignoring --with-doxygen" >&2;}
 	else
 		HAVE_DOXYGEN="$with_doxygen"
 
@@ -5681,7 +5967,8 @@ if test "$with_man2html" != ""
 then
 	if test "$with_man2html" = "yes" -a "$HAVE_MAN2HTML" != "yes"
 	then
-		echo ignoring --with-man2html
+		{ echo "$as_me:$LINENO: WARNING: ignoring --with-man2html" >&5
+echo "$as_me: WARNING: ignoring --with-man2html" >&2;}
 	else
 		HAVE_MAN2HTML="$with_man2html"
 
@@ -5695,19 +5982,11 @@ if test "${enable_fhs+set}" = set; then
 
 fi;
 
-if test "$e_sbindir" = "" ; then e_sbindir="$sbindir" ; fi
-
-if test "$e_libexecdir" = "" ; then e_libexecdir="$libexecdir" ; fi
-
-if test "$e_sysconfdir" = "" ; then e_sysconfdir="$sysconfdir" ; fi
-
 if test "$e_docdir" = "" ; then e_docdir="$datadir/$PACKAGE/doc" ; fi
 
 if test "$e_initdir" = "" ; then e_initdir="$libexecdir" ; fi
 
 if test "$e_spooldir" = "" ; then e_spooldir="$localstatedir/spool/emailrelay" ; fi
-
-if test "$e_man1dir" = "" ; then e_man1dir="$mandir/man1" ; fi
 
 if test "$e_examplesdir" = "" ; then e_examplesdir="$libexecdir" ; fi
 
@@ -5722,7 +6001,7 @@ then
 	sbindir='/usr/sbin'
 	libexecdir='/usr/lib'
 	localstatedir='/var'
-	mandir='/usr/man'
+	mandir='/usr/share/man'
 	datadir='/usr/share'
 	sysconfdir='/etc'
 	#
@@ -5749,7 +6028,7 @@ fi
 
 SET_MAKE=""
 
-                                                                                                                                            ac_config_files="$ac_config_files Makefile src/Makefile src/glib/Makefile src/gnet/Makefile src/gsmtp/Makefile src/main/Makefile src/win32/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile lib/sunpro5/Makefile bin/Makefile doc/Makefile etc/Makefile"
+                                                                                                                                                      ac_config_files="$ac_config_files Makefile src/Makefile src/glib/Makefile src/gnet/Makefile src/gsmtp/Makefile src/gpop/Makefile src/main/Makefile src/win32/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile lib/sunpro5/Makefile bin/Makefile doc/Makefile etc/Makefile"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -5841,6 +6120,13 @@ LIBOBJS=$ac_libobjs
 LTLIBOBJS=$ac_ltlibobjs
 
 
+if test -z "${MAINTAINER_MODE_TRUE}" && test -z "${MAINTAINER_MODE_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"MAINTAINER_MODE\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"MAINTAINER_MODE\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
 if test -z "${AMDEP_TRUE}" && test -z "${AMDEP_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"AMDEP\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
@@ -6311,6 +6597,7 @@ do
   "src/glib/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/glib/Makefile" ;;
   "src/gnet/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/gnet/Makefile" ;;
   "src/gsmtp/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/gsmtp/Makefile" ;;
+  "src/gpop/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/gpop/Makefile" ;;
   "src/main/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/main/Makefile" ;;
   "src/win32/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/win32/Makefile" ;;
   "lib/Makefile" ) CONFIG_FILES="$CONFIG_FILES lib/Makefile" ;;
@@ -6427,6 +6714,9 @@ s,@mkdir_p@,$mkdir_p,;t t
 s,@AWK@,$AWK,;t t
 s,@SET_MAKE@,$SET_MAKE,;t t
 s,@am__leading_dot@,$am__leading_dot,;t t
+s,@MAINTAINER_MODE_TRUE@,$MAINTAINER_MODE_TRUE,;t t
+s,@MAINTAINER_MODE_FALSE@,$MAINTAINER_MODE_FALSE,;t t
+s,@MAINT@,$MAINT,;t t
 s,@CC@,$CC,;t t
 s,@CFLAGS@,$CFLAGS,;t t
 s,@LDFLAGS@,$LDFLAGS,;t t
@@ -6459,13 +6749,11 @@ s,@HAVE_MAN2HTML@,$HAVE_MAN2HTML,;t t
 s,@COMPILER_VERSION@,$COMPILER_VERSION,;t t
 s,@CPP@,$CPP,;t t
 s,@EGREP@,$EGREP,;t t
-s,@e_sbindir@,$e_sbindir,;t t
-s,@e_libexecdir@,$e_libexecdir,;t t
-s,@e_sysconfdir@,$e_sysconfdir,;t t
+s,@POPLIB@,$POPLIB,;t t
+s,@IP@,$IP,;t t
 s,@e_docdir@,$e_docdir,;t t
 s,@e_initdir@,$e_initdir,;t t
 s,@e_spooldir@,$e_spooldir,;t t
-s,@e_man1dir@,$e_man1dir,;t t
 s,@e_examplesdir@,$e_examplesdir,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t

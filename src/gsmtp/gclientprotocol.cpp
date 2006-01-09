@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -179,7 +179,7 @@ void GSmtp::ClientProtocol::sendMailCore()
 	}
 	if( m_authenticated_with_server && !m_message_authentication.empty() )
 	{
-		mail_from.append( std::string(" AUTH=") + Xtext::encode(m_message_authentication) ) ;
+		mail_from.append( std::string(" AUTH=") + G::Xtext::encode(m_message_authentication) ) ;
 	}
 	else if( m_authenticated_with_server )
 	{

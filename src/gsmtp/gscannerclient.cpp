@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -139,14 +139,14 @@ std::string GSmtp::ScannerClient::startScanning( const G::Path & path )
 
 void GSmtp::ScannerClient::onDisconnect()
 {
-	G_DEBUG( "GSmtp::ScannerClient::onDisconnect" ) ;
-	G_ASSERT( m_state == "connected" || m_state == "scanning" ) ;
+	G_DEBUG( "GSmtp::ScannerClient::onDisconnect: \"" << m_state << "\"" ) ;
+	G_ASSERT( m_state == "connected" || m_state == "scanning" || m_state == "end" ) ;
 
 	if( m_state == "connected" )
 	{
 		setState( "disconnected" ) ;
 	}
-	else
+	else if( m_state == "scanning" )
 	{
 		setState( "end" ) ;
 		m_done_signal.emit( false , "disconnected" ) ;
@@ -164,7 +164,6 @@ void GSmtp::ScannerClient::onData( const char * data , size_t size )
 	{
 		G_DEBUG( "GSmtp::ScannerClient::onData: done" ) ;
 		m_timer.cancelTimer() ;
-		m_socket->close() ;
 		setState( "end" ) ;
 		bool from_scanner = true ;
 		m_done_signal.emit( from_scanner , result() ) ;

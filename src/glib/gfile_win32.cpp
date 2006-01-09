@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -76,5 +76,19 @@ bool G::File::exists( const char * path , bool & enoent )
 	bool ok = 0 == ::_stat( path , &statbuf ) ;
 	enoent = !ok ;
 	return ok ;
+}
+
+G::File::time_type G::File::time( const Path & path )
+{
+	struct _stat statbuf ;
+	if( 0 != ::_stat( path.pathCstr() , &statbuf ) )
+		throw TimeError( path.str() ) ;
+	return statbuf.st_mtime ;
+}
+
+G::File::time_type G::File::time( const Path & path , const NoThrow & )
+{
+	struct _stat statbuf ;
+	return ::_stat( path.pathCstr() , &statbuf ) == 0 ? statbuf.st_mtime : 0 ;
 }
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -35,7 +35,7 @@
 namespace G
 {
 	class Str ;
-} ;
+}
 
 // Class: G::Str
 // Description: A static class which provides string helper functions.
@@ -88,6 +88,59 @@ public:
 		// Returns true if the string can be converted into
 		// an unsigned long without throwing an exception.
 
+	static std::string fromBool( bool b ) ;
+		// Converts boolean 'b' to a string.
+
+	static std::string fromDouble( double d ) ;
+		// Converts double 'd' to a string.
+
+	static std::string fromInt( int i ) ;
+		// Converts int 'i' to a string.
+
+	static std::string fromLong( long l ) ;
+		// Converts long 'l' to a string.
+
+	static std::string fromShort( short s ) ;
+		// Converts short 's' to a string.
+
+	static std::string fromUInt( unsigned int ui ) ;
+		// Converts unsigned int 'ui' to a string.
+
+	static std::string fromULong( unsigned long ul ) ;
+		// Converts unsigned long 'ul' to a string.
+
+	static std::string fromUShort( unsigned short us ) ;
+		// Converts unsigned short 'us' to a string.
+
+	static bool toBool( const std::string &s ) ;
+		// Converts string 's' to a bool.
+		//
+		// Exception: InvalidFormat
+
+	static double toDouble( const std::string &s ) ;
+		// Converts string 's' to a double.
+		//
+		// Exception: Overflow
+		// Exception: InvalidFormat
+
+	static int toInt( const std::string &s ) ;
+		// Converts string 's' to an int.
+		//
+		// Exception: Overflow
+		// Exception: InvalidFormat
+
+	static long toLong( const std::string &s ) ;
+		// Converts string 's' to a long.
+		//
+		// Exception: Overflow
+		// Exception: InvalidFormat
+
+	static short toShort( const std::string &s ) ;
+		// Converts string 's' to a short.
+		//
+		// Exception: Overflow
+		// Exception: InvalidFormat
+
 	static unsigned int toUInt( const std::string & s , bool limited = false ) ;
 		// Converts string 's' to an unsigned int.
 		//
@@ -118,15 +171,6 @@ public:
 		// Exception: Overflow
 		// Exception: InvalidFormat
 
-	static std::string fromInt( int i ) ;
-		// Converts int 'i' to a string.
-
-	static std::string fromUInt( unsigned int ) ;
-		// Converts from unsigned int to a decimal string.
-
-	static std::string fromULong( unsigned long ul ) ;
-		// Converts unsigned long to a decimal string.
-
 	static void toUpper( std::string &s ) ;
 		// Replaces all lowercase characters in string 's' by
 		// uppercase characters.
@@ -145,8 +189,7 @@ public:
 
 	static std::string toPrintableAscii( char c , char escape = '\\' ) ;
 		// Returns a printable, 7-bit-ascii string representing the given
-		// character. Typical return values include "\\", "\n",
-		// "\t", "\007", etc.
+		// character.
 
 	static std::string toPrintableAscii( const std::string & in , char escape = '\\' ) ;
 		// Returns a printable, 7-bit-ascii string representing the given input.
@@ -162,7 +205,7 @@ public:
 		// from the stream are discarded. An 'ignore'
 		// character of NUL ('\0') disables this feature.
 
-	static std::string readLineFrom( std::istream &stream , const std::string & eol ) ;
+	static std::string readLineFrom( std::istream & stream , const std::string & eol ) ;
 		// An overload which uses 'eol' as the terminator, and
 		// without the 'ignore' feature.
 

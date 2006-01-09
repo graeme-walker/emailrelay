@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -42,6 +42,9 @@
 #include "gsmtpclient.h"
 #include "gsmtpserver.h"
 #include "gadminserver.h"
+#include "gpopserver.h"
+#include "gpopstore.h"
+#include "gpopsecrets.h"
 #include <iostream>
 #include <exception>
 #include <memory>
@@ -95,8 +98,8 @@ private:
 	void operator=( const Run & ) ; // not implemented
 	void runCore() ;
 	void doForwarding( GSmtp::MessageStore & , const GSmtp::Secrets & , GNet::EventLoop & ) ;
-	void doServing( GSmtp::MessageStore & , const GSmtp::Secrets & , const GSmtp::Secrets & ,
-		G::PidFile & , GNet::EventLoop & ) ;
+	void doServing( const GSmtp::Secrets & , GSmtp::MessageStore & , const GSmtp::Secrets & ,
+		GPop::Store & , const GPop::Secrets & , G::PidFile & , GNet::EventLoop & ) ;
 	void closeFiles() ;
 	void closeMoreFiles() ;
 	std::string smtpIdent() const ;
@@ -113,6 +116,7 @@ private:
 	static void checkPort( const std::string & , unsigned int ) ;
 	GSmtp::Client::Config clientConfig() const ;
 	GSmtp::Server::Config serverConfig() const ;
+	GPop::Server::Config popConfig() const ;
 
 private:
 	Output & m_output ;
@@ -123,6 +127,7 @@ private:
 	G::Signal3<std::string,std::string,std::string> m_signal ;
 	std::auto_ptr<GSmtp::FileStore> m_store ; // order dependency -- early
 	std::auto_ptr<GSmtp::Secrets> m_client_secrets ;
+	std::auto_ptr<GPop::Secrets> m_pop_secrets ;
 	std::auto_ptr<GSmtp::AdminServer> m_admin_server ;
 	std::auto_ptr<GNet::Timer> m_poll_timer ;
 	std::auto_ptr<GSmtp::Client> m_client ; // order dependency -- late

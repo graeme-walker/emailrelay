@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -18,36 +18,22 @@
 //
 // ===
 //
-// gxtext.h
+// gpopsecrets_win32.cpp
 //
-
-#ifndef G_XTEXT_H
-#define G_XTEXT_H
 
 #include "gdef.h"
-#include "gsmtp.h"
-#include <string>
+#include "gpop.h"
+#include "gpopsecrets.h"
+#include "gpath.h"
 
-namespace GSmtp
+std::string GPop::Secrets::defaultPath()
 {
-	class Xtext ;
+	char buffer[(MAX_PATH * 2U) + 1U] ;
+	if( 0 == ::GetWindowsDirectory( buffer , sizeof(buffer)-1U ) )
+		buffer[0] = '\0' ;
+
+	G::Path path( buffer ) ;
+	path.pathAppend( "emailrelay.auth" ) ;
+	return path.str() ;
 }
 
-// Class: GSmtp::Xtext
-// Description: An xtext codec class.
-// See also: RFC1891 section 5
-//
-class GSmtp::Xtext
-{
-public:
-	static std::string encode( const std::string & ) ;
-		// Encodes the given string.
-
-	static std::string decode( const std::string & ) ;
-		// Decodes the given string.
-
-private:
-	Xtext() ;
-} ;
-
-#endif

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -40,6 +40,7 @@
 #include "glocal_unix.cpp"
 #include "glogoutput_unix.cpp"
 #include "gmessagestore_unix.cpp"
+#include "gpopsecrets_unix.cpp"
 #include "gprocess_unix.cpp"
 #include "gresolve_unix.cpp"
 #include "gsocket_unix.cpp"
@@ -64,6 +65,7 @@
 #include "glocal_win32.cpp"
 #include "glogoutput_win32.cpp"
 #include "gmessagestore_win32.cpp"
+#include "gpopsecrets_win32.cpp"
 #include "gprocess_win32.cpp"
 #include "gpump.cpp"
 #include "gpump_dialog.cpp"
@@ -113,6 +115,11 @@
 #include "gnewmessage.cpp"
 #include "gpath.cpp"
 #include "gpidfile.cpp"
+#include "gpopauth.cpp"
+#include "gpopsecrets.cpp"
+#include "gpopserver.cpp"
+#include "gpopstore.cpp"
+#include "gpopserverprotocol.cpp"
 #include "gprocessor.cpp"
 #include "gprotocolmessage.cpp"
 #include "gprotocolmessageforward.cpp"
@@ -124,6 +131,7 @@
 #include "gsasl_native.cpp"
 #include "gscannerclient.cpp"
 #include "gsecrets.cpp"
+#include "gsender.cpp"
 #include "gserver.cpp"
 #include "gserverprotocol.cpp"
 #include "gslot.cpp"

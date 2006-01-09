@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -62,20 +62,24 @@ public:
 		// Virtual destructor.
 
 	bool valid( bool for_creating_files = false ) const ;
-		// Returns true if the object
-		// represents a valid directory.
+		// Returns true if the object represents a valid
+		// directory.
 		//
-		// Does additional checks if the
-		// 'for-creating-files' parameter
-		// is true. But note that the
-		// answer is not definitive --
-		// file creation may fail, even
-		// if valid() returns true.
+		// Does additional checks if the 'for-creating-files'
+		// parameter is true. But note that the answer is not
+		// definitive -- file creation may fail, even if
+		// valid() returns true. For a more accurate test
+		// use writeable().
+
+	bool writeable( std::string probe_filename = tmp() ) const ;
+		// Tries to create and then delete an empty test file
+		// in the directory. Returns true on success.
+		// Precondition: valid()
 
 	Path path() const ;
 		// Returns the directory's path.
 
-	Directory( const Directory &other ) ;
+	Directory( const Directory & other ) ;
 		// Copy constructor.
 
 	Directory &operator=( const Directory & ) ;
@@ -84,6 +88,12 @@ public:
 	static Directory root() ;
 		// Returns a root directory object. For DOSy file
 		// systems this will not contain a drive part.
+
+	static std::string tmp() ;
+		// A convenience function for constructing a
+		// filename for writeable(). This is factored out
+		// so that client code can minimise the time spent
+		// with a privileged effective userid.
 
 private:
 	Path m_path ;
@@ -97,7 +107,7 @@ private:
 class G::DirectoryIterator
 {
 public:
-	explicit DirectoryIterator( const Directory &dir , const std::string & wc = std::string() ) ;
+	explicit DirectoryIterator( const Directory & dir , const std::string & wc = std::string() ) ;
 		// Constructor taking a directory reference
 		// and an optional wildcard specification.
 
@@ -132,7 +142,7 @@ private:
 	void operator=( const DirectoryIterator & ) ;
 
 private:
-	DirectoryIteratorImp *m_imp ;
+	DirectoryIteratorImp * m_imp ;
 } ;
 
 #endif

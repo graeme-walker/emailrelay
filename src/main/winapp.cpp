@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2005 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -262,11 +262,9 @@ unsigned int Main::WinApp::columns()
 
 void Main::WinApp::output( const std::string & text , bool )
 {
-	// (ignore 'hidden' for now)
-	const bool initialised = m_cfg.get() != NULL ;
 	G::Strings text_lines ;
 	G::Str::splitIntoFields( text , text_lines , "\r\n" ) ;
-	if( text_lines.size() > 20U && initialised )
+	if( text_lines.size() > 25U )
 	{
 		Box box( *this , text_lines ) ;
 		if( ! box.run() )
