@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -57,14 +57,14 @@ void G::GetOpt::parseSpec( const std::string & spec , char sep_major , char sep_
 			ss << "\"" << *p << "\" (" << ws_minor << ")" ;
 			throw InvalidSpecification( ss.str() ) ;
 		}
-		bool valued = G::Str::toUInt( inner[3U] ) != 0U ;
+		bool is_valued = G::Str::toUInt( inner[3U] ) != 0U ;
 		unsigned int level = G::Str::toUInt( inner[5U] ) ;
-		addSpec( inner[1U] , inner[0U].at(0U) , inner[1U] , inner[2U] , valued , inner[4U] , level ) ;
+		addSpec( inner[1U] , inner[0U].at(0U) , inner[1U] , inner[2U] , is_valued , inner[4U] , level ) ;
 	}
 }
 
 void G::GetOpt::addSpec( const std::string & sort_key , char c , const std::string & name ,
-	const std::string & description , bool valued , const std::string & value_description ,
+	const std::string & description , bool is_valued , const std::string & value_description ,
 	unsigned int level )
 {
 	if( c == '\0' )
@@ -80,7 +80,7 @@ void G::GetOpt::addSpec( const std::string & sort_key , char c , const std::stri
 			<< "char=" << c << ": "
 			<< "name=" << name << ": "
 			<< "description=" << description << ": "
-			<< "valued=" << (valued?"true":"false") << ": "
+			<< "valued=" << (is_valued?"true":"false") << ": "
 			<< "value-description=" << value_description << ": "
 			<< "level=" << level ;
 		G_DEBUG( ss.str() ) ;
@@ -88,7 +88,7 @@ void G::GetOpt::addSpec( const std::string & sort_key , char c , const std::stri
 
 	std::pair<SwitchSpecMap::iterator,bool> rc =
 		m_spec_map.insert( std::make_pair( sort_key ,
-			SwitchSpec(c,name,description,valued,value_description,level) ) ) ;
+			SwitchSpec(c,name,description,is_valued,value_description,level) ) ) ;
 
 	if( ! rc.second )
 		throw InvalidSpecification("duplication") ;
@@ -154,7 +154,7 @@ size_t G::GetOpt::widthLimit( size_t w )
 
 void G::GetOpt::showUsage( std::ostream & stream , const std::string & args , bool verbose ) const
 {
-	showUsage( stream , m_args.prefix() , introducerDefault() , args , verbose ? levelDefault() : Level(1U) ) ;
+	showUsage( stream , m_args.prefix() , args , introducerDefault() , verbose ? levelDefault() : Level(1U) ) ;
 }
 
 void G::GetOpt::showUsage( std::ostream & stream , const std::string & exe , const std::string & args ,
@@ -263,7 +263,7 @@ std::string G::GetOpt::usageHelpCore( const std::string & prefix , Level level ,
 
 			if( (*p).second.name.length() )
 			{
-				line.append( ",--" ) ;
+				line.append( ", --" ) ;
 				line.append( (*p).second.name ) ;
 			}
 
@@ -271,7 +271,7 @@ std::string G::GetOpt::usageHelpCore( const std::string & prefix , Level level ,
 			{
 				std::string vd = (*p).second.value_description ;
 				if( vd.empty() ) vd = "value" ;
-				line.append( " <" ) ;
+				line.append( "=<" ) ;
 				line.append( vd ) ;
 				line.append( ">" ) ;
 			}
@@ -304,18 +304,19 @@ size_t G::GetOpt::parseArgs( const Arg & args_in )
 	for( ; i < args_in.c() ; i++ )
 	{
 		const std::string & arg = args_in.v(i) ;
-		if( arg == "--" )
+
+		if( arg == "--" ) // special "end-of-switches" switch
 		{
 			i++ ;
 			break ;
 		}
 
-		if( isSwitchSet(arg) )
+		if( isSwitchSet(arg) ) // eg. "-lt"
 		{
 			for( size_t n = 1U ; n < arg.length() ; n++ )
 				processSwitch( arg.at(n) ) ;
 		}
-		else if( isOldSwitch(arg) )
+		else if( isOldSwitch(arg) ) // eg. "-v"
 		{
 			char c = arg.at(1U) ;
 			if( valued(c) && (i+1U) >= args_in.c() )
@@ -325,13 +326,20 @@ size_t G::GetOpt::parseArgs( const Arg & args_in )
 			else
 				processSwitch( c ) ;
 		}
-		else if( isNewSwitch(arg) )
+		else if( isNewSwitch(arg) ) // eg. "--foo"
 		{
 			std::string name = arg.substr( 2U ) ;
-			if( valued(name) && (i+1U) >= args_in.c() )
+			size_t pos_eq = eqPos(name) ;
+			bool has_eq = pos_eq != std::string::npos ;
+			std::string eq_value = eqValue(name,pos_eq) ;
+			if( has_eq ) name = name.substr(0U,pos_eq) ;
+
+			if( valued(name) && !has_eq && (i+1U) >= args_in.c() )
 				errorNoValue( name ) ;
-			else if( valued(name) )
+			else if( valued(name) && !has_eq )
 				processSwitch( name , args_in.v(++i) ) ;
+			else if( valued(name) )
+				processSwitch( name , eq_value ) ;
 			else
 				processSwitch( name ) ;
 		}
@@ -343,6 +351,17 @@ size_t G::GetOpt::parseArgs( const Arg & args_in )
 	i-- ;
 	G_DEBUG( "G::GetOpt::parseArgs: removing " << i << " switch args" ) ;
 	return i ;
+}
+
+size_t G::GetOpt::eqPos( const std::string & s )
+{
+	size_t p = s.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789-_") ;
+	return p != std::string::npos && s.at(p) == '=' ? p : std::string::npos ;
+}
+
+std::string G::GetOpt::eqValue( const std::string & s , size_t pos )
+{
+	return (pos+1U) == s.length() ? std::string() : s.substr(pos+1U) ;
 }
 
 bool G::GetOpt::isOldSwitch( const std::string & arg ) const
@@ -557,3 +576,4 @@ bool G::GetOpt::valid( char c ) const
 }
 
 
+/// \file ggetopt.cpp

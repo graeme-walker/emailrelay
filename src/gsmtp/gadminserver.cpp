@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -267,7 +267,7 @@ GSmtp::AdminServer::AdminServer( MessageStore & store , const GSmtp::Client::Con
 	const Secrets & secrets , const GNet::Address & listening_address , bool allow_remote ,
 	const GNet::Address & local_address , const std::string & remote_address ,
 	unsigned int connection_timeout , const G::StringMap & extra_commands , bool with_terminate ) :
-		GNet::Server(listening_address) ,
+		GNet::MultiServer( GNet::MultiServer::addressList(listening_address) ) ,
 		m_store(store) ,
 		m_client_config(client_config) ,
 		m_secrets(secrets) ,
@@ -284,20 +284,28 @@ GSmtp::AdminServer::AdminServer( MessageStore & store , const GSmtp::Client::Con
 GSmtp::AdminServer::~AdminServer()
 {
 	// early cleanup so peers can call unregister() safely
-	serverCleanup() ; // GNet::Server
+	serverCleanup() ; // GNet::MultiServer
 }
 
 GNet::ServerPeer * GSmtp::AdminServer::newPeer( GNet::Server::PeerInfo peer_info )
 {
-	AdminPeer * peer = new AdminPeer( peer_info , *this , m_local_address , m_remote_address ,
-		m_extra_commands , m_with_terminate ) ;
-	m_peers.push_back( peer ) ;
-	return peer ;
+	try
+	{
+		AdminPeer * peer = new AdminPeer( peer_info , *this , m_local_address , m_remote_address ,
+			m_extra_commands , m_with_terminate ) ;
+		m_peers.push_back( peer ) ;
+		return peer ;
+	}
+	catch( std::exception & e )
+	{
+		G_WARNING( "GSmtp::AdminServer: exception from new connection: " << e.what() ) ;
+		return NULL ;
+	}
 }
 
 void GSmtp::AdminServer::report() const
 {
-	// no-op
+	serverReport( "admin" ) ;
 }
 
 void GSmtp::AdminServer::notify( const std::string & s0 , const std::string & s1 , const std::string & s2 )
@@ -337,3 +345,4 @@ GSmtp::Client::Config GSmtp::AdminServer::clientConfig() const
 	return m_client_config ;
 }
 
+/// \file gadminserver.cpp

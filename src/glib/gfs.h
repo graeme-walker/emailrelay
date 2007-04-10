@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -17,36 +17,37 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 //
 // ===
-//
-// gfs.h
-//
+///
+/// \file gfs.h
+///
 
 #ifndef G_FS_H
 #define G_FS_H
 
 #include "gdef.h"
 
+/// \namespace G
 namespace G
 {
 	class FileSystem ;
 }
 
-// Class: G::FileSystem
-// Description: Provides information about the
-// local operating system's file system
-// conventions.
-// See also: Path, File
-//
+/// \class G::FileSystem
+/// Provides information about the
+/// local operating system's file system
+/// conventions.
+/// \see Path, File
+///
 class G::FileSystem
 {
 public:
 	static const char *nullDevice() ;
 	static bool allowsSpaces() ;
-	static char slash() ; 					// separator
-	static char nonSlash() ; 				// to be converted to slash()
+	static char slash() ; // separator
+	static char nonSlash() ; // to be converted to slash()
 	static bool caseSensitive() ;
-	static bool usesDriveLetters() ;		// <drive>:
-	static bool leadingDoubleSlash() ;		// win32 network paths
+	static bool usesDriveLetters() ; // <drive>:
+	static bool leadingDoubleSlash() ; // win32 network paths
 } ;
 
 #endif

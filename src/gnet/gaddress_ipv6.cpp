@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -35,16 +35,17 @@
 #include <iomanip>
 #include <sstream>
 
-// Class: GNet::AddressImp
-// Description: A pimple-pattern implementation class for GNet::Address.
-//
+/// \class GNet::AddressImp
+/// A pimple-pattern implementation class for GNet::Address.
+///
 class GNet::AddressImp
 {
 public:
 	typedef sockaddr general_type ;
 	typedef sockaddr_in6 address_type ;
 	typedef sockaddr_storage storage_type ;
-	union Sockaddr // Used by GNet::AddressImp to cast between sockaddr and sockaddr_in6.
+	/// Used by GNet::AddressImp to cast between sockaddr and sockaddr_in6.
+	union Sockaddr
 		{ address_type specific ; general_type general ; storage_type storage ; } ;
 
 	explicit AddressImp( unsigned int port ) ; // (not in_port_t -- see validPort(), setPort() etc)
@@ -173,7 +174,11 @@ GNet::AddressImp::AddressImp( const sockaddr * addr , size_t len )
 	Sockaddr u ;
 	bool ipv6 = addr->sa_family == family() && len == sizeof(u.specific) ;
 	if( !ipv6 )
-		throw Address::BadFamily( std::ostringstream() << addr->sa_family ) ;
+	{
+		std::ostringstream ss ;
+		ss << addr->sa_family ;
+		throw Address::BadFamily( ss.str() ) ;
+	}
 
 	u.general = * addr ;
 	m_inet = u.specific ;

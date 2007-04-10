@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,6 +26,7 @@
 #include "gpopserver.h"
 #include "gpopsecrets.h"
 #include "gpopstore.h"
+#include "gstrings.h"
 
 std::string GPop::Secrets::defaultPath()
 {
@@ -50,6 +51,11 @@ std::string GPop::Secrets::secret(  const std::string & , const std::string & ) 
 	return std::string() ;
 }
 
+bool GPop::Secrets::contains( const std::string & mechanism ) const
+{
+	return false ;
+}
+
 // ==
 
 GPop::Store::Store( G::Path , bool , bool )
@@ -58,13 +64,19 @@ GPop::Store::Store( G::Path , bool , bool )
 
 // ==
 
-GPop::Server::Config::Config( bool , unsigned int , const std::string & )
+GPop::Server::Config::Config( bool , unsigned int , const G::Strings & )
 {
 }
+
+// ==
 
 GPop::Server::Server( Store & store , const Secrets & secrets , Config ) :
 	m_store(store) ,
 	m_secrets(secrets)
+{
+}
+
+GPop::Server::~Server()
 {
 }
 
@@ -78,3 +90,4 @@ GNet::ServerPeer * GPop::Server::newPeer( GNet::Server::PeerInfo )
 }
 
 
+/// \file gnopop.cpp

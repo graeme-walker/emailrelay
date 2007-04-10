@@ -16,6 +16,9 @@
 /* Define if gmtime_r in time.h */
 #undef HAVE_GMTIME_R
 
+/* Define to enable gui code */
+#undef HAVE_GUI
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
@@ -71,6 +74,9 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the <zlib.h> header file. */
+#undef HAVE_ZLIB_H
 
 /* Name of package */
 #undef PACKAGE

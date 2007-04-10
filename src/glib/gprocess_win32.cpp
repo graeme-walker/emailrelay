@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -55,10 +55,12 @@ public:
 	HANDLE h() const ;
 	std::string read( bool do_throw = true ) ;
 private:
+	std::string readSome( BOOL & ok , DWORD & error ) ;
 	static HANDLE create( HANDLE & h_write , bool do_throw ) ;
 	static HANDLE duplicate( HANDLE h , bool do_throw ) ;
 private:
 	bool m_active ;
+	bool m_first ;
 	HANDLE m_read ;
 	HANDLE m_write ;
 } ;
@@ -76,6 +78,64 @@ public:
 	static HANDLE createProcess( const std::string & exe , const std::string & command_line , HANDLE hstdout ) ;
 	static DWORD waitFor( HANDLE hprocess , DWORD default_exit_code ) ;
 } ;
+
+class G::Process::ChildProcessImp
+{
+public:
+	ChildProcessImp() ;
+	unsigned long m_ref_count ;
+	Pipe m_pipe ;
+	HANDLE m_hprocess ;
+private:
+	void operator=( const ChildProcessImp & ) ;
+	ChildProcessImp( const ChildProcessImp & ) ;
+} ;
+
+// ===
+
+G::Process::ChildProcessImp::ChildProcessImp() :
+	m_ref_count(0UL) ,
+	m_pipe(true,true) ,
+	m_hprocess(0)
+{
+}
+
+// ===
+
+G::Process::ChildProcess::ChildProcess( ChildProcessImp * imp ) :
+	m_imp(imp)
+{
+	m_imp->m_ref_count = 1 ;
+}
+
+G::Process::ChildProcess::~ChildProcess()
+{
+	m_imp->m_ref_count-- ;
+	if( m_imp->m_ref_count == 0 )
+		delete m_imp ;
+}
+
+G::Process::ChildProcess::ChildProcess( const ChildProcess & other ) :
+	m_imp(other.m_imp)
+{
+	m_imp->m_ref_count++ ;
+}
+
+void G::Process::ChildProcess::operator=( const ChildProcess & rhs )
+{
+	ChildProcess temp( rhs ) ;
+	std::swap( m_imp , temp.m_imp ) ;
+}
+
+int G::Process::ChildProcess::wait()
+{
+	return G::ProcessImp::waitFor( m_imp->m_hprocess , 127 ) ;
+}
+
+std::string G::Process::ChildProcess::read()
+{
+	return m_imp->m_pipe.read(false) ;
+}
 
 // ===
 
@@ -156,6 +216,14 @@ std::string G::Process::strerror( int errno_ )
 	return ss.str() ;
 }
 
+G::Process::ChildProcess G::Process::spawn( const Path & exe , const Strings & args )
+{
+	ChildProcess child( new ChildProcessImp ) ;
+	std::string command_line = ProcessImp::commandLine( exe.str() , args ) ;
+	child.m_imp->m_hprocess = ProcessImp::createProcess( exe.str() , command_line , child.m_imp->m_pipe.h() ) ;
+	return child ;
+}
+
 int G::Process::spawn( Identity , const Path & exe_path , const Strings & args ,
 	std::string * pipe_result_p , int error_return , std::string (*fn)(int) )
 {
@@ -230,6 +298,7 @@ void G::Process::Umask::set( G::Process::Umask::Mode )
 
 G::Pipe::Pipe( bool active , bool do_throw ) :
 	m_active(active) ,
+	m_first(true) ,
 	m_read(HNULL) ,
 	m_write(HNULL)
 {
@@ -299,26 +368,44 @@ HANDLE G::Pipe::h() const
 	return m_write ;
 }
 
-std::string G::Pipe::read( bool do_throw )
+std::string G::Pipe::readSome( BOOL & ok , DWORD & error )
 {
-	if( ! m_active ) return std::string() ;
-	::CloseHandle( m_write ) ; m_write = HNULL ;
 	char buffer[4096] ;
+	buffer[0] = '\0' ;
 	DWORD n = sizeof(buffer) ;
 	DWORD m = 0UL ;
-	BOOL rc = ::ReadFile( m_read , buffer , n , &m , NULL ) ;
-	DWORD error = ::GetLastError() ;
-	::CloseHandle( m_read ) ; m_read = HNULL ;
-	if( !rc )
+	ok = ::ReadFile( m_read , buffer , n , &m , NULL ) ;
+	error = ::GetLastError() ;
+	m = m > n ? n : m ;
+	return m ? std::string(buffer,m) : std::string() ;
+}
+
+std::string G::Pipe::read( bool do_throw )
+{
+	if( ! m_active )
+		return std::string() ;
+
+	bool first = m_first ;
+	m_first = false ;
+	if( first )
 	{
-		G_DEBUG( "G::Pipe::read: error: " << m << " byte(s): error=" << error ) ;
+		::CloseHandle( m_write ) ;
+		m_write = HNULL ;
+	}
+
+	BOOL ok = FALSE ;
+	DWORD error = 0 ;
+	std::string s = readSome( ok , error ) ;
+	if( !ok )
+	{
+		G_DEBUG( "G::Pipe::read: pipe read error: " << error ) ;
 		if( error != ERROR_BROKEN_PIPE )
 		{
 			G_ERROR( "G::Pipe::read: pipe read error: " << error ) ;
 			if( do_throw ) throw Error( "read" ) ;
 		}
 	}
-	return std::string( buffer , m ) ;
+	return s ;
 }
 
 // ===
@@ -396,3 +483,4 @@ DWORD G::ProcessImp::waitFor( HANDLE hprocess , DWORD default_exit_code )
 	return exit_code ;
 }
 
+/// \file gprocess_win32.cpp

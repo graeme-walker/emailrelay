@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -53,6 +53,13 @@ G::Path::Path( const char * path )
 	validate( "ctor(cstr)" ) ;
 }
 
+G::Path::Path( const Path & path , const std::string & tail )
+{
+	set( path.str() ) ;
+	validate( "c-ctor" ) ;
+	pathAppend( tail ) ;
+}
+
 G::Path::Path( const Path & other )
 {
 	set( other.str() ) ;
@@ -99,10 +106,6 @@ void G::Path::normalise()
 	Str::replaceAll( m_str , "\t" , "" ) ;
 	Str::replaceAll( m_str , "\n" , "" ) ;
 	Str::replaceAll( m_str , "\r" , "" ) ;
-
-	// normalise case
-	if( !FileSystem::caseSensitive() )
-		Str::toLower(m_str) ;
 
 	// remove trailing slashes where appropriate
 	while( (
@@ -385,6 +388,15 @@ std::string G::Path::extension() const
 	return m_extension ;
 }
 
+G::Path G::Path::join( const G::Path & p1 , const G::Path & p2 )
+{
+	G::Path result( p1 ) ;
+	Strings list = p2.split() ;
+	for( Strings::iterator p = list.begin() ; p != list.end() ; ++p )
+		result.pathAppend( *p ) ;
+	return result ;
+}
+
 G::Strings G::Path::split( bool no_dot ) const
 {
 	Path path( *this ) ;
@@ -428,3 +440,4 @@ G::Path &G::Path::operator=( const Path & other )
 }
 
 
+/// \file gpath.cpp

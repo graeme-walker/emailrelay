@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -73,3 +73,12 @@ G::File::time_type G::File::time( const Path & path , const NoThrow & )
 	return ::stat( path.pathCstr() , &statbuf ) == 0 ? statbuf.st_mtime : 0 ;
 }
 
+bool G::File::chmodx( const Path & path , bool do_throw )
+{
+	bool ok = 0 == ::chmod( path.str().c_str() , S_IRUSR | S_IWUSR | S_IXUSR ) ;
+	if( !ok && do_throw )
+		throw CannotChmod( path.str() ) ;
+	return ok ;
+}
+
+/// \file gfile_unix.cpp

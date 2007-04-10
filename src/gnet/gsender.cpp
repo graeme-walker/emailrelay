@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -44,6 +44,7 @@ bool GNet::Sender::send( const std::string & data , size_t offset )
 		return true ; // nothing to do
 
 	ssize_t rc = socket().write( data.data()+offset , data.length()-offset ) ;
+	G_DEBUG( "GNet::Sender::send: socket write: " << rc ) ;
 	if( rc < 0 && ! socket().eWouldBlock() )
 	{
 		throw SendError() ;
@@ -114,3 +115,4 @@ void GNet::Sender::writeEvent()
 	}
 }
 
+/// \file gsender.cpp

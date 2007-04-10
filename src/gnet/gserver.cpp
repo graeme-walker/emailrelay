@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -196,6 +196,24 @@ std::pair<bool,GNet::Address> GNet::Server::address() const
 
 void GNet::Server::readEvent()
 {
+	try
+	{
+		readEventCore() ;
+	}
+	catch( std::exception & e )
+	{
+		// should probably never get here -- most servers will
+		// want to stay up if a new connection fails to
+		// initialise, so their peer factory method should
+		// catch its own exceptions and return null
+		//
+		G_ERROR( "GNet::Server::readEvent: exception while establishing a new connection: " << e.what() ) ;
+		throw ;
+	}
+}
+
+void GNet::Server::readEventCore()
+{
 	// read-event-on-listening-port => new connection to accept
 
 	G_DEBUG( "GNet::Server::readEvent: " << this ) ;
@@ -298,3 +316,4 @@ void GNet::ServerPeerHandle::set( ServerPeer * p )
 	m_old = p ;
 }
 
+/// \file gserver.cpp

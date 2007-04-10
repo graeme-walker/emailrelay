@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -33,6 +33,7 @@
 #include <sys/stat.h>
 #include <fcntl.h> // open()
 #include <unistd.h> // setuid() etc
+#include <algorithm> // std::swap()
 
 namespace
 {
@@ -47,9 +48,9 @@ namespace G
 	class Pipe ;
 }
 
-// Class: G::Pipe
-// Description: A private implementation class used by G::Process.
-//
+/// \class G::Pipe
+/// A private implementation class used by G::Process.
+///
 class G::Pipe
 {
 public:
@@ -67,14 +68,74 @@ private:
 	int m_fd ;
 } ;
 
-// Class: G::Process::IdImp
-// Description: A private implementation class used by G::Process.
-//
+/// \class G::Process::ChildProcessImp
+/// A private implementation class used by G::Process.
+///
+class G::Process::ChildProcessImp
+{
+public:
+	ChildProcessImp() ;
+	unsigned long m_ref_count ;
+	Id m_id ;
+	Pipe m_pipe ;
+private:
+	void operator=( const ChildProcessImp & ) ;
+	ChildProcessImp( const ChildProcessImp & ) ;
+} ;
+
+/// \class G::Process::IdImp
+/// A private implementation class used by G::Process.
+///
 class G::Process::IdImp
 {
 public:
 	pid_t m_pid ;
 } ;
+
+// ===
+
+G::Process::ChildProcess::ChildProcess( ChildProcessImp * imp ) :
+	m_imp(imp)
+{
+	m_imp->m_ref_count = 1 ;
+}
+
+G::Process::ChildProcess::~ChildProcess()
+{
+	m_imp->m_ref_count-- ;
+	if( m_imp->m_ref_count == 0 )
+		delete m_imp ;
+}
+
+G::Process::ChildProcess::ChildProcess( const ChildProcess & other ) :
+	m_imp(other.m_imp)
+{
+	m_imp->m_ref_count++ ;
+}
+
+void G::Process::ChildProcess::operator=( const ChildProcess & rhs )
+{
+	ChildProcess temp( rhs ) ;
+	std::swap( m_imp , temp.m_imp ) ;
+}
+
+int G::Process::ChildProcess::wait()
+{
+	return G::Process::wait( m_imp->m_id , 127 ) ;
+}
+
+std::string G::Process::ChildProcess::read()
+{
+	return m_imp->m_pipe.read() ;
+}
+
+// ===
+
+G::Process::ChildProcessImp::ChildProcessImp() :
+	m_ref_count(0UL) ,
+	m_pipe(true)
+{
+}
 
 // ===
 
@@ -89,19 +150,6 @@ void G::Process::cd( const Path & dir )
 bool G::Process::cd( const Path & dir , NoThrow )
 {
 	return 0 == ::chdir( dir.str().c_str() ) ;
-}
-
-//static
-void G::Process::chroot( const Path & dir )
-{
-	cd( dir ) ;
-	if( 0 != ::chroot( dir.str().c_str() ) )
-	{
-		int error = errno_() ;
-		G_WARNING( "G::Process::chroot: cannot chroot to \"" << dir << "\": " << error ) ;
-		throw CannotChroot( dir.str() ) ;
-	}
-	cd( "/" ) ;
 }
 
 //static
@@ -226,6 +274,31 @@ int G::Process::wait( const Id & child_pid , int error_return )
 int G::Process::errno_()
 {
 	return errno ; // not ::errno or std::errno for gcc2.95
+}
+
+G::Process::ChildProcess G::Process::spawn( const Path & exe , const Strings & args )
+{
+	ChildProcess child( new ChildProcessImp ) ;
+	if( fork(child.m_imp->m_id) == Child )
+	{
+		try
+		{
+			child.m_imp->m_pipe.inChild() ;
+			closeFiles( child.m_imp->m_pipe.fd() ) ;
+			child.m_imp->m_pipe.dup() ;
+			execCore( exe , args ) ;
+		}
+		catch(...)
+		{
+		}
+		::_exit( 127 ) ;
+		return ChildProcess(0) ; // pacify the compiler
+	}
+	else
+	{
+		child.m_imp->m_pipe.inParent() ;
+		return child ;
+	}
 }
 
 int G::Process::spawn( Identity nobody , const Path & exe , const Strings & args ,
@@ -403,7 +476,8 @@ bool G::Process::Id::operator==( const Id & other ) const
 
 // ===
 
-class G::Process::Umask::UmaskImp // A private implementation class used by G::Process::Umask.
+	/// A private implementation class used by G::Process::Umask.
+class G::Process::Umask::UmaskImp
 {
 public:
 	mode_t m_old_mode ;

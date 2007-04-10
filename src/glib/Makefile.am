@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License
@@ -26,7 +26,6 @@ EXTRA_DIST=\
 	gfs_win32.cpp \
 	gidentity_win32.cpp \
 	glogoutput_win32.cpp \
-	gmd5_aladdin.cpp \
 	gprocess_win32.cpp \
 	gfile_win32.cpp \
 	gregistry_win32.cpp \

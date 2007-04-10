@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -85,6 +85,13 @@ void G::Str::trimRight( std::string & s , const std::string & ws )
 void G::Str::trim( std::string & s , const std::string & ws )
 {
 	trimLeft(s,ws) ; trimRight(s,ws) ;
+}
+
+std::string G::Str::trimmed( const std::string & s_in , const std::string & ws )
+{
+	std::string s( s_in ) ;
+	trim(s,ws) ;
+	return s ;
 }
 
 bool G::Str::isNumeric( const std::string & s , bool allow_minus_sign )
@@ -393,9 +400,11 @@ std::string G::Str::toPrintableAscii( char c , char escape )
 	else
 	{
 		unsigned int n = c ;
-		result.append( 1U , char('0'+((n/64U)%8U)) ) ;
-		result.append( 1U , char('0'+((n/8U)%8U)) ) ;
-		result.append( 1U , char('0'+(n%8U)) ) ;
+		n = n & 0xff ;
+		const char * const map = "0123456789abcdef" ;
+		result.append( 1U , 'x' ) ;
+		result.append( 1U , map[(n/16U)%16U] ) ;
+		result.append( 1U , map[n%16U] ) ;
 	}
 	return result ;
 }
@@ -471,7 +480,7 @@ std::string G::Str::wrap( std::string text , const std::string & prefix_1 ,
 		}
 
 		std::string line = text ;
-		if( text.length() > w )
+		if( text.length() > w ) // (should use wcwidth() for utf-8 compatibility)
 		{
 			line = text.substr( 0U , w ) ;
 			if( text.find_first_of(ws,w) != w )
@@ -646,4 +655,9 @@ G::Strings G::Str::keys( const StringMap & map )
 	return result ;
 }
 
+std::string G::Str::ws()
+{
+	return std::string(" \t\n\r") ;
+}
 
+/// \file gstr.cpp

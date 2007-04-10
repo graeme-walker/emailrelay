@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -41,6 +41,7 @@ GSmtp::ClientProtocol::ClientProtocol( Sender & sender , const Secrets & secrets
 	m_secrets(secrets) ,
 	m_thishost(config.thishost_name) ,
 	m_state(sInit) ,
+	m_to_accepted(0U) ,
 	m_server_has_8bitmime(false) ,
 	m_message_is_8bit(false) ,
 	m_authenticated_with_server(false) ,
@@ -62,6 +63,7 @@ void GSmtp::ClientProtocol::start( const std::string & from , const G::Strings &
 	// reinitialise for the new message & server
 	m_signalled = false ;
 	m_to = to ;
+	m_to_accepted = 0U ;
 	m_from = from ;
 	m_content = content ;
 	m_message_is_8bit = eight_bit ;
@@ -255,7 +257,8 @@ bool GSmtp::ClientProtocol::applyEvent( const Reply & reply , bool is_start_even
 		}
 		else if( m_sasl->active() && m_must_authenticate )
 		{
-			std::string reason = "cannot do mandatory authentication" ; // eg. no suitable mechanism
+			// fail if we are using authentication and the server sends us a list of mechanisms we do not support
+			std::string reason = "cannot do authentication mandated by the server" ;
 			G_WARNING( "GSmtp::ClientProtocol: " << reason ) ;
 			m_state = sDone ;
 			protocol_done = true ;
@@ -325,20 +328,21 @@ bool GSmtp::ClientProtocol::applyEvent( const Reply & reply , bool is_start_even
 	}
 	else if( m_state == sSentRcpt && m_to.size() != 0U && reply.positive() )
 	{
-		send( std::string("RCPT TO:<") + m_to.front() + std::string(">") ) ;
+		if( reply.positive() ) m_to_accepted++ ;
+		if( !reply.positive() ) G_WARNING( "GSmtp::ClientProtocol: recipient rejected" ) ;
+
+		std::string to = m_to.front() ;
 		m_to.pop_front() ;
-	}
-	else if( m_state == sSentRcpt && reply.positive() )
-	{
-		m_state = sSentData ;
-		send( std::string("DATA") ) ;
+
+		send( std::string("RCPT TO:<") + to + std::string(">") ) ;
 	}
 	else if( m_state == sSentRcpt )
 	{
-		G_WARNING( "GSmtp::ClientProtocol: recipient rejected" ) ;
-		m_state = sDone ;
-		protocol_done = true ;
-		raiseDoneSignal( false , false , reply.text() ) ;
+		if( reply.positive() ) m_to_accepted++ ;
+		if( !reply.positive() ) G_WARNING( "GSmtp::ClientProtocol: recipient rejected" ) ;
+
+		m_state = m_to_accepted == 0U ? sSentDataStub : sSentData ;
+		send( std::string("DATA") ) ;
 	}
 	else if( m_state == sSentData && reply.is(Reply::OkForData_354) )
 	{
@@ -355,6 +359,13 @@ bool GSmtp::ClientProtocol::applyEvent( const Reply & reply , bool is_start_even
 			m_state = sSentDot ;
 			send( "." , true , log_content ) ;
 		}
+	}
+	else if( m_state == sSentDataStub && !( reply.is(Reply::OkForData_354) || reply.positive() ) )
+	{
+		// (we expect this error reply since the server rejected all our recipeints)
+		m_state = sDone ;
+		protocol_done = true ;
+		raiseDoneSignal( false , false , "all recipients rejected" ) ;
 	}
 	else if( m_state == sSentDot )
 	{
@@ -641,3 +652,4 @@ GSmtp::ClientProtocol::Config::Config( const std::string & name ,
 {
 }
 
+/// \file gclientprotocol.cpp

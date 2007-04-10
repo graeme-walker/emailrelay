@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -23,6 +23,7 @@
 
 #include "gdef.h"
 #include "gnet.h"
+#include "gclientbaseimp.h"
 #include "gaddress.h"
 #include "gsocket.h"
 #include "gdatetime.h"
@@ -33,6 +34,7 @@
 #include "gdebug.h"
 #include "gassert.h"
 #include "glog.h"
+#include "gfile.h"
 
 namespace
 {
@@ -46,11 +48,13 @@ namespace
 namespace GNet
 {
 	class ClientResolver ;
+	class ClientImp ;
+	class ClientTestImp ;
 }
 
-// Class: GNet::ClientResolver
-// Description: A resolver class which calls ClientImp::resolveCon() when done.
-//
+/// \class GNet::ClientResolver
+/// A resolver class which calls ClientImp::resolveCon() when done.
+///
 class GNet::ClientResolver : public GNet::Resolver
 {
 private:
@@ -74,42 +78,42 @@ GNet::ClientResolver::ClientResolver( ClientImp & imp ) :
 
 // ===
 
-// Class: GNet::ClientImp
-// Description: A pimple-pattern implementation class for GNet::Client.
-//
-class GNet::ClientImp : public GNet::EventHandler
+/// \class GNet::ClientImp
+/// A pimple-pattern implementation class for GNet::Client.
+///
+class GNet::ClientImp : public GNet::ClientBaseImp
 {
 public:
 	enum Status { Success , Failure , Retry , ImmediateSuccess } ;
-	enum State { Idle , Resolving , Connecting , Connected , Failed , Disconnected } ;
 
 public:
 	ClientImp( Client & intaface , const Address & local_address , bool privileged , bool quit_on_disconnect ) ;
 	virtual ~ClientImp() ;
-	void resolveCon( bool ok , const Address & address , std::string reason ) ;
-	void readEvent() ;
-	void writeEvent() ;
-	void exceptionEvent() ;
-	bool connect( std::string host , std::string service , std::string * error , bool sync_dns ) ;
-	std::string startConnecting( const Address & , const std::string & , bool & ) ;
-	bool localBind( Address ) ;
-	Status connectCore( Address , std::string * ) ;
-	void disconnect() ;
-	StreamSocket & s() ;
-	const StreamSocket & s() const ;
 	void run() ;
-	void close() ;
-	void blocked() ;
 	bool connected() const ;
-	void setState( State ) ;
+	void blocked() ;
+	void disconnect() ;
 	std::pair<bool,Address> localAddress() const ;
 	std::pair<bool,Address> peerAddress() const ;
 	std::string peerName() const ;
+	bool connect( std::string host , std::string service , std::string * error , bool sync_dns ) ;
+	void resolveCon( bool ok , const Address & address , std::string reason ) ;
 
 private:
+	enum State { Idle , Resolving , Connecting , Connected , Failed , Disconnected } ;
+	static int getRandomPort() ;
 	ClientImp( const ClientImp & ) ;
 	void operator=( const ClientImp & ) ;
-	static int getRandomPort() ;
+	void readEvent() ;
+	void writeEvent() ;
+	void exceptionEvent() ;
+	std::string startConnecting( const Address & , const std::string & , bool & ) ;
+	bool localBind( Address ) ;
+	Status connectCore( Address , std::string * ) ;
+	StreamSocket & s() ;
+	const StreamSocket & s() const ;
+	void close() ;
+	void setState( State ) ;
 
 private:
 	ClientResolver m_resolver ;
@@ -126,11 +130,21 @@ private:
 
 // ===
 
+namespace
+{
+	GNet::ClientBaseImp * newClientImp( GNet::Client & intaface , const GNet::Address & local_address ,
+		bool privileged , bool quit_on_disconnect )
+	{
+		//return new GNet::ClientTestImp( intaface , local_address , privileged , quit_on_disconnect ) ;
+		return new GNet::ClientImp( intaface , local_address , privileged , quit_on_disconnect ) ;
+	}
+}
+
 GNet::Client::Client( const Address & local_address , bool privileged , bool quit_on_disconnect ) :
 	m_imp(NULL)
 {
 	G_DEBUG( "Client::ctor" ) ;
-	m_imp = new ClientImp( *this , local_address , privileged , quit_on_disconnect ) ;
+	m_imp = newClientImp( *this , local_address , privileged , quit_on_disconnect ) ;
 	if( Monitor::instance() ) Monitor::instance()->add( *this ) ;
 }
 
@@ -138,7 +152,7 @@ GNet::Client::Client( bool privileged , bool quit_on_disconnect ) :
 	m_imp(NULL)
 {
 	G_DEBUG( "Client::ctor" ) ;
-	m_imp = new ClientImp( *this , Address(0U) , privileged , quit_on_disconnect ) ;
+	m_imp = newClientImp( *this , Address(0U) , privileged , quit_on_disconnect ) ;
 	if( Monitor::instance() ) Monitor::instance()->add( *this ) ;
 }
 

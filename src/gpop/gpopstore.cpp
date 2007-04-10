@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -33,14 +33,28 @@
 #include <sstream>
 #include <fstream>
 
-struct FileReader // stub -- message files are group-readable
+namespace GPop
+{
+	struct FileReader ;
+	struct FileDeleter ;
+}
+
+/// \class GPop::FileReader
+/// A trivial class which is used like G::Root by GPop::Store for reading files.
+///  The implementation does nothing because files in the pop store are group-readable.
+///
+struct GPop::FileReader
 {
 	FileReader() {}
 } ;
 
 // ==
 
-struct FileDeleter : private G::Root // Root not really necessary -- the spool directory is group-writeable
+/// \class GPop::FileDeleter
+/// A trivial specialisation of G::Root used by GPop::Store for deleting files.
+///  The specialisation is not really necessary because the pop store directory is group-writeable.
+///
+struct GPop::FileDeleter : private G::Root
 {
 } ;
 
@@ -89,7 +103,7 @@ void GPop::Store::checkPath( G::Path dir_path , bool by_name , bool allow_delete
 			}
 		}
 		if( n == 0 )
-			G_WARNING( "GPop::Store: no sub-directories for pop-by-name found in \"" << dir_path << "\"" ) ;
+			G_WARNING( "GPop::Store: no sub-directories for pop-by-name found in \"" << dir_path << "\": create one sub-directory for each authorised pop account" ) ;
 	}
 	else if( !valid(dir_path,allow_delete) )
 	{
@@ -120,16 +134,17 @@ bool GPop::Store::valid( G::Path dir_path , bool allow_delete )
 	return ok ;
 }
 
+
 // ===
 
-GPop::StoreLock::File::File( const G::Path & path ) :
-	name(path.basename()) ,
-	size(toSize(G::File::sizeString(path.str())))
+GPop::StoreLock::File::File( const G::Path & content_path ) :
+	name(content_path.basename()) ,
+	size(toSize(G::File::sizeString(content_path.str())))
 {
 }
 
-GPop::StoreLock::File::File( const std::string & name_ , const std::string & size_string ) :
-	name(name_) ,
+GPop::StoreLock::File::File( const std::string & content_name , const std::string & size_string ) :
+	name(content_name) ,
 	size(toSize(size_string))
 {
 }
@@ -314,7 +329,8 @@ void GPop::StoreLock::doCommit( Store & store ) const
 		if( store.allowDelete() )
 		{
 			deleteFile( envelopePath(*p) , all_ok ) ;
-			deleteFile( contentPath(*p) , all_ok ) ;
+			if( unlinked(store,*p) ) // race condition could leave content files undeleted
+				deleteFile( contentPath(*p) , all_ok ) ;
 		}
 		else
 		{
@@ -352,11 +368,24 @@ G::Path GPop::StoreLock::path( int id ) const
 	return contentPath( file ) ;
 }
 
-G::Path GPop::StoreLock::path( const std::string & filename ) const
+G::Path GPop::StoreLock::path( const std::string & filename , bool fallback ) const
 {
-	G::Path result = m_dir ;
-	result.pathAppend( filename ) ;
-	return result ;
+	// expected path
+	G::Path path_1 = m_dir ;
+	path_1.pathAppend( filename ) ;
+
+	// or fallback to the parent directory
+	G::Path path_2 = m_dir ; path_2.pathAppend("..") ;
+	path_2.pathAppend( filename ) ;
+
+	return ( fallback && !G::File::exists(path_1,G::File::NoThrow()) ) ? path_2 : path_1 ;
+}
+
+std::string GPop::StoreLock::envelopeName( const std::string & content_name ) const
+{
+	std::string filename = content_name ;
+	G::Str::replace( filename , "content" , "envelope" ) ;
+	return filename ;
 }
 
 std::string GPop::StoreLock::contentName( const std::string & envelope_name ) const
@@ -368,19 +397,20 @@ std::string GPop::StoreLock::contentName( const std::string & envelope_name ) co
 
 G::Path GPop::StoreLock::contentPath( const std::string & envelope_name ) const
 {
-	return path( contentName(envelope_name) ) ;
+	const bool try_parent_directory = true ;
+	return path( contentName(envelope_name) , try_parent_directory ) ;
 }
 
 G::Path GPop::StoreLock::contentPath( const File & file ) const
 {
-	return path( file.name ) ;
+	const bool try_parent_directory = true ;
+	return path( file.name , try_parent_directory ) ;
 }
 
 G::Path GPop::StoreLock::envelopePath( const File & file ) const
 {
-	std::string filename = file.name ;
-	G::Str::replace( filename , "content" , "envelope" ) ;
-	return path( filename ) ;
+	const bool try_parent_directory = false ;
+	return path( envelopeName(file.name) , try_parent_directory ) ;
 }
 
 void GPop::StoreLock::rollback()
@@ -388,5 +418,48 @@ void GPop::StoreLock::rollback()
 	G_ASSERT( locked() ) ;
 	m_deleted.clear() ;
 	m_current = m_initial ;
+}
+
+bool GPop::StoreLock::unlinked( Store & store , const File & file ) const
+{
+	if( !store.byName() )
+	{
+		G_DEBUG( "StoreLock::unlinked: unlinked since not pop-by-name: " << file.name ) ;
+		return true ;
+	}
+
+	G::Path normal_content_path = m_dir ; normal_content_path.pathAppend( file.name ) ;
+	if( G::File::exists(normal_content_path,G::File::NoThrow()) )
+	{
+		G_DEBUG( "StoreLock::unlinked: unlinked since in its own directory: " << normal_content_path ) ;
+		return true ;
+	}
+
+	// look for corresponding envelopes in all child directories
+	bool found = false ;
+	{
+		G::Directory base_dir( store.dir() ) ;
+		G::DirectoryIterator iter( base_dir ) ;
+		while( iter.more() )
+		{
+			if( ! iter.isDir() ) continue ;
+			G_DEBUG( "Store::unlinked: checking sub-directory: " << iter.fileName() ) ;
+			G::Path envelope_path = iter.filePath() ; envelope_path.pathAppend(envelopeName(file.name)) ;
+			if( G::File::exists(envelope_path,G::File::NoThrow()) )
+			{
+				G_DEBUG( "StoreLock::unlinked: still in use: envelope exists: " << envelope_path ) ;
+				found = true ;
+				break ;
+			}
+		}
+	}
+
+	if( ! found )
+	{
+		G_DEBUG( "StoreLock::unlinked: unlinked since no envelope found in any sub-directory" ) ;
+		return true ;
+	}
+
+	return false ;
 }
 

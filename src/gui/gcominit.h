@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -17,27 +17,22 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 //
 // ===
-//
-// passwd-fastbuild.cpp
-//
-#define G_NO_DEBUG
-#define G_NO_ASSERT
-#define _BSD_SOURCE
-#include "gdef.h"
-#include "gnet.h"
-#include "gsmtp.h"
-#ifdef G_UNIX
-#include "garg_unix.cpp"
-#include "gfs_unix.cpp"
+///
+/// \file gcominit.h
+///
+
+#ifndef G_COM_INIT_H__
+#define G_COM_INIT_H__
+
+#ifdef _WIN32
+#include <windows.h>
+struct GComInit
+{
+	GComInit() { CoInitializeEx(0,0) ; }
+	~GComInit() { CoUninitialize() ; }
+} ;
 #else
-#include "garg_win32.cpp"
-#include "gfs_win32.cpp"
+struct GComInit {} ;
 #endif
-#include "garg.cpp"
-#include "gexception.cpp"
-#include "md5.cpp"
-#include "gmd5_native.cpp"
-#include "gpath.cpp"
-#include "gstr.cpp"
-#include "legal.cpp"
-#include "passwd.cpp"
+
+#endif

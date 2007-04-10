@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -63,7 +63,7 @@ std::string Main::Configuration::str( const std::string & p , const std::string 
 	std::ostringstream ss ;
 	ss
 		<< p << "allow remote clients? " << yn(allowRemoteClients()) << eol
-		<< p << "listening interface: " << (doServing()&&doSmtp()?any(listeningInterface()):na()) << eol
+		<< p << "listening interface: " << (doServing()&&doSmtp()?any(firstListeningInterface()):na()) << eol
 		<< p << "smtp listening port: " << (doServing()&&doSmtp()?G::Str::fromUInt(port()):na()) << eol
 		<< p << "pop listening port: " << (doServing()&&doPop()?G::Str::fromUInt(popPort()):na()) << eol
 		<< p << "admin listening port: " << (doAdmin()?G::Str::fromUInt(adminPort()):na()) << eol
@@ -80,7 +80,7 @@ std::string Main::Configuration::str( const std::string & p , const std::string 
 		<< p << "verbose logging? " << yn(verbose()) << eol
 		<< p << "debug logging? " << yn(debug()) << eol
 		<< p << "log to stderr/syslog? " << yn(log()) << eol
-		<< p << "use syslog? " << yn(syslog()) << eol
+		<< p << "use syslog? " << yn(useSyslog()) << eol
 		<< p << "close stderr? " << yn(closeStderr()) << eol
 		<< p << "connect timeout: " << connectionTimeout() << "s" << eol
 		<< p << "response timeout: " << responseTimeout() << "s" << eol
@@ -109,9 +109,11 @@ bool Main::Configuration::debug() const
 	return m_cl.contains("debug") ;
 }
 
-bool Main::Configuration::syslog() const
+bool Main::Configuration::useSyslog() const
 {
-	return !m_cl.contains("no-syslog") && !m_cl.contains("as-client") ;
+	bool basic = !m_cl.contains("no-syslog") && !m_cl.contains("as-client") ;
+	bool override = m_cl.contains("syslog") ;
+	return override || basic ;
 }
 
 bool Main::Configuration::logTimestamp() const
@@ -125,14 +127,30 @@ unsigned int Main::Configuration::port() const
 		G::Str::toUInt(m_cl.value("port")) : 25U ;
 }
 
-std::string Main::Configuration::listeningInterface() const
+G::Strings Main::Configuration::listeningInterfaces() const
 {
-	return m_cl.contains("interface") ? m_cl.value("interface") : std::string() ;
+	G::Strings result ;
+	if( m_cl.contains("interface") )
+	{
+		G::Str::splitIntoFields( m_cl.value("interface") , result , ",/" ) ;
+	}
+	if( result.empty() )
+	{
+		result.push_back( std::string() ) ;
+	}
+	return result ;
+}
+
+std::string Main::Configuration::firstListeningInterface() const
+{
+	G::Strings s = listeningInterfaces() ;
+	return s.size() ? s.front() : std::string() ;
 }
 
 std::string Main::Configuration::clientInterface() const
 {
-	return listeningInterface() ; // or a separate switch?
+	// TODO -- separate switch ?
+	return firstListeningInterface() ;
 }
 
 G::Path Main::Configuration::adminAddressFile() const
@@ -347,20 +365,6 @@ std::string Main::Configuration::verifier() const
 	return m_cl.contains("verifier") ? m_cl.value("verifier") : std::string() ;
 }
 
-bool Main::Configuration::deliverToPostmaster() const
-{
-	return
-		m_cl.contains("postmaster") ||
-		m_cl.contains("as-server") ;
-}
-
-bool Main::Configuration::rejectLocalMailboxes() const
-{
-	return
-		m_cl.contains("postmaster") ||
-		m_cl.contains("as-server") ;
-}
-
 bool Main::Configuration::withTerminate() const
 {
 	return m_cl.contains("admin-terminate") ;
@@ -388,6 +392,9 @@ bool Main::Configuration::anonymous() const
 
 unsigned int Main::Configuration::filterTimeout() const
 {
-	return 120U ; // for now
+	const unsigned int default_timeout = 5U * 60U ;
+	return m_cl.contains("filter-timeout") ?
+		G::Str::toUInt(m_cl.value("filter-timeout")) : default_timeout ;
 }
 
+/// \file configuration.cpp

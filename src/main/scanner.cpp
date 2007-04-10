@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -43,9 +43,18 @@
 #include <sstream>
 #include <iostream>
 
+namespace Main
+{
+	class ScannerPeer ;
+	class Scanner ;
+}
+
 static int sleep_time = 30 ;
 
-class ScannerPeer : public GNet::ServerPeer
+/// \class Main::ScannerPeer
+/// A GNet::ServerPeer class used by Scanner.
+///
+class Main::ScannerPeer : public GNet::ServerPeer
 {
 public:
 	explicit ScannerPeer( GNet::Server::PeerInfo info ) ;
@@ -58,24 +67,24 @@ private:
 	GNet::LineBuffer m_buffer ;
 } ;
 
-ScannerPeer::ScannerPeer( GNet::Server::PeerInfo info ) :
+Main::ScannerPeer::ScannerPeer( GNet::Server::PeerInfo info ) :
 	ServerPeer( info )
 {
 }
 
-void ScannerPeer::onDelete()
+void Main::ScannerPeer::onDelete()
 {
 	process() ;
 }
 
-void ScannerPeer::onData( const char * p , size_t n )
+void Main::ScannerPeer::onData( const char * p , size_t n )
 {
 	std::string s( p , n ) ;
 	m_buffer.add( s ) ;
 	process() ;
 }
 
-void ScannerPeer::process()
+void Main::ScannerPeer::process()
 {
 	if( m_buffer.more() )
 	{
@@ -89,7 +98,7 @@ void ScannerPeer::process()
 	}
 }
 
-void ScannerPeer::processFile( std::string path )
+void Main::ScannerPeer::processFile( std::string path )
 {
 	G_LOG( "ScannerPeer::processFile: file: \"" << path << "\"" ) ;
 	bool infected = false ;
@@ -131,19 +140,22 @@ void ScannerPeer::processFile( std::string path )
 
 // ===
 
-class Scanner : public GNet::Server
+/// \class Main::Scanner
+/// A GNet::Server class used by the scanner utility.
+///
+class Main::Scanner : public GNet::Server
 {
 public:
 	Scanner( unsigned int port ) ;
 	virtual GNet::ServerPeer * newPeer( GNet::Server::PeerInfo ) ;
 } ;
 
-Scanner::Scanner( unsigned int port ) :
+Main::Scanner::Scanner( unsigned int port ) :
 	GNet::Server( port )
 {
 }
 
-GNet::ServerPeer * Scanner::newPeer( GNet::Server::PeerInfo info )
+GNet::ServerPeer * Main::Scanner::newPeer( GNet::Server::PeerInfo info )
 {
 	return new ScannerPeer( info ) ;
 }
@@ -154,7 +166,7 @@ static int run()
 {
 	unsigned int port = 10010 ;
 	std::auto_ptr<GNet::EventLoop> loop( GNet::EventLoop::create() ) ;
-	Scanner scanner( port ) ;
+	Main::Scanner scanner( port ) ;
 	loop->run() ;
 	return 0 ;
 }

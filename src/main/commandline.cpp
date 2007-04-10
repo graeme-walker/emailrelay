@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -43,7 +43,7 @@ std::string Main::CommandLine::switchSpec( bool is_windows )
 		<< "q!as-client!runs as a client, forwarding spooled mail to <host>: "
 			<< "equivalent to \"--log --no-syslog --no-daemon --dont-serve --forward --forward-to\"!"
 			<< "1!host:port!1|"
-		<< "d!as-server!runs as a server: equivalent to \"--log --close-stderr --postmaster\"!0!!1|"
+		<< "d!as-server!runs as a server: equivalent to \"--log --close-stderr\"!0!!1|"
 		<< "y!as-proxy!runs as a proxy: equivalent to \"--log --close-stderr --immediate --forward-to\"!"
 			<< "1!host:port!1|"
 		<< "v!verbose!generates more verbose output (works with --help and --log)!0!!1|"
@@ -64,6 +64,7 @@ std::string Main::CommandLine::switchSpec( bool is_windows )
 		<< "x!dont-serve!disables acting as a server on any port (part of --as-client and usually used with --forward)!0!!3|"
 		<< "X!no-smtp!disables listening for smtp connections (usually used with --admin or --pop)!0!!3|"
 		<< "z!filter!specifies an external program to process messages as they are stored!1!program!3|"
+		<< "W!filter-timeout!sets the timeout (in seconds) for running the --filter processor!1!time!3|"
 		<< "D!domain!sets an override for the host's fully qualified domain name!1!fqdn!3|"
 		<< "f!forward!forwards stored mail on startup (requires --forward-to)!0!!3|"
 		<< "o!forward-to!specifies the remote smtp server (required by --forward, --poll, --immediate and --admin)!1!host:port!3|"
@@ -71,11 +72,11 @@ std::string Main::CommandLine::switchSpec( bool is_windows )
 			<< "(default is 1800)!1!time!3|"
 		<< "U!connection-timeout!sets the timeout (in seconds) when connecting to a remote server "
 			<< "(default is 40)!1!time!3|"
-		<< "m!immediate!enables immediating forwarding of messages as soon as they are received (requires --forward-to)!0!!3|"
+		<< "m!immediate!enables immediate forwarding of messages as soon as they are received (requires --forward-to)!0!!3|"
 		<< "I!interface!defines the listening interface for new connections!1!ip-address!3|"
 		<< "i!pid-file!defines a file for storing the daemon process-id!1!pid-file!3|"
-		<< "O!poll!enables polling with the specified period (requires --forward-to)!1!period!3|"
-		<< "P!postmaster!allows delivery to the postmaster but rejects all other local mailbox addresses!0!!3|"
+		<< "O!poll!enables polling of the spool directory for messages to be forwarded with the specified period (requires --forward-to)!1!period!3|"
+		<< "P!postmaster!!0!!0|"
 		<< "Z!verifier!specifies an external program for address verification!1!program!3|"
 		<< "Y!client-filter!specifies an external program to process messages when they are forwarded!1!program!3|"
 		<< "R!scanner!specifies an external network server to process messages when they are stored!1!host:port!3|"
@@ -97,9 +98,10 @@ std::string Main::CommandLine::switchSpec_unix()
 	ss
 		<< "l!log!writes log information on standard error and syslog!0!!2|"
 		<< "t!no-daemon!does not detach from the terminal!0!!3|"
-		<< "u!user!names the effective user to switch to when started as root "
+		<< "u!user!names the effective user to switch to if started as root "
 			<< "(default is \"daemon\")!1!username!3|"
-		<< "n!no-syslog!disables syslog output!0!!3"
+		<< "k!syslog!force syslog output if logging is enabled (overrides --no-syslog)!0!!3|"
+		<< "n!no-syslog!disables syslog output (always overridden by --syslog)!0!!3"
 		;
 	return ss.str() ;
 }
@@ -111,6 +113,7 @@ std::string Main::CommandLine::switchSpec_windows()
 	ss
 		<< "l!log!writes log information on standard error and event log!0!!2|"
 		<< "t!no-daemon!use an ordinary window, not the system tray!0!!3|"
+		<< "k!syslog!force event log output if logging is enabled (overrides --no-syslog)!0!!3|"
 		<< "n!no-syslog!dont use the event log!0!!3|"
 		<< "c!icon!selects the application icon!1!0^|1^|2^|3!3|"
 		<< "H!hidden!hides the application window (requires --no-daemon)!0!!3"
@@ -153,7 +156,7 @@ void Main::CommandLine::showUsage( bool e ) const
 	else
 		introducer = std::string("abbreviated ") + introducer ;
 
-	size_t tab_stop = 33U ;
+	size_t tab_stop = 34U ;
 	m_getopt.showUsage( show.s() , m_arg.prefix() , "" ,
 		introducer , level , tab_stop , m_output.columns() ) ;
 }
@@ -433,3 +436,4 @@ Main::CommandLine::Show::~Show()
 	}
 }
 
+/// \file commandline.cpp

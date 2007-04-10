@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -33,12 +33,13 @@
 #include <map>
 #include <set>
 #include <fstream>
+#include <string>
 #include <utility> // std::pair
 #include <sstream>
 
-// Class: GSmtp::SecretsImp
-// Description: A private pimple-pattern implemtation class used by GSmtp::Secrets.
-//
+/// \class GSmtp::SecretsImp
+/// A private pimple-pattern implemtation class used by GSmtp::Secrets.
+///
 class GSmtp::SecretsImp
 {
 public:
@@ -142,8 +143,11 @@ void GSmtp::SecretsImp::read( const G::Path & path )
 		file <<= new std::ifstream( path.str().c_str() ) ;
 	}
 	if( !file->good() )
-		throw Secrets::OpenError( std::ostringstream()
-			<< "reading \"" << path << "\" for " << m_debug_name << " secrets" ) ;
+	{
+		std::ostringstream ss ;
+		ss << "reading \"" << path << "\" for " << m_debug_name << " secrets" ;
+		throw Secrets::OpenError( ss.str() ) ;
+	}
 
 	m_map.clear() ;
 	m_set.clear() ;

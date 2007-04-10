@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -529,17 +529,17 @@ void GSmtp::ServerProtocol::sendVerified( const std::string & user )
 
 void GSmtp::ServerProtocol::sendNotVerified( const std::string & user , bool temporary )
 {
-	send( std::string() + (temporary?"450":"550") + " no such mailbox: " + user ) ;
+	send( std::string() + (temporary?"450":"550") + " no such mailbox: " + G::Str::toPrintableAscii(user) ) ;
 }
 
 void GSmtp::ServerProtocol::sendWillAccept( const std::string & user )
 {
-	send( std::string("252 cannot verify but will accept: ") + user ) ;
+	send( std::string("252 cannot verify but will accept: ") + G::Str::toPrintableAscii(user) ) ;
 }
 
 void GSmtp::ServerProtocol::sendUnrecognised( const std::string & line )
 {
-	send( "500 command unrecognized: \"" + line + std::string("\"") ) ;
+	send( "500 command unrecognized: \"" + G::Str::toPrintableAscii(line) + std::string("\"") ) ;
 }
 
 void GSmtp::ServerProtocol::sendNotImplemented()
@@ -766,3 +766,4 @@ GSmtp::ServerProtocol::Config::Config( bool b , unsigned int i ) :
 {
 }
 
+/// \file gserverprotocol.cpp

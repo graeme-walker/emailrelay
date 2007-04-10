@@ -72,8 +72,8 @@ State transition diagrams:
 Sequence diagrams:
 * *Proxy mode forwarding* [sequence-3.png]
 * *Scanning* [sequence-4.png]
-* *ProtocolMessage::prepare() returns false* [sequence-1.png]
-* *ProtocolMessage::prepare() returns true* [sequence-2.png]
+* ProtocolMessage::prepare() *returns false* [sequence-1.png]
+* ProtocolMessage::prepare() *returns true* [sequence-2.png]
 
 Directory structure
 -------------------
@@ -154,27 +154,14 @@ these cases there are three source files per header. For example, "gsocket.cpp",
 
 Compile-time features
 ---------------------
-The following compile-time features can be enabled with some effort:
+Compile-time features can normally be selected with switches passed to the
+"configure" script. These include the following:
 
-# IPv6
+* Debug-level logging ("--enable-debug")
+* IPv6 (Linux only) ("--enable-ipv6")
+* Configuration GUI ("--enable-gui")
 
-  IPv6 is supported at compile-time by selecting source files in the "src/gnet"
-  directory ending "_ipv6.cpp" rather than "_ipv4.cpp". The code has been tested
-  to a limited extent on Linux.
-
-# Verbose logging
-
-  Verbose logging is enabled by defining the pre-processor symbol "_DEBUG".
-  The configure script's "--enable-debug" switch can be used to do this.
-  (See "src/glib/glog.h".)
-
-# Multiple listening ports
-
-  The server can be made to listen on several different addresses. Look at the
-  "Server" constructor in "src/main/gsmtpserver.cpp", set the boolean variable
-  "normal" to false and then edit the hard-coded address strings as needed. If
-  the addresses need different port numbers then pass them to bind() in the third
-  parameter.
+Use "./configure --help" to see a complete list.
 
 Windows build
 -------------
@@ -183,14 +170,8 @@ the "emailrelay.dws" workspace.
 
 Makefiles for the *MinGW* [http://www.mingw.org/] system (gcc on Windows) are
 also provided. If building from cygwin start by creating a "/mingw" mount to
-your MinGW installation directory (eg. "mount -u c:/sw/mingw /mingw"), and then
+your MinGW installation directory (eg. "mount -u c:/opt/mingw /mingw"), and then
 run "make -f mingw.mak" from the E-MailRelay "src" directory.
-
-Style
------
-The commenting style used in header files is compatible with doxygen if passed
-through the simple awk-based pre-processor "emailrelay-doxygen-filter.sh". A
-"make" in the "doc" directory will run doxygen if it is found on your path.
 
 Patterns
 --------
@@ -276,4 +257,4 @@ to reassign a std::auto_ptr<>.
 
 
 
-Copyright (C) 2001-2006 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
+Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
