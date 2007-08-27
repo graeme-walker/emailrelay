@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // installer.cpp
@@ -26,7 +23,9 @@
 #include "gstr.h"
 #include "gpath.h"
 #include "gfile.h"
-#include "gstr.h"
+#include "gdate.h"
+#include "gtime.h"
+#include "gstrings.h"
 #include "gdirectory.h"
 #include "gprocess.h"
 #include "gcominit.h"
@@ -37,6 +36,7 @@
 #include "glogoutput.h"
 #include "glog.h"
 #include "gexception.h"
+#include "boot.h"
 #include "dir.h"
 #include "installer.h"
 #include <exception>
@@ -59,10 +59,10 @@
 
 struct LinkInfo
 {
-	G::Path target ;
-	G::Strings args ;
-	G::Path raw_target ;
-	G::Strings raw_args ;
+	G::Path target ; // exe-or-wrapper
+	G::Strings args ; // exe-or-wrapper args
+	G::Path raw_target ; // exe
+	G::Strings raw_args ; // exe args
 } ;
 
 struct ActionInterface
@@ -77,7 +77,7 @@ struct Helper
 	static bool isWindows() ;
 	static bool isMac() ;
 	static std::string exe() ;
-	static std::string quote( const std::string & ) ;
+	static std::string quote( std::string , bool = false ) ;
 	static std::string str( const G::Strings & list ) ;
 } ;
 
@@ -138,10 +138,11 @@ struct Extract : public ActionBase
 struct CreateSecrets : public ActionBase
 {
 	G::Path m_path ;
-	std::string m_content ;
-	CreateSecrets( const std::string & config_dir , const std::string & filename , const std::string & content ) ;
+	G::StringMap m_content ;
+	CreateSecrets( const std::string & config_dir , const std::string & filename , G::StringMap content ) ;
 	virtual void run() ;
 	virtual std::string text() const ;
+	static bool match( std::string , std::string ) ;
 } ;
 
 struct CreateBatchFile : public ActionBase
@@ -164,6 +165,15 @@ struct CreateLink : public ActionBase
 	virtual std::string text() const ;
 } ;
 
+struct CreateBootLink : public ActionBase
+{
+	std::string m_init_d ;
+	LinkInfo m_target_link_info ;
+	CreateBootLink( std::string init_d , LinkInfo target_link_info ) ;
+	virtual void run() ;
+	virtual std::string text() const ;
+} ;
+
 struct EditConfigFile : public ActionBase
 {
 	typedef std::map<std::string,std::string> Map ;
@@ -177,7 +187,7 @@ struct EditConfigFile : public ActionBase
 
 struct Action
 {
-	ActionInterface * m_p ; // sould do reference counting, but just leak for now
+	ActionInterface * m_p ; // should do reference counting, but just leak for now
 	explicit Action( ActionInterface * p ) ;
 	std::string text() const ;
 	void run() ;
@@ -205,8 +215,9 @@ private:
 	bool exists( const std::string & key ) const ;
 	static bool yes( const std::string & ) ;
 	static bool no( const std::string & ) ;
-	std::string secrets() const ;
-	void secretsLine( std::ostream & , const std::string & , const std::string & , const std::string & ) const ;
+	G::StringMap secrets() const ;
+	void addSecret( G::StringMap & , const std::string & ) const ;
+	void addSecret( G::StringMap & , const std::string & , const std::string & , const std::string & ) const ;
 	LinkInfo targetLinkInfo() const ;
 	bool addIndirection( LinkInfo & link_info ) const ;
 	G::Strings commandlineArgs( bool short_ = false ) const ;
@@ -333,7 +344,7 @@ std::string Extract::text() const
 // ==
 
 CreateSecrets::CreateSecrets( const std::string & config_dir , const std::string & filename ,
-	const std::string & content ) :
+	G::StringMap content ) :
 		m_path(config_dir,filename) ,
 		m_content(content)
 {
@@ -344,11 +355,79 @@ std::string CreateSecrets::text() const
 	return std::string() + "creating authentication secrets file [" + m_path.str() + "]" ;
 }
 
+bool CreateSecrets::match( std::string p1 , std::string p2 )
+{
+	G::Str::replaceAll( p1 , "\t" , " " ) ;
+	while( G::Str::replaceAll( p1 , "  " , " " ) ) ;
+	G::Str::trimLeft( p1 , G::Str::ws() ) ;
+	G::Str::toLower( p1 ) ;
+	G::Str::toLower( p2 ) ;
+	return p1.find( p2 ) == 0U ;
+}
+
 void CreateSecrets::run()
 {
+	bool file_exists = G::File::exists(m_path) ;
+
+	// read the old file
+	G::Strings line_list ;
+	if( file_exists )
+	{
+		std::ifstream file( m_path.str().c_str() ) ;
+		while( file.good() )
+		{
+			std::string line = G::Str::readLineFrom( file , "\n" ) ;
+			if( !file ) break ;
+			line_list.push_back( line ) ;
+		}
+	}
+
+	// write a header if none
+	if( line_list.empty() )
+	{
+		line_list.push_back( "#" ) ;
+		line_list.push_back( std::string() + "# " + m_path.basename() ) ;
+		line_list.push_back( "#" ) ;
+		line_list.push_back( "# <mechanism> {server|client} <name> <secret>" ) ;
+		line_list.push_back( "# mechanism := CRAM-MD5 | LOGIN | APOP | NONE" ) ;
+		line_list.push_back( "#" ) ;
+	}
+
+	// assemble the new file
+	for( G::StringMap::iterator map_p = m_content.begin() ; map_p != m_content.end() ; ++map_p )
+	{
+		bool replaced = false ;
+		for( G::Strings::iterator line_p = line_list.begin() ; line_p != line_list.end() ; ++line_p ) // k.i.s.s
+		{
+			if( match( *line_p , (*map_p).first ) )
+			{
+				*line_p = (*map_p).second ;
+				replaced = true ;
+				break ;
+			}
+		}
+		if( !replaced )
+		{
+			line_list.push_back( (*map_p).second ) ;
+		}
+	}
+
+	// make a backup -- ignore errors for now
+	if( file_exists )
+	{
+		G::DateTime::BrokenDownTime now = G::DateTime::local( G::DateTime::now() ) ;
+		std::string timestamp = G::Date(now).string(G::Date::yyyy_mm_dd) + G::Time(now).hhmmss() ;
+		G::Path backup( m_path.dirname() , m_path.basename() + "." + timestamp ) ;
+		G::File::copy( m_path , backup , G::File::NoThrow() ) ;
+	}
+
+	// write the new file
 	std::ofstream file( m_path.str().c_str() ) ;
 	bool ok = file.good() ;
-	file << m_content ;
+	for( G::Strings::iterator line_p = line_list.begin() ; line_p != line_list.end() ; ++line_p )
+	{
+		file << *line_p << std::endl ;
+	}
 	ok = ok && file.good() ;
 	file.close() ;
 	if( !ok )
@@ -412,6 +491,27 @@ void CreateLink::run()
 
 // ==
 
+CreateBootLink::CreateBootLink( std::string init_d , LinkInfo target_link_info ) :
+	m_init_d(init_d) ,
+	m_target_link_info(target_link_info)
+{
+}
+
+void CreateBootLink::run()
+{
+	if( ! Boot::install( m_init_d , m_target_link_info.target , m_target_link_info.args ) )
+		throw std::runtime_error( "failed to create links" ) ;
+}
+
+std::string CreateBootLink::text() const
+{
+	return
+		std::string() + "installing boot-time links for " +
+		"[" + G::Path(m_init_d,m_target_link_info.target.basename()).str() + "]" ;
+}
+
+// ==
+
 EditConfigFile::EditConfigFile( std::string dir , std::string name , const Map & map ) :
 	m_path(G::Path(dir,name)) ,
 	m_map(map)
@@ -426,10 +526,25 @@ void EditConfigFile::run()
 		std::ifstream file_in( m_path.str().c_str() ) ;
 		if( !file_in.good() ) throw std::runtime_error( std::string() + "cannot read \"" + m_path.str() + "\"" ) ;
 		while( file_in.good() )
-			line_list.push_back( G::Str::trimmed(G::Str::readLineFrom(file_in),G::Str::ws()) ) ;
+		{
+			std::string line = G::Str::readLineFrom( file_in , "\n" ) ;
+			if( !file_in ) break ;
+			line_list.push_back( line ) ;
+		}
 	}
 
-	// edit
+	// comment-out everything
+	for( List::iterator line_p = line_list.begin() ; line_p != line_list.end() ; ++line_p )
+	{
+		std::string line = *line_p ;
+		if( !line.empty() && line.at(0U) != '#' )
+		{
+			line = std::string(1U,'#') + line ;
+			*line_p = line ;
+		}
+	}
+
+	// un-comment-out (or add) values from the map
 	for( Map::const_iterator map_p = m_map.begin() ; map_p != m_map.end() ; ++map_p )
 	{
 		bool found = false ;
@@ -444,11 +559,28 @@ void EditConfigFile::run()
 				break ;
 			}
 		}
+
 		if( !found )
-			line_list.push_back( (*map_p).first + " " + (*map_p).second ) ;
+		{
+			// dont add things that the init.d script takes care of
+			const bool ignore =
+				(*map_p).first == "syslog" ||
+				(*map_p).first == "close-stderr" ||
+				(*map_p).first == "pid-file" ||
+				(*map_p).first == "log" ;
+
+			if( !ignore )
+				line_list.push_back( (*map_p).first + " " + (*map_p).second ) ;
+		}
 	}
 
 	// TODO -- "--syslog" and "--no-syslog" interaction
+
+	// make a backup -- ignore errors for now
+	G::DateTime::BrokenDownTime now = G::DateTime::local( G::DateTime::now() ) ;
+	std::string timestamp = G::Date(now).string(G::Date::yyyy_mm_dd) + G::Time(now).hhmmss() ;
+	G::Path backup( m_path.dirname() , m_path.basename() + "." + timestamp ) ;
+	G::File::copy( m_path , backup , G::File::NoThrow() ) ;
 
 	// write
 	std::ofstream file_out( m_path.str().c_str() ) ;
@@ -503,6 +635,8 @@ void InstallerImp::read( std::istream & ss )
 		G::Str::readLineFrom( ss , "\n" , line ) ;
 		if( line.empty() || line.find('#') == 0U || line.find_first_not_of(" \t\r") == std::string::npos )
 			continue ;
+		if( !ss )
+			break ;
 
 		G::StringArray part ;
 		G::Str::splitIntoTokens( line , part , " \t" ) ;
@@ -621,16 +755,21 @@ void InstallerImp::insertActions()
 	// create links
 	//
 	G::Path working_dir = value("dir-config") ;
-	if( yes(value("start-link-desktop")) )
+	bool link = false ;
+	link = yes(value("start-link-desktop")) ;
+	if( link )
 		insert( new CreateLink(value("dir-desktop"),working_dir,target_link_info) ) ;
-	if( yes(value("start-link-menu")) )
+	link = yes(value("start-link-menu")) ;
+	if( link )
 		insert( new CreateLink(value("dir-menu"),working_dir,target_link_info) ) ;
-	if( yes(value("start-at-login")) )
+	link = yes(value("start-at-login")) ;
+	if( link )
 		insert( new CreateLink(value("dir-login"),working_dir,target_link_info) ) ;
+	link = yes(value("start-on-boot")) ;
+	if( link )
+		insert( new CreateBootLink(value("dir-boot"),target_link_info) ) ;
 	if( isWindows() )
 		insert( new CreateLink(value("dir-install"),working_dir,target_link_info) ) ;
-	//if( yes(value("start-on-boot")) )
-		//insert( new CreateBootLink() ) ;
 
 	// edit the boot-time config file
 	//
@@ -640,42 +779,48 @@ void InstallerImp::insertActions()
 	}
 }
 
-std::string InstallerImp::secrets() const
+G::StringMap InstallerImp::secrets() const
 {
-	std::ostringstream ss ;
+	G::StringMap map ;
 	if( yes(value("do-pop")) )
 	{
 		std::string mechanism = value("pop-auth-mechanism") ;
-		secretsLine( ss , "server" , "pop-auth-mechanism" , "pop-account-1" ) ;
-		secretsLine( ss , "server" , "pop-auth-mechanism" , "pop-account-2" ) ;
-		secretsLine( ss , "server" , "pop-auth-mechanism" , "pop-account-3" ) ;
+		addSecret( map , "server" , "pop-auth-mechanism" , "pop-account-1" ) ;
+		addSecret( map , "server" , "pop-auth-mechanism" , "pop-account-2" ) ;
+		addSecret( map , "server" , "pop-auth-mechanism" , "pop-account-3" ) ;
 	}
 	if( yes(value("do-smtp")) && yes(value("smtp-server-auth")) )
 	{
 		std::string mechanism = value("smtp-server-auth-mechanism") ;
-		secretsLine( ss , "server" , "smtp-server-auth-mechanism" , "smtp-server-account" ) ;
-		if( ! value("smtp-server-trust").empty() )
-		{
-			ss << "NONE server " << value("smtp-server-trust") << " trusted" << std::endl ;
-		}
+		addSecret( map , "server" , "smtp-server-auth-mechanism" , "smtp-server-account" ) ;
+		addSecret( map , "smtp-server-trust" ) ;
 	}
 	if( yes(value("do-smtp")) && yes(value("smtp-client-auth")) )
 	{
 		std::string mechanism = value("smtp-client-auth-mechanism") ;
-		secretsLine( ss , "client" , "smtp-client-auth-mechanism" , "smtp-client-account" ) ;
+		addSecret( map , "client" , "smtp-client-auth-mechanism" , "smtp-client-account" ) ;
 	}
-	return ss.str() ;
+	return map ;
 }
 
-void InstallerImp::secretsLine( std::ostream & stream ,
+void InstallerImp::addSecret( G::StringMap & map , const std::string & k ) const
+{
+	if( exists(k) && !value(k).empty() )
+	{
+		std::string head = std::string() + "NONE server " + value(k) ;
+		std::string tail = std::string() + " " + "trusted" ;
+		map[head] = head + tail ;
+	}
+}
+
+void InstallerImp::addSecret( G::StringMap & map ,
 	const std::string & side , const std::string & k1 , const std::string & k2 ) const
 {
 	if( exists(k2+"-name") && !value(k2+"-name").empty() )
 	{
-		stream
-			<< value(k1) << " " << side << " "
-			<< value(k2+"-name") << " "
-			<< value(k2+"-password") << std::endl ;
+		std::string head = value(k1) + " " + side + " " + value(k2+"-name") ;
+		std::string tail = std::string() + " " + value(k2+"-password") ;
+		map[head] = head + tail ;
 	}
 }
 
@@ -694,9 +839,8 @@ LinkInfo InstallerImp::targetLinkInfo() const
 
 bool InstallerImp::addIndirection( LinkInfo & link_info ) const
 {
-	// create a batch script if the command-line is too long
-	//bool long_commandline = (link_info.target.str().length()+1+str(link_info.args).length()) >= 235U ;
-	bool use_batch_file = isWindows() ; // && long_commandline ;
+	// create a batch script on windows -- (the service stuff requires a batch file)
+	bool use_batch_file = isWindows() ;
 	if( use_batch_file )
 	{
 		link_info.target = G::Path( value("dir-install") , "emailrelay-start.bat" ) ;
@@ -720,7 +864,15 @@ G::Strings InstallerImp::commandlineArgs( bool short_ ) const
 		std::string dash = switch_.length() > 1U ? "--" : "-" ;
 		result.push_back( dash + switch_ ) ;
 		if( ! switch_arg.empty() )
-			result.push_back( quote(switch_arg) ) ;
+		{
+			// (move this?)
+			bool is_commandline =
+				result.back() == "--filter" || result.back() == "-z" ||
+				result.back() == "--client-filter" || result.back() == "-Y" ||
+				result.back() == "--verifier" || result.back() == "-Z" ;
+
+			result.push_back( quote(switch_arg,is_commandline) ) ;
+		}
 	}
 	return result ;
 }
@@ -910,8 +1062,12 @@ bool Helper::isMac()
 	return G::File::exists("/Library/StartupItems") ; // could do better
 }
 
-std::string Helper::quote( const std::string & s )
+std::string Helper::quote( std::string s , bool escape_spaces )
 {
+	if( escape_spaces )
+	{
+		G::Str::replaceAll( s , " " , "\\ " ) ;
+	}
 	return s.find_first_of(" \t") == std::string::npos ? s : (std::string()+"\""+s+"\"") ;
 }
 

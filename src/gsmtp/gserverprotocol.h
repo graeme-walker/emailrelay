@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file gserverprotocol.h
@@ -56,7 +53,7 @@ namespace GSmtp
 ///
 /// \see GSmtp::ProtocolMessage, RFC2821
 ///
-class GSmtp::ServerProtocol : private GNet::Timer
+class GSmtp::ServerProtocol : private GNet::AbstractTimer
 {
 public:
 	G_EXCEPTION( ProtocolDone , "smtp protocol done" ) ;
@@ -103,7 +100,7 @@ public:
 			///< All references are kept.
 
 	void init() ;
-		///< Starts the protocol.
+		///< Starts the protocol. Use only once after construction.
 
 	virtual ~ServerProtocol() ;
 		///< Destructor.
@@ -111,6 +108,14 @@ public:
 	void apply( const std::string & line ) ;
 		///< Called on receipt of a string from the client.
 		///< The string is expected to be CR-LF terminated.
+		///< Throws ProtocolDone at the end of the protocol.
+
+protected:
+	virtual void onTimeout() ;
+		///< Final override from GNet::AbstractTimer.
+
+	virtual void onTimeoutException( std::exception & ) ;
+		///< Final override from GNet::AbstractTimer.
 
 private:
 	enum Event
@@ -124,8 +129,8 @@ private:
 		eData ,
 		eRcpt ,
 		eMail ,
-		ePrepared ,
 		eVrfy ,
+		eVrfyReply ,
 		eHelp ,
 		eAuth ,
 		eAuthData ,
@@ -139,8 +144,12 @@ private:
 		sEnd ,
 		sIdle ,
 		sGotMail ,
-		sPrepare ,
 		sGotRcpt ,
+		sVrfyIdle ,
+		sVrfyGotMail ,
+		sVrfyGotRcpt ,
+		sVrfyTo1 ,
+		sVrfyTo2 ,
 		sData ,
 		sProcessing ,
 		sAuth ,
@@ -152,13 +161,13 @@ private:
 private:
 	ServerProtocol( const ServerProtocol & ) ; // not implemented
 	void operator=( const ServerProtocol & ) ; // not implemented
-	virtual void onTimeout() ;
 	void send( std::string ) ;
 	Event commandEvent( const std::string & ) const ;
 	std::string commandWord( const std::string & line ) const ;
 	std::string commandLine( const std::string & line ) const ;
 	static std::string crlf() ;
 	void reset() ;
+	void badClientEvent() ;
 	void processDone( bool , unsigned long , std::string ) ; // ProtocolMessage::doneSignal()
 	void prepareDone( bool , bool , std::string ) ;
 	bool isEndOfText( const std::string & ) const ;
@@ -171,7 +180,6 @@ private:
 	void doHelo( const std::string & , bool & ) ;
 	void doAuth( const std::string & , bool & ) ;
 	void doAuthData( const std::string & , bool & ) ;
-	void doMailPrepare( const std::string & , bool & ) ;
 	void doMail( const std::string & , bool & ) ;
 	void doRcpt( const std::string & , bool & ) ;
 	void doUnknown( const std::string & , bool & ) ;
@@ -180,7 +188,10 @@ private:
 	void doContent( const std::string & , bool & ) ;
 	void doEot( const std::string & , bool & ) ;
 	void doVrfy( const std::string & , bool & ) ;
+	void doVrfyReply( const std::string & line , bool & ) ;
+	void doVrfyToReply( const std::string & line , bool & ) ;
 	void doNoRecipients( const std::string & , bool & ) ;
+	void verifyDone( std::string , Verifier::Status status ) ;
 	void sendBadFrom( std::string ) ;
 	void sendChallenge( const std::string & ) ;
 	void sendBadTo( const std::string & , bool ) ;
@@ -193,7 +204,6 @@ private:
 	void sendEhloReply() ;
 	void sendRsetReply() ;
 	void sendMailReply() ;
-	void sendMailError( const std::string & , bool ) ;
 	void sendRcptReply() ;
 	void sendDataReply() ;
 	void sendCompletionReply( bool ok , const std::string & ) ;
@@ -208,9 +218,9 @@ private:
 	std::pair<std::string,std::string> parse( const std::string & ) const ;
 	std::pair<std::string,std::string> parseFrom( const std::string & ) const ;
 	std::pair<std::string,std::string> parseTo( const std::string & ) const ;
-	std::string parseMailbox( const std::string & ) const ;
+	std::string parseToParameter( const std::string & ) const ;
 	std::string parsePeerName( const std::string & ) const ;
-	Verifier::Status verify( const std::string & , const std::string & ) const ;
+	void verify( const std::string & , const std::string & ) ;
 
 private:
 	Sender & m_sender ;
@@ -225,6 +235,8 @@ private:
 	bool m_with_vrfy ;
 	std::string m_buffer ;
 	unsigned int m_preprocessor_timeout ;
+	unsigned int m_bad_client_count ;
+	unsigned int m_bad_client_limit ;
 } ;
 
 /// \class GSmtp::ServerProtocolText
@@ -239,13 +251,13 @@ public:
 			///< Constructor.
 
 	virtual std::string greeting() const ;
-		///< From ServerProtocol::Text.
+		///< Final override from GSmtp::ServerProtocol::Text.
 
 	virtual std::string hello( const std::string & peer_name_from_helo ) const ;
-		///< From ServerProtocol::Text.
+		///< Final override from GSmtp::ServerProtocol::Text.
 
 	virtual std::string received( const std::string & peer_name_from_helo ) const ;
-		///< From ServerProtocol::Text.
+		///< Final override from GSmtp::ServerProtocol::Text.
 
 	static std::string receivedLine( const std::string & peer_name_from_helo , const std::string & peer_address ,
 		const std::string & thishost ) ;

@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // pages.cpp
@@ -25,6 +22,7 @@
 #include "pages.h"
 #include "legal.h"
 #include "dir.h"
+#include "boot.h"
 #include "gfile.h"
 #include "gprocess.h"
 #include "gidentity.h"
@@ -35,21 +33,9 @@
 
 namespace
 {
-	std::string rot13( const std::string & in )
-	{
-		std::string s( in ) ;
-		for( std::string::iterator p = s.begin() ; p != s.end() ; ++p )
-		{
-			if( *p >= 'a' && *p <= 'z' )
-				*p = 'a' + ( ( ( *p - 'a' ) + 13U ) % 26U ) ;
-			if( *p >= 'A' && *p <= 'Z' )
-				*p = 'A' + ( ( ( *p - 'A' ) + 13U ) % 26U ) ;
-		}
-		return s ;
-	}
 	std::string encrypt( const std::string & pwd , const std::string & mechanism )
 	{
-		return mechanism == "CRAM-MD5" ? G::Md5::mask(pwd) : rot13(pwd) ;
+		return mechanism == "CRAM-MD5" ? G::Md5::mask(pwd) : pwd ;
 	}
 }
 
@@ -124,9 +110,10 @@ bool LicensePage::isComplete()
 
 DirectoryPage::DirectoryPage( GDialog & dialog , const std::string & name ,
 	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ,
-	const Dir & dir ) :
+	const Dir & dir , bool installing ) :
 		GPage(dialog,name,next_1,next_2,finish,close) ,
-		m_dir(dir)
+		m_dir(dir) ,
+		m_installing(installing)
 {
 	m_install_dir_label = new QLabel(tr("&Directory:")) ;
 	m_install_dir_edit_box = new QLineEdit ;
@@ -184,6 +171,19 @@ DirectoryPage::DirectoryPage( GDialog & dialog , const std::string & name ,
 	layout->addWidget( config_group ) ;
 	layout->addStretch() ;
 	setLayout( layout ) ;
+
+	if( ! m_installing )
+	{
+		// if just configuring dont allow the base directories to change -- they
+		// are read from the ".state" file written by "make install"
+		//
+		m_install_dir_browse_button->setEnabled(false) ;
+		m_install_dir_edit_box->setEnabled(false) ;
+		m_config_dir_browse_button->setEnabled(false) ;
+		m_config_dir_edit_box->setEnabled(false) ;
+		m_spool_dir_browse_button->setEnabled(false) ; // ??
+		m_spool_dir_edit_box->setEnabled(false) ; // ??
+	}
 
 	connect( m_install_dir_browse_button , SIGNAL(clicked()) , this , SLOT(browseInstall()) ) ;
 	connect( m_spool_dir_browse_button , SIGNAL(clicked()) , this , SLOT(browseSpool()) ) ;
@@ -983,7 +983,7 @@ void ListeningPage::dump( std::ostream & stream , const std::string & prefix , c
 // ==
 
 StartupPage::StartupPage( GDialog & dialog , const std::string & name ,
-	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) :
+	const std::string & next_1 , const std::string & next_2 , bool finish , bool close , const Dir & dir ) :
 		GPage(dialog,name,next_1,next_2,finish,close)
 {
 	m_on_boot_checkbox = new QCheckBox( tr("At &system startup") ) ;
@@ -992,8 +992,8 @@ StartupPage::StartupPage( GDialog & dialog , const std::string & name ,
 	auto_layout->addWidget( m_on_boot_checkbox ) ;
 	auto_layout->addWidget( m_at_login_checkbox ) ;
 
-	if( ! testMode() )
-		m_on_boot_checkbox->setEnabled(false) ;
+	// (using dir.boot() is okay for now here since we do not allow the user to change it)
+	m_on_boot_checkbox->setEnabled( Boot::able(dir.boot(),"emailrelay") ) ;
 
 	m_add_menu_item_checkbox = new QCheckBox( tr("Add to start menu") ) ;
 	m_add_desktop_item_checkbox = new QCheckBox( tr("Add to desktop") ) ;
@@ -1033,13 +1033,15 @@ void StartupPage::dump( std::ostream & stream , const std::string & prefix , con
 // ==
 
 ReadyPage::ReadyPage( GDialog & dialog , const std::string & name , const std::string & next_1 ,
-	const std::string & next_2 , bool finish , bool close ) :
-		GPage(dialog,name,next_1,next_2,finish,close)
+	const std::string & next_2 , bool finish , bool close , bool installing ) :
+		GPage(dialog,name,next_1,next_2,finish,close) ,
+		m_installing(installing)
 {
 	m_label = new QLabel( text() ) ;
 
 	QVBoxLayout *layout = new QVBoxLayout;
-	layout->addWidget(newTitle(tr("Ready to install"))) ;
+	std::string message = std::string() + "Ready to " + verb(false) ;
+	layout->addWidget(newTitle(tr(message.c_str()))) ;
 	layout->addWidget(m_label);
 	setLayout(layout);
 }
@@ -1048,12 +1050,18 @@ void ReadyPage::onShow( bool )
 {
 }
 
+std::string ReadyPage::verb( bool pp ) const
+{
+	return std::string( m_installing ? (pp?"install":"installed") : (pp?"configured":"configure") ) ;
+}
+
 QString ReadyPage::text() const
 {
-	return GPage::tr(
-		"<center>"
-		"<p>E-MailRelay will now be installed.</p>"
-		"</center>" ) ;
+	std::string html = std::string() +
+		"<center>" +
+		"<p>E-MailRelay will now be " + verb(true) + ".</p>" +
+		"</center>" ;
+	return GPage::tr(html.c_str()) ;
 }
 
 std::string ReadyPage::nextPage()
@@ -1103,7 +1111,7 @@ void ProgressPage::onShow( bool back )
 		}
 
 		// run the installer
-		m_installer.start( ss ) ;
+		m_installer.start( ss ) ; // reads from istream
 		dialog().wait( true ) ;
 		m_text = QString() ;
 		m_text_edit->setPlainText( m_text ) ;

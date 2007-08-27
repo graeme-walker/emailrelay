@@ -53,13 +53,14 @@ sbinPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(sbin_PROGRAMS)
 am__emailrelay_gui_SOURCES_DIST = gdialog.cpp gdialog.h glink.h \
 	glink.cpp gpage.cpp gpage.h gunpack.h gunpack.cpp dir.cpp \
-	dir_unix.cpp dir.h installer.cpp installer.h guimain.cpp \
-	legal.cpp legal.h pages.cpp pages.h qt.h unpack.c unpack.h
+	dir_unix.cpp dir.h boot.cpp boot.h installer.cpp installer.h \
+	guimain.cpp legal.cpp legal.h pages.cpp pages.h qt.h unpack.c \
+	unpack.h
 @GUI_TRUE@am_emailrelay_gui_OBJECTS = gdialog.$(OBJEXT) \
 @GUI_TRUE@	glink.$(OBJEXT) gpage.$(OBJEXT) gunpack.$(OBJEXT) \
-@GUI_TRUE@	dir.$(OBJEXT) dir_unix.$(OBJEXT) installer.$(OBJEXT) \
-@GUI_TRUE@	guimain.$(OBJEXT) legal.$(OBJEXT) pages.$(OBJEXT) \
-@GUI_TRUE@	unpack.$(OBJEXT)
+@GUI_TRUE@	dir.$(OBJEXT) dir_unix.$(OBJEXT) boot.$(OBJEXT) \
+@GUI_TRUE@	installer.$(OBJEXT) guimain.$(OBJEXT) \
+@GUI_TRUE@	legal.$(OBJEXT) pages.$(OBJEXT) unpack.$(OBJEXT)
 emailrelay_gui_OBJECTS = $(am_emailrelay_gui_OBJECTS)
 am__DEPENDENCIES_1 =
 SCRIPTS = $(noinst_SCRIPTS)
@@ -132,7 +133,6 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
-POPLIB = @POPLIB@
 QT_CFLAGS = @QT_CFLAGS@
 QT_LIBS = @QT_LIBS@
 RANLIB = @RANLIB@
@@ -161,8 +161,10 @@ dvidir = @dvidir@
 e_docdir = @e_docdir@
 e_examplesdir = @e_examplesdir@
 e_initdir = @e_initdir@
+e_libexecdir = @e_libexecdir@
 e_qtmoc = @e_qtmoc@
 e_spooldir = @e_spooldir@
+e_sysconfdir = @e_sysconfdir@
 exec_prefix = @exec_prefix@
 host_alias = @host_alias@
 htmldir = @htmldir@
@@ -188,6 +190,7 @@ target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 EXTRA_DIST = \
+	Info.plist \
 	emailrelay-icon.png \
 	gcominit.h \
 	dir_win32.cpp \
@@ -217,9 +220,10 @@ EXTRA_DIST = \
 @GUI_TRUE@	-I$(top_srcdir)/src/gnet \
 @GUI_TRUE@	-I$(top_srcdir)/src/gsmtp \
 @GUI_TRUE@	-I$(top_srcdir)/src/gpop \
+@GUI_TRUE@	-I$(top_srcdir)/src/main \
 @GUI_TRUE@	-DG_SPOOLDIR=\"$(e_spooldir)\" \
-@GUI_TRUE@	-DG_SYSCONFDIR=\"$(sysconfdir)\" \
-@GUI_TRUE@	-DG_LIBEXECDIR=\"$(libexecdir)\" \
+@GUI_TRUE@	-DG_SYSCONFDIR=\"$(e_sysconfdir)\" \
+@GUI_TRUE@	-DG_LIBEXECDIR=\"$(e_libexecdir)\" \
 @GUI_TRUE@	-DG_DESTDIR=\"$(DESTDIR)\"
 
 @GUI_TRUE@AM_CPPFLAGS = $(QT_CFLAGS)
@@ -236,6 +240,8 @@ EXTRA_DIST = \
 @GUI_TRUE@	dir.cpp \
 @GUI_TRUE@	dir_unix.cpp \
 @GUI_TRUE@	dir.h \
+@GUI_TRUE@	boot.cpp \
+@GUI_TRUE@	boot.h \
 @GUI_TRUE@	installer.cpp \
 @GUI_TRUE@	installer.h \
 @GUI_TRUE@	guimain.cpp \
@@ -319,6 +325,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/boot.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dir.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dir_unix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdialog.Po@am__quote@
@@ -555,7 +562,7 @@ uninstall-am: uninstall-sbinPROGRAMS
 # tell the configuration gui where make install has put everything -- see Dir::read() in dir.cpp
 @GUI_TRUE@install-exec-hook:
 @GUI_TRUE@	echo $(DESTDIR)$(e_spooldir) > $(DESTDIR)$(sbindir)/emailrelay-gui.state
-@GUI_TRUE@	echo $(DESTDIR)$(sysconfdir) >> $(DESTDIR)$(sbindir)/emailrelay-gui.state
+@GUI_TRUE@	echo $(DESTDIR)$(e_sysconfdir) >> $(DESTDIR)$(sbindir)/emailrelay-gui.state
 
 @GUI_TRUE@uninstall-hook:
 @GUI_TRUE@	-rm $(DESTDIR)$(sbindir)/emailrelay-gui.state

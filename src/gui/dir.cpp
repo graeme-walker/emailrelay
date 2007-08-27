@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // dir.cpp
@@ -40,7 +37,6 @@ Dir::Dir( const std::string & argv0 , bool installed ) :
 	m_config = os_config() ;
 	m_pid = os_pid() ;
 	m_boot = os_boot() ;
-	m_startup = os_startup() ;
 	m_desktop = special("desktop") ;
 	m_login = special("login") ;
 	m_menu = special("menu") ;
@@ -56,20 +52,20 @@ void Dir::read( std::istream & file )
 	std::string line ;
 
 	// these are presented by the gui...
-	line = G::Str::readLineFrom(file) ; if( file.good() && !line.empty() ) m_spool = line ;
-	line = G::Str::readLineFrom(file) ; if( file.good() && !line.empty() ) m_config = line ;
+	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_spool = line ;
+	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_config = line ;
 
 	// these allow "make install" to take full control if it needs to...
-	line = G::Str::readLineFrom(file) ; if( file.good() && !line.empty() ) m_pid = line ;
-	line = G::Str::readLineFrom(file) ; if( file.good() && !line.empty() ) m_boot = line ;
-	line = G::Str::readLineFrom(file) ; if( file.good() && !line.empty() ) m_startup = line ;
-	line = G::Str::readLineFrom(file) ; if( file.good() && !line.empty() ) m_desktop = line ;
-	line = G::Str::readLineFrom(file) ; if( file.good() && !line.empty() ) m_login = line ;
-	line = G::Str::readLineFrom(file) ; if( file.good() && !line.empty() ) m_menu = line ;
-	line = G::Str::readLineFrom(file) ; if( file.good() && !line.empty() ) m_reskit = line ;
+	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_pid = line ;
+	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_boot = line ;
+	line = G::Str::readLineFrom(file,"\n") ; // was m_startup -- ignored
+	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_desktop = line ;
+	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_login = line ;
+	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_menu = line ;
+	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_reskit = line ;
 
 	// this is for completeness only...
-	line = G::Str::readLineFrom(file) ; if( file.good() && !line.empty() ) m_install = line ;
+	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_install = line ;
 }
 
 G::Path Dir::thisdir() const
@@ -110,11 +106,6 @@ G::Path Dir::tmp() const
 G::Path Dir::pid() const
 {
 	return m_pid ;
-}
-
-G::Path Dir::startup() const
-{
-	return m_startup ;
 }
 
 G::Path Dir::config() const

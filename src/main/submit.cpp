@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // submit.cpp
@@ -52,7 +49,7 @@
 #include "gfilestore.h"
 #include "gnewmessage.h"
 #include "gexception.h"
-#include "gexe.h"
+#include "gexecutable.h"
 #include "legal.h"
 #include <exception>
 #include <iostream>
@@ -91,13 +88,11 @@ static std::string process( const G::Path & spool_dir , std::istream & stream ,
 
 	// add "To:" lines to the envelope
 	//
-	G::Executable no_exe ;
-	GSmtp::Verifier verifier( no_exe ) ;
 	for( G::Strings::const_iterator to_p = to_list.begin() ; to_p != to_list.end() ; ++to_p )
 	{
 		std::string to = *to_p ;
 		G::Str::trim( to , " \t\r\n" ) ;
-		GSmtp::Verifier::Status status = verifier.verify( to , "" , GNet::Address::localhost(0U) , "" , "" ) ;
+		GSmtp::Verifier::Status status( to ) ;
 		msg->addTo( status.address , status.is_local ) ;
 	}
 
@@ -118,11 +113,12 @@ static std::string process( const G::Path & spool_dir , std::istream & stream ,
 		msg->addText( std::string() ) ;
 	}
 
-	// stream out the content
+	// read and stream out the content
 	while( stream.good() )
 	{
 		std::string line = G::Str::readLineFrom( stream ) ;
-		if( line == "." )
+		G::Str::trimRight( line , "\r" , 1U ) ;
+		if( !stream || line == "." )
 			break ;
 		msg->addText( line ) ;
 	}
@@ -151,7 +147,7 @@ static void run( const G::Arg & arg )
 	else if( opt.contains("help") )
 	{
 		std::ostream & stream = std::cerr ;
-		opt.showUsage( stream , arg.prefix() , std::string(" <to-address> [<to-address> ...]") ) ;
+		opt.showUsage( stream , arg.prefix() , std::string() + " <to-address> [<to-address> ...]" ) ;
 		stream
 			<< std::endl
 			<< Main::Legal::warranty("","\n")
@@ -161,9 +157,8 @@ static void run( const G::Arg & arg )
 	}
 	else if( opt.args().c() == 1U )
 	{
-		std::cerr
-			<< opt.usageSummary( arg.prefix() , " <to-address> [<to-address> ...]" )
-			<< std::endl ;
+		//opt.showUsage( std::cerr , arg.prefix() , std::string() + " <to-address> [<to-address> ...]" ) ;
+		std::cerr << opt.usageSummary( arg.prefix() , " <to-address> [<to-address> ...]" ) ;
 	}
 	else
 	{
@@ -196,9 +191,10 @@ static void run( const G::Arg & arg )
 		while( stream.good() )
 		{
 			std::string line = G::Str::readLineFrom( stream ) ;
+			G::Str::trimRight( line , "\r" , 1U ) ;
 			if( line == "." )
 				throw NoBody() ;
-			if( line.empty() )
+			if( !stream || line.empty() )
 				break ;
 			header.push_back( line ) ;
 		}

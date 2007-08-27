@@ -10,12 +10,13 @@ body
 	padding: 0px ;
 }
 
-div.two-column-header
+div.Header
 {
-	background-color: #eee ;
+	background-color: #ddd ;
 
+	padding-top: 10px ;
 	border-bottom: 1px #999 solid ;
-	height: 100px ;
+	height: 80px ;
 	width: 100% ;
 }
 
@@ -25,30 +26,37 @@ h1
 	color: #09c ;
 }
 
-div.two-column-header h1 
+div.Header h1 
 {
 	margin: 0px ;
 }
 
-div.two-column-content
+div.Content
 {
-	margin-left: 210px ; /* menu width + 40px */
-	padding: 40px ;
+	margin-left: 230px ;
+	padding: 5px ;
 }
 
-div.two-column-menu
+div.Menu
 {
-	background-color: #eee ;
+	background-color: #ddd ;
 
 	float: left ;
 	width: 180px ;
-	margin-left: 30px ;
-	margin-top: 30px ;
+	margin-left: 25px ;
+	margin-right: 0px ;
+	margin-top: 100px ;
 	margin-bottom: 10px ;
 
-	border-style: solid ;
+	border-style: dashed ;
 	border-width: 1px ;
 	border-color: #999 ;
+
+	padding: 3px ;
+}
+
+div.Footer
+{
 }
 
 div.div-main
@@ -59,30 +67,15 @@ div.div-main
 
 div.div-toc
 {
-	background-color: #eee ;
-}
-
-p.p-toc
-{
-	padding: 5px ;
-	margin-top: 0px ;
-	margin-bottom: 0px ;
-	margin-left: 0.5em ;
-	text-align: left ;
+	background-color: #ddd ;
 }
 
 div.div-pre
 {
 	margin-left: 3% ;
-	background-color: #eee ;
+	background-color: #ddd ;
 	padding: 0.5em ;
 	border: none ;
-}
-
-h1
-{
-	text-align: center ;
-	color: #09c ;
 }
 
 img
@@ -109,17 +102,27 @@ h3.h3-toc
 	margin: 0px ;
 	padding: 0px ;
 	width: 100% ;
-	border-bottom: 1px #999 solid ;
+	border-bottom: 1px #999 dashed ;
+	text-decoration: none ;
+}
+
+h3.h3-toc-last
+{
+	display: block ;
+	margin: 0px ;
+	padding: 0px ;
+	width: 100% ;
 	text-decoration: none ;
 }
 
 p.p-toc
 {
-	padding-top: 0px ;
-	padding-bottom: 0px ;
-	padding-left: 15px ;
-	margin: 0px ;
-	border-bottom: 1px #999 solid ;
+    padding-top: 0px ;
+    padding-bottom: 0px ;
+    padding-left: 15px ;
+    margin: 0px ;
+    border-bottom: 1px #999 dashed ;
+	text-align: left ;
 }
 
 a.a-toc
@@ -173,7 +176,7 @@ a.a-href:visited
 a.a-href:hover 
 {
 	color: #09c ;
-	background-color: #eee ;
+	background-color: #ddd ;
 }
 
 em.quote

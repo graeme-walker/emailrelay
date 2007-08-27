@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file gpopserver.h
@@ -27,7 +24,7 @@
 #include "gdef.h"
 #include "gpop.h"
 #include "gmultiserver.h"
-#include "gsender.h"
+#include "gbufferedserverpeer.h"
 #include "glinebuffer.h"
 #include "gpopsecrets.h"
 #include "gpopserverprotocol.h"
@@ -50,7 +47,7 @@ namespace GPop
 /// Instances are created on the heap by Server (only).
 /// \see GPop::Server
 ///
-class GPop::ServerPeer : public GNet::Sender , private GPop::ServerProtocol::Sender
+class GPop::ServerPeer : public GNet::BufferedServerPeer , private GPop::ServerProtocol::Sender
 {
 public:
 	G_EXCEPTION( SendError , "network send error" ) ;
@@ -59,19 +56,27 @@ public:
 		std::auto_ptr<ServerProtocol::Text> ptext , ServerProtocol::Config ) ;
 			///< Constructor.
 
+	virtual bool protocolSend( const std::string & line , size_t ) ;
+		///< Final override from GPop::ServerProtocol::Sender.
+
+protected:
+	virtual void onDelete() ;
+		///< Final override from GNet::ServerPeer.
+
+	virtual bool onReceive( const std::string & ) ;
+		///< Final override from GNet::BufferedServerPeer.
+
+	virtual void onSendComplete() ;
+		///< Final override from GNet::BufferedServerPeer.
+
 private:
 	ServerPeer( const ServerPeer & ) ;
 	void operator=( const ServerPeer & ) ;
-	virtual bool protocolSend( const std::string & line , size_t ) ; // from ServerProtocol::Sender
-	virtual void onDelete() ; // from GNet::ServerPeer
-	virtual void onData( const char * , size_t ) ; // from GNet::ServerPeer
-	virtual void onResume() ; // from GNet::Sender
 	void processLine( const std::string & line ) ;
 	static std::string crlf() ;
 
 private:
 	Server & m_server ;
-	GNet::LineBuffer m_buffer_in ;
 	std::auto_ptr<ServerProtocol::Text> m_ptext ; // order dependency
 	ServerProtocol m_protocol ; // order dependency -- last
 } ;

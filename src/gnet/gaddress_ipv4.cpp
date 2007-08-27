@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // gaddress_ipv4.cpp
@@ -29,6 +26,7 @@
 #include "gassert.h"
 #include "gdebug.h"
 #include <climits>
+#include <algorithm> // std::swap<>()
 #include <sys/types.h>
 
 /// \class GNet::AddressImp
@@ -102,7 +100,6 @@ public:
 
 char GNet::AddressImp::m_port_separator = ':' ;
 
-//static
 int GNet::AddressImp::family()
 {
 	return AF_INET ;
@@ -201,9 +198,9 @@ bool GNet::AddressImp::setAddress( const std::string & display_string , std::str
 	if( !validString(display_string,&reason) )
 		return false ;
 
-	const size_t pos = display_string.rfind(m_port_separator) ;
-	std::string port_part = display_string.substr(pos+1U) ;
+	const std::string::size_type pos = display_string.rfind(m_port_separator) ;
 	std::string host_part = display_string.substr(0U,pos) ;
+	std::string port_part = display_string.substr(pos+1U) ;
 
 	m_inet.sin_family = family() ;
 	m_inet.sin_addr.s_addr = ::inet_addr( host_part.c_str() ) ;
@@ -247,20 +244,18 @@ std::string GNet::AddressImp::hostString() const
 	return ss.str() ;
 }
 
-//static
 bool GNet::AddressImp::validPort( unsigned int port )
 {
 	return port <= 0xFFFFU ; // port numbers are now explicitly 16 bits, not short ints
 }
 
-//static
 bool GNet::AddressImp::validString( const std::string & s , std::string * reason_p )
 {
 	std::string buffer ;
 	if( reason_p == NULL ) reason_p = &buffer ;
 	std::string & reason = *reason_p ;
 
-	const size_t pos = s.rfind(m_port_separator) ;
+	const std::string::size_type pos = s.rfind(m_port_separator) ;
 	if( pos == std::string::npos )
 	{
 		reason = "no port separator" ;
@@ -270,7 +265,7 @@ bool GNet::AddressImp::validString( const std::string & s , std::string * reason
 	std::string port_part = s.substr(pos+1U) ;
 	if( !validPortNumber(port_part) )
 	{
-		reason = "invalid port number" ;
+		reason = std::string() + "invalid port number: [" + port_part + "]" ;
 		return false ;
 	}
 
@@ -300,19 +295,16 @@ bool GNet::AddressImp::validString( const std::string & s , std::string * reason
 	return true ;
 }
 
-//static
 bool GNet::AddressImp::validPortNumber( const std::string & s )
 {
 	return validNumber(s) && G::Str::isUInt(s) && validPort(G::Str::toUInt(s)) ;
 }
 
-//static
 bool GNet::AddressImp::validNumber( const std::string & s )
 {
 	return s.length() != 0U && G::Str::isNumeric(s) ;
 }
 
-//static
 bool GNet::AddressImp::validPart( const std::string & s )
 {
 	return validNumber(s) && G::Str::toUInt(s,true) <= 255U ;
@@ -335,7 +327,6 @@ bool GNet::AddressImp::sameHost( const AddressImp & other ) const
 		sameAddr( m_inet.sin_addr , other.m_inet.sin_addr ) ;
 }
 
-//static
 bool GNet::AddressImp::sameAddr( const ::in_addr & a , const ::in_addr & b )
 {
 	return a.s_addr == b.s_addr ;
@@ -365,19 +356,16 @@ void GNet::AddressImp::set( const sockaddr * general )
 
 // ===
 
-//static
 GNet::Address GNet::Address::invalidAddress()
 {
 	return Address( 0U ) ;
 }
 
-//static
 GNet::Address GNet::Address::localhost( unsigned int port )
 {
 	return Address( port , Localhost() ) ;
 }
 
-//static
 GNet::Address GNet::Address::broadcastAddress( unsigned int port )
 {
 	return Address( port , Broadcast() ) ;
@@ -423,11 +411,6 @@ GNet::Address::Address( const sockaddr * addr , socklen_t len ) :
 {
 }
 
-GNet::Address::Address( const Address & other ) :
-	m_imp( new AddressImp(*other.m_imp) )
-{
-}
-
 GNet::Address::Address( const std::string & s ) :
 	m_imp( new AddressImp(s) )
 {
@@ -438,6 +421,17 @@ GNet::Address::Address( const std::string & s , unsigned int port ) :
 {
 }
 
+GNet::Address::Address( const Address & other ) :
+	m_imp( new AddressImp(*other.m_imp) )
+{
+}
+
+void GNet::Address::operator=( const Address & addr )
+{
+	Address temp( addr ) ;
+	std::swap( m_imp , temp.m_imp ) ;
+}
+
 GNet::Address::~Address()
 {
 	delete m_imp ;
@@ -446,13 +440,6 @@ GNet::Address::~Address()
 void GNet::Address::setPort( unsigned int port )
 {
 	m_imp->setPort( port ) ;
-}
-
-void GNet::Address::operator=( const Address & addr )
-{
-	delete m_imp ;
-	m_imp = NULL ;
-	m_imp = new AddressImp(*addr.m_imp) ;
 }
 
 bool GNet::Address::operator==( const Address & other ) const
@@ -502,7 +489,6 @@ std::string GNet::Address::hostString() const
 	return m_imp->hostString() ;
 }
 
-//static
 bool GNet::Address::validString( const std::string & s , std::string * reason_p )
 {
 	return AddressImp::validString( s , reason_p ) ;
@@ -533,13 +519,11 @@ unsigned long GNet::Address::scopeId( unsigned long default_ ) const
 	return default_ ;
 }
 
-//static
 bool GNet::Address::validPort( unsigned int port )
 {
 	return AddressImp::validPort( port ) ;
 }
 
-//static
 int GNet::Address::defaultDomain()
 {
 	return PF_INET ;
@@ -561,11 +545,58 @@ G::Strings GNet::Address::wildcards() const
 	G::Str::splitIntoFields( display_string , part , "." ) ;
 
 	G_ASSERT( part.size() == 4U ) ;
-	if( part.size() != 4U ) return result ;
+	if( part.size() != 4U ||
+		!G::Str::isUInt(part[0]) ||
+		!G::Str::isUInt(part[1]) ||
+		!G::Str::isUInt(part[2]) ||
+		!G::Str::isUInt(part[3]) )
+	{
+		return result ;
+	}
 
+	unsigned int n0 = G::Str::toUInt(part[0]) ;
+	unsigned int n1 = G::Str::toUInt(part[1]) ;
+	unsigned int n2 = G::Str::toUInt(part[2]) ;
+	unsigned int n3 = G::Str::toUInt(part[3]) ;
+
+	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + part[3] + "/32" ) ;
+	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + G::Str::fromUInt(n3&0xfe) + "/31" ) ;
+	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + G::Str::fromUInt(n3&0xfc) + "/30" ) ;
+	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + G::Str::fromUInt(n3&0xf8) + "/29" ) ;
+	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + G::Str::fromUInt(n3&0xf0) + "/28" ) ;
+	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + G::Str::fromUInt(n3&0xe0) + "/27" ) ;
+	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + G::Str::fromUInt(n3&0xc0) + "/26" ) ;
+	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + G::Str::fromUInt(n3&0x80) + "/25" ) ;
+	result.push_back( part[0] + "." + part[1] + "." + part[2] + ".0/24" ) ;
 	result.push_back( part[0] + "." + part[1] + "." + part[2] + ".*" ) ;
+
+	result.push_back( part[0] + "." + part[1] + "." + G::Str::fromUInt(n2&0xfe) + ".0/23" ) ;
+	result.push_back( part[0] + "." + part[1] + "." + G::Str::fromUInt(n2&0xfc) + ".0/22" ) ;
+	result.push_back( part[0] + "." + part[1] + "." + G::Str::fromUInt(n2&0xf8) + ".0/21" ) ;
+	result.push_back( part[0] + "." + part[1] + "." + G::Str::fromUInt(n2&0xf0) + ".0/20" ) ;
+	result.push_back( part[0] + "." + part[1] + "." + G::Str::fromUInt(n2&0xe0) + ".0/19" ) ;
+	result.push_back( part[0] + "." + part[1] + "." + G::Str::fromUInt(n2&0xc0) + ".0/18" ) ;
+	result.push_back( part[0] + "." + part[1] + "." + G::Str::fromUInt(n2&0x80) + ".0/17" ) ;
+	result.push_back( part[0] + "." + part[1] + ".0.0/16" ) ;
 	result.push_back( part[0] + "." + part[1] + ".*.*" ) ;
+
+	result.push_back( part[0] + "." + G::Str::fromUInt(n1&0xfe) + ".0.0/15" ) ;
+	result.push_back( part[0] + "." + G::Str::fromUInt(n1&0xfc) + ".0.0/14" ) ;
+	result.push_back( part[0] + "." + G::Str::fromUInt(n1&0xf8) + ".0.0/13" ) ;
+	result.push_back( part[0] + "." + G::Str::fromUInt(n1&0xf0) + ".0.0/12" ) ;
+	result.push_back( part[0] + "." + G::Str::fromUInt(n1&0xe0) + ".0.0/11" ) ;
+	result.push_back( part[0] + "." + G::Str::fromUInt(n1&0xc0) + ".0.0/10" ) ;
+	result.push_back( part[0] + "." + G::Str::fromUInt(n1&0x80) + ".0.0/9" ) ;
+	result.push_back( part[0] + ".0.0.0/8" ) ;
 	result.push_back( part[0] + ".*.*.*" ) ;
+
+	result.push_back( G::Str::fromUInt(n0&0xfe) + ".0.0.0/7" ) ;
+	result.push_back( G::Str::fromUInt(n0&0xfc) + ".0.0.0/6" ) ;
+	result.push_back( G::Str::fromUInt(n0&0xf8) + ".0.0.0/5" ) ;
+	result.push_back( G::Str::fromUInt(n0&0xf0) + ".0.0.0/3" ) ;
+	result.push_back( G::Str::fromUInt(n0&0xe0) + ".0.0.0/2" ) ;
+	result.push_back( G::Str::fromUInt(n0&0xc0) + ".0.0.0/1" ) ;
+	result.push_back( "0.0.0.0/0" ) ;
 	result.push_back( "*.*.*.*" ) ;
 
 	return result ;

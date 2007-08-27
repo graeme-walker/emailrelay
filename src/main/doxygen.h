@@ -1,11 +1,10 @@
 /*
    Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License
-   as published by the Free Software Foundation; either
-   version 2 of the License, or (at your option) any later
-   version.
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /* \htmlonly */
@@ -32,12 +29,8 @@ of the code structure, and there are a number of supporting diagrams:
 <ul>
 <li>GNet namespace <a href="../gnet-classes.png">class diagram</a></li>
 <li>GSmtp namespace <a href="../gsmtp-classes.png">class diagram</a></li>
-<li>ProtocolMessage <a href="../sequence-1.png">sequence diagram 1</a></li>
-<li>ProtocolMessage <a href="../sequence-2.png">sequence diagram 2</a></li>
 <li>Proxy-mode forwarding <a href="../sequence-3.png">sequence diagram</a></li>
-<li>Scanning <a href="../sequence-4.png">sequence diagram</a></li>
 <li>GNet::Client <a href="../gnet-client.png">state transition diagram</a></li>
-<li>GNet::ScannerClient <a href="../gsmtp-scannerclient.png">state transition diagram</a></li>
 <li>GSmtp::ServerProtocol <a href="../gsmtp-serverprotocol.png">state transition diagram</a></li>
 <li><a href="../auth.png">Authentication usage</a></li>
 </ul>

@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file gsocket.h
@@ -127,8 +124,8 @@ public:
 		///< less than 'len' then assume that there was a partial
 		///< flow control problem (do not use eWouldBlock()).
 		///<
-		///< (This is virtual to allow overloading --
-		///<  not overriding -- in derived classes.)
+		///< This method is virtual to allow overloading (sic)
+		///< in derived classes.
 
 	bool eWouldBlock() ;
 		///< Returns true if the previous socket operation
@@ -185,6 +182,9 @@ public:
 		///< Returns the failure reason as a string.
 		///< Only used in debugging.
 
+	void shutdown( bool for_writing = true ) ;
+		///< Shuts the socket for writing (or reading).
+
 protected:
 	Socket( int domain , int type , int protocol ) ;
 		///< Constructor used by derived classes.
@@ -219,9 +219,9 @@ private:
 	Socket( const Socket & ) ;
 	void operator=( const Socket & ) ;
 	void drop() ;
-};
+} ;
 
-/// ===
+///
 
 /// \class GNet::AcceptPair
 /// A class which behaves like std::pair<std::auto_ptr<StreamSocket>,Address>.
@@ -251,7 +251,7 @@ public:
 		///< Assignment operator.
 } ;
 
-/// ===
+///
 
 /// \class GNet::StreamSocket
 /// A derivation of Socket for a stream socket.
@@ -283,17 +283,12 @@ public:
 		///< a new()ed socket and the peer address.
 
 private:
-	StreamSocket( const StreamSocket & ) ;
-		///< Copy constructor. Not implemented.
-
-	void operator=( const StreamSocket & ) ;
-		///< Assignment operator. Not implemented.
-
-	StreamSocket( Descriptor s ) ;
-		///< A private constructor used in accept().
+	StreamSocket( const StreamSocket & ) ; // not implemented
+	void operator=( const StreamSocket & ) ; // not implemented
+	StreamSocket( Descriptor s ) ; // A private constructor used in accept().
 } ;
 
-/// ===
+///
 
 /// \class GNet::DatagramSocket
 /// A derivation of Socket for a connectionless
@@ -332,14 +327,11 @@ public:
 		///< of the previous Socket::connect().
 
 private:
-	DatagramSocket( const DatagramSocket & ) ;
-		///< Copy constructor. Not implemented.
-
-	void operator=( const DatagramSocket & ) ;
-		///< Assignment operator. Not implemented.
+	DatagramSocket( const DatagramSocket & ) ; // not implemented
+	void operator=( const DatagramSocket & ) ; // not implemented
 } ;
 
-/// ===
+///
 
 inline
 ssize_t GNet::DatagramSocket::write( const char *buf, size_t len )
@@ -347,7 +339,7 @@ ssize_t GNet::DatagramSocket::write( const char *buf, size_t len )
 	return Socket::write(buf,len) ;
 }
 
-/// ===
+///
 
 inline
 GNet::AcceptPair::AcceptPair( StreamSocket * p , Address a ) :
@@ -366,8 +358,10 @@ GNet::AcceptPair::AcceptPair( const AcceptPair & other ) :
 inline
 GNet::AcceptPair & GNet::AcceptPair::operator=( const AcceptPair & rhs )
 {
+	///< (safe for self-assignment)
 	first = const_cast<first_type&>(rhs.first) ;
-	second = rhs.second ; return *this ;
+	second = rhs.second ;
+	return *this ;
 }
 
 #endif

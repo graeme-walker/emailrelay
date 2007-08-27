@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file gclientprotocol.h
@@ -78,6 +75,7 @@ public:
 		SyntaxError_501 = 501 ,
 		NotImplemented_502 = 502 ,
 		BadSequence_503 = 503 ,
+		NotAuthenticated_535 = 535 ,
 		Invalid = 0
 	} ;
 
@@ -115,6 +113,11 @@ public:
 		///< excluding the numeric part, and with
 		///< embedded newlines.
 
+	std::string errorText() const ;
+		///< Returns the text() string but with the guarantee
+		///< that the returned string is empty if and only
+		///< if the reply value is exactly 250.
+
 	bool textContains( std::string s ) const ;
 		///< Returns true if the text() contains
 		///< the given substring.
@@ -142,28 +145,37 @@ private:
 /// \class GSmtp::ClientProtocol
 /// Implements the client-side SMTP protocol.
 ///
-class GSmtp::ClientProtocol : private GNet::Timer
+/// Note that fatal, non-message-specific errors result in
+/// an exception being thrown, possibly out of an event-loop
+/// callback. In practice these will result in the connection
+/// being dropped immediately without failing the message.
+///
+class GSmtp::ClientProtocol : private GNet::AbstractTimer
 {
 public:
 	G_EXCEPTION( NotReady , "not ready" ) ;
-	G_EXCEPTION( NoRecipients , "no recipients" ) ;
+	G_EXCEPTION( ResponseError , "protocol error: unexpected response" ) ;
+	G_EXCEPTION( NoMechanism , "cannot do authentication mandated by the server" ) ;
+	G_EXCEPTION( AuthenticationRequired , "authentication required by the server" ) ;
+	G_EXCEPTION( AuthenticationNotSupported , "authentication not supported by the server" ) ;
+	G_EXCEPTION( AuthenticationError , "authentication error" ) ;
 	typedef ClientProtocolReply Reply ;
 
 	/// An interface used by ClientProtocol to send protocol messages.
 	class Sender
 	{
 		public: virtual bool protocolSend( const std::string & , size_t offset ) = 0 ;
-			///< Called by the Protocol class to send
-			///< network data to the peer.
+			///< Called by the Protocol class to send network data to
+			///< the peer.
 			///<
-			///< The offset gives the location of the
-			///< payload within the string buffer.
+			///< The offset gives the location of the payload within the
+			///< string buffer.
 			///<
-			///< Returns false if not all of the string
-			///< was sent, either due to flow control
-			///< or disconnection. After false is returned
-			///< ClientProtocol::sendDone() should be called
-			///< as soon as the full string has been sent.
+			///< Returns false if not all of the string was send due to
+			///< flow control. In this case ClientProtocol::sendDone() should
+			///< be called as soon as the full string has been sent.
+			///<
+			///< Throws on error, eg. if disconnected.
 
 		private: void operator=( const Sender & ) ; // not implemented
 		public: virtual ~Sender() ;
@@ -182,31 +194,21 @@ public:
 	} ;
 
 	ClientProtocol( Sender & sender , const Secrets & secrets , Config config ) ;
-		///< Constructor. The 'sender' and 'secrets' references
-		///< are kept.
+		///< Constructor. The 'sender' and 'secrets' references are kept.
 		///<
-		///< The Sender interface is used to send protocol
-		///< messages to the peer.
+		///< The Sender interface is used to send protocol messages to
+		///< the peer.
 		///<
-		///< The 'thishost_name' parameter is used in the
-		///< SMTP EHLO request.
+		///< The 'thishost_name' parameter is used in the SMTP EHLO
+		///< request.
 		///<
-		///< If the 'eight-bit-strict' flag is true then
-		///< an eight-bit message being sent to a
-		///< seven-bit server will be failed.
+		///< If the 'eight-bit-strict' flag is true then an eight-bit
+		///< message being sent to a seven-bit server will be failed.
 
-	G::Signal3<bool,bool,std::string> & doneSignal() ;
+	G::Signal1<std::string> & doneSignal() ;
 		///< Returns a signal that is raised once the protocol has
-		///< finished with a given message. The signal parameters
-		///< are 'ok', 'abort' and 'reason'.
-		///<
-		///< If 'ok' is false then 'abort' indicates
-		///< whether there is any point in trying to
-		///< send more messages to the same server.
-		///< The 'abort' parameter will be true if,
-		///< for example, authentication failed -- if
-		///< it failed for one message then it will
-		///< fail for all the others.
+		///< finished with a given message. The signal parameter
+		///< is the empty string, or a non-empty reason on error.
 
 	G::Signal0 & preprocessorSignal() ;
 		///< Returns a signal that is raised when the protocol
@@ -239,6 +241,13 @@ public:
 		///< Returns true if the protocol is done and the doneSignal()
 		///< has been emited.
 
+protected:
+	virtual void onTimeout() ;
+		///< Final override from GNet::AbstractTimer.
+
+	virtual void onTimeoutException( std::exception & ) ;
+		///< Final override from GNet::AbstractTimer.
+
 private:
 	bool send( const std::string & , bool eot = false , bool log = true ) ;
 	bool sendLine( std::string & ) ;
@@ -251,10 +260,10 @@ private:
 	static const std::string & crlf() ;
 	bool applyEvent( const Reply & event , bool is_start_event = false ) ;
 	static bool parseReply( Reply & , const std::string & , std::string & ) ;
-	void raiseDoneSignal( bool , bool , const std::string & ) ;
+	void raiseDoneSignal( const std::string & , bool = false ) ;
+	bool serverAuth( const ClientProtocolReply & reply ) const ;
 	G::Strings serverAuthMechanisms( const ClientProtocolReply & reply ) const ;
 	void startPreprocessing() ;
-	void onTimeout() ;
 
 private:
 	enum State { sInit , sStarted , sServiceReady , sSentEhlo , sSentHelo , sAuth1 , sAuth2 , sSentMail ,
@@ -280,9 +289,8 @@ private:
 	unsigned int m_response_timeout ;
 	unsigned int m_ready_timeout ;
 	unsigned int m_preprocessor_timeout ;
-	G::Signal3<bool,bool,std::string> m_done_signal ;
+	G::Signal1<std::string> m_done_signal ;
 	G::Signal0 m_preprocessor_signal ;
-	bool m_signalled ;
 } ;
 
 #endif

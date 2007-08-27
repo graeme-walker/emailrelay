@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // gpopserver.cpp
@@ -34,11 +31,10 @@
 GPop::ServerPeer::ServerPeer( GNet::Server::PeerInfo peer_info , Server & server , Store & store ,
 	const Secrets & secrets , std::auto_ptr<ServerProtocol::Text> ptext ,
 	ServerProtocol::Config protocol_config ) :
-		GNet::Sender( peer_info ) ,
-		m_server( server ) ,
-		m_buffer_in( crlf() ) ,
-		m_ptext( ptext ) ,
-		m_protocol( *this , store , secrets , *m_ptext.get() , peer_info.m_address , protocol_config )
+		GNet::BufferedServerPeer(peer_info,crlf()) ,
+		m_server(server) ,
+		m_ptext(ptext) ,
+		m_protocol(*this,store,secrets,*m_ptext.get(),peer_info.m_address,protocol_config)
 {
 	G_LOG_S( "GPop::ServerPeer: pop connection from " << peer_info.m_address.displayString() ) ;
 	m_protocol.init() ;
@@ -54,20 +50,10 @@ void GPop::ServerPeer::onDelete()
 	G_LOG_S( "GPop::ServerPeer: pop connection closed: " << peerAddress().second.displayString() ) ;
 }
 
-void GPop::ServerPeer::onData( const char * p , size_t n )
+bool GPop::ServerPeer::onReceive( const std::string & line )
 {
-	try
-	{
-		for( m_buffer_in.add(p,n) ; m_buffer_in.more() ; m_buffer_in.discard() )
-		{
-			processLine( m_buffer_in.current() ) ;
-		}
-	}
-	catch( std::exception & e )
-	{
-		G_LOG( "GPop::onData: " << e.what() ) ;
-		doDelete() ;
-	}
+	processLine( line ) ;
+	return true ;
 }
 
 void GPop::ServerPeer::processLine( const std::string & line )
@@ -77,10 +63,10 @@ void GPop::ServerPeer::processLine( const std::string & line )
 
 bool GPop::ServerPeer::protocolSend( const std::string & line , size_t offset )
 {
-	return send( line , offset ) ; // GNet::Sender
+	return send( line , offset ) ; // BufferedServerPeer::send() -- see also GNet::Sender
 }
 
-void GPop::ServerPeer::onResume()
+void GPop::ServerPeer::onSendComplete()
 {
 	m_protocol.resume() ; // calls back to protocolSend()
 }
@@ -114,7 +100,7 @@ GNet::ServerPeer * GPop::Server::newPeer( GNet::Server::PeerInfo peer_info )
 		std::string reason ;
 		if( ! m_allow_remote && ! GNet::Local::isLocal(peer_info.m_address,reason) )
 		{
-			G_WARNING( "GPop::Server: configured to reject non-local connection: " << reason ) ;
+			G_WARNING( "GPop::Server: configured to reject non-local pop connection: " << reason ) ;
 			return NULL ;
 		}
 
@@ -122,7 +108,7 @@ GNet::ServerPeer * GPop::Server::newPeer( GNet::Server::PeerInfo peer_info )
 		return new ServerPeer( peer_info , *this , m_store , m_secrets ,
 			ptext , ServerProtocol::Config() ) ;
 	}
-	catch( std::exception & e )
+	catch( std::exception & e ) // newPeer()
 	{
 		G_WARNING( "GPop::Server: exception from new connection: " << e.what() ) ;
 		return NULL ;

@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // configuration.cpp
@@ -36,7 +33,6 @@ Main::Configuration::Configuration( const CommandLine & cl ) :
 {
 }
 
-//static
 std::string Main::Configuration::yn( bool b )
 {
 	return b ? std::string("yes") : std::string("no") ;
@@ -52,7 +48,6 @@ std::string Main::Configuration::na( const std::string & s ) const
 	return s.empty() ? na() : s ;
 }
 
-//static
 std::string Main::Configuration::any( const std::string & s )
 {
 	return s.empty() ? std::string("<any>") : s ;
@@ -84,6 +79,7 @@ std::string Main::Configuration::str( const std::string & p , const std::string 
 		<< p << "close stderr? " << yn(closeStderr()) << eol
 		<< p << "connect timeout: " << connectionTimeout() << "s" << eol
 		<< p << "response timeout: " << responseTimeout() << "s" << eol
+		<< p << "prompt timeout: " << promptTimeout() << "s" << eol
 		<< p << "domain override: " << na(fqdn()) << eol
 		<< p << "polling period: " << (pollingTimeout()?(G::Str::fromUInt(pollingTimeout())+"s"):na()) << eol
 		;
@@ -153,22 +149,6 @@ std::string Main::Configuration::clientInterface() const
 	return firstListeningInterface() ;
 }
 
-G::Path Main::Configuration::adminAddressFile() const
-{
-	if( ! m_cl.contains("admin") )
-		return G::Path() ;
-
-	const std::string s = m_cl.value("admin") ;
-	if( s.find("tcp://") == 0U && s.length() > 6U && s.find("/",6U) != std::string::npos )
-	{
-		return G::Path(s.substr(s.find("/",6U))) ;
-	}
-	else
-	{
-		return G::Path() ;
-	}
-}
-
 unsigned int Main::Configuration::adminPort() const
 {
 	std::string s = m_cl.contains("admin") ? m_cl.value("admin") : std::string() ;
@@ -176,7 +156,7 @@ unsigned int Main::Configuration::adminPort() const
 	{
 		s = 6U >= s.length() ? std::string() : s.substr(6U) ;
 
-		size_t p = s.find("/") ;
+		std::string::size_type p = s.find("/") ;
 		if( p != std::string::npos )
 			s = s.substr(0U,p) ;
 
@@ -242,6 +222,11 @@ bool Main::Configuration::doPolling() const
 unsigned int Main::Configuration::pollingTimeout() const
 {
 	return m_cl.contains("poll") ? G::Str::toUInt(m_cl.value("poll")) : 0U ;
+}
+
+unsigned int Main::Configuration::promptTimeout() const
+{
+	return m_cl.contains("prompt-timeout") ? G::Str::toUInt(m_cl.value("prompt-timeout")) : 20U ;
 }
 
 bool Main::Configuration::doSmtp() const

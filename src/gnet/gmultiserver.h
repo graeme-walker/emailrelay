@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file gmultiserver.h
@@ -46,25 +43,53 @@ class GNet::MultiServerImp : public GNet::Server
 {
 public:
 	MultiServerImp( MultiServer & ms , const Address & ) ;
-	virtual ServerPeer * newPeer( PeerInfo ) ;
+		///< Constructor.
+
 	void cleanup() ;
+		///< Does cleanup.
+
+protected:
+	virtual ServerPeer * newPeer( PeerInfo ) ;
+		///< Server peer factory method.
+		///< Final override from GNet::Server.
+
 private:
 	MultiServer & m_ms ;
 } ;
 
 /// \class GNet::MultiServerPtr
 /// A private implementation class used by
-/// GNet::MultiServer.
+/// GNet::MultiServer. The implementation is unusual
+/// in that only has proper value semantics if the
+/// contained pointer is null; it is used in a way
+/// that makes allowances for that restriction.
 ///
 class GNet::MultiServerPtr
 {
 public:
 	typedef GNet::MultiServerImp ServerImp ;
+
 	explicit MultiServerPtr( ServerImp * = NULL ) ;
+		///< Constructor.
+
 	~MultiServerPtr() ;
+		///< Destructor.
+
 	void swap( MultiServerPtr & ) ;
+		///< Swaps internals with the other.
+
 	MultiServerImp * get() ;
+		///< Returns the raw pointer.
+
 	const MultiServerImp * get() const ;
+		///< Returns the raw const pointer.
+
+	MultiServerPtr( const MultiServerPtr & ) ;
+		///< Copy constructor.
+
+	void operator=( const MultiServerPtr & ) ;
+		///< Assignment operator.
+
 private:
 	MultiServerImp * m_p ;
 } ;
@@ -86,7 +111,7 @@ public:
 
 	static AddressList addressList( const Address & ) ;
 		///< A trivial convenience fuction that returns the given
-		///< addresses as a list.
+		///< addresses as a single-element list.
 
 	static AddressList addressList( const AddressList & , unsigned int port ) ;
 		///< Returns the given list of addresses with the port set

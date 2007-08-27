@@ -52,7 +52,8 @@ Typical applications of E-MailRelay include:
 * adding digital signatures or legal disclaimers to outgoing mail
 * doing store-and-forward for outgoing mail across a dial-up Internet connection
 * adding authentication where the existing infrastructure does not support it
-* simple proxying on a firewall host or DMZ
+* simple SMTP proxying on a firewall host or DMZ
+* SMTP to POP gateway
 
 Running E-MailRelay
 -------------------
@@ -103,125 +104,36 @@ or run:
 
 	emailrelay --help --verbose
 
-Starting the daemon at boot-time
---------------------------------
-The standard installation of E-MailRelay (using "make install") puts most of the
-files into the right places, but it does not set things up so that the daemon
-starts at boot time. You have to do that yourself because of the differences
-between the various operating systems and distributions.
+Configuration
+-------------
+The "emailrelay" program itself is mostly configured through command-line
+switches (such as "--port" and "--forward-to"), so there is no single
+definitive configuration file.
 
-Many systems provide GUI programs and command-line tools to make the necessary
-links into the boot system: "ksysv" (KDE), "redhat-config-services", "insserv"
-(Suse), "chkconfig" (Redhat), "install_initd" (LSB) are examples.
+However, in most installations on Unix-like system the E-MailRelay server will
+be started up by the boot-time script called "emailrelay" in the "/etc/init.d"
+directory, and this script uses the configuration file "/etc/emailrelay.conf" to
+define the server command-line. Each entry in the configuration file corresponds
+to an E-MailRelay command-line switch, so you can edit this file to add and
+remove server switches. Refer to the reference guide for a complete list of
+configuration switches.
 
-If you do not have a suitable configuration tool you can set up the links
-manually as described below.
+On Windows the installation program creates a startup batch file called
+"emailrelay-start.bat" that contains all the server command-line switches and
+you can edit this file to tailor the server configuration. You can also set up
+your own shortcuts to the E-MailRelay executable and add and remove command-line
+switches using the shortcut properties tab.
 
-The "System-V" boot system has a base directory "/etc/init.d" (or
-"/sbin/init.d") containing a start/stop script for each daemon process, and then
-symbolic links in the "rc<N>.d" subdirectories control which scripts are run
-when entering or leaving a particular run-level (<N>). The links point back into
-the start/stop script in the parent directory, using a "S" prefix for the
-starting link, and a "K" prefix for the stopping link. The numeric part of the
-link name determines the order in which the links are called.
+If you are using authentication then you will have to create the text files
+containing your authentication secrets (passwords and password hashes). The
+"--server-auth", "--client-auth" and "--pop-auth" command-line switches are used
+to point to these files.
 
-So the goal is to set up symbolic links to the "emailrelay" start/stop script
-(not the binary) which "make install" should have put in "/etc/init.d" or
-"/usr/local/libexec".
-
-Before you start you will need to know where your "init.d" directory can be
-found and what your default run level is:
-
-	$ ls -d /*/init.d
-	$ runlevel | awk '{print $2}'
-
-Assuming these are "/etc/init.d" and "5" you should (as root) copy the
-E-MailRelay start/stop script into "/etc/init.d" (if it is not already installed
-there):
-
-	$ cp /usr/local/libexec/emailrelay /etc/init.d
-
-Then determine an appropriate numeric value for the link names by looking at
-similar server programs like "sendmail":
-
-	$ cd /etc/init.d/rc5.d
-	$ ls *sendmail*
-
-Assuming sendmail links are "S10sendmail" and "K10sendmail", create
-the "emailrelay" links in the same format:
-
-	$ cd /etc/init.d/rc5.d
-	$ ln -s ../emailrelay S10emailrelay
-	$ ln -s ../emailrelay K10emailrelay
-
-And finally remove any incomatible SMTP servers from the run-level that might
-otherwise compete for the same SMTP listening port:
-
-	$ cd /etc/init.d/rc5.d
-	$ rm *sendmail
-
-Triggering onward delivery
---------------------------
-If you are using E-MailRelay to store and forward e-mail over a dial-up link to
-the Internet, then you will need to set things up so that the dialler tells
-E-MailRelay when to start forwarding.
-
-This section assumes that you are using "pppd" to establish your dial-up
-Internet connection. (KDE's "kppp" and Red Hat's "rp3" are graphical
-front-ends to an underlying "pppd" daemon.)
-
-The ppp daemon calls the script "/etc/ppp/ip-up" when it has successfully
-established a dial-up link to your ISP. This script will probably set up IP
-routes, update the DNS configuration, initialise a firewall, run "fetchmail"
-and "sendmail", etc. It may also call out to another script, "ip-up.local"
-which is available for you to put stuff into without having to grub around
-inside "ip-up" itself.
-
-The simplest approach for editing "ip-up" is to look for a "sendmail -q" line.
-If you find "sendmail -q" then it should be sufficient to replace it with this:
-
-	emailrelay --as-client <myisp>:smtp
-
-where you substitute your ISP's SMTP server address for <myisp>.
-
-Or if your "ip-up" calls out to "ip-up.local" then create a two-line
-"/etc/ppp/ip-up.local" script like this:
-
-	#!/bin/sh
-	exec /usr/local/sbin/emailrelay --as-client <myisp>:smtp
-
-If you create "ip-up.local" yourself remember to make it executable.
-
-Notification of failed e-mails
-------------------------------
-If e-mail messages corrupted or inaccessible within the spool directory
-(typically becuase the disk is full) then they will get failed within the
-E-MailRelay system, with the envelope files in the spool directory ending up
-with a ".bad" suffix.
-
-If you are not too worried about getting failed mail to bounce, or if you do not
-have a suitable delivery agent, then a simple check in your ".profile" script
-for "*.bad" files in the spool directory may be sufficient:
-
-	if test -f /var/spool/emailrelay/*.envelope.bad
-	then
-		echo Failed mail >&2
-	fi
-
-This will warn you that something failed, but you will have to look at the
-failure reason written into the envelope files, and at the log files, to
-find out what went wrong.
-
-Or you can get failed e-mails to 'bounce' back into your in-tray by running the
-"emailrelay-notify.sh" script as "root" periodically. But note that this is
-only approporiate if you are using E-MailRelay for outgoing traffic, and it
-assumes that you have "procmail" installed on your system to act as a "delivery
-agent".
-
-If you want failed e-mails to be retried a few times you can run the
-"emailrelay-resubmit.sh" script periodically. This simply removes the ".bad"
-suffix from files in the spool directory, as long as they have not been retried
-too many times already.
+There is also a graphical configuration program called "emailrelay-gui" that
+may be available to help with configuring the system. This is intended to be
+used once at installation time (and it is the basis of the self-extracting
+installer on Windows) but it may also be used to do some simple reconfiguration
+of an alreay-installed system.
 
 Logging
 -------
@@ -233,15 +145,14 @@ The "syslog" system is configured through the "/etc/syslog.conf" file (try
 "man syslog.conf"), and in most cases you will find that "LOG_MAIL" warnings and
 errors are directed to an appropriate log file (perhaps "/var/log/messages").
 
-To get a file which will accumulate all E-MailRelay log messages (and messages
-from all other mail programs), add a line like this to "/etc/syslog.conf":
+For more verbose logging add the "--verbose" switch. If this becomes difficult
+to read via the system log (especially on Windows) then try logging to the
+standard error stream and redirect that to a file. Bear in mind that you will
+need have to replace "--as-server" with "--log" and "--as-proxy" with
+"--immediate --forward-to" since the "--as-server" and "--as-proxy" switches
+implicitly close the standard error stream soon after startup.
 
-	mail.info: /var/log/mail.log
-
-You may have to restart the "syslogd" daemon, or send it a "SIGHUP" signal, in
-order to have this change take effect.
-
-For less verbose logging change "mail.info" to "mail.warning".
+	emailrelay --log --verbose > emailrelay.log 2>&1
 
 Troubleshooting
 ---------------
@@ -312,40 +223,37 @@ authentication. You should be able to use an e-mail front-end program, or
 something like "fetchmail" to do the POP/IMAP authentication.
 
 If you can send mail messages sucessfully using telnet, then you should look at
-the E-MailRelay log output and compare what you do interactively with what
-the program does. Usually when running as a server E-MailRelay logging goes to
-the "syslog" system, and when running as a client it goes to the standard error
-stream ("stderr"). To get the server to log onto stderr, replace the
-"--as-server" command-line switch with "--log --no-syslog". Refer to the
-reference guide for more information.
-
-Reporting problems
-------------------
-Please report any problems you have, but please always say what operating system
-and version of E-MailRelay are using, and include as much logging information
-as possible.
+the E-MailRelay "--verbose" log output and compare what you do interactively
+with what the program does.
 
 Preventing open mail relay
 --------------------------
 If you are running E-MailRelay as a server with a permanent connection to the
 Internet it is important to prevent open mail relay because this can be
 exploited by spammers. By default open mail relaying is not possible because
-E-MailRelay does not accept IP connections from remote clients. However, if the
-"--remote-clients" switch is used then you need to be more careful. One option
-is to require all clients to authenticate, by using the "--server-auth" switch.
-But if you need local clients, such as your own e-mail front-end, to connect
-without authentication then you will need to put those trusted IP addresses in
-the secrets file with an authentication mechanism of "NONE". Refer to the
-reference guide for more information.
+E-MailRelay does not accept IP connections from remote clients. However, if you
+use the "--remote-clients" switch then you need to be more careful.
 
-Taking it one stage further, you may want to allow clients to connect from any
-IP address without authentication, but only allow them to send mail to local
-users. You can do this by requiring authentication with the "--server-auth"
-switch but then exempt all clients from authentication with a
-"NONE server *.*.*.* x" line in the secrets file. To complete the solution
-you must have an address verifier script ("--verifier") which rejects remote
-addresses if the client has not authenticated. Again, refer to the reference
-guide for further details.
+If the only required access to the E-MailRelay server is from a local network
+and not from the Internet then you can use the "--interface" switch to listen
+for incoming connections only on the local network interface. You should also
+use a firewall in this scenario.
+
+Another option is to require all clients to authenticate by using the
+"--server-auth" switch. If you then need local clients, such as your own e-mail
+front-end, to connect without authentication then you must put those trusted IP
+addresses in the secrets file with an authentication mechanism of "NONE". Refer
+to the reference guide for more information.
+
+Taking it one stage further, you may want to allow connections from the Internet
+without authentication but only allow them to send mail to local users. In other
+words you want to allow anyone to deliver e-mail to your system but not allow
+them to spam someone else. You can do this by requiring authentication with the
+"--server-auth" switch, then exempt everyone from mandatory authentication with
+"NONE server *.*.*.* x" line in the secrets file, and finally have an address
+verifier script ("--verifier") which rejects remote recipient addresses if the
+client has not authenticated. Again, refer to the reference guide for further
+details.
 
 Running as a POP server
 -----------------------
@@ -364,139 +272,151 @@ like this:
 	APOP server user1 password1
 	APOP server user2 password2
 
-If you need to serve up messages to more than one user consider using the
+If you need to serve up messages to more than one POP client consider using the
 "--pop-by-name" option with a "--filter" script that moves messages into the
-appropriate subdirectory based on the "To:" address.
+appropriate subdirectory. The "emailrelay-filter-copy" program is designed
+to be used in this way: when a message is received over SMTP it copies it
+into all available sub-directories for collection by multiple POP clients.
 
 Refer to the reference guide for more information.
+
+Triggering delivery over dial-up
+--------------------------------
+If you are using E-MailRelay to store and forward e-mail over a dial-up link to
+the Internet, then you will need to set things up so that the dialler tells
+E-MailRelay when to start forwarding.
+
+In most Unix-like systems a "ppp" daemon calls the script "/etc/ppp/ip-up" when
+it has successfully established a dial-up link to your ISP. This script will
+probably set up IP routes, update the DNS configuration, initialise a firewall,
+run "fetchmail" and "sendmail", etc. It may also call out to another script,
+"ip-up.local" which is available for you to put stuff into without having to
+edit "ip-up" itself.
+
+The simplest approach for editing "ip-up" is to look for a "sendmail -q" line.
+If you find "sendmail -q" then it should be sufficient to replace it with this:
+
+	emailrelay --as-client <myisp>:smtp
+
+where you substitute your ISP's SMTP server address for <myisp>.
+
+Or if your "ip-up" calls out to "ip-up.local" then create a two-line
+"/etc/ppp/ip-up.local" script like this:
+
+	#!/bin/sh
+	exec /usr/local/sbin/emailrelay --as-client <myisp>:smtp
+
+If you create "ip-up.local" yourself remember to make it executable.
+
+Notification of failed e-mails
+------------------------------
+If e-mail messages cannot be forwarded by the E-MailRelay system then the
+envelope files in the spool directory are given a ".bad" suffix. The reason for
+the failure will be recorded in the envelope file itself.
+
+You should check for ".bad" envelope files in the E-MailRelay spool directory
+from time to time.
+
+If you want failed e-mails to be retried a few times you can run the
+"emailrelay-resubmit.sh" script periodically, perhaps from "cron". This script
+simply removes the ".bad" suffix from files in the spool directory, as long as
+they have not been retried too many times already.
+
+If you are using E-MailRelay to forward outgoing e-mails then you can also get
+failed e-mails to bounce back to your in-tray by running the
+"emailrelay-notify.sh" script periodically as "root", although this does require
+"procmail" to be available to act as a delivery agent.
 
 Usage patterns
 --------------
 The simplest ways of using E-MailRelay for SMTP are as a proxy or as a
-store-and-forward MTA, but other configurations are possible. For example, you
-could use the E-MailRelay server to do message storing, but use something else
-to do the forwarding. Or you could implement simple routing by having a
-"--filter" program that moves message files into the spool directory of another
-E-MailRelay process. Or you could have multiple forwarding E-MailRelay processes
-running off the same spool directory, but trigger them at different times of the
-day.
+store-and-forward MTA, but many other configurations are possible. For example,
+multiple E-MailRelay servers can run in parallel sharing the same spool directory,
+or they can be chained in series to that e-mail messages get transferred
+from one to the next.
 
 Remember that messages can be introduced directly into the E-MailRelay spool
 directory using the "emailrelay-submit" utility, and they can be moved out again
-at any time as long as the envelope file is not "locked" with a ".busy" filename
-extension. Your "--filter" program can edit messages in any way you want, and it
-can even remove the current message from the spool directory as long as it lets
-E-MailRelay know by terminating with an exit code of 100.
+at any time, as long as the envelope file is not locked (ie. with a special
+filename extension). Your "--filter" program can edit messages in any way you
+want, and it can even remove the current message from the spool directory.
 
-Another important technique is to run E-MailRelay as an SMTP server, but use the
+Another useful technique is to run E-MailRelay as an SMTP server but use the
 "--poll" switch so that the server process will also do periodic forwarding.
 With a short "--poll" period this behaves rather like a proxy, but the
 submitting client program does not have to wait for the message to be delivered
-to the remote server. A normal proxy only responds with OK after the SMTP DATA
-transfer phase once the message has been sucessfully transfered to the next
-server, but by using the "--poll" mechanism the client gets an OK response
-immediately. If you don't like the idea of polling the spool directory, you can
-use a "--filter" program to force the "--poll" timer to expire as soon as a new
-message is received by exiting with a value of 103.
+to the remote server. To avoid the overhead of polling the spool directory
+continuously you can use get the "--filter" program to force the "--poll" timer
+to expire as each new message is received by using a special exit value of 103.
 
 When using E-MailRelay as a POP server the "--pop-by-name" feature can be used
 to serve up different spooled messages according to the username that the client
-authenticated with: each user's messages are taken from a sub-directory of the
-main spool directory. This means that you have to decide how to move or copy the
-messages into those sub-directories. If messages are coming in over SMTP then
-you could install an SMTP "--filter" script to move each new message into the
-relevant sub-directory based on the message addressing. Or if you are submitting
-messages directly into the main spool directory using the "emailrelay-submit"
-utility then you could use the "--verbose" switch to get the filename for the
-new message and then move, copy or link it into the users' sub-directories as
-a second step. Hard links (if supported by your filesystem) can be a neat way to
-distribute content files into multiple subdirectories because you do not use any
-more disk space for the copies and the storage is reclaimed automatically once
-the last copy is deleted. To avoid race conditions always copy or link the
-content file into the sub-directory first and then make a copy of the envelope
-file.
+authenticated with: each user's messages are taken from their own sub-directory
+of the main spool directory. This means that you can decide how to move or copy
+the messages into those sub-directories. If messages are coming in over SMTP
+then you could install an SMTP "--filter" script to move each new message into
+the relevant sub-directory based on the message addressing.
 
-For more ideas check out the "--client-filter", "--poll" and "--scanner"
-switches, and don't overlook the administration interface ("--admin") which you
-can use to receive notification of message arrival or force message forwarding
-at any time.
+For more ideas check out the "--client-filter" and "--poll" switches, and don't
+overlook the administration and control interface ("--admin") which you can use
+to receive notification of message arrival or force message forwarding at any
+time.
 
 SpamAssassin
 ------------
-The E-MailRelay server can use *Spam Assassin* [http://spamassassin.org] to mark
-potential spam. To do this you will need to have a small shell script to call
-"spamassassin", and pass the name of this script to E-MailRelay using the
-"--filter" command-line switch.
+The E-MailRelay server can use *SpamAssassin* [http://spamassassin.apache.org]
+to mark or reject potential spam.
+
+To get E-MailRelay to reject spam outright you can just use "spamassassin -e" as
+your E-MailRelay "--filter" program:
+
+	emailrelay --as-server --filter "/usr/bin/spamassassin --exit-code"
+
+Or on Windows:
+
+	emailrelay --as-server --filter "c:/Program\ Files/perl/site/bin/spamassassin.bat --exit-code"
+
+To get spam messages identified by SpamAssassin but still pass through the
+E-MailRelay system you will have to have a small "--filter" script to collect
+the output from the "spamassassin" program and write it back into the
+E-MailRelay content file.
 
 Your "--filter" shell script could look something like this:
 
 	#!/bin/sh
-	tmp="/tmp/`basename $0`.$$.tmp"
-	awk '{sub("\r$","");print}' "${1}" | spamassassin --local | awk '{print $0 "\r"}' > $tmp && mv $tmp "${1}"
-	rm -f $tmp 2>/dev/null
+	spamassassin "$1" > "$1.tmp"
+	mv "$1.tmp" "$1"
 	exit 0
 
-This just pipes the message content file into "spamassassin", using "awk" to
-remove carriage-returns. The output is saved in a temporary file, and then put
-back into the content file, using "awk" again to restore carriage-returns.
+Or an equivalent batch script on Windows:
 
-To delete spam altogether, rather than just marking it, you could add
-"--exit-code" to the spamassassin command line and deal with messages according
-to the exit code:
-
-	#!/bin/sh
-	awk '{sub("\r$","");print}' "${1}" | spamassassin --local --exit-code > /dev/null
-	if test $? -ne 0
-	then
-		# spam...
-		content="${1}"
-		envelope="`echo \"${content}\" | sed 's/content/envelope.new/'`"
-		rm -f "${envelope}" "${content}"
-		exit 100 # <= tell E-MailRelay that the files are gone
-	fi
+	c:\Program Files\perl\site\bin\spamassassin.bat %1 > %1.tmp
+	ren %1.tmp %1
 	exit 0
 
-On Windows there is less of a problem with carriage returns, but because
-"spamassassin" is a perl script it takes a bit of work to call it correctly: on
-Windows only ".exe" and ".bat" files can be executed directly by the operating
-system. One solution is to have E-MailRelay run some JavaScript using
-"cscript.exe", and the JavaScript can then run perl/spamassassin and pass the
-results back to E-MailRelay.
+You may need to set the "--filter-timeout" switch to control how long
+E-MailRelay waits for the spam analysis to complete.
 
-An example JavaScript wrapper called "emailrelay-runperl.js" is included in
-the distribution that by default calls "spamassassin".
+You could also consider doing spam filtering off-line, completely independent
+of any SMTP activity, by having two E-MailRelay processes chained together
+working off two spool directories:
 
-Try an E-MailRelay command line like this:
+	emailrelay --as-server --spool-dir /tmp/spool-in --poll 1 --forward-to localhost:10025
+	emailrelay --as-server --spool-dir /tmp/spool-out --port 10025 --filter /tmp/myspamfilter
 
-	emailrelay --as-server --filter "c:/winnt/system32/cscript.exe //nologo c:/program\ files/emailrelay/emailrelay-runperl.js"
+Here the first E-MailRelay server accepts incoming mail straight into its spool
+directory and it uses a "--poll" timer to independently forward spooled messages
+to the second server running on port 10025. The second server runs the spam
+filter as each message is received.
 
-But note that you may have to add explicit paths if perl or spamassassin are
-not on your path.
+There is also an experimental mechanism where E-MailRelay can talk direcly to
+the SpamassAssin "spamd" network deamon using a special form of the "--filter"
+switch:
 
-If you have a problem with long SpamAssassin processing times causing the
-submitting program to time-out then you should try moving the spam processing
-out of the storing server and into the forwarding process. You can do this by
-replacing the "--filter" switch on the "--as-server" command with a
-"--client-filter" switch on the "--as-client" command.
+	emailrelay --as-server --filter spam:localhost:783
 
-So this:
-
-	emailrelay --as-server --filter /usr/local/bin/myfilter.sh
-	emailrelay --as-client smarthost:smtp
-
-becomes this:
-
-	emailrelay --as-server
-	emailrelay --as-client smarthost:smtp --client-filter /usr/local/bin/myfilter.sh
-
-To avoid having to run the "--as-client" forwarding processes repeatedly (eg.
-from "cron") you can start a long-lived forwarding process that polls the spool
-directory itself, like this:
-
-	emailrelay --log --close-stderr --no-smtp --poll 30 --forward-to smarthost:smtp ...
-
-You could then try running several forwarding processes in parallel in order to
-maximise throughput.
+This might be useful if spam filtering is creating a bottleneck in the
+E-MailRelay server.
 
 
 

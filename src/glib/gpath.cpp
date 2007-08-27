@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 //	gpath.cpp
@@ -31,9 +28,8 @@
 #include <cstring>
 
 G::Path::Path() :
-	m_dot(NULL)
+	m_dot(std::string::npos)
 {
-	validate( "d-ctor" ) ;
 }
 
 G::Path::~Path()
@@ -43,27 +39,30 @@ G::Path::~Path()
 G::Path::Path( const std::string & path )
 {
 	set( path ) ;
-	validate( "c-ctor" ) ;
 }
 
 G::Path::Path( const char * path )
 {
 	G_ASSERT( path != NULL ) ;
 	set( std::string(path) ) ;
-	validate( "ctor(cstr)" ) ;
 }
 
 G::Path::Path( const Path & path , const std::string & tail )
 {
 	set( path.str() ) ;
-	validate( "c-ctor" ) ;
 	pathAppend( tail ) ;
+}
+
+G::Path::Path( const Path & path , const std::string & tail_1 , const std::string & tail_2 )
+{
+	set( path.str() ) ;
+	pathAppend( tail_1 ) ;
+	pathAppend( tail_2 ) ;
 }
 
 G::Path::Path( const Path & other )
 {
 	set( other.str() ) ;
-	validate( "ctor(Path)" ) ;
 }
 
 void G::Path::set( const std::string & path )
@@ -75,9 +74,9 @@ void G::Path::set( const std::string & path )
 
 void G::Path::clear()
 {
-	m_extension = "" ;
-	m_str = "" ;
-	m_dot = NULL ;
+	m_extension.erase() ;
+	m_str.erase() ;
+	m_dot = std::string::npos ;
 }
 
 void G::Path::normalise()
@@ -123,49 +122,21 @@ void G::Path::normalise()
 		m_str = s + m_str ;
 
 	// prepare a pointer to the extension
-	const char *slash = std::strrchr( m_str.c_str() , FileSystem::slash() ) ;
-	m_dot = std::strrchr( m_str.c_str() , '.' ) ;
-	if( m_dot != NULL && slash != NULL && m_dot < slash ) // ie. if "foo.bar/bletch"
-		m_dot = NULL ;
+	std::string::size_type slash = m_str.rfind( FileSystem::slash() ) ;
+	m_dot = m_str.rfind( '.' ) ;
+	if( m_dot != std::string::npos && slash != std::string::npos && m_dot < slash ) // ie. if "foo.bar/bletch"
+		m_dot = std::string::npos ;
 
 	// make a copy of the extension
-	if( m_dot != NULL )
+	if( m_dot != std::string::npos )
 	{
-		m_extension = std::string(m_dot+1U) ;
+		m_extension = (m_dot+1U) == m_str.length() ? std::string() : m_str.substr(m_dot+1U) ;
 	}
-}
-
-bool G::Path::validPath() const
-{
-	const char *slash = std::strrchr( m_str.c_str() , FileSystem::slash() ) ;
-	const char *dot = std::strrchr( m_str.c_str() , '.' ) ;
-	if( dot && slash && dot < slash )
-		dot = NULL ;
-
-	return m_dot == dot ;
-}
-
-const char *G::Path::pathCstr() const
-{
-	validate("pathCstr") ;
-	return m_str.c_str() ;
 }
 
 std::string G::Path::str() const
 {
-	validate("str") ;
 	return m_str ;
-}
-
-void G::Path::streamOut( std::ostream & stream ) const
-{
-	stream << str() ;
-}
-
-void G::Path::validate( const char * /* where */ ) const
-{
-	//if( !validPath() ) G_ERROR( "G::Path::validate: " << where << ": \"" << m_str << "\"" ) ;
-	G_ASSERT( validPath() ) ;
 }
 
 bool G::Path::simple() const
@@ -202,7 +173,6 @@ void G::Path::setExtension( const std::string & extension )
 	s.append( dotted ? extension.substr(1U) : extension ) ;
 
 	set( s ) ;
-	validate( "setExtension" ) ;
 }
 
 std::string G::Path::basename() const
@@ -227,19 +197,14 @@ std::string G::Path::basename() const
 
 G::Path G::Path::dirname() const
 {
-	validate("dirname") ;
 
 	std::string result ;
 
-	if( FileSystem::usesDriveLetters() &&
-		m_str.size() >= 2 && m_str.at(1) == ':' )
+	if( FileSystem::usesDriveLetters() && m_str.size() >= 2 && m_str.at(1) == ':' )
 	{
 		if( noSlash() )
 		{
-			if( m_str.size() > 2 )
-				result = driveString() ;
-			else
-				result = "" ;
+			result = m_str.size() > 2 ? driveString() : std::string() ;
 		}
 		else
 		{
@@ -253,7 +218,7 @@ G::Path G::Path::dirname() const
 				{
 					result = noTail() ;
 					if( result.length() == 2 )
-						result.append( slashString().c_str() ) ;
+						result.append( slashString() ) ;
 				}
 			}
 			else
@@ -267,20 +232,17 @@ G::Path G::Path::dirname() const
 		m_str.substr(0U,2U) == doubleSlashString() )
 	{
 		size_t slash_count = 0U ;
-		for( const char * p = m_str.c_str() ; *p ; p++ )
+		for( std::string::const_iterator p = m_str.begin() ; p != m_str.end() ; ++p )
 			if( *p == FileSystem::slash() )
 				slash_count++ ;
 
-		if( slash_count > 3U )
-			result = noTail() ;
-		else
-			result = "" ;
+		result = slash_count > 3U ? noTail() : std::string() ;
 	}
 	else
 	{
 		if( noSlash() || m_str.size() == 1U )
 		{
-			result = "" ;
+			result.erase() ;
 		}
 		else
 		{
@@ -304,9 +266,9 @@ bool G::Path::noSlash() const
 	return m_str.find( slashString() ) == std::string::npos ;
 }
 
-size_t G::Path::slashAt() const
+std::string::size_type G::Path::slashAt() const
 {
-	size_t position = m_str.find( slashString() ) ;
+	std::string::size_type position = m_str.find( slashString() ) ;
 	G_ASSERT( position != std::string::npos ) ;
 	return position ;
 }
@@ -347,14 +309,12 @@ std::string G::Path::driveString() const
 
 void G::Path::removeExtension()
 {
-	if( m_dot != NULL )
+	if( m_dot != std::string::npos )
 	{
-		m_str.resize( m_str.size() - std::strlen(m_dot) ) ;
-		m_dot = NULL ;
+		m_str.resize( m_dot ) ;
+		m_dot = std::string::npos ;
 		normalise() ; // in case of dir/foo.bar.bletch
 	}
-
-	validate("removeExtension") ;
 }
 
 void G::Path::setDirectory( const std::string & dir )
@@ -362,7 +322,6 @@ void G::Path::setDirectory( const std::string & dir )
 	std::string temp( basename() ) ;
 	set( dir ) ;
 	pathAppend( temp ) ;
-	validate("setDirectory") ;
 }
 
 void G::Path::pathAppend( const std::string & tail )
@@ -375,12 +334,11 @@ void G::Path::pathAppend( const std::string & tail )
 	}
 	else
 	{
-		m_str.append( slashString().c_str() ) ;
+		m_str.append( slashString() ) ;
 	}
 
 	m_str.append( tail ) ;
 	normalise() ;
-	validate("pathAppend") ;
 }
 
 std::string G::Path::extension() const

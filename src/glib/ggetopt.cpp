@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // ggetopt.cpp
@@ -29,13 +26,14 @@
 #include "gassert.h"
 #include "gdebug.h"
 #include <sstream>
+#include <cstdlib> // getenv
 
 G::GetOpt::GetOpt( const Arg & args_in , const std::string & spec ,
 	char sep_major , char sep_minor , char escape ) :
 		m_args(args_in)
 {
 	parseSpec( spec , sep_major , sep_minor , escape ) ;
-	size_t n = parseArgs( args_in ) ;
+	size_type n = parseArgs( args_in ) ;
 	remove( n ) ;
 }
 
@@ -122,32 +120,33 @@ char G::GetOpt::key( const std::string & name ) const
 	return '\0' ;
 }
 
-//static
-size_t G::GetOpt::wrapDefault()
+unsigned int G::GetOpt::wrapDefault()
 {
-	return 79U ;
+	unsigned int result = 79U ;
+	const char * p = std::getenv("COLUMNS") ;
+	if( p != NULL )
+	{
+		try { result = G::Str::toUInt(p) ; } catch(std::exception&) {}
+	}
+	return result ;
 }
 
-//static
-size_t G::GetOpt::tabDefault()
+G::GetOpt::size_type G::GetOpt::tabDefault()
 {
 	return 30U ;
 }
 
-//static
 std::string G::GetOpt::introducerDefault()
 {
 	return "usage: " ;
 }
 
-//static
 G::GetOpt::Level G::GetOpt::levelDefault()
 {
 	return Level(99U) ;
 }
 
-//static
-size_t G::GetOpt::widthLimit( size_t w )
+G::GetOpt::size_type G::GetOpt::widthLimit( size_type w )
 {
 	return (w != 0U && w < 50U) ? 50U : w ;
 }
@@ -158,7 +157,7 @@ void G::GetOpt::showUsage( std::ostream & stream , const std::string & args , bo
 }
 
 void G::GetOpt::showUsage( std::ostream & stream , const std::string & exe , const std::string & args ,
-	const std::string & introducer , Level level , size_t tab_stop , size_t width ) const
+	const std::string & introducer , Level level , size_type tab_stop , size_type width ) const
 {
 	stream
 		<< usageSummary(exe,args,introducer,level,width) << std::endl
@@ -166,7 +165,7 @@ void G::GetOpt::showUsage( std::ostream & stream , const std::string & exe , con
 }
 
 std::string G::GetOpt::usageSummary( const std::string & exe , const std::string & args ,
-	const std::string & introducer , Level level , size_t width ) const
+	const std::string & introducer , Level level , size_type width ) const
 {
 	std::string s = introducer + exe + " " + usageSummarySwitches(level) + args ;
 	if( width != 0U )
@@ -184,7 +183,6 @@ std::string G::GetOpt::usageSummarySwitches( Level level ) const
 	return usageSummaryPartOne(level) + usageSummaryPartTwo(level) ;
 }
 
-//static
 bool G::GetOpt::visible( SwitchSpecMap::const_iterator p , Level level , bool exact )
 {
 	return
@@ -244,13 +242,13 @@ std::string G::GetOpt::usageSummaryPartTwo( Level level ) const
 	return ss.str() ;
 }
 
-std::string G::GetOpt::usageHelp( Level level , size_t tab_stop , size_t width , bool exact ) const
+std::string G::GetOpt::usageHelp( Level level , size_type tab_stop , size_type width , bool exact ) const
 {
 	return usageHelpCore( "  " , level , tab_stop , widthLimit(width) , exact ) ;
 }
 
 std::string G::GetOpt::usageHelpCore( const std::string & prefix , Level level ,
-	size_t tab_stop , size_t width , bool exact ) const
+	size_type tab_stop , size_type width , bool exact ) const
 {
 	std::string result ;
 	for( SwitchSpecMap::const_iterator p = m_spec_map.begin() ; p != m_spec_map.end() ; ++p )
@@ -298,9 +296,9 @@ std::string G::GetOpt::usageHelpCore( const std::string & prefix , Level level ,
 	return result ;
 }
 
-size_t G::GetOpt::parseArgs( const Arg & args_in )
+G::GetOpt::size_type G::GetOpt::parseArgs( const Arg & args_in )
 {
-	size_t i = 1U ;
+	size_type i = 1U ;
 	for( ; i < args_in.c() ; i++ )
 	{
 		const std::string & arg = args_in.v(i) ;
@@ -313,7 +311,7 @@ size_t G::GetOpt::parseArgs( const Arg & args_in )
 
 		if( isSwitchSet(arg) ) // eg. "-lt"
 		{
-			for( size_t n = 1U ; n < arg.length() ; n++ )
+			for( size_type n = 1U ; n < arg.length() ; n++ )
 				processSwitch( arg.at(n) ) ;
 		}
 		else if( isOldSwitch(arg) ) // eg. "-v"
@@ -329,7 +327,7 @@ size_t G::GetOpt::parseArgs( const Arg & args_in )
 		else if( isNewSwitch(arg) ) // eg. "--foo"
 		{
 			std::string name = arg.substr( 2U ) ;
-			size_t pos_eq = eqPos(name) ;
+			size_type pos_eq = eqPos(name) ;
 			bool has_eq = pos_eq != std::string::npos ;
 			std::string eq_value = eqValue(name,pos_eq) ;
 			if( has_eq ) name = name.substr(0U,pos_eq) ;
@@ -353,13 +351,13 @@ size_t G::GetOpt::parseArgs( const Arg & args_in )
 	return i ;
 }
 
-size_t G::GetOpt::eqPos( const std::string & s )
+G::GetOpt::size_type G::GetOpt::eqPos( const std::string & s )
 {
-	size_t p = s.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789-_") ;
+	size_type p = s.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789-_") ;
 	return p != std::string::npos && s.at(p) == '=' ? p : std::string::npos ;
 }
 
-std::string G::GetOpt::eqValue( const std::string & s , size_t pos )
+std::string G::GetOpt::eqValue( const std::string & s , size_type pos )
 {
 	return (pos+1U) == s.length() ? std::string() : s.substr(pos+1U) ;
 }
@@ -552,7 +550,7 @@ void G::GetOpt::showErrors( std::ostream & stream , std::string prefix_1 ,
 	}
 }
 
-void G::GetOpt::remove( size_t n )
+void G::GetOpt::remove( size_type n )
 {
 	if( n != 0U )
 	{

@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // gmultiserver.cpp
@@ -105,8 +102,9 @@ void GNet::MultiServer::init( const AddressList & address_list )
 
 void GNet::MultiServer::init( const Address & address )
 {
+	// note that the Ptr class does not have proper value semantics...
 	MultiServerPtr ptr( new MultiServerImp(*this,address) ) ;
-	m_server_list.push_back( MultiServerPtr() ) ;
+	m_server_list.push_back( MultiServerPtr() ) ; // copy a null pointer into the list
 	m_server_list.back().swap( ptr ) ;
 }
 
@@ -123,7 +121,7 @@ void GNet::MultiServer::serverCleanup()
 		{
 			(*p).get()->cleanup() ;
 		}
-		catch(...) // since in dtor
+		catch(...) // dtor
 		{
 		}
 	}
@@ -178,16 +176,25 @@ GNet::MultiServerPtr::MultiServerPtr( ServerImp * p ) :
 {
 }
 
+GNet::MultiServerPtr::MultiServerPtr( const MultiServerPtr & other ) :
+	m_p(other.m_p)
+{
+}
+
 GNet::MultiServerPtr::~MultiServerPtr()
 {
 	delete m_p ;
+}
+
+void GNet::MultiServerPtr::operator=( const MultiServerPtr & rhs )
+{
+	m_p = rhs.m_p ;
 }
 
 void GNet::MultiServerPtr::swap( MultiServerPtr & other )
 {
 	std::swap( other.m_p , m_p ) ;
 }
-
 
 GNet::MultiServerImp * GNet::MultiServerPtr::get()
 {

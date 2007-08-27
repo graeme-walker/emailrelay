@@ -1,11 +1,10 @@
 #
 ## Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
-## This program is free software; you can redistribute it and/or
-## modify it under the terms of the GNU General Public License
-## as published by the Free Software Foundation; either
-## version 2 of the License, or (at your option) any later
-## version.
+## This program is free software: you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation, either version 3 of the License, or 
+## (at your option) any later version.
 ## 
 ## This program is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 ## GNU General Public License for more details.
 ## 
 ## You should have received a copy of the GNU General Public License
-## along with this program; if not, write to the Free Software
-## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-## 
+## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
 # force symbol stripping on 'make install' -- see also make 'install-strip'
@@ -26,6 +23,7 @@ EXTRA_DIST=\
 	doxygen.cfg \
 	doxygen.h \
 	emailrelay.dsp \
+	filter.dsp \
 	emailrelay.rc \
 	icon-32.ico \
 	icon2.ico \
@@ -38,7 +36,10 @@ EXTRA_DIST=\
 	passwd.dsp \
 	poke.dsp \
 	resource.h \
-	scanner.cpp \
+	service.dsp \
+	service_install.cpp \
+	service_install.h \
+	service_wrapper.cpp \
 	submit.dsp \
 	winapp.cpp \
 	winapp.h \
@@ -53,7 +54,7 @@ EXTRA_DIST=\
 INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet -I$(top_srcdir)/src/gsmtp -I$(top_srcdir)/src/gpop -DG_SPOOLDIR=\"$(e_spooldir)\"
 
 sbin_PROGRAMS = emailrelay emailrelay-submit emailrelay-passwd
-libexec_PROGRAMS = emailrelay-poke emailrelay-filter-copy
+e_libexec_PROGRAMS = emailrelay-poke emailrelay-filter-copy
 e_spool_DATA = 
 
 emailrelay_SOURCES = \
@@ -70,7 +71,7 @@ emailrelay_SOURCES = \
 	run.h
 
 emailrelay_LDADD = \
-	$(top_builddir)/src/gpop/$(POPLIB) \
+	$(top_builddir)/src/gpop/libgpop.a \
 	$(top_builddir)/src/gsmtp/libgsmtp.a \
 	$(top_builddir)/src/glib/libglib.a \
 	$(top_builddir)/src/gnet/libgnet.a \
@@ -87,13 +88,14 @@ emailrelay_submit_LDADD = \
 	$(top_builddir)/src/gsmtp/libgsmtp.a \
 	$(top_builddir)/src/glib/libglib.a \
 	$(top_builddir)/src/gnet/libgnet.a \
-	$(top_builddir)/src/gnet/lib$(IP).a
+	$(top_builddir)/src/gnet/lib$(IP).a \
+	$(top_builddir)/src/glib/libglib.a
 
-emailrelay_filter_copy_SOURCES = filter_copy.cpp
+emailrelay_filter_copy_SOURCES = filter_copy.cpp legal.cpp
 emailrelay_filter_copy_LDADD = \
 	$(top_builddir)/src/glib/libglib.a
 
-install-data-local: install-sbinPROGRAMS install-e_spoolDATA install-libexecPROGRAMS
+install-data-local: install-sbinPROGRAMS install-e_spoolDATA install-e_libexecPROGRAMS
 	-chgrp daemon $(DESTDIR)$(e_spooldir)
 	-chmod 775 $(DESTDIR)$(e_spooldir)
 	-chgrp daemon $(DESTDIR)$(sbindir)/emailrelay-submit
@@ -103,5 +105,5 @@ install-exec-local:
 
 uninstall-local:
 	-rmdir $(DESTDIR)$(e_spooldir) 2>/dev/null
-	-rmdir $(DESTDIR)$(libexecdir) 2>/dev/null
+	-rmdir $(DESTDIR)$(e_libexecdir) 2>/dev/null
 

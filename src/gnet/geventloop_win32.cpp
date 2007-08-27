@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // geventloop_win32.cpp
@@ -34,6 +31,7 @@
 #include "gassert.h"
 #include "gdebug.h"
 #include "glog.h"
+#include <stdexcept>
 
 namespace GNet
 {
@@ -111,7 +109,7 @@ public:
 	virtual bool running() const ;
 		// Override from EventLoop. Returns true if in run().
 
-	virtual void quit() ;
+	virtual bool quit() ;
 		// Override from EventLoop. Calls GGui::Pump::quit().
 
 protected:
@@ -349,19 +347,46 @@ void GNet::Winsock::onMessage( WPARAM wparam , LPARAM lparam )
 	{
 		EventHandler *handler = findHandler( m_read_list , fd ) ;
 		if( handler )
-			handler->readEvent();
+		{
+			try
+			{
+				handler->readEvent();
+			}
+			catch( std::exception & e ) // strategy
+			{
+				handler->onException( e ) ;
+			}
+		}
 	}
 	else if( event & WRITE_EVENTS )
 	{
 		EventHandler *handler = findHandler( m_write_list , fd ) ;
 		if( handler )
-			handler->writeEvent();
+		{
+			try
+			{
+				handler->writeEvent();
+			}
+			catch( std::exception & e ) // strategy
+			{
+				handler->onException( e ) ;
+			}
+		}
 	}
 	else if( event & EXCEPTION_EVENTS )
 	{
 		EventHandler *handler = findHandler( m_exception_list , fd ) ;
 		if( handler )
-			handler->exceptionEvent();
+		{
+			try
+			{
+				handler->exceptionEvent();
+			}
+			catch( std::exception & e ) // strategy
+			{
+				handler->onException( e ) ;
+			}
+		}
 	}
 	else if( err )
 	{
@@ -414,8 +439,9 @@ bool GNet::Winsock::running() const
 	return m_running ;
 }
 
-void GNet::Winsock::quit()
+bool GNet::Winsock::quit()
 {
 	GGui::Pump::quit() ;
+	return false ;
 }
 

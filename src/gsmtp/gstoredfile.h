@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file gstoredfile.h
@@ -27,7 +24,7 @@
 #include "gdef.h"
 #include "gsmtp.h"
 #include "gmessagestore.h"
-#include "gexe.h"
+#include "gexecutable.h"
 #include "gstoredmessage.h"
 #include "gexception.h"
 #include "gpath.h"
@@ -76,44 +73,44 @@ public:
 		///< Used by FileStore and FileIterator.
 
 	virtual std::string name() const ;
-		///< From StoredMessage.
+		///< Final override from GSmtp::StoredMessage.
 
 	virtual std::string location() const ;
-		///< From StoredMessage.
+		///< Final override from GSmtp::StoredMessage.
 
 	virtual bool eightBit() const ;
-		///< From StoredMessage.
+		///< Final override from GSmtp::StoredMessage.
 
 	virtual const std::string & from() const ;
-		///< From StoredMessage.
+		///< Final override from GSmtp::StoredMessage.
 
 	virtual const G::Strings & to() const ;
-		///< From StoredMessage.
+		///< Final override from GSmtp::StoredMessage.
 
 	virtual std::string authentication() const ;
-		///< From StoredMessage.
+		///< Final override from GSmtp::StoredMessage.
 
 	virtual void destroy() ;
-		///< From StoredMessage.
+		///< Final override from GSmtp::StoredMessage.
 
 	virtual void fail( const std::string & reason ) ;
-		///< From StoredMessage.
+		///< Final override from GSmtp::StoredMessage.
 
 	virtual std::auto_ptr<std::istream> extractContentStream() ;
-		///< From StoredMessage.
+		///< Final override from GSmtp::StoredMessage.
 
 	virtual size_t remoteRecipientCount() const ;
-		///< From StoredMessage.
+		///< Final override from GSmtp::StoredMessage.
 
 	virtual size_t errorCount() const ;
-		///< From StoredMessage.
+		///< Final override from GSmtp::StoredMessage.
 
 	virtual void sync() ;
-		///< From StoredMessage.
+		///< Final override from GSmtp::StoredMessage.
 
 private:
-	StoredFile( const StoredFile & ) ;
-	void operator=( const StoredFile & ) ;
+	StoredFile( const StoredFile & ) ; // not implemented
+	void operator=( const StoredFile & ) ; // not implemented
 	static std::string crlf() ;
 	std::string getline( std::istream & stream ) const ;
 	std::string value( const std::string & s , const std::string & k = std::string() ) const ;

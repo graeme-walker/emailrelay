@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file gserver.h
@@ -27,6 +24,7 @@
 #include "gdef.h"
 #include "gnet.h"
 #include "gsocket.h"
+#include "gtimer.h"
 #include "gconnection.h"
 #include "gevent.h"
 #include <utility>
@@ -39,6 +37,7 @@ namespace GNet
 {
 	class Server ;
 	class ServerPeer ;
+	class ServerPeerTimer ;
 	class ServerPeerHandle ;
 }
 
@@ -84,6 +83,7 @@ class GNet::Server : public GNet::EventHandler
 public:
 	G_EXCEPTION( CannotBind , "cannot bind the listening port" ) ;
 	G_EXCEPTION( CannotListen , "cannot listen" ) ;
+	G_EXCEPTION( AcceptError , "socket accept() failed" ) ;
 
 	/// A structure used in GNet::Server::newPeer().
 	struct PeerInfo
@@ -123,6 +123,15 @@ public:
 		///< Returns the listening address. Pair.first
 		///< is false if not properly init()ialised.
 
+	virtual void readEvent() ;
+		///< Final override from GNet::EventHandler.
+
+	virtual void writeEvent() ;
+		///< Final override from GNet::EventHandler.
+
+	virtual void onException( std::exception & e ) ;
+		///< Final override from GNet::EventHandler.
+
 protected:
 	virtual ServerPeer * newPeer( PeerInfo ) = 0 ;
 		///< A factory method which new()s a ServerPeer-derived
@@ -157,12 +166,9 @@ protected:
 private:
 	Server( const Server & ) ; // not implemented
 	void operator=( const Server & ) ; // not implemented
-	virtual void readEvent() ; // from EventHandler
-	virtual void writeEvent() ; // from EventHandler
-	virtual void exceptionEvent() ; // from EventHandler
 	void serverCleanupCore() ;
 	void collectGarbage() ;
-	void readEventCore() ;
+	void accept( PeerInfo & ) ;
 
 private:
 	typedef std::list<ServerPeerHandle> PeerList ;
@@ -181,61 +187,69 @@ private:
 class GNet::ServerPeer : public GNet::EventHandler , public GNet::Connection
 {
 public:
+	typedef std::string::size_type size_type ;
 	enum { c_buffer_size = 1500 } ;
 
 	explicit ServerPeer( Server::PeerInfo ) ;
-		///< Constructor. This constructor is
-		///< only used from within the
+		///< Constructor. This constructor is only used from within the
 		///< override of GServer::newPeer().
 
 	void doDelete() ;
 		///< Does "onDelete(); delete this".
 
-	std::string asString() const ;
-		///< Returns a string representation of the
-		///< socket descriptor. Typically used in
-		///< log message to destinguish one connection
-		///< from another.
+	std::string logId() const ;
+		///< Returns an identification string for logging purposes.
 
 	virtual std::pair<bool,Address> localAddress() const ;
 		///< Returns the local address.
 		///< Pair.first is false on error.
+		///< Final override from GNet::Connection.
 
 	virtual std::pair<bool,Address> peerAddress() const ;
 		///< Returns the peer address.
+		///< Final override from GNet::Connection.
 
-	virtual ~ServerPeer() ;
-		///< Destructor. Note that objects will delete
-		///< themselves when they detect that the
-		///< connection has been lost -- see doDelete().
+	virtual void readEvent() ;
+		///< Final override from GNet::EventHandler.
+
+	virtual void onException( std::exception & ) ;
+		///< Final override from GNet::EventHandler.
+
+	void doDeleteThis( int ) ;
+		///< Does delete this. Should only be used by
+		///< the GNet::Server class.
 
 protected:
-	virtual void onDelete() = 0 ;
-		///< Called just before destruction. (Note
-		///< that the object typically deletes itself.)
+	virtual ~ServerPeer() ;
+		///< Destructor. Note that objects will delete themselves
+		///< when they detect that the connection has been
+		///< lost -- see doDelete().
 
-	virtual void onData( const char * , size_t ) = 0 ;
+	virtual void onDelete() = 0 ;
+		///< Called just before destruction. (Note that the
+		///< object typically deletes itself.)
+
+	virtual void onData( const char * , size_type ) = 0 ;
 		///< Called on receipt of data.
 
 	StreamSocket & socket() ;
-		///< Returns a reference to the client-server
-		///< connection socket.
+		///< Returns a reference to the client-server connection
+		///< socket.
 
 	Server * server() ;
-		///< Returns a pointer to the associated server
-		///< object. Returns NULL if the server has
-		///< been destroyed.
+		///< Returns a pointer to the associated server object.
+		///< Returns NULL if the server has been destroyed.
 
 private:
-	virtual void readEvent() ; // from EventHandler
-	virtual void exceptionEvent() ; // from EventHandler
 	ServerPeer( const ServerPeer & ) ; // not implemented
 	void operator=( const ServerPeer & ) ; // not implemented
+	void onTimeout() ;
 
 private:
 	Address m_address ;
 	std::auto_ptr<StreamSocket> m_socket ;
 	ServerPeerHandle * m_handle ;
+	Timer<ServerPeer> m_delete_timer ;
 } ;
 
 #endif

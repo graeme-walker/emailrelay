@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file gmonitor.h
@@ -40,8 +37,8 @@ namespace GNet
 }
 
 /// \class GNet::Monitor
-/// A singleton for monitoring Client and ServerPeer connections.
-/// \see GNet::Client, GNet::ServerPeer
+/// A singleton for monitoring SimpleClient and ServerPeer connections.
+/// \see GNet::SimpleClient, GNet::ServerPeer
 ///
 class GNet::Monitor : public G::noncopyable
 {
@@ -55,10 +52,10 @@ public:
 	static Monitor * instance() ;
 		///< Returns the singleton pointer. Returns null if none.
 
-	void add( const Client & client ) ;
+	void add( const SimpleClient & client ) ;
 		///< Adds a client.
 
-	void remove( const Client & client ) ;
+	void remove( const SimpleClient & client ) ;
 		///< Removes a client.
 
 	void add( const ServerPeer & peer ) ;

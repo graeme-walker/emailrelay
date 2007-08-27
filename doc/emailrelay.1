@@ -1,10 +1,9 @@
 .\" Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 .\" 
-.\" This program is free software; you can redistribute it and/or
-.\" modify it under the terms of the GNU General Public License
-.\" as published by the Free Software Foundation; either
-.\" version 2 of the License, or (at your option) any later
-.\" version.
+.\" This program is free software: you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation, either version 3 of the License, or 
+.\" (at your option) any later version.
 .\" 
 .\" This program is distributed in the hope that it will be useful,
 .\" but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -12,9 +11,7 @@
 .\" GNU General Public License for more details.
 .\" 
 .\" You should have received a copy of the GNU General Public License
-.\" along with this program; if not, write to the Free Software
-.\" Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-.\" 
+.\" along with this program.  If not, see <http://www.gnu.org/licenses/>.
 .TH EMAILRELAY 1 local
 .SH NAME
 emailrelay \- e-mail transfer agent and proxy
@@ -110,7 +107,7 @@ Specifies the remote smtp server (required by \fI--forward\fR, \fI--poll\fR, \fI
 Displays help text and exits.
 .TP
 .B \-m, --immediate 
-Enables immediating forwarding of messages as soon as they are received (requires \fI--forward-to\fR).
+Enables immediate forwarding of messages as soon as they are received (requires \fI--forward-to\fR).
 .TP
 .B \-I, --interface \fI<ip-address>\fR
 Defines the listening interface for new connections.
@@ -154,14 +151,14 @@ Specifies the pop listening port number (requires \fI--pop\fR).
 .B \-p, --port \fI<port>\fR
 Specifies the smtp listening port number.
 .TP
+.B \-w, --prompt-timeout \fI<time>\fR
+Sets the timeout (in seconds) for getting an initial prompt from the server.
+.TP
 .B \-r, --remote-clients 
 Allows remote clients to connect.
 .TP
 .B \-T, --response-timeout \fI<time>\fR
 Sets the response timeout (in seconds) when talking to a remote server (default is 1800).
-.TP
-.B \-R, --scanner \fI<host:port>\fR
-Specifies an external network server to process messages when they are stored.
 .TP
 .B \-S, --server-auth \fI<file>\fR
 Enables authentication of remote clients, using the given secrets file.
@@ -190,11 +187,13 @@ GNU style...
 .br
 /usr/local/etc/emailrelay.conf.template
 .br
-/usr/local/libexec/emailrelay
+/usr/local/libexec/emailrelay/emailrelay-filter-copy
 .br
-/usr/local/libexec/emailrelay-poke
+/usr/local/libexec/emailrelay/emailrelay-poke
 .br
-/usr/local/libexec/emailrelay-*.sh
+/usr/local/libexec/emailrelay/examples/*
+.br
+/usr/local/libexec/emailrelay/init/emailrelay
 .br
 /usr/local/man/man1/emailrelay*.1.gz
 .br
@@ -222,7 +221,11 @@ FHS style...
 .br
 /etc/init.d/emailrelay
 .br
-/usr/lib/emailrelay-poke
+/usr/lib/emailrelay/emailrelay-filter-copy
+.br
+/usr/lib/emailrelay/emailrelay-poke
+.br
+/usr/lib/emailrelay/examples/*
 .br
 /usr/sbin/emailrelay
 .br
@@ -231,8 +234,6 @@ FHS style...
 /usr/sbin/emailrelay-submit
 .br
 /usr/share/doc/emailrelay/*
-.br
-/usr/share/doc/emailrelay/examples/emailrelay-*.sh
 .br
 /usr/share/doc/emailrelay/index.html
 .br
@@ -244,15 +245,11 @@ FHS style...
 .br
 /var/spool/emailrelay/emailrelay.*.envelope
 .SH SEE ALSO
-E-MailRelay user guide, (http://emailrelay.sourceforge.net/user.html).
+E-MailRelay user guide, http://emailrelay.sourceforge.net/userguide.html .
 .br
-E-MailRelay reference, (http://emailrelay.sourceforge.net/reference.html).
+E-MailRelay reference, http://emailrelay.sourceforge.net/reference.html .
 .br
 .BR emailrelay-submit (1),
-.BR emailrelay-poke (1),
 .BR emailrelay-passwd (1),
-.BR syslog (3),
-.BR pppd (8),
-.BR init.d (7)
 .SH AUTHOR
 Graeme Walker, mailto:graeme_walker@users.sourceforge.net

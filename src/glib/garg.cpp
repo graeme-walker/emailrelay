@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // garg.cpp
@@ -28,6 +25,20 @@
 #include "gdebug.h"
 #include "gassert.h"
 #include <cstring>
+
+G::Arg::Arg( int argc , char *argv[] )
+{
+	G_ASSERT( argc > 0 ) ;
+	G_ASSERT( argv != NULL ) ;
+	for( int i = 0 ; i < argc ; i++ )
+		m_array.push_back( argv[i] ) ;
+
+	setPrefix() ;
+}
+
+G::Arg::~Arg()
+{
+}
 
 G::Arg::Arg()
 {
@@ -48,18 +59,6 @@ G::Arg & G::Arg::operator=( const Arg & rhs )
 		m_prefix = rhs.m_prefix ;
 	}
 	return *this ;
-}
-
-G::Arg::~Arg()
-{
-}
-
-G::Arg::Arg( int argc , char *argv[] )
-{
-	for( int i = 0 ; i < argc ; i++ )
-		m_array.push_back( argv[i] ) ;
-
-	setPrefix() ;
 }
 
 void G::Arg::setPrefix()
@@ -96,17 +95,17 @@ void G::Arg::protect( std::string & s )
 {
 	// replace all quoted spaces with a replacement
 	// (could do better: escaped quotes, tabs, single quotes)
-	G_DEBUG( "protect: before: " << Str::toPrintableAscii(s) ) ;
+	G_DEBUG( "protect: before: " << Str::printable(s) ) ;
 	bool in_quote = false ;
 	const char quote = '"' ;
 	const char space = ' ' ;
 	const char replacement = '\0' ;
-	for( size_t pos = 0U ; pos < s.length() ; pos++ )
+	for( std::string::size_type pos = 0U ; pos < s.length() ; pos++ )
 	{
 		if( s.at(pos) == quote ) in_quote = ! in_quote ;
 		if( in_quote && s.at(pos) == space ) s[pos] = replacement ;
 	}
-	G_DEBUG( "protect: after: " << Str::toPrintableAscii(s) ) ;
+	G_DEBUG( "protect: after: " << Str::printable(s) ) ;
 }
 
 void G::Arg::unprotect( StringArray & array )
@@ -135,15 +134,14 @@ void G::Arg::dequote( StringArray & array )
 	}
 }
 
-bool G::Arg::contains( const std::string & sw , size_t sw_args , bool cs ) const
+bool G::Arg::contains( const std::string & sw , size_type sw_args , bool cs ) const
 {
 	return find( cs , sw , sw_args , NULL ) ;
 }
 
-bool G::Arg::find( bool cs , const std::string & sw , size_t sw_args ,
-	size_t * index_p ) const
+bool G::Arg::find( bool cs , const std::string & sw , size_type sw_args , size_type * index_p ) const
 {
-	for( size_t i = 1 ; i < m_array.size() ; i++ ) // start from v[1]
+	for( size_type i = 1 ; i < m_array.size() ; i++ ) // start from v[1]
 	{
 		if( match(cs,sw,m_array[i]) && (i+sw_args) < m_array.size() )
 		{
@@ -155,7 +153,6 @@ bool G::Arg::find( bool cs , const std::string & sw , size_t sw_args ,
 	return false ;
 }
 
-//static
 bool G::Arg::match( bool cs , const std::string & s1 , const std::string & s2 )
 {
 	return
@@ -164,39 +161,40 @@ bool G::Arg::match( bool cs , const std::string & s1 , const std::string & s2 )
 			Str::upper(s1) == Str::upper(s2) ;
 }
 
-void G::Arg::remove( const std::string & sw , size_t sw_args )
+bool G::Arg::remove( const std::string & sw , size_type sw_args )
 {
-	size_t i = 0U ;
+	size_type i = 0U ;
 	const bool found = find( true , sw , sw_args , &i ) ;
 	if( found )
 		removeAt( i , sw_args ) ;
+	return found ;
 }
 
-void G::Arg::removeAt( size_t sw_index , size_t sw_args )
+void G::Arg::removeAt( size_type sw_index , size_type sw_args )
 {
 	G_ASSERT( sw_index > 0U && sw_index < m_array.size() ) ;
 	if( sw_index > 0U && sw_index < m_array.size() )
 	{
 		StringArray::iterator p = m_array.begin() + sw_index ;
 		p = m_array.erase( p ) ;
-		for( size_t i = 0U ; i < sw_args && p != m_array.end() ; i++ )
+		for( size_type i = 0U ; i < sw_args && p != m_array.end() ; i++ )
 			p = m_array.erase( p ) ;
 	}
 }
 
-size_t G::Arg::index( const std::string & sw , size_t sw_args ) const
+G::Arg::size_type G::Arg::index( const std::string & sw , size_type sw_args ) const
 {
-	size_t i = 0U ;
+	size_type i = 0U ;
 	const bool found = find( true , sw , sw_args , &i ) ;
 	return found ? i : 0U ;
 }
 
-size_t G::Arg::c() const
+G::Arg::size_type G::Arg::c() const
 {
 	return m_array.size() ;
 }
 
-std::string G::Arg::v( size_t i ) const
+std::string G::Arg::v( size_type i ) const
 {
 	G_ASSERT( i < m_array.size() ) ;
 	return m_array[i] ;
@@ -207,7 +205,6 @@ std::string G::Arg::prefix() const
 	return m_prefix ;
 }
 
-//static
 const char * G::Arg::prefix( char * argv [] ) // throw()
 {
 	const char * exe = argv[0] ;

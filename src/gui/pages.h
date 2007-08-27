@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file pages.h
@@ -78,7 +75,7 @@ class DirectoryPage : public GPage
 public:
 	DirectoryPage( GDialog & dialog , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 , bool finish , bool close ,
-		const Dir & dir ) ;
+		const Dir & dir , bool installing ) ;
 
 	virtual std::string nextPage() ;
 	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
@@ -94,6 +91,7 @@ private:
 
 private:
 	const Dir & m_dir ;
+	bool m_installing ;
 	QLabel * m_install_dir_title ;
 	QLabel * m_install_dir_label ;
 	QLineEdit * m_install_dir_edit_box ;
@@ -240,7 +238,8 @@ class StartupPage : public GPage
 {
 public:
 	StartupPage( GDialog & dialog , const std::string & name ,
-		const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) ;
+		const std::string & next_1 , const std::string & next_2 , bool finish , bool close ,
+		const Dir & dir ) ;
 
 	virtual std::string nextPage() ;
 	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
@@ -292,7 +291,7 @@ class ReadyPage : public GPage
 {
 public:
 	ReadyPage( GDialog & dialog , const std::string & name , const std::string & next_1 ,
-		const std::string & next_2 , bool finish , bool close ) ;
+		const std::string & next_2 , bool finish , bool close , bool installing ) ;
 
 	virtual std::string nextPage() ;
 	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
@@ -300,9 +299,11 @@ public:
 
 private:
 	QString text() const ;
+	std::string verb( bool ) const ;
 
 private:
 	QLabel * m_label ;
+	bool m_installing ;
 } ;
 
 class ProgressPage : public GPage

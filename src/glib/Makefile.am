@@ -1,11 +1,10 @@
 #
 ## Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
-## This program is free software; you can redistribute it and/or
-## modify it under the terms of the GNU General Public License
-## as published by the Free Software Foundation; either
-## version 2 of the License, or (at your option) any later
-## version.
+## This program is free software: you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation, either version 3 of the License, or 
+## (at your option) any later version.
 ## 
 ## This program is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 ## GNU General Public License for more details.
 ## 
 ## You should have received a copy of the GNU General Public License
-## along with this program; if not, write to the Free Software
-## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-## 
+## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 EXTRA_DIST=\
 	garg_win32.cpp \
@@ -23,13 +20,12 @@ EXTRA_DIST=\
 	gdaemon_win32.cpp \
 	gdatetime_win32.cpp \
 	gdirectory_win32.cpp \
+	gexecutable_win32.cpp \
 	gfs_win32.cpp \
 	gidentity_win32.cpp \
 	glogoutput_win32.cpp \
 	gprocess_win32.cpp \
 	gfile_win32.cpp \
-	gregistry_win32.cpp \
-	gregistry.h \
 	mingw.mak
 INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION)
 noinst_LIBRARIES = libglib.a
@@ -43,6 +39,8 @@ libglib_a_SOURCES = \
 	gconvert.h \
 	gcleanup.h \
 	gcleanup_unix.cpp \
+	gcounter.cpp \
+	gcounter.h \
 	gdaemon.h \
 	gdaemon_unix.cpp \
 	gdate.cpp \
@@ -57,8 +55,9 @@ libglib_a_SOURCES = \
 	gdirectory_unix.cpp \
 	gexception.cpp \
 	gexception.h \
-	gexe.cpp \
-	gexe.h \
+	gexecutable_unix.cpp \
+	gexecutable.cpp \
+	gexecutable.h \
 	gfile.cpp \
 	gfile.h \
 	gfile_unix.cpp \
@@ -86,12 +85,16 @@ libglib_a_SOURCES = \
 	groot.cpp \
 	groot.h \
 	gsetter.h \
+	gsignalsafe.h \
+	gsleep.h \
 	gslot.cpp \
 	gslot.h \
 	gstatemachine.h \
 	gstr.cpp \
 	gstr.h \
 	gstrings.h \
+	gtest.cpp \
+	gtest.h \
 	gtime.cpp \
 	gtime.h \
 	gxtext.cpp \

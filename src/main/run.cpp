@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // run.cpp
@@ -36,9 +33,13 @@
 #include "gnewfile.h"
 #include "gadminserver.h"
 #include "gpopserver.h"
+#include "gprocessorfactory.h"
+#include "gverifierfactory.h"
 #include "gslot.h"
 #include "gmonitor.h"
 #include "glocal.h"
+#include "gfile.h"
+#include "gpath.h"
 #include "groot.h"
 #include "gexception.h"
 #include "gprocess.h"
@@ -50,24 +51,42 @@
 #include <exception>
 #include <utility>
 
-//static
 std::string Main::Run::versionNumber()
 {
-	return "1.5" ;
+	return "1.6" ;
 }
 
 Main::Run::Run( Main::Output & output , const G::Arg & arg , const std::string & switch_spec ) :
 	m_output(output) ,
 	m_switch_spec(switch_spec) ,
-	m_arg(arg)
+	m_arg(arg) ,
+	m_polling_client_resolver_info(std::string(),std::string()) ,
+	m_prepare_error(false)
 {
+	m_polling_client.doneSignal().connect( G::slot(*this,&Run::pollingClientDone) ) ;
+	m_polling_client.eventSignal().connect( G::slot(*this,&Run::clientEvent) ) ;
 }
 
 Main::Run::~Run()
 {
 	if( m_store.get() ) m_store->signal().disconnect() ;
-	if( m_client.get() ) m_client->doneSignal().disconnect() ;
-	if( m_client.get() ) m_client->eventSignal().disconnect() ;
+	m_polling_client.doneSignal().disconnect() ;
+	m_polling_client.eventSignal().disconnect() ;
+
+	// avoid 'still reachable' in valgrind leak checks
+	m_polling_client.reset() ;
+	m_poll_timer <<= 0 ;
+	m_admin_server <<= 0 ;
+	m_pop_secrets <<= 0 ;
+	m_client_secrets <<= 0 ;
+	m_store <<= 0 ;
+	m_log_output <<= 0 ;
+	m_cl <<= 0 ;
+}
+
+bool Main::Run::prepareError() const
+{
+	return m_prepare_error ;
 }
 
 Main::Configuration Main::Run::cfg() const
@@ -95,43 +114,60 @@ void Main::Run::closeMoreFiles()
 		G::Process::closeStderr() ;
 }
 
+bool Main::Run::hidden() const
+{
+	return cl().contains("hidden") ;
+}
+
 bool Main::Run::prepare()
 {
-	bool do_run = false ;
 	if( cl().contains("help") )
 	{
 		cl().showHelp( false ) ;
+		m_prepare_error = false ;
+		return false ;
 	}
 	else if( cl().hasUsageErrors() )
 	{
 		cl().showUsageErrors( true ) ;
+		m_prepare_error = true ;
+		return false ;
 	}
 	else if( cl().contains("version") )
 	{
 		cl().showVersion( false ) ;
+		m_prepare_error = false ;
+		return false ;
 	}
 	else if( cl().argc() > 1U )
 	{
 		cl().showArgcError( true ) ;
+		m_prepare_error = true ;
+		return false ;
 	}
 	else if( cl().hasSemanticError() )
 	{
 		cl().showSemanticError( true ) ;
+		m_prepare_error = true ;
+		return false ;
 	}
 	else
 	{
-		do_run = true ;
+		// early singletons...
+		//
+		m_log_output <<= new G::LogOutput( m_arg.prefix() ,
+			cfg().log() , // output
+			cfg().log() , // with-logging
+			cfg().verbose() , // with-verbose-logging
+			cfg().debug() , // with-debug
+			true , // with-level
+			cfg().logTimestamp() , // with-timestamp
+			!cfg().debug() , // strip-context
+			cfg().useSyslog() , // use-syslog
+			G::LogOutput::Mail // facility
+		) ;
+		return true ;
 	}
-
-	// early singletons...
-	//
-	// (prefix,output,log,verbose-log,debug,level,timestamp,strip-context,syslog)
-	m_log_output <<= new G::LogOutput( m_arg.prefix() , cfg().log() , cfg().log() ,
-		cfg().verbose() , cfg().debug() , true ,
-		cfg().logTimestamp() , !cfg().debug() ,
-		cfg().useSyslog() , G::LogOutput::Mail ) ;
-
-	return do_run ;
 }
 
 void Main::Run::run()
@@ -143,7 +179,7 @@ void Main::Run::run()
 	}
 	catch( std::exception & e )
 	{
-		G_ERROR( "Main::Run::run: exception: " << e.what() ) ;
+		G_ERROR( "Main::Run::run: " << e.what() ) ;
 		throw ;
 	}
 	catch(...)
@@ -192,7 +228,10 @@ void Main::Run::runCore()
 	// systems when running as a daemon -- this has to be done
 	// early, before opening any sockets or message-store streams
 	//
-	if( cfg().daemon() ) closeFiles() ;
+	if( cfg().daemon() )
+	{
+		closeFiles() ;
+	}
 
 	// release root privileges and extra group memberships
 	//
@@ -208,6 +247,10 @@ void Main::Run::runCore()
 	// early check on socket bindability
 	//
 	checkPorts() ;
+
+	// early check on script executablity
+	//
+	checkScripts() ;
 
 	// network monitor singleton
 	//
@@ -264,7 +307,6 @@ void Main::Run::doServing( const GSmtp::Secrets & client_secrets ,
 			store ,
 			client_secrets ,
 			server_secrets ,
-			GSmtp::Verifier(G::Executable(cfg().verifier())) ,
 			serverConfig() ,
 			cfg().immediate() ? cfg().serverAddress() : std::string() ,
 			cfg().connectionTimeout() ,
@@ -307,26 +349,18 @@ void Main::Run::doServing( const GSmtp::Secrets & client_secrets ,
 			cfg().connectionTimeout() ,
 			extra_commands_map ,
 			cfg().withTerminate() ) ;
-
-		// undocumented forwards-compatibility feature, tcp://[<ip>[:<port>]][/<addressfile>], eg.
-		// "--admin tcp:///tmp/emailrelay_admin_address"
-		if( cfg().adminAddressFile() != G::Path() )
-		{
-			G::Root claim_root ;
-			std::ofstream address_file( cfg().adminAddressFile().str().c_str() ) ;
-			if( !address_file.good() ) throw G::Exception( "cannot create --admin address file" ) ;
-			address_file << m_admin_server->firstAddress().second.displayString() << std::endl ;
-		}
 	}
 
 	if( cfg().doPolling() )
 	{
-		m_poll_timer <<= new GNet::Timer( *this ) ;
+		m_poll_timer <<= new GNet::Timer<Run>(*this,&Run::onPollTimeout,*this) ; // after GNet::TimerList constructed
 		m_poll_timer->startTimer( cfg().pollingTimeout() ) ;
 	}
 
 	{
-		G::Root claim_root ;
+		// dont change the effective group id here -- create the pid file with the
+		// unprivileged group ownership so that it can be deleted more easily
+		G::Root claim_root(false) ;
 		pid_file.commit() ;
 	}
 
@@ -341,18 +375,16 @@ void Main::Run::doServing( const GSmtp::Secrets & client_secrets ,
 void Main::Run::doForwarding( GSmtp::MessageStore & store , const GSmtp::Secrets & secrets ,
 	GNet::EventLoop & event_loop )
 {
-	const bool quit_on_disconnect = true ;
-
 	GNet::Address local_address = cfg().clientInterface().length() ?
 		GNet::Address(cfg().clientInterface(),0U) : GNet::Address(0U) ;
 
-	GSmtp::Client client( store , secrets , clientConfig() , quit_on_disconnect ) ;
+	GNet::ClientPtr<GSmtp::Client> client_ptr( new GSmtp::Client(
+		GNet::ResolverInfo(cfg().serverAddress()) , secrets , clientConfig() ) ) ;
 
-	client.doneSignal().connect( G::slot(*this,&Run::clientDone) ) ;
-	client.eventSignal().connect( G::slot(*this,&Run::clientEvent) ) ;
-	std::string error = client.startSending( cfg().serverAddress() , cfg().connectionTimeout() ) ;
-	if( error.length() )
-		throw G::Exception( error + ": " + cfg().serverAddress() ) ;
+	client_ptr->sendMessages( store ) ;
+
+	client_ptr.doneSignal().connect( G::slot(*this,&Run::forwardingClientDone) ) ;
+	client_ptr.eventSignal().connect( G::slot(*this,&Run::clientEvent) ) ;
 
 	closeMoreFiles() ;
 	event_loop.run() ;
@@ -377,11 +409,10 @@ GSmtp::Server::Config Main::Run::serverConfig() const
 			interfaces ,
 			smtpIdent() ,
 			cfg().anonymous() ,
-			cfg().scannerAddress() ,
-			cfg().scannerResponseTimeout() ,
-			cfg().scannerConnectionTimeout() ,
-			G::Executable(cfg().filter()) ,
-			cfg().filterTimeout() ) ;
+			cfg().filter() ,
+			cfg().filterTimeout() ,
+			cfg().verifier() ,
+			cfg().filterTimeout() ) ; // verifier timeout
 }
 
 GPop::Server::Config Main::Run::popConfig() const
@@ -393,27 +424,28 @@ GSmtp::Client::Config Main::Run::clientConfig() const
 {
 	return
 		GSmtp::Client::Config(
-			G::Executable(cfg().clientFilter()) ,
+			cfg().clientFilter() ,
+			cfg().filterTimeout() ,
 			cfg().clientInterface().length() ?
 				GNet::Address(cfg().clientInterface(),0U) :
 				GNet::Address(0U) ,
 			GSmtp::ClientProtocol::Config(
 				GNet::Local::fqdn() ,
 				cfg().responseTimeout() ,
-				10U , // ("service ready" timeout)
+				cfg().promptTimeout() , // waiting for "service ready"
 				cfg().filterTimeout() ,
 				true , // (must-authenticate)
-				false ) ) ;  // (eight-bit-strict)
+				false ) , // (eight-bit-strict)
+			cfg().connectionTimeout() ) ;
 }
 
-void Main::Run::onTimeout( GNet::Timer & timer )
+void Main::Run::onPollTimeout()
 {
-	G_ASSERT( &timer == m_poll_timer.get() ) ;
-	G_DEBUG( "Main::Run::onTimeout" ) ;
+	G_DEBUG( "Main::Run::onPollTimeout" ) ;
 
-	timer.startTimer( cfg().pollingTimeout() ) ;
+	m_poll_timer->startTimer( cfg().pollingTimeout() ) ;
 
-	if( m_client.get() && m_client->busy() )
+	if( m_polling_client.busy() )
 	{
 		G_LOG( "Main::Run::onTimeout: polling: still busy from last time" ) ;
 		emit( "poll" , "busy" , "" ) ;
@@ -426,32 +458,32 @@ void Main::Run::onTimeout( GNet::Timer & timer )
 	}
 }
 
+void Main::Run::onException( std::exception & e )
+{
+	// gets here if onTimeout() throws
+	G_ERROR( "Main::Run::onException: exception while polling: " << e.what() ) ;
+}
+
 std::string Main::Run::doPoll()
 {
 	try
 	{
 		G_LOG( "Main::Run::doPoll: polling" ) ;
+		if( ! m_store->empty() )
+		{
+			GNet::Address local_address = cfg().clientInterface().length() ?
+				GNet::Address(cfg().clientInterface(),0U) : GNet::Address(0U) ;
 
-		const bool quit_on_disconnect = false ;
+			m_polling_client.reset( new GSmtp::Client( GNet::ResolverInfo(cfg().serverAddress()) ,
+				*m_client_secrets.get() , clientConfig() ) ) ;
 
-		GNet::Address local_address = cfg().clientInterface().length() ?
-			GNet::Address(cfg().clientInterface(),0U) : GNet::Address(0U) ;
-
-		m_client <<= new GSmtp::Client( *m_store.get() , *m_client_secrets.get() ,
-			clientConfig() , quit_on_disconnect ) ;
-
-		m_client->doneSignal().connect( G::slot(*this,&Run::clientDone) ) ;
-		m_client->eventSignal().connect( G::slot(*this,&Run::clientEvent) ) ;
-		std::string error = m_client->startSending( cfg().serverAddress() , cfg().connectionTimeout() ) ;
-
-		if( error.length() && ! GSmtp::Client::nothingToSend(error) )
-			G_WARNING( "Main::Run::doPoll: polling: " + error ) ;
-
-		return error ;
+			m_polling_client->sendMessages( *m_store.get() ) ;
+		}
+		return std::string() ;
 	}
-	catch( G::Exception & e )
+	catch( std::exception & e )
 	{
-		G_ERROR( "Main::Run::doPoll: polling: exception: " << e.what() ) ;
+		G_ERROR( "Main::Run::doPoll: polling: " << e.what() ) ;
 		return e.what() ;
 	}
 }
@@ -466,11 +498,22 @@ const Main::CommandLine & Main::Run::cl() const
 	return *m_cl.get() ;
 }
 
-void Main::Run::clientDone( std::string reason )
+void Main::Run::forwardingClientDone( std::string reason , bool )
 {
-	G_DEBUG( "Main::Run::clientDone: \"" << reason << "\"" ) ;
-	if( ! reason.empty() && m_client.get() == NULL )
+	G_DEBUG( "Main::Run::forwardingClientDone: \"" << reason << "\"" ) ;
+	if( ! reason.empty() )
 		throw G::Exception( reason ) ;
+	else
+		GNet::EventLoop::instance().quit() ;
+}
+
+void Main::Run::pollingClientDone( std::string reason , bool )
+{
+	G_DEBUG( "Main::Run::pollingClientDone: \"" << reason << "\"" ) ;
+	if( ! reason.empty() )
+	{
+		G_ERROR( "Main::Run::pollingClientDone: polling: " << reason ) ;
+	}
 }
 
 void Main::Run::clientEvent( std::string s1 , std::string s2 )
@@ -481,11 +524,11 @@ void Main::Run::clientEvent( std::string s1 , std::string s2 )
 void Main::Run::raiseStoreEvent( bool repoll )
 {
 	emit( "store" , "update" , repoll ? std::string("poll") : std::string() ) ;
-	if( repoll && cfg().doPolling() && m_poll_timer.get() != NULL )
+	if( repoll && cfg().doPolling() )
 	{
 		G_LOG( "Main::Run::raiseStoreEvent: polling timeout forced" ) ;
 		m_poll_timer->cancelTimer() ;
-		m_poll_timer->startTimer( 1U ) ; // (could use zero)
+		m_poll_timer->startTimer( 0U ) ;
 	}
 }
 
@@ -506,13 +549,38 @@ void Main::Run::emit( const std::string & s0 , const std::string & s1 , const st
 	}
 	catch( std::exception & e )
 	{
-		G_WARNING( "Main::Run::emit: exception: " << e.what() ) ;
+		G_WARNING( "Main::Run::emit: " << e.what() ) ;
 	}
 }
 
 G::Signal3<std::string,std::string,std::string> & Main::Run::signal()
 {
 	return m_signal ;
+}
+
+void Main::Run::checkScripts() const
+{
+	checkProcessorScript( cfg().filter() ) ;
+	checkProcessorScript( cfg().clientFilter() ) ;
+	checkVerifierScript( cfg().verifier() ) ;
+}
+
+void Main::Run::checkVerifierScript( const std::string & s ) const
+{
+	std::string reason = GSmtp::VerifierFactory::check( s ) ;
+	if( !reason.empty() )
+	{
+		G_WARNING( "Main::Run::checkScript: invalid verifier \"" << s << "\": " << reason ) ;
+	}
+}
+
+void Main::Run::checkProcessorScript( const std::string & s ) const
+{
+	std::string reason = GSmtp::ProcessorFactory::check( s ) ;
+	if( !reason.empty() )
+	{
+		G_WARNING( "Main::Run::checkScript: invalid preprocessor \"" << s << "\": " << reason ) ;
+	}
 }
 
 /// \file run.cpp

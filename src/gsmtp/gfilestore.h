@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file gfilestore.h
@@ -34,7 +31,7 @@
 #include "gslot.h"
 #include "groot.h"
 #include "gpath.h"
-#include "gexe.h"
+#include "gexecutable.h"
 #include <memory>
 #include <string>
 
@@ -44,6 +41,7 @@ namespace GSmtp
 	class FileStore ;
 	class FileReader ;
 	class FileWriter ;
+	class DirectoryReader ;
 }
 
 /// \class GSmtp::FileStore
@@ -97,16 +95,16 @@ public:
 		///< which is in the process of being written.
 
 	virtual bool empty() const ;
-		///< Returns true if there are no stored messages.
+		///< Final override from GSmtp::MessageStore.
 
 	virtual std::auto_ptr<StoredMessage> get( unsigned long id ) ;
-		///< Extracts a stored message.
+		///< Final override from GSmtp::MessageStore.
 
 	virtual MessageStore::Iterator iterator( bool lock ) ;
-		///< Returns an iterator for stored messages.
+		///< Final override from GSmtp::MessageStore.
 
 	virtual std::auto_ptr<NewMessage> newMessage( const std::string & from ) ;
-		///< Creates a new message in the store.
+		///< Final override from GSmtp::MessageStore.
 
 	static std::string x() ;
 		///< Returns the prefix for envelope header lines.
@@ -117,18 +115,13 @@ public:
 		///< it returns the previous format (etc.).
 
 	virtual void repoll() ;
-		///< Ensures that the next updated() signal() has
-		///< its parameter set to true.
+		///< Final override from GSmtp::MessageStore.
 
 	virtual void updated() ;
-		///< Called by associated classes to indicate that the
-		///< store has changed. Results in the signal() being
-		///< emited.
+		///< Final override from GSmtp::MessageStore.
 
 	virtual G::Signal1<bool> & signal() ;
-		///< Provides a signal which is activated when something might
-		///< have changed in the store. The boolean parameter is used
-		///< to indicate that repoll()ing is requested.
+		///< Final override from GSmtp::MessageStore.
 
 private:
 	static void checkPath( const G::Path & dir ) ;
@@ -151,14 +144,36 @@ private:
 
 /// \class GSmtp::FileReader
 /// Used by GSmtp::FileStore, GSmtp::NewFile and
-/// GSmtp::StoredFile to claim read permissions.
+/// GSmtp::StoredFile to claim read permissions for
+/// reading a file.
 /// \see G::Root
 ///
-class GSmtp::FileReader : public G::noncopyable
+class GSmtp::FileReader : private G::Root
 {
 public:
 	FileReader() ;
+		///< Default constructor. Switches identity for
+		///< reading a file.
+
 	~FileReader() ;
+		///< Destructor. Switches identity back.
+} ;
+
+/// \class GSmtp::DirectoryReader
+/// Used by GSmtp::FileStore, GSmtp::NewFile and
+/// GSmtp::StoredFile to claim read permissions for
+/// reading a directory.
+/// \see G::Root
+///
+class GSmtp::DirectoryReader : private G::Root
+{
+public:
+	DirectoryReader() ;
+		///< Default constructor. Switches identity for
+		///< reading a directory.
+
+	~DirectoryReader() ;
+		///< Destructor. Switches identity back.
 } ;
 
 /// \class GSmtp::FileWriter
@@ -166,14 +181,15 @@ public:
 /// GSmtp::StoredFile to claim write permissions.
 /// \see G::Root
 ///
-class GSmtp::FileWriter : public G::noncopyable
+class GSmtp::FileWriter : private G::Root , private G::Process::Umask
 {
 public:
 	FileWriter() ;
+		///< Default constructor. Switches identity for
+		///< writing a file.
+
 	~FileWriter() ;
-private:
-	G::Root m_root ;
-	G::Process::Umask m_umask ;
+		///< Destructor. Switches identity back.
 } ;
 
 #endif

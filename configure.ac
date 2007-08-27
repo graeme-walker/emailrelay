@@ -1,10 +1,9 @@
 dnl Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 dnl 
-dnl This program is free software; you can redistribute it and/or
-dnl modify it under the terms of the GNU General Public License
-dnl as published by the Free Software Foundation; either
-dnl version 2 of the License, or (at your option) any later
-dnl version.
+dnl This program is free software: you can redistribute it and/or modify
+dnl it under the terms of the GNU General Public License as published by
+dnl the Free Software Foundation, either version 3 of the License, or 
+dnl (at your option) any later version.
 dnl 
 dnl This program is distributed in the hope that it will be useful,
 dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -12,16 +11,14 @@ dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 dnl GNU General Public License for more details.
 dnl 
 dnl You should have received a copy of the GNU General Public License
-dnl along with this program; if not, write to the Free Software
-dnl Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-dnl 
+dnl along with this program.  If not, see <http://www.gnu.org/licenses/>.
 dnl ===
 dnl
 dnl Process this file with autoconf to produce a configure script.
 dnl
 
 AC_INIT(src/gsmtp/gsmtp.h)
-AM_INIT_AUTOMAKE(emailrelay,1.5)
+AM_INIT_AUTOMAKE(emailrelay,1.6)
 AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
 
@@ -81,12 +78,6 @@ AC_ARG_ENABLE(debug,AC_HELP_STRING([--enable-debug],[enable extra debug messages
 ENABLE_DEBUG
 
 dnl ===
-dnl "--enable-pop"
-dnl
-AC_ARG_ENABLE(pop,AC_HELP_STRING([--enable-pop],[enable pop server code (default enabled)]))
-ENABLE_POP
-
-dnl ===
 dnl "--enable-ipv6"
 dnl
 AC_ARG_ENABLE(ipv6,AC_HELP_STRING([--enable-ipv6],[enable ipv6 (default disabled)]))
@@ -119,27 +110,30 @@ WITH_MAN2HTML
 dnl ===
 dnl directory tweaking and "--enable-fhs" ...
 dnl
+dnl define e_ prefixed variables with a gnu feel and then
+dnl use the enable_fhs macro tweak them for fhs
+dnl
 dnl not AC_PREFIX_DEFAULT([/usr])
 AC_ARG_ENABLE(fhs,AC_HELP_STRING([--enable-fhs],[force FHS-compliant directories, ignoring --prefix etc (default disabled)]))
 AC_SUBST(e_docdir)
+if test "$e_docdir" = "" ; then e_docdir="$docdir" ; fi
 if test "$e_docdir" = "" ; then e_docdir="$datadir/$PACKAGE/doc" ; fi
 AC_SUBST(e_initdir)
-if test "$e_initdir" = "" ; then e_initdir="$libexecdir" ; fi
+if test "$e_initdir" = "" ; then e_initdir="$libexecdir/$PACKAGE/init" ; fi
 AC_SUBST(e_spooldir)
-if test "$e_spooldir" = "" ; then e_spooldir="$localstatedir/spool/emailrelay" ; fi
+if test "$e_spooldir" = "" ; then e_spooldir="$localstatedir/spool/$PACKAGE" ; fi
 AC_SUBST(e_examplesdir)
-if test "$e_examplesdir" = "" ; then e_examplesdir="$libexecdir" ; fi
+if test "$e_examplesdir" = "" ; then e_examplesdir="$libexecdir/$PACKAGE/examples" ; fi
+AC_SUBST(e_libexecdir)
+if test "$e_libexecdir" = "" ; then e_libexecdir="$libexecdir/$PACKAGE" ; fi
+AC_SUBST(e_sysconfdir)
+if test "$e_sysconfdir" = "" ; then e_sysconfdir="$sysconfdir" ; fi
 AC_SUBST(e_qtmoc)
 if test "$e_qtmoc" = "" ; then e_qtmoc="moc" ; fi
 ENABLE_FHS
 
 dnl ===
-dnl attempt to fix recursive makes where make is gmake -- may break something else
-dnl
-SET_MAKE=""
-
-dnl ===
 dnl generate files...
 dnl
-AC_OUTPUT(Makefile src/Makefile src/glib/Makefile src/gnet/Makefile src/gsmtp/Makefile src/gpop/Makefile src/main/Makefile src/win32/Makefile src/gui/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile lib/sunpro5/Makefile bin/Makefile doc/Makefile etc/Makefile)
+AC_OUTPUT(Makefile src/Makefile src/glib/Makefile src/gnet/Makefile src/gsmtp/Makefile src/gpop/Makefile src/main/Makefile src/win32/Makefile src/gui/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile lib/sunpro5/Makefile bin/Makefile doc/Makefile etc/Makefile test/Makefile)
 

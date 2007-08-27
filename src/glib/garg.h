@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file garg.h
@@ -47,13 +44,15 @@ namespace G
 class G::Arg
 {
 public:
+	typedef unsigned int size_type ;
+
 	Arg( int argc , char *argv[] ) ;
 		///< Constructor taking argc/argv.
 
 	Arg() ;
 		///< Default constructor for Windows.
 		///< Initialise (once) with parse().
-		
+
 	void parse( HINSTANCE hinstance , const std::string & command_line ) ;
 		///< Windows only.
 		///<
@@ -71,12 +70,12 @@ public:
 	~Arg() ;
 		///< Destructor.
 
-	size_t c() const ;
+	size_type c() const ;
 		///< Returns the number of tokens in the
 		///< command line, including the program
 		///< name.
 
-	std::string v( size_t i ) const ;
+	std::string v( size_type i ) const ;
 		///< Returns the i'th argument.
 		///< Precondition: i < c()
 
@@ -90,23 +89,21 @@ public:
 		///< block.
 
 	bool contains( const std::string & sw ,
-		size_t sw_args = 0U , bool case_sensitive = true ) const ;
+		size_type sw_args = 0U , bool case_sensitive = true ) const ;
 			///< Returns true if the command line
 			///< contains the given switch with enough
 			///< command line arguments left to satisfy
 			///< the given number of switch arguments.
 
-	size_t index( const std::string & sw , size_t sw_args = 0U ) const ;
+	size_type index( const std::string & sw , size_type sw_args = 0U ) const ;
 		///< Returns the index of the given switch.
 		///< Returns zero if not present.
 
-	void remove( const std::string & sw , size_t sw_args = 0U ) ;
-		///< Removes the given switch and its
-		///< arguments.
-		///<
-		///< Precondition: contains()
+	bool remove( const std::string & sw , size_type sw_args = 0U ) ;
+		///< Removes the given switch and its arguments.
+		///< Returns false if the switch does not exist.
 
-	void removeAt( size_t sw_index , size_t sw_args = 0U ) ;
+	void removeAt( size_type sw_index , size_type sw_args = 0U ) ;
 		///< Removes the given argument and the
 		///< following 'sw_args' ones.
 
@@ -118,7 +115,7 @@ public:
 
 private:
 	static std::string moduleName( HINSTANCE h ) ;
-	bool find( bool , const std::string & , size_t , size_t * ) const ;
+	bool find( bool , const std::string & , size_type , size_type * ) const ;
 	void setPrefix() ;
 	static bool match( bool , const std::string & , const std::string & ) ;
 	void parseCore( const std::string & ) ;

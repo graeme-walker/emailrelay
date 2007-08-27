@@ -1,11 +1,10 @@
 #
 ## Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
-## This program is free software; you can redistribute it and/or
-## modify it under the terms of the GNU General Public License
-## as published by the Free Software Foundation; either
-## version 2 of the License, or (at your option) any later
-## version.
+## This program is free software: you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation, either version 3 of the License, or 
+## (at your option) any later version.
 ## 
 ## This program is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,20 +12,17 @@
 ## GNU General Public License for more details.
 ## 
 ## You should have received a copy of the GNU General Public License
-## along with this program; if not, write to the Free Software
-## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-## 
+## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #
 # mingw.mak
 #
 
 mk_sources=\
-	md5.cpp \
 	garg.cpp \
 	garg_win32.cpp \
 	gcleanup_win32.cpp \
-	gexe.cpp \
+	gcounter.cpp \
 	gdaemon_win32.cpp \
 	gdate.cpp \
 	gdatetime.cpp \
@@ -34,6 +30,8 @@ mk_sources=\
 	gdirectory.cpp \
 	gdirectory_win32.cpp \
 	gexception.cpp \
+	gexecutable.cpp \
+	gexecutable_win32.cpp \
 	gfile.cpp \
 	gfile_win32.cpp \
 	gfs_win32.cpp \
@@ -46,12 +44,13 @@ mk_sources=\
 	gpath.cpp \
 	gpidfile.cpp \
 	gprocess_win32.cpp \
-	gregistry_win32.cpp \
 	groot.cpp \
 	gslot.cpp \
 	gstr.cpp \
+	gtest.cpp \
 	gtime.cpp \
-	gxtext.cpp
+	gxtext.cpp \
+	md5.cpp
 
 mk_target=glib.a
 

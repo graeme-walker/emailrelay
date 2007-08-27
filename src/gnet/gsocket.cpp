@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // gsocket.cpp
@@ -67,11 +64,18 @@ GNet::Socket::~Socket()
 {
 	try
 	{
-		try { drop() ; } catch(...) {}
+		drop() ;
+	}
+	catch(...)  // dtor
+	{
+	}
+
+	try
+	{
 		if( valid() ) doClose() ;
 		G_ASSERT( !valid() ) ;
 	}
-	catch(...)
+	catch(...) // dtor
 	{
 	}
 }
@@ -146,7 +150,7 @@ bool GNet::Socket::connect( const Address & address , bool *done )
 	return true;
 }
 
-ssize_t GNet::Socket::write( const char *buf, size_t len )
+ssize_t GNet::Socket::write( const char *buf , size_t len )
 {
 	if( static_cast<ssize_t>(len) < 0 )
 		G_WARNING( "GNet::Socket::write: too big" ) ; // EMSGSIZE from ::send() ?
@@ -172,8 +176,7 @@ void GNet::Socket::setNoLinger()
 	options.l_onoff = 0 ;
 	options.l_linger = 0 ;
 	socklen_t sizeof_options = sizeof(options) ;
-	G_IGNORE ::setsockopt( m_socket , SOL_SOCKET , SO_LINGER ,
-		reinterpret_cast<char*>(&options) , sizeof_options ) ;
+	G_IGNORE ::setsockopt( m_socket , SOL_SOCKET , SO_LINGER , reinterpret_cast<char*>(&options) , sizeof_options ) ;
 }
 
 void GNet::Socket::setKeepAlive()
@@ -186,8 +189,7 @@ void GNet::Socket::setKeepAlive()
 void GNet::Socket::setReuse()
 {
 	int on = 1 ;
-	G_IGNORE ::setsockopt( m_socket , SOL_SOCKET ,
-		SO_REUSEADDR , reinterpret_cast<char*>(&on) , sizeof(on) ) ;
+	G_IGNORE ::setsockopt( m_socket , SOL_SOCKET , SO_REUSEADDR , reinterpret_cast<char*>(&on) , sizeof(on) ) ;
 }
 
 bool GNet::Socket::listen( int backlog )
@@ -288,6 +290,11 @@ std::string GNet::Socket::reasonString() const
 	return ss.str() ;
 }
 
+void GNet::Socket::shutdown( bool for_writing )
+{
+	::shutdown( m_socket , for_writing ? 1 : 0 ) ;
+}
+
 //==
 
 GNet::StreamSocket::StreamSocket() :
@@ -313,7 +320,7 @@ GNet::StreamSocket::~StreamSocket()
 {
 }
 
-ssize_t GNet::StreamSocket::read( char *buf , size_t len )
+ssize_t GNet::StreamSocket::read( char * buf , size_t len )
 {
 	if( len == 0 ) return 0 ;
 	G_ASSERT( valid() ) ;

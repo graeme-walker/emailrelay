@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file gslot.h
@@ -41,11 +38,11 @@ namespace G
 class SlotBase
 {
 public:
-	virtual ~SlotBase() ;
-		///< Destructor.
-
 	SlotBase() ;
 		///< Default constuctor.
+
+	virtual ~SlotBase() ;
+		///< Destructor.
 
 	void up() ;
 		///< Increments the reference count.
@@ -62,7 +59,6 @@ private:
 	unsigned long m_ref_count ;
 } ;
 
-
 /// \class SignalImp
 /// Part of the slot/signal system.
 /// A static helper class used by Signal<> classes.
@@ -76,8 +72,7 @@ private:
 	SignalImp() ; // not implemented
 } ;
 
-template <class T>
-inline
+template <typename T>
 void swap_( T & t1 , T & t2 ) // no std::swap in gcc2.95
 {
 	T temp( t1 ) ;
@@ -85,14 +80,14 @@ void swap_( T & t1 , T & t2 ) // no std::swap in gcc2.95
 	t2 = temp ;
 }
 
-/// ===
+///
 
 /// \class SlotImp0
 /// Part of the slot/signal system.
 /// An implementation class for Slot0<>. An instance
 /// is created by the slot<>()
 ///
-template <class T>
+template <typename T>
 class SlotImp0 : public SlotBase
 {
 private:
@@ -106,7 +101,7 @@ public:
 /// \class SlotOp0
 /// Part of the slot/signal system.
 ///
-template <class T>
+template <typename T>
 class SlotOp0
 {
 public:
@@ -139,31 +134,33 @@ public:
 class Signal0 : public noncopyable
 {
 private:
+	bool m_emitted ;
+	bool m_once ;
 	Slot0 m_slot ;
 public:
-	Signal0() {}
-	void emit() { m_slot.callback() ; }
+	explicit Signal0( bool once = false ) : m_emitted(false) , m_once(once) {}
+	void emit() { if(!m_once||!m_emitted) { m_emitted = true ; m_slot.callback() ; } }
 	void connect( Slot0 slot ) { SignalImp::check(m_slot.base()) ; m_slot = slot ; }
 	void disconnect() { m_slot = Slot0() ; }
 	bool connected() const { return m_slot.base() != NULL ; }
+	void reset() { m_emitted = false ; }
 } ;
 
 /// Function: slot
 /// Part of the slot/signal system.
 ///
-template <class T>
-inline
+template <typename T>
 Slot0 slot( T & object , void (T::*fn)() )
 {
 	return Slot0( new SlotImp0<T>(object,fn) , SlotOp0<T>::callback ) ;
 }
 
-/// ===
+///
 
 /// \class SlotImp1
 /// Part of the slot/signal system.
 ///
-template <class T, class P>
+template <typename T, typename P>
 class SlotImp1 : public SlotBase
 {
 private:
@@ -177,7 +174,7 @@ public:
 /// \class SlotOp1
 /// Part of the slot/signal system.
 ///
-template <class T, class P>
+template <typename T, typename P>
 class SlotOp1
 {
 public:
@@ -188,7 +185,7 @@ public:
 /// \class Slot1
 /// Part of the slot/signal system.
 ///
-template <class P>
+template <typename P>
 class Slot1
 {
 private:
@@ -208,35 +205,37 @@ public:
 /// \class Signal1
 /// Part of the slot/signal system.
 ///
-template <class P>
+template <typename P>
 class Signal1 : public noncopyable
 {
 private:
+	bool m_emitted ;
+	bool m_once ;
 	Slot1<P> m_slot ;
 public:
-	Signal1() {}
-	void emit( P p ) { m_slot.callback( p ) ; }
+	explicit Signal1( bool once = false ) : m_emitted(false) , m_once(once) {}
+	void emit( P p ) { if(!m_once||!m_emitted) { m_emitted = true ; m_slot.callback( p ) ; } }
 	void connect( Slot1<P> slot ) { SignalImp::check(m_slot.base()) ; m_slot = slot ; }
 	void disconnect() { m_slot = Slot1<P>() ; }
 	bool connected() const { return m_slot.base() != NULL ; }
+	void reset() { m_emitted = false ; }
 } ;
 
 /// Function: slot
 /// Part of the slot/signal system.
 ///
-template <class T,class P>
-inline
+template <typename T,typename P>
 Slot1<P> slot( T & object , void (T::*fn)(P) )
 {
 	return Slot1<P>( new SlotImp1<T,P>(object,fn) , SlotOp1<T,P>::callback ) ;
 }
 
-/// ===
+///
 
 /// \class SlotImp2
 /// Part of the slot/signal system.
 ///
-template <class T, class P1, class P2>
+template <typename T, typename P1, typename P2>
 class SlotImp2 : public SlotBase
 {
 private:
@@ -250,7 +249,7 @@ public:
 /// \class SlotOp2
 /// Part of the slot/signal system.
 ///
-template <class T, class P1 , class P2>
+template <typename T, typename P1 , typename P2>
 class SlotOp2
 {
 public:
@@ -261,7 +260,7 @@ public:
 /// \class Slot2
 /// Part of the slot/signal system.
 ///
-template <class P1, class P2>
+template <typename P1, typename P2>
 class Slot2
 {
 private:
@@ -281,35 +280,37 @@ public:
 /// \class Signal2
 /// Part of the slot/signal system.
 ///
-template <class P1, class P2>
+template <typename P1, typename P2>
 class Signal2 : public noncopyable
 {
 private:
+	bool m_emitted ;
+	bool m_once ;
 	Slot2<P1,P2> m_slot ;
 public:
-	Signal2() {}
-	void emit( P1 p1 , P2 p2 ) { m_slot.callback( p1 , p2 ) ; }
+	explicit Signal2( bool once = false ) : m_emitted(false) , m_once(once) {}
+	void emit( P1 p1 , P2 p2 ) { if(!m_once||!m_emitted) { m_emitted = true ; m_slot.callback( p1 , p2 ) ; } }
 	void connect( Slot2<P1,P2> slot ) { SignalImp::check(m_slot.base()) ; m_slot = slot ; }
 	void disconnect() { m_slot = Slot2<P1,P2>() ; }
 	bool connected() const { return m_slot.base() != NULL ; }
+	void reset() { m_emitted = false ; }
 } ;
 
 /// Function: slot
 /// Part of the slot/signal system.
 ///
-template <class T, class P1, class P2>
-inline
+template <typename T, typename P1, typename P2>
 Slot2<P1,P2> slot( T & object , void (T::*fn)(P1,P2) )
 {
 	return Slot2<P1,P2>( new SlotImp2<T,P1,P2>(object,fn) , SlotOp2<T,P1,P2>::callback ) ;
 }
 
-/// ===
+///
 
 /// \class SlotImp3
 /// Part of the slot/signal system.
 ///
-template <class T, class P1, class P2, class P3>
+template <typename T, typename P1, typename P2, typename P3>
 class SlotImp3 : public SlotBase
 {
 private:
@@ -323,7 +324,7 @@ public:
 /// \class SlotOp3
 /// Part of the slot/signal system.
 ///
-template <class T, class P1 , class P2, class P3>
+template <typename T, typename P1 , typename P2, typename P3>
 class SlotOp3
 {
 public:
@@ -334,7 +335,7 @@ public:
 /// \class Slot3
 /// Part of the slot/signal system.
 ///
-template <class P1, class P2, class P3>
+template <typename P1, typename P2, typename P3>
 class Slot3
 {
 private:
@@ -354,24 +355,26 @@ public:
 /// \class Signal3
 /// Part of the slot/signal system.
 ///
-template <class P1, class P2, class P3>
+template <typename P1, typename P2, typename P3>
 class Signal3 : public noncopyable
 {
 private:
+	bool m_emitted ;
+	bool m_once ;
 	Slot3<P1,P2,P3> m_slot ;
 public:
-	Signal3() {}
-	void emit( P1 p1 , P2 p2 , P3 p3 ) { m_slot.callback( p1 , p2 , p3 ) ; }
+	explicit Signal3( bool once = false ) : m_emitted(false) , m_once(once) {}
+	void emit( P1 p1 , P2 p2 , P3 p3 ) { if(!m_once||!m_emitted) { m_emitted = true ; m_slot.callback( p1 , p2 , p3 ) ; }}
 	void connect( Slot3<P1,P2,P3> slot ) { SignalImp::check(m_slot.base()) ; m_slot = slot ; }
 	void disconnect() { m_slot = Slot3<P1,P2,P3>() ; }
 	bool connected() const { return m_slot.base() != NULL ; }
+	void reset() { m_emitted = false ; }
 } ;
 
 /// Function: slot
 /// Part of the slot/signal system.
 ///
-template <class T, class P1, class P2, class P3>
-inline
+template <typename T, typename P1, typename P2, typename P3>
 Slot3<P1,P2,P3> slot( T & object , void (T::*fn)(P1,P2,P3) )
 {
 	return Slot3<P1,P2,P3>( new SlotImp3<T,P1,P2,P3>(object,fn) , SlotOp3<T,P1,P2,P3>::callback ) ;

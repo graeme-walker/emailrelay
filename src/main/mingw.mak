@@ -1,11 +1,10 @@
 #
 ## Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
-## This program is free software; you can redistribute it and/or
-## modify it under the terms of the GNU General Public License
-## as published by the Free Software Foundation; either
-## version 2 of the License, or (at your option) any later
-## version.
+## This program is free software: you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation, either version 3 of the License, or 
+## (at your option) any later version.
 ## 
 ## This program is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 ## GNU General Public License for more details.
 ## 
 ## You should have received a copy of the GNU General Public License
-## along with this program; if not, write to the Free Software
-## Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-## 
+## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #
 # mingw.mak
@@ -45,17 +42,18 @@ mk_exe_filter=emailrelay-filter-copy.exe
 mk_exe_poke=emailrelay-poke.exe
 mk_exe_passwd=emailrelay-passwd.exe
 mk_exe_submit=emailrelay-submit.exe
+mk_exe_service=emailrelay-service.exe
 res=$(rc:.rc=.o)
 
-all: $(mk_exe_main) $(mk_exe_filter) $(mk_exe_poke) $(mk_exe_passwd) $(mk_exe_submit)
+all: $(mk_exe_main) $(mk_exe_filter) $(mk_exe_poke) $(mk_exe_passwd) $(mk_exe_submit) $(mk_exe_service)
 
 include ../mingw-common.mak
 
 $(mk_exe_main): $(mk_objects) $(res) $(libs)
 	$(mk_link) $(mk_link_flags) -o $(mk_exe_main) $(mk_objects) $(res) $(libs) $(syslibs)
 
-$(mk_exe_filter): filter_copy.o
-	$(mk_link) $(mk_link_flags) -o $@ $< $(libs) $(syslibs)
+$(mk_exe_filter): filter_copy.o legal.o
+	$(mk_link) $(mk_link_flags) -o $@ filter_copy.o legal.o $(libs) $(syslibs)
 
 $(mk_exe_poke): poke.o
 	$(mk_link) $(mk_link_flags) -o $@ $< $(libs) $(syslibs)
@@ -65,6 +63,9 @@ $(mk_exe_passwd): passwd.o legal.o
 
 $(mk_exe_submit): submit.o legal.o
 	$(mk_link) $(mk_link_flags) -o $@ submit.o legal.o $(libs) $(syslibs)
+
+$(mk_exe_service): service_install.o service_wrapper.o
+	$(mk_link) $(mk_link_flags) -o $@ service_install.o service_wrapper.o $(syslibs)
 
 $(fake_mc): mingw.o
 	$(mk_link) $(mk_link_flags) -o $@ $<

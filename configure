@@ -708,7 +708,6 @@ COMPILER_VERSION
 CPP
 EGREP
 PKG_CONFIG
-POPLIB
 IP
 QT_CFLAGS
 QT_LIBS
@@ -719,6 +718,8 @@ e_docdir
 e_initdir
 e_spooldir
 e_examplesdir
+e_libexecdir
+e_sysconfdir
 e_qtmoc
 LIBOBJS
 LTLIBOBJS'
@@ -1317,7 +1318,6 @@ Optional Features:
   --enable-dependency-tracking   do not reject slow dependency extractors
   --enable-debug          enable extra debug messages at compile-time (default
                           disabled)
-  --enable-pop            enable pop server code (default enabled)
   --enable-ipv6           enable ipv6 (default disabled)
   --enable-gui            enable configuration gui (requires Qt4) (default
                           auto)
@@ -2108,7 +2108,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=emailrelay
- VERSION=1.5
+ VERSION=1.6
 
 
 cat >>confdefs.h <<_ACEOF
@@ -6656,21 +6656,6 @@ _ACEOF
 fi
 
 
-# Check whether --enable-pop was given.
-if test "${enable_pop+set}" = set; then
-  enableval=$enable_pop;
-fi
-
-
-if test "$enable_pop" = "no"
-then
-	POPLIB="libgnopop.a"
-else
-	POPLIB="libgpop.a"
-fi
-
-
-
 # Check whether --enable-ipv6 was given.
 if test "${enable_ipv6+set}" = set; then
   enableval=$enable_ipv6;
@@ -6927,13 +6912,18 @@ if test "${enable_fhs+set}" = set; then
 fi
 
 
+if test "$e_docdir" = "" ; then e_docdir="$docdir" ; fi
 if test "$e_docdir" = "" ; then e_docdir="$datadir/$PACKAGE/doc" ; fi
 
-if test "$e_initdir" = "" ; then e_initdir="$libexecdir" ; fi
+if test "$e_initdir" = "" ; then e_initdir="$libexecdir/$PACKAGE/init" ; fi
 
-if test "$e_spooldir" = "" ; then e_spooldir="$localstatedir/spool/emailrelay" ; fi
+if test "$e_spooldir" = "" ; then e_spooldir="$localstatedir/spool/$PACKAGE" ; fi
 
-if test "$e_examplesdir" = "" ; then e_examplesdir="$libexecdir" ; fi
+if test "$e_examplesdir" = "" ; then e_examplesdir="$libexecdir/$PACKAGE/examples" ; fi
+
+if test "$e_libexecdir" = "" ; then e_libexecdir="$libexecdir/$PACKAGE" ; fi
+
+if test "$e_sysconfdir" = "" ; then e_sysconfdir="$sysconfdir" ; fi
 
 if test "$e_qtmoc" = "" ; then e_qtmoc="moc" ; fi
 
@@ -6961,21 +6951,17 @@ then
 	#infodir=
 	#
 	# emailrelay-specific
-	e_sbindir="$sbindir"
 	e_libexecdir="$libexecdir/$PACKAGE"
 	e_docdir="$datadir/doc/$PACKAGE"
 	e_initdir="/etc/init.d"
 	e_spooldir="$localstatedir/spool/$PACKAGE"
-	e_man1dir="$datadir/man/man1"
-	e_examplesdir="$datadir/doc/$PACKAGE/examples"
+	e_examplesdir="$libexecdir/$PACKAGE/examples"
 	e_sysconfdir="$sysconfdir"
 
 fi
 
 
-SET_MAKE=""
-
-ac_config_files="$ac_config_files Makefile src/Makefile src/glib/Makefile src/gnet/Makefile src/gsmtp/Makefile src/gpop/Makefile src/main/Makefile src/win32/Makefile src/gui/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile lib/sunpro5/Makefile bin/Makefile doc/Makefile etc/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile src/glib/Makefile src/gnet/Makefile src/gsmtp/Makefile src/gpop/Makefile src/main/Makefile src/win32/Makefile src/gui/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile lib/sunpro5/Makefile bin/Makefile doc/Makefile etc/Makefile test/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -7593,6 +7579,7 @@ do
     "bin/Makefile") CONFIG_FILES="$CONFIG_FILES bin/Makefile" ;;
     "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
     "etc/Makefile") CONFIG_FILES="$CONFIG_FILES etc/Makefile" ;;
+    "test/Makefile") CONFIG_FILES="$CONFIG_FILES test/Makefile" ;;
 
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
@@ -7750,8 +7737,8 @@ COMPILER_VERSION!$COMPILER_VERSION$ac_delim
 CPP!$CPP$ac_delim
 EGREP!$EGREP$ac_delim
 PKG_CONFIG!$PKG_CONFIG$ac_delim
-POPLIB!$POPLIB$ac_delim
 IP!$IP$ac_delim
+QT_CFLAGS!$QT_CFLAGS$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -7793,7 +7780,6 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
-QT_CFLAGS!$QT_CFLAGS$ac_delim
 QT_LIBS!$QT_LIBS$ac_delim
 MOC!$MOC$ac_delim
 GUI_TRUE!$GUI_TRUE$ac_delim
@@ -7802,12 +7788,14 @@ e_docdir!$e_docdir$ac_delim
 e_initdir!$e_initdir$ac_delim
 e_spooldir!$e_spooldir$ac_delim
 e_examplesdir!$e_examplesdir$ac_delim
+e_libexecdir!$e_libexecdir$ac_delim
+e_sysconfdir!$e_sysconfdir$ac_delim
 e_qtmoc!$e_qtmoc$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 12; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 13; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // glogoutput_win32.cpp
@@ -35,7 +32,7 @@ void G::LogOutput::cleanup()
 		::DeregisterEventSource( m_handle ) ;
 }
 
-void G::LogOutput::rawOutput( G::Log::Severity severity , const char *message )
+void G::LogOutput::rawOutput( G::Log::Severity severity , const std::string & message )
 {
 	// standard error
 	//
@@ -46,7 +43,7 @@ void G::LogOutput::rawOutput( G::Log::Severity severity , const char *message )
 	static bool debugger = std::getenv("GLOGOUTPUT_DEBUGGER") != NULL ;
 	if( debugger )
 	{
-		::OutputDebugString( message ) ;
+		::OutputDebugString( message.c_str() ) ;
 	}
 
 	// file
@@ -55,7 +52,7 @@ void G::LogOutput::rawOutput( G::Log::Severity severity , const char *message )
 	static const char * dir_p = std::getenv( key ) ;
 	if( dir_p != NULL && *dir_p != '\0' )
 	{
-		static std::ofstream file( Path(Str::toPrintableAscii(std::string(dir_p),'_'),"glog.txt").str().c_str() ) ;
+		static std::ofstream file( Path(Str::printable(std::string(dir_p),'_'),"glog.txt").str().c_str() ) ;
 		file << message << std::endl ;
 	}
 
@@ -78,7 +75,7 @@ void G::LogOutput::rawOutput( G::Log::Severity severity , const char *message )
 			type = EVENTLOG_ERROR_TYPE ;
 		}
 
-		const char * p[] = { message , NULL } ;
+		const char * p[] = { message.c_str() , NULL } ;
 		G_IGNORE ::ReportEvent( m_handle, type, 0, id, NULL, 1, 0, p, NULL ) ;
 	}
 }
@@ -94,7 +91,7 @@ static HANDLE source()
 	G::Path exe_path ;
 	{
 		HINSTANCE hinstance = 0 ;
-		char buffer[260U*4U] ; // *4 for luck
+		char buffer[10000U] ;
 		size_t size = sizeof(buffer) ;
 		*buffer = '\0' ;
 		::GetModuleFileName( hinstance , buffer , size-1U ) ;

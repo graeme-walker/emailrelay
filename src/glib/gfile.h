@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file gfile.h
@@ -50,6 +47,7 @@ public:
 	G_EXCEPTION( CannotCopy , "cannot copy file" ) ;
 	G_EXCEPTION( CannotMkdir , "cannot mkdir" ) ;
 	G_EXCEPTION( CannotChmod , "cannot chmod file" ) ;
+	G_EXCEPTION( CannotLink , "cannot create symlink" ) ;
 	G_EXCEPTION( SizeOverflow , "file size overflow" ) ;
 	G_EXCEPTION( TimeError , "cannot get file modification time" ) ;
 	typedef DateTime::EpochTime time_type ;
@@ -75,6 +73,10 @@ public:
 	static void copy( const Path & from , const Path & to ) ;
 		///< Copies a file.
 
+	static void copy( std::istream & from , std::ostream & to ,
+		std::streamsize limit = 0U , std::string::size_type block = 0U ) ;
+			///< Copies a stream.
+
 	static bool mkdirs( const Path & dir , const NoThrow & , int = 100 ) ;
 		///< Creates a directory and all necessary parents. Returns false on error.
 		///< Does chmodx() on all created directories.
@@ -94,12 +96,12 @@ public:
 		///< Returns the empty string on error.
 
 	static bool exists( const Path & file ) ;
-		///< Returns true if the file (or link or device etc.)
+		///< Returns true if the file (directory, link, device etc.)
 		///< exists. Throws an exception if permission denied
 		///< or too many symlinks etc.
 
 	static bool exists( const Path & file , const NoThrow & ) ;
-		///< Returns true if the file (or link or device etc.)
+		///< Returns true if the file (directory, link, device etc.)
 		///< exists. Returns false on error.
 
 	static time_type time( const Path & file ) ;
@@ -114,6 +116,18 @@ public:
 
 	static bool chmodx( const Path & file , const NoThrow & ) ;
 		///< Makes the file executable.
+
+	static void link( const Path & target , const Path & new_link ) ;
+		///< Creates a symlink.
+
+	static bool link( const Path & target , const Path & new_link , const NoThrow & ) ;
+		///< Creates a symlink.
+
+	static bool executable( const Path & ) ;
+		///< Returns true if the path is probably executable.
+		///< Because of portability and implementation difficulties
+		///< this does not return a definitive result so it should
+		///< only used for generating warnings on a false return.
 
 private:
 	friend class G::DirectoryIteratorImp ;

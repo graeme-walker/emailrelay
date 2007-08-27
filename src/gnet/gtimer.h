@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file gtimer.h
@@ -27,47 +24,24 @@
 #include "gdef.h"
 #include "gnet.h"
 #include "gdatetime.h"
+#include "geventhandler.h"
 #include "gexception.h"
-#include <list>
+#include "gtimerlist.h"
 
 /// \namespace GNet
 namespace GNet
 {
-	class Timer ;
-	class TimeoutHandler ;
-	class TimerList ;
+	class AbstractTimer ;
 }
 
-/// \class GNet::TimeoutHandler
-/// An interface used by GNet::Timer.
+/// \class GNet::AbstractTimer
+/// A timer base class that calls a pure virtual
+/// method on expiry.
 ///
-class GNet::TimeoutHandler
+class GNet::AbstractTimer
 {
 public:
-	virtual ~TimeoutHandler() ;
-		///< Destructor.
-
-	virtual void onTimeout( Timer & ) = 0 ;
-		///< Called when the associated timer
-		///< expires.
-
-private:
-	void operator=( const TimeoutHandler & ) ; // not implemented
-} ;
-
-/// \class GNet::Timer
-/// A timer class.
-///
-class GNet::Timer
-{
-public:
-	explicit Timer( TimeoutHandler & handler ) ;
-		///< Constructor.
-
-	Timer() ;
-		///< Default constructor.
-
-	virtual ~Timer() ;
+	virtual ~AbstractTimer() ;
 		///< Destructor.
 
 	void startTimer( unsigned int time ) ;
@@ -77,12 +51,22 @@ public:
 		///< Cancels the timer.
 
 protected:
-	virtual void onTimeout() ;
-		///< Called when the timer expires (or soon
-		///< after).
+	AbstractTimer() ;
+		///< Default constructor.
+
+	virtual void onTimeout() = 0 ;
+		///< Called when the timer expires (or soon after).
+
+	virtual void onTimeoutException( std::exception & ) = 0 ;
+		///< Called by the event loop when the onTimeout()
+		///< override throws.
+		///<
+		///< The implementation can just throw the current
+		///< exception so that the event loop terminates.
+
 private:
-	Timer( const Timer & ) ; // not implemented
-	void operator=( const Timer & ) ; // not implemented
+	AbstractTimer( const AbstractTimer & ) ; // not implemented
+	void operator=( const AbstractTimer & ) ; // not implemented
 
 private:
 	friend class TimerList ;
@@ -91,74 +75,77 @@ private:
 
 private:
 	G::DateTime::EpochTime m_time ;
-	TimeoutHandler * m_handler ;
 } ;
 
-/// \class GNet::TimerList
-/// A singleton which maintains a list of all Timer
-/// objects, and interfaces to the event loop on their behalf.
+/// \namespace GNet
+namespace GNet
+{
+
+/// \class Timer
+/// A timer class template in which the timeout
+/// is delivered to the specified method. Any exception thrown
+/// out of the timeout handler is delivered to the specified
+/// EventHandler interface so that it can be handled or
+/// rethrown.
 ///
-class GNet::TimerList
+/// Eg:
+/// \code
+/// struct Foo : public EventHandler
+/// {
+///   Timer<Foo> m_timer ;
+///   Foo() : m_timer(*this,&Foo::onTimeout,*this) {}
+///   void onTimeout() {}
+///   void onException( std::exception & ) { throw ; }
+/// } ;
+/// \endcode
+///
+template <typename T>
+class Timer : public AbstractTimer
 {
 public:
-	G_EXCEPTION( NoInstance , "no TimerList instance" ) ;
-	/// Overload discriminator class for TimerList.
-	class NoThrow
-		{} ;
+	typedef void (T::*method_type)() ;
 
-	TimerList() ;
-		///< Default constructor.
+	Timer( T & t , method_type m , EventHandler & exception_handler ) ;
+		///< Constructor. The EventHandler reference is required
+		///< in case the timeout handler throws.
 
-	~TimerList() ;
-		///< Destructor.
+protected:
+	virtual void onTimeout() ;
+		///< Final override from GNet::AbstractTimer.
 
-	void add( Timer & ) ;
-		///< Adds a timer. Used by Timer::Timer().
-
-	void remove( Timer & ) ;
-		///< Removes a timer from the list.
-		///< Used by Timer::~Timer().
-
-	void update( G::DateTime::EpochTime previous_soonest ) ;
-		///< Called when one of the list's timers
-		///< has changed.
-
-	G::DateTime::EpochTime soonest() const ;
-		///< Returns the time of the first timer to expire,
-		///< or zero if none.
-
-	unsigned int interval( bool & infinite ) const ;
-		///< Returns the interval to the next
-		///< timer expiry. The 'infinite' value is
-		///< set to true if there are no timers
-		///< running.
-
-	void doTimeouts() ;
-		///< Triggers the timeout callbacks of any expired
-		///< timers. Called by the event loop (GNet::EventLoop).
-
-	static TimerList * instance( const NoThrow & ) ;
-		///< Singleton access. Returns NULL if none.
-
-	static TimerList & instance() ;
-		///< Singleton access. Throws an exception if none.
+	virtual void onTimeoutException( std::exception & ) ;
+		///< Final override from GNet::AbstractTimer.
 
 private:
-	TimerList( const TimerList & ) ; // not implemented
-	void operator=( const TimerList & ) ; // not implemented
-	G::DateTime::EpochTime soonest( int ) const ; // fast overload
-	void update() ;
-	bool valid() const ;
+	Timer( const Timer<T> & ) ; // not implemented
+	void operator=( const Timer<T> & ) ; // not implemented
 
 private:
-	static TimerList * m_this ;
-	typedef std::list<Timer*> List ;
-	List m_list ;
-	bool m_list_changed ;
-	bool m_empty_set_timeout_hint ;
-	bool m_soonest_changed ; // mutable
-	G::DateTime::EpochTime m_soonest ;
+	T & m_t ;
+	method_type m_m ;
+	EventHandler & m_event_handler ;
 } ;
 
+template <typename T>
+Timer<T>::Timer( T & t , method_type m , EventHandler & e ) :
+	m_t(t) ,
+	m_m(m) ,
+	m_event_handler(e)
+{
+}
+
+template <typename T>
+void Timer<T>::onTimeout()
+{
+	(m_t.*m_m)() ;
+}
+
+template <typename T>
+void Timer<T>::onTimeoutException( std::exception & e )
+{
+	m_event_handler.onException( e ) ;
+}
+
+}
 
 #endif

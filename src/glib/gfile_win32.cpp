@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // gfile_win32.cpp
@@ -31,6 +28,11 @@
 bool G::File::mkdir( const Path & dir , const NoThrow & )
 {
 	return 0 == ::_mkdir( dir.str().c_str() ) ;
+}
+
+bool G::File::executable( const Path & path )
+{
+	return exists( path , NoThrow() ) ;
 }
 
 std::string G::File::sizeString( const Path & path )
@@ -81,7 +83,7 @@ bool G::File::exists( const char * path , bool & enoent )
 G::File::time_type G::File::time( const Path & path )
 {
 	struct _stat statbuf ;
-	if( 0 != ::_stat( path.pathCstr() , &statbuf ) )
+	if( 0 != ::_stat( path.str().c_str() , &statbuf ) )
 		throw TimeError( path.str() ) ;
 	return statbuf.st_mtime ;
 }
@@ -89,11 +91,24 @@ G::File::time_type G::File::time( const Path & path )
 G::File::time_type G::File::time( const Path & path , const NoThrow & )
 {
 	struct _stat statbuf ;
-	return ::_stat( path.pathCstr() , &statbuf ) == 0 ? statbuf.st_mtime : 0 ;
+	return ::_stat( path.str().c_str() , &statbuf ) == 0 ? statbuf.st_mtime : 0 ;
 }
 
 bool G::File::chmodx( const Path & , bool )
 {
 	return true ; // no-op
 }
+
+void G::File::link( const Path & , const Path & new_link )
+{
+	CannotLink e( new_link.str() ) ;
+	e.append( "not supported" ) ;
+	throw e ;
+}
+
+bool G::File::link( const Path & , const Path & , const NoThrow & )
+{
+	return false ; // not supported
+}
+
 /// \file gfile_win32.cpp

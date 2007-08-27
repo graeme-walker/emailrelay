@@ -45,16 +45,18 @@ ARFLAGS = cru
 libglib_a_AR = $(AR) $(ARFLAGS)
 libglib_a_LIBADD =
 am_libglib_a_OBJECTS = md5.$(OBJEXT) garg.$(OBJEXT) \
-	garg_unix.$(OBJEXT) gcleanup_unix.$(OBJEXT) \
+	garg_unix.$(OBJEXT) gcleanup_unix.$(OBJEXT) gcounter.$(OBJEXT) \
 	gdaemon_unix.$(OBJEXT) gdate.$(OBJEXT) gdatetime.$(OBJEXT) \
 	gdatetime_unix.$(OBJEXT) gdirectory.$(OBJEXT) \
-	gdirectory_unix.$(OBJEXT) gexception.$(OBJEXT) gexe.$(OBJEXT) \
+	gdirectory_unix.$(OBJEXT) gexception.$(OBJEXT) \
+	gexecutable_unix.$(OBJEXT) gexecutable.$(OBJEXT) \
 	gfile.$(OBJEXT) gfile_unix.$(OBJEXT) gfs_unix.$(OBJEXT) \
 	ggetopt.$(OBJEXT) gidentity_unix.$(OBJEXT) glog.$(OBJEXT) \
 	glogoutput.$(OBJEXT) glogoutput_unix.$(OBJEXT) \
 	gmd5_native.$(OBJEXT) gpath.$(OBJEXT) gpidfile.$(OBJEXT) \
 	gprocess_unix.$(OBJEXT) groot.$(OBJEXT) gslot.$(OBJEXT) \
-	gstr.$(OBJEXT) gtime.$(OBJEXT) gxtext.$(OBJEXT)
+	gstr.$(OBJEXT) gtest.$(OBJEXT) gtime.$(OBJEXT) \
+	gxtext.$(OBJEXT)
 libglib_a_OBJECTS = $(am_libglib_a_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -125,7 +127,6 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
-POPLIB = @POPLIB@
 QT_CFLAGS = @QT_CFLAGS@
 QT_LIBS = @QT_LIBS@
 RANLIB = @RANLIB@
@@ -154,8 +155,10 @@ dvidir = @dvidir@
 e_docdir = @e_docdir@
 e_examplesdir = @e_examplesdir@
 e_initdir = @e_initdir@
+e_libexecdir = @e_libexecdir@
 e_qtmoc = @e_qtmoc@
 e_spooldir = @e_spooldir@
+e_sysconfdir = @e_sysconfdir@
 exec_prefix = @exec_prefix@
 host_alias = @host_alias@
 htmldir = @htmldir@
@@ -189,13 +192,12 @@ EXTRA_DIST = \
 	gdaemon_win32.cpp \
 	gdatetime_win32.cpp \
 	gdirectory_win32.cpp \
+	gexecutable_win32.cpp \
 	gfs_win32.cpp \
 	gidentity_win32.cpp \
 	glogoutput_win32.cpp \
 	gprocess_win32.cpp \
 	gfile_win32.cpp \
-	gregistry_win32.cpp \
-	gregistry.h \
 	mingw.mak
 
 INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION)
@@ -210,6 +212,8 @@ libglib_a_SOURCES = \
 	gconvert.h \
 	gcleanup.h \
 	gcleanup_unix.cpp \
+	gcounter.cpp \
+	gcounter.h \
 	gdaemon.h \
 	gdaemon_unix.cpp \
 	gdate.cpp \
@@ -224,8 +228,9 @@ libglib_a_SOURCES = \
 	gdirectory_unix.cpp \
 	gexception.cpp \
 	gexception.h \
-	gexe.cpp \
-	gexe.h \
+	gexecutable_unix.cpp \
+	gexecutable.cpp \
+	gexecutable.h \
 	gfile.cpp \
 	gfile.h \
 	gfile_unix.cpp \
@@ -253,12 +258,16 @@ libglib_a_SOURCES = \
 	groot.cpp \
 	groot.h \
 	gsetter.h \
+	gsignalsafe.h \
+	gsleep.h \
 	gslot.cpp \
 	gslot.h \
 	gstatemachine.h \
 	gstr.cpp \
 	gstr.h \
 	gstrings.h \
+	gtest.cpp \
+	gtest.h \
 	gtime.cpp \
 	gtime.h \
 	gxtext.cpp \
@@ -314,6 +323,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/garg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/garg_unix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gcleanup_unix.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gcounter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdaemon_unix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdatetime.Po@am__quote@
@@ -321,7 +331,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdirectory.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdirectory_unix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gexception.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gexe.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gexecutable.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gexecutable_unix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gfile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gfile_unix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gfs_unix.Po@am__quote@
@@ -337,6 +348,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/groot.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gslot.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gstr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtime.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gxtext.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/md5.Po@am__quote@

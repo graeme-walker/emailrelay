@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // gfile_unix.cpp
@@ -48,10 +45,27 @@ bool G::File::exists( const char * path , bool & enoent )
 	}
 }
 
+bool G::File::executable( const Path & path )
+{
+	struct stat statbuf ;
+	if( 0 == ::stat( path.str().c_str() , &statbuf ) )
+	{
+		bool x = !!( statbuf.st_mode & S_IXUSR ) ;
+		bool r =
+			( statbuf.st_mode & S_IFMT ) == S_IFREG ||
+			( statbuf.st_mode & S_IFMT ) == S_IFLNK ;
+		return x && r ; // indicitive only
+	}
+	else
+	{
+		return false ;
+	}
+}
+
 std::string G::File::sizeString( const Path & path )
 {
 	struct stat statbuf ;
-	if( 0 != ::stat( path.pathCstr() , &statbuf ) )
+	if( 0 != ::stat( path.str().c_str() , &statbuf ) )
 		return std::string() ;
 
 	std::ostringstream ss ;
@@ -62,7 +76,7 @@ std::string G::File::sizeString( const Path & path )
 G::File::time_type G::File::time( const Path & path )
 {
 	struct stat statbuf ;
-	if( 0 != ::stat( path.pathCstr() , &statbuf ) )
+	if( 0 != ::stat( path.str().c_str() , &statbuf ) )
 		throw TimeError( path.str() ) ;
 	return statbuf.st_mtime ;
 }
@@ -70,7 +84,7 @@ G::File::time_type G::File::time( const Path & path )
 G::File::time_type G::File::time( const Path & path , const NoThrow & )
 {
 	struct stat statbuf ;
-	return ::stat( path.pathCstr() , &statbuf ) == 0 ? statbuf.st_mtime : 0 ;
+	return ::stat( path.str().c_str() , &statbuf ) == 0 ? statbuf.st_mtime : 0 ;
 }
 
 bool G::File::chmodx( const Path & path , bool do_throw )
@@ -79,6 +93,28 @@ bool G::File::chmodx( const Path & path , bool do_throw )
 	if( !ok && do_throw )
 		throw CannotChmod( path.str() ) ;
 	return ok ;
+}
+
+void G::File::link( const Path & target , const Path & new_link )
+{
+	if( !link(target,new_link,NoThrow()) )
+	{
+		int error = G::Process::errno_() ; // keep first
+		CannotLink e( new_link.str() ) ;
+		std::ostringstream ss ;
+		ss << "(" << error << ")" ;
+		e.append( ss.str() ) ;
+		throw e ;
+	}
+}
+
+bool G::File::link( const Path & target , const Path & new_link , const NoThrow & )
+{
+	if( exists(target) )
+		remove( target , NoThrow() ) ;
+	int rc = ::symlink( target.str().c_str() , new_link.str().c_str() ) ;
+	// dont put anything here
+	return rc == 0 ;
 }
 
 /// \file gfile_unix.cpp

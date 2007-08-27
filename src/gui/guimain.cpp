@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,12 +12,50 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // guimain.cpp
+//
+// This GUI program is primarily intended to help with initial
+// installation and configuration, but it can also be used
+// to reconfigure an existing installation (with certain
+// limitations).
+//
+// The program determines whether it is running as a self-extracting
+// installer by looking for packed files appended to the end of
+// the executable. If there are packed files then the target
+// directory paths are obtained from the GUI and the packed files
+// are extracted into those directories.
+//
+// If there are no packed files then the assumption is that it
+// is being run after a successful installation, so the target
+// directory paths are greyed out in the GUI. However, it still
+// needs to know what the installation directories were and it
+// tries to obtain these from a special ".state" file located
+// in the same directory as the executable.
+//
+// In a unix-like installation the build and install steps are
+// done from the command-line using "make" and "make install".
+// In this case the GUI is only expected to do post-installation
+// configuration so there are no packed files appended to the
+// executable and the ".state" file is created by "make install".
+//
+// In a windows-like installation the ".state" file is created
+// by the GUI at the same time as the packed files are extracted
+// into the target directories.
+//
+// Note that it is possible to do a windows-like, self-extracting
+// installation on unix-like operating systems.
+//
+// The implementation of the GUI uses a set of dialog-box "pages"
+// with forward and back buttons. Each page writes its state as
+// "key:value" pairs into an text stream. After the last page has
+// been filled in the resulting configuration text is passed to
+// the Installer class. This class interprets the configuration
+// and assembles a set of installation actions which are then
+// executed to effect the installation. (For debugging purposes
+// the "key:value" pairs can be wriiten to file using "--file".)
 //
 
 #include "gdef.h"
@@ -93,6 +130,7 @@ int main( int argc , char * argv [] )
 			Dir dir( args.v(0) , is_installed ) ;
 			if( is_installed )
 			{
+				// read base directories from the state file, typically written by "make install"
 				std::ifstream dir_state( G::Path(G::Path(args.v(0)).dirname(),"emailrelay-gui.state").str().c_str() ) ;
 				dir.read( dir_state ) ;
 			}
@@ -100,7 +138,7 @@ int main( int argc , char * argv [] )
 			G_DEBUG( "Dir::install: " << dir.install() ) ;
 			G_DEBUG( "Dir::spool: " << dir.spool() ) ;
 			G_DEBUG( "Dir::config: " << dir.config() ) ;
-			G_DEBUG( "Dir::startup: " << dir.startup() ) ;
+			G_DEBUG( "Dir::boot: " << dir.boot() ) ;
 			G_DEBUG( "Dir::pid: " << dir.pid() ) ;
 			G_DEBUG( "Dir::cwd: " << dir.cwd() ) ;
 			G_DEBUG( "Dir::thisdir: " << dir.thisdir() ) ;
@@ -123,7 +161,7 @@ int main( int argc , char * argv [] )
 			GDialog d ;
 			d.add( new TitlePage(d,"title","license","",false,false) , cfg_test_page ) ;
 			d.add( new LicensePage(d,"license","directory","",false,false) , cfg_test_page ) ;
-			d.add( new DirectoryPage(d,"directory","dowhat","",false,false,dir) , cfg_test_page ) ;
+			d.add( new DirectoryPage(d,"directory","dowhat","",false,false,dir,is_setup) , cfg_test_page ) ;
 			d.add( new DoWhatPage(d,"dowhat","pop","smtpserver",false,false) , cfg_test_page ) ;
 			d.add( new PopPage(d,"pop","popaccount","popaccounts",false,false) , cfg_test_page ) ;
 			d.add( new PopAccountPage(d,"popaccount","smtpserver","listening",false,false) , cfg_test_page ) ;
@@ -132,8 +170,8 @@ int main( int argc , char * argv [] )
 			d.add( new SmtpClientPage(d,"smtpclient","logging","",false,false) , cfg_test_page ) ;
 			d.add( new LoggingPage(d,"logging","listening","",false,false) , cfg_test_page ) ;
 			d.add( new ListeningPage(d,"listening","startup","",false,false) , cfg_test_page ) ;
-			d.add( new StartupPage(d,"startup","ready","",false,false) , cfg_test_page ) ;
-			d.add( new ReadyPage(d,"ready","progress","",true,false) , cfg_test_page ) ;
+			d.add( new StartupPage(d,"startup","ready","",false,false,dir) , cfg_test_page ) ;
+			d.add( new ReadyPage(d,"ready","progress","",true,false,is_setup) , cfg_test_page ) ;
 			d.add( new ProgressPage(d,"progress","","",true,true,args.v(0),cfg_dump_file) , cfg_test_page ) ;
 			d.add() ;
 

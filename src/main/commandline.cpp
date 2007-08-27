@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // commandline.cpp
@@ -31,7 +28,6 @@
 #include "gstr.h"
 #include "gdebug.h"
 
-//static
 std::string Main::CommandLine::switchSpec( bool is_windows )
 {
 	std::string dir = GSmtp::MessageStore::defaultDirectory().str() ;
@@ -64,7 +60,8 @@ std::string Main::CommandLine::switchSpec( bool is_windows )
 		<< "x!dont-serve!disables acting as a server on any port (part of --as-client and usually used with --forward)!0!!3|"
 		<< "X!no-smtp!disables listening for smtp connections (usually used with --admin or --pop)!0!!3|"
 		<< "z!filter!specifies an external program to process messages as they are stored!1!program!3|"
-		<< "W!filter-timeout!sets the timeout (in seconds) for running the --filter processor!1!time!3|"
+		<< "W!filter-timeout!sets the timeout (in seconds) for running the --filter processor (default is 300)!1!time!3|"
+		<< "w!prompt-timeout!sets the timeout (in seconds) for getting an initial prompt from the server!1!time!3|"
 		<< "D!domain!sets an override for the host's fully qualified domain name!1!fqdn!3|"
 		<< "f!forward!forwards stored mail on startup (requires --forward-to)!0!!3|"
 		<< "o!forward-to!specifies the remote smtp server (required by --forward, --poll, --immediate and --admin)!1!host:port!3|"
@@ -79,10 +76,9 @@ std::string Main::CommandLine::switchSpec( bool is_windows )
 		<< "P!postmaster!!0!!0|"
 		<< "Z!verifier!specifies an external program for address verification!1!program!3|"
 		<< "Y!client-filter!specifies an external program to process messages when they are forwarded!1!program!3|"
-		<< "R!scanner!specifies an external network server to process messages when they are stored!1!host:port!3|"
 		<< "Q!admin-terminate!enables the terminate command on the admin interface!0!!3|"
 		<< "A!anonymous!disables the smtp vrfy command and sends less verbose smtp responses!0!!3|"
-		<< "B!pop!enables the pop server if compiled-in!0!!" << pop_level << "|"
+		<< "B!pop!enables the pop server!0!!" << pop_level << "|"
 		<< "E!pop-port!specifies the pop listening port number (requires --pop)!1!port!" << pop_level << "|"
 		<< "F!pop-auth!defines the pop server secrets file (default is \"" << pop_auth << "\")!1!file!" << pop_level << "|"
 		<< "G!pop-no-delete!disables message deletion via pop (requires --pop)!0!!" << pop_level << "|"
@@ -91,7 +87,6 @@ std::string Main::CommandLine::switchSpec( bool is_windows )
 	return ss.str() ;
 }
 
-//static
 std::string Main::CommandLine::switchSpec_unix()
 {
 	std::ostringstream ss ;
@@ -106,7 +101,6 @@ std::string Main::CommandLine::switchSpec_unix()
 	return ss.str() ;
 }
 
-//static
 std::string Main::CommandLine::switchSpec_windows()
 {
 	std::ostringstream ss ;
@@ -156,9 +150,9 @@ void Main::CommandLine::showUsage( bool e ) const
 	else
 		introducer = std::string("abbreviated ") + introducer ;
 
-	size_t tab_stop = 34U ;
+	std::string::size_type tab_stop = 34U ;
 	m_getopt.showUsage( show.s() , m_arg.prefix() , "" ,
-		introducer , level , tab_stop , m_output.columns() ) ;
+		introducer , level , tab_stop ) ;
 }
 
 bool Main::CommandLine::contains( const std::string & name ) const
@@ -266,15 +260,6 @@ std::string Main::CommandLine::semanticError() const
 
 		if( m_getopt.contains("server-auth") )
 			return "the --server-auth switch cannot be used with --no-smtp" ;
-	}
-
-	const bool immediate =
-		m_getopt.contains("as-proxy") || // => immediate
-		m_getopt.contains("immediate") ;
-
-	if( m_getopt.contains("scanner") && ! immediate )
-	{
-		return "the --scanner switch requires --as-proxy or --immediate" ;
 	}
 
 	const bool log =

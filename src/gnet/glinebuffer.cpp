@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // glinebuffer.cpp
@@ -34,9 +31,10 @@ GNet::LineBuffer::LineBuffer( const std::string & eol , bool do_throw ) :
 	m_more(false) ,
 	m_throw(do_throw)
 {
+	G_ASSERT( !eol.empty() ) ;
 }
 
-void GNet::LineBuffer::add( const char * p , size_t n )
+void GNet::LineBuffer::add( const char * p , std::string::size_type n )
 {
 	G_ASSERT( p != NULL ) ;
 	check( n ) ;
@@ -51,11 +49,11 @@ void GNet::LineBuffer::add( const std::string & s )
 	load() ;
 }
 
-void GNet::LineBuffer::check( size_t n )
+void GNet::LineBuffer::check( std::string::size_type n )
 {
 	if( (m_store.length()+n) > m_limit )
 	{
-		size_t total = m_store.size() + m_current.size() + n ;
+		std::string::size_type total = m_store.size() + m_current.size() + n ;
 		m_store.erase() ;
 		m_current.erase() ;
 		m_more = false ;
@@ -70,7 +68,7 @@ void GNet::LineBuffer::load()
 {
 	if( ! m_more )
 	{
-		size_t pos = m_store.find(m_eol) ; // optimisation opportunity here using find(pos,s) overload
+		std::string::size_type pos = m_store.find(m_eol) ; // optimisation opportunity here using find(pos,s) overload
 		if( pos != std::string::npos )
 		{
 			m_more = true ;

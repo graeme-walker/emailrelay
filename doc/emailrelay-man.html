@@ -1,10 +1,10 @@
-Content-type: text/html
 
-<HTML><HEAD><TITLE>Manpage of EMAILRELAY</TITLE>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML><HEAD><TITLE>Man page of EMAILRELAY</TITLE>
 </HEAD><BODY>
 <H1>EMAILRELAY</H1>
 Section: User Commands  (1)<BR>Updated: local<BR><A HREF="#index">Index</A>
-<A HREF="http://localhost/cgi-bin/man/man2html">Return to Main Contents</A><HR>
+<A HREF="../index.html">Return to Main Contents</A><HR>
 
 <A NAME="lbAB">&nbsp;</A>
 <H2>NAME</H2>
@@ -143,7 +143,7 @@ Displays help text and exits.
 <DT><B>-m, --immediate </B>
 
 <DD>
-Enables immediating forwarding of messages as soon as they are received (requires <I>--forward-to</I>).
+Enables immediate forwarding of messages as soon as they are received (requires <I>--forward-to</I>).
 <DT><B>-I, --interface </B><I>&lt;ip-address&gt;</I>
 
 <DD>
@@ -200,6 +200,10 @@ Specifies the pop listening port number (requires <I>--pop</I>).
 
 <DD>
 Specifies the smtp listening port number.
+<DT><B>-w, --prompt-timeout </B><I>&lt;time&gt;</I>
+
+<DD>
+Sets the timeout (in seconds) for getting an initial prompt from the server.
 <DT><B>-r, --remote-clients </B>
 
 <DD>
@@ -208,10 +212,6 @@ Allows remote clients to connect.
 
 <DD>
 Sets the response timeout (in seconds) when talking to a remote server (default is 1800).
-<DT><B>-R, --scanner </B><I>&lt;host:port&gt;</I>
-
-<DD>
-Specifies an external network server to process messages when they are stored.
 <DT><B>-S, --server-auth </B><I>&lt;file&gt;</I>
 
 <DD>
@@ -253,13 +253,16 @@ GNU style...
 /usr/local/etc/emailrelay.conf.template
 <BR>
 
-/usr/local/libexec/emailrelay
+/usr/local/libexec/emailrelay/emailrelay-filter-copy
 <BR>
 
-/usr/local/libexec/emailrelay-poke
+/usr/local/libexec/emailrelay/emailrelay-poke
 <BR>
 
-/usr/local/libexec/emailrelay-*.sh
+/usr/local/libexec/emailrelay/examples/*
+<BR>
+
+/usr/local/libexec/emailrelay/init/emailrelay
 <BR>
 
 /usr/local/man/man1/emailrelay*.1.gz
@@ -301,7 +304,13 @@ FHS style...
 /etc/init.d/emailrelay
 <BR>
 
-/usr/lib/emailrelay-poke
+/usr/lib/emailrelay/emailrelay-filter-copy
+<BR>
+
+/usr/lib/emailrelay/emailrelay-poke
+<BR>
+
+/usr/lib/emailrelay/examples/*
 <BR>
 
 /usr/sbin/emailrelay
@@ -314,9 +323,6 @@ FHS style...
 <BR>
 
 /usr/share/doc/emailrelay/*
-<BR>
-
-/usr/share/doc/emailrelay/examples/emailrelay-*.sh
 <BR>
 
 /usr/share/doc/emailrelay/index.html
@@ -335,23 +341,15 @@ FHS style...
 <A NAME="lbAG">&nbsp;</A>
 <H2>SEE ALSO</H2>
 
-E-MailRelay user guide, (<A HREF="http://emailrelay.sourceforge.net/user.html).">http://emailrelay.sourceforge.net/user.html).</A>
+E-MailRelay user guide, <A HREF="http://emailrelay.sourceforge.net/userguide.html">http://emailrelay.sourceforge.net/userguide.html</A> .
 <BR>
 
-E-MailRelay reference, (<A HREF="http://emailrelay.sourceforge.net/reference.html).">http://emailrelay.sourceforge.net/reference.html).</A>
+E-MailRelay reference, <A HREF="http://emailrelay.sourceforge.net/reference.html">http://emailrelay.sourceforge.net/reference.html</A> .
 <BR>
 
-<B><A HREF="http://localhost/cgi-bin/man/man2html?1+emailrelay-submit">emailrelay-submit</A></B>(1),
+<B><A HREF="../man1/emailrelay-submit.1.html">emailrelay-submit</A></B>(1),
 
-<B><A HREF="http://localhost/cgi-bin/man/man2html?1+emailrelay-poke">emailrelay-poke</A></B>(1),
-
-<B><A HREF="http://localhost/cgi-bin/man/man2html?1+emailrelay-passwd">emailrelay-passwd</A></B>(1),
-
-<B><A HREF="http://localhost/cgi-bin/man/man2html?3+syslog">syslog</A></B>(3),
-
-<B><A HREF="http://localhost/cgi-bin/man/man2html?8+pppd">pppd</A></B>(8),
-
-<B><A HREF="http://localhost/cgi-bin/man/man2html?7+init.d">init.d</A></B>(7)
+<B><A HREF="../man1/emailrelay-passwd.1.html">emailrelay-passwd</A></B>(1),
 
 <A NAME="lbAH">&nbsp;</A>
 <H2>AUTHOR</H2>
@@ -372,9 +370,9 @@ Graeme Walker, mailto:<A HREF="mailto:graeme_walker@users.sourceforge.net">graem
 </DL>
 <HR>
 This document was created by
-<A HREF="http://localhost/cgi-bin/man/man2html">man2html</A>,
+<A HREF="lynxcgi:FOO/cgi-bin/man/man2html">man2html</A>,
 using the manual pages.<BR>
-Time: 18:17:41 GMT, April 09, 2007
+Time: 16:32:15 GMT, August 27, 2007
 </BODY>
 </HTML>
 <!-- Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved. -->

@@ -1,6 +1,22 @@
 #
 ## Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
+## This program is free software: you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation, either version 3 of the License, or 
+## (at your option) any later version.
+## 
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+## 
+## You should have received a copy of the GNU General Public License
+## along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+## Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+## 
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License
 ## as published by the Free Software Foundation; either
@@ -43,6 +59,7 @@ mk_zlib=$(mk_qt)/src/3rdparty/zlib
 endif
 
 mk_sources=\
+	boot.cpp \
 	gdialog.cpp \
 	gpage.cpp \
 	dir.cpp \
@@ -57,6 +74,8 @@ mk_sources=\
 	glink.cpp \
 	gunpack.cpp \
 	unpack.c
+
+service_object=../main/service_install.o
 
 gui_syslibs=\
 	-lqtmain \
@@ -124,7 +143,7 @@ mk_exe_gui_tmp=emailrelay-gui-tmp.exe
 mk_exe_setup=emailrelay-setup.exe
 mk_exe_pack=pack.exe
 mk_exe_run=run.exe
-mk_includes_extra=-I$(mk_qt)/include -I$(mk_qt)/include/QtCore -I$(mk_qt)/include/QtGui -I$(mk_zlib)
+mk_includes_extra=-I$(mk_qt)/include -I$(mk_qt)/include/QtCore -I$(mk_qt)/include/QtGui -I$(mk_zlib) -I../main
 mk_dll_qt_1=QtCore4.dll
 mk_dll_qt_2=QtGui4.dll
 mk_dll_mingw=mingwm10.dll
@@ -133,8 +152,8 @@ all: $(mk_exe_gui) $(mk_exe_pack) $(mk_exe_setup)
 
 include ../mingw-common.mak
 
-$(mk_exe_gui): $(mk_objects) $(libs)
-	$(mk_link) $(mk_link_flags) -o $(mk_exe_gui) $(mk_objects) $(libs) $(gui_syslibs) $(gui_syslibs)
+$(mk_exe_gui): $(mk_objects) $(libs) $(service_object)
+	$(mk_link) $(mk_link_flags) -o $(mk_exe_gui) $(mk_objects) $(service_object) $(libs) $(gui_syslibs) $(gui_syslibs)
 
 $(mk_exe_pack): pack.o
 	$(mk_link) $(mk_link_flags_simple) -o $(mk_exe_pack) pack.o $(glib) $(zlib)
@@ -143,7 +162,7 @@ $(mk_exe_run): run.o unpack.o $(zlib)
 	$(mk_link) $(mk_link_flags_simple) -o $(mk_exe_run) run.o unpack.o $(zlib)
 
 $(mk_exe_gui_tmp): $(mk_exe_gui) $(mk_exe_pack)
-	./$(mk_exe_pack) -a $(mk_exe_gui_tmp) $(mk_exe_gui) ../../README readme.txt ../../COPYING copying.txt ../../ChangeLog changelog.txt ../../AUTHORS authors.txt --dir "" ../main/emailrelay.exe ../main/emailrelay-submit.exe ../main/emailrelay-filter-copy.exe ../main/emailrelay-poke.exe ../main/emailrelay-passwd.exe --dir "doc" ../../doc/*.png ../../doc/*.txt ../../doc/emailrelay.css --opt ../../doc/*.html
+	./$(mk_exe_pack) -a $(mk_exe_gui_tmp) $(mk_exe_gui) ../../README readme.txt ../../COPYING copying.txt ../../ChangeLog changelog.txt ../../AUTHORS authors.txt --dir "" ../main/emailrelay-service.exe ../main/emailrelay.exe ../main/emailrelay-submit.exe ../main/emailrelay-filter-copy.exe ../main/emailrelay-poke.exe ../main/emailrelay-passwd.exe --dir "doc" ../../doc/*.png ../../doc/*.txt ../../doc/emailrelay.css --opt ../../doc/*.html
 
 $(mk_exe_setup): $(mk_exe_pack) $(mk_exe_gui_tmp) $(mk_exe_run)
 	./$(mk_exe_pack) $(mk_exe_setup) $(mk_exe_run) $(mk_qt)/bin/$(mk_dll_qt_1) $(mk_dll_qt_1) $(mk_qt)/bin/$(mk_dll_qt_2) $(mk_dll_qt_2) $(mk_mingw)/$(mk_dll_mingw) $(mk_dll_mingw) $(mk_exe_gui_tmp) $(mk_exe_gui)

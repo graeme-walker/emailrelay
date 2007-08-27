@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file gsmtpclient.h
@@ -38,7 +35,7 @@
 #include "gslot.h"
 #include "gtimer.h"
 #include "gstrings.h"
-#include "gexe.h"
+#include "gexecutable.h"
 #include "gexception.h"
 #include <memory>
 #include <iostream>
@@ -55,7 +52,7 @@ namespace GSmtp
 /// messages from a message store and forwarding them to
 /// a remote SMTP server.
 ///
-class GSmtp::Client : private GNet::Client , private GNet::TimeoutHandler , private GSmtp::ClientProtocol::Sender
+class GSmtp::Client : public GNet::Client , private GSmtp::ClientProtocol::Sender
 {
 public:
 	G_EXCEPTION( NotConnected , "not connected" ) ;
@@ -63,115 +60,79 @@ public:
 	/// A structure containing GSmtp::Client configuration parameters.
 	struct Config
 	{
-		G::Executable storedfile_preprocessor ;
+		std::string processor_address ;
+		unsigned int processor_timeout ;
 		GNet::Address local_address ;
 		ClientProtocol::Config client_protocol_config ;
-		Config( G::Executable , GNet::Address , ClientProtocol::Config ) ;
+		unsigned int connection_timeout ;
+		Config( std::string , unsigned int , GNet::Address , ClientProtocol::Config , unsigned int ) ;
 	} ;
 
-	Client( MessageStore & store , const Secrets & secrets , Config config , bool quit_on_disconnect ) ;
-			///< Constructor for sending messages from the message
-			///< store. The 'store' and 'secrets' references are
-			///< kept.
-			///<
-			///< The doneSignal() is used to indicate that
-			///< all message processing has finished
-			///< or that the server connection has
-			///< been lost.
+	Client( const GNet::ResolverInfo & remote , const Secrets & secrets , Config config ) ;
+		///< Constructor. Starts connecting immediately.
+		///<
+		///< All Client instances must be on the heap since they
+		///< delete themselves after raising the done signal.
 
-	Client( std::auto_ptr<StoredMessage> message , const Secrets & secrets , Config config ) ;
-			///< Constructor for sending a single message.
-			///< The 'secrets' reference is kept.
-			///<
-			///< The doneSignal() is used to indicate that all
-			///< message processing has finished or that the
-			///< server connection has been lost.
-			///<
-			///< With this constructor (designed for proxying) the
-			///< message is fail()ed if the connection to the
-			///< downstream server cannot be made.
+	void sendMessages( MessageStore & store ) ;
+		///< Sends all messages from the given message store once
+		///< connected and deletes itself when done. This must be
+		///< used immediately after construction with a non-empty
+		///< message store.
+		///<
+		///< The base class doneSignal() can be used as an indication
+		///< that all messages have been sent and the object has
+		///< deleted itself.
 
+	void sendMessage( std::auto_ptr<StoredMessage> message ) ;
+		///< Starts sending the given message. Cannot be called
+		///< if there is a message already in the pipeline.
+		///<
+		///< The messageDoneSignal() is used to indicate that the message
+		///< processing has finished or failed.
+		///<
+		///< The message is fail()ed if it cannot be sent. If this
+		///< Client object is deleted before the message is sent
+		///< the message is neither fail()ed or destroy()ed.
+
+	G::Signal1<std::string> & messageDoneSignal() ;
+		///< Returns a signal that indicates that sendMessage()
+		///< has completed or failed.
+
+protected:
 	virtual ~Client() ;
 		///< Destructor.
 
-	void reset() ;
-		///< Resets the object so that it becomes a non-functional zombie.
+	virtual void onConnect() ;
+		///< Final override from GNet::SimpleClient.
 
-	G::Signal1<std::string> & doneSignal() ;
-		///< Returns a signal which indicates that client processing
-		///< is complete.
-		///<
-		///< The signal parameter is a failure reason, or the
-		///< empty string on success.
+	virtual bool onReceive( const std::string & ) ;
+		///< Final override from GNet::Client.
 
-	G::Signal2<std::string,std::string> & eventSignal() ;
-		///< Returns a signal which indicates something interesting.
-		///<
-		///< The first signal parameter is one of "connecting",
-		///< "failed", "connected", "sending", or "done".
+	virtual void onDelete( const std::string & , bool ) ;
+		///< Final override from GNet::HeapClient.
 
-	std::string startSending( const std::string & server_address_string , unsigned int connection_timeout ) ;
-		///< Starts the sending process. Messages are extracted
-		///< from the message store (as passed in the ctor) and
-		///< forwarded on to the specified server.
-		///<
-		///< To be called once (only) after construction.
-		///<
-		///< Returns an error string if there are no messages
-		///< to be sent, or if the network connection
-		///< cannot be initiated. Returns the empty
-		///< string on success. The error string can
-		///< be partially interpreted by calling
-		///< nothingToSend().
-
-	static bool nothingToSend( const std::string & reason ) ;
-		///< Returns true if the given reason string -- obtained
-		///< from startSending() -- is the fairly benign
-		///< 'no messages to send'.
-
-	bool busy() const ;
-		///< Returns true after construction and while
-		///< message processing is going on. Returns
-		///< false once the doneSignal() has been emited.
+	virtual void onSendComplete() ;
+		///< Final override from GNet::BufferedClient.
 
 private:
-	virtual void onConnect( GNet::Socket & socket ) ; // GNet::Client
-	virtual void onDisconnect() ; // GNet::Client
-	virtual void onData( const char * data , size_t size ) ; // GNet::Client
-	virtual void onWriteable() ; // GNet::Client
-	virtual void onError( const std::string & error ) ; // GNet::Client
-	virtual bool protocolSend( const std::string & , size_t ) ; // ClientProtocol::Sender
-	void protocolDone( bool , bool , std::string ) ; // ClientProtocol::doneSignal()
+	virtual bool protocolSend( const std::string & , size_t ) ; // override from private base class
+	void protocolDone( std::string ) ; // see ClientProtocol::doneSignal()
 	void preprocessorStart() ;
 	void preprocessorDone( bool ) ;
-	virtual void onTimeout( GNet::Timer & ) ; // GNet::TimeoutHandler
-	std::string init( const std::string & , const std::string & , unsigned int ) ;
-	GNet::Socket & socket() ;
 	static std::string crlf() ;
 	bool sendNext() ;
 	void start( StoredMessage & ) ;
-	void raiseDoneSignal( const std::string & ) ;
-	void raiseEventSignal( const std::string & , const std::string & ) ;
-	void finish( const std::string & reason = std::string() , bool do_disconnect = true ) ;
 	void messageFail( const std::string & reason ) ;
 	void messageDestroy() ;
-	static std::string none() ;
 
 private:
 	MessageStore * m_store ;
-	Processor m_storedfile_preprocessor ;
+	std::auto_ptr<Processor> m_processor ;
 	std::auto_ptr<StoredMessage> m_message ;
 	MessageStore::Iterator m_iter ;
-	GNet::LineBuffer m_buffer ;
 	ClientProtocol m_protocol ;
-	GNet::Socket * m_socket ;
-	std::string m_pending ;
-	G::Signal1<std::string> m_done_signal ;
-	G::Signal2<std::string,std::string> m_event_signal ;
-	std::string m_host ;
-	GNet::Timer m_connect_timer ;
-	bool m_busy ;
-	bool m_force_message_fail ;
+	G::Signal1<std::string> m_message_done_signal ;
 } ;
 
 #endif

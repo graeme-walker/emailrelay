@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // gmonitor.cpp
@@ -33,7 +30,7 @@
 class GNet::MonitorImp
 {
 public:
-	typedef const Client * C_p ;
+	typedef const SimpleClient * C_p ;
 	typedef const ServerPeer * S_p ;
 	typedef std::set<C_p> Clients ;
 	typedef std::pair<Clients::iterator,bool> ClientInsertion ;
@@ -82,7 +79,7 @@ GNet::Monitor * GNet::Monitor::instance()
 	return m_this ;
 }
 
-void GNet::Monitor::add( const Client & client )
+void GNet::Monitor::add( const SimpleClient & client )
 {
 	MonitorImp::ClientInsertion rc = m_imp->m_clients.insert( &client ) ;
 	if( rc.second )
@@ -90,7 +87,7 @@ void GNet::Monitor::add( const Client & client )
 	m_signal.emit( "out" , "start" ) ;
 }
 
-void GNet::Monitor::remove( const Client & client )
+void GNet::Monitor::remove( const SimpleClient & client )
 {
 	if( m_imp->m_clients.erase( &client ) )
 		m_imp->m_client_removes++ ;

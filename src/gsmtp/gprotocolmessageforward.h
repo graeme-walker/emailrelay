@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file gprotocolmessageforward.h
@@ -26,9 +23,11 @@
 
 #include "gdef.h"
 #include "gsmtp.h"
+#include "gresolverinfo.h"
+#include "gclientptr.h"
 #include "gprotocolmessage.h"
 #include "gprotocolmessagestore.h"
-#include "gexe.h"
+#include "gexecutable.h"
 #include "gsecrets.h"
 #include "gsmtpclient.h"
 #include "gmessagestore.h"
@@ -49,7 +48,7 @@ namespace GSmtp
 ///
 /// The implementation delegates to an instance of the ProtocolMessageStore
 /// class (ie. its sibling class) to do the storage, and to an instance
-/// of the Client class to do the forwarding.
+/// of the GSmtp::Client class to do the forwarding.
 ///
 /// \see GSmtp::ProtocolMessageStore
 ///
@@ -57,7 +56,7 @@ class GSmtp::ProtocolMessageForward : public GSmtp::ProtocolMessage
 {
 public:
 	ProtocolMessageForward( MessageStore & store ,
-		const G::Executable & newfile_preprocessor ,
+		std::auto_ptr<ProtocolMessage> pm ,
 		const GSmtp::Client::Config & client_config ,
 		const Secrets & client_secrets ,
 		const std::string & server_address ,
@@ -69,34 +68,31 @@ public:
 		///< Destructor.
 
 	virtual G::Signal3<bool,unsigned long,std::string> & doneSignal() ;
-		///< See ProtocolMessage.
+		///< Final override from GSmtp::ProtocolMessage.
 
-	virtual G::Signal3<bool,bool,std::string> & preparedSignal() ;
-		///< See ProtocolMessage.
+	virtual void reset() ;
+		///< Final override from GSmtp::ProtocolMessage.
 
 	virtual void clear() ;
-		///< See ProtocolMessage.
+		///< Final override from GSmtp::ProtocolMessage.
 
 	virtual bool setFrom( const std::string & from_user ) ;
-		///< See ProtocolMessage.
-
-	virtual bool prepare() ;
-		///< See ProtocolMessage.
+		///< Final override from GSmtp::ProtocolMessage.
 
 	virtual bool addTo( const std::string & to_user , Verifier::Status to_status ) ;
-		///< See ProtocolMessage.
+		///< Final override from GSmtp::ProtocolMessage.
 
 	virtual void addReceived( const std::string & ) ;
-		///< See ProtocolMessage.
+		///< Final override from GSmtp::ProtocolMessage.
 
 	virtual void addText( const std::string & ) ;
-		///< See ProtocolMessage.
+		///< Final override from GSmtp::ProtocolMessage.
 
 	virtual std::string from() const ;
-		///< See ProtocolMessage.
+		///< Final override from GSmtp::ProtocolMessage.
 
 	virtual void process( const std::string & auth_id , const std::string & client_ip ) ;
-		///< See ProtocolMessage.
+		///< Final override from GSmtp::ProtocolMessage.
 
 protected:
 	G::Signal3<bool,unsigned long,std::string> & storageDoneSignal() ;
@@ -112,21 +108,20 @@ protected:
 
 private:
 	void operator=( const ProtocolMessageForward & ) ; // not implemented
-	void clientDone( std::string ) ; // Client::doneSignal()
+	void clientDone( std::string , bool ) ; // GNet::Client::doneSignal()
+	void messageDone( std::string ) ; // GSmtp::Client::messageDoneSignal()
 	bool forward( unsigned long , bool & , std::string * ) ;
 
 private:
 	MessageStore & m_store ;
-	GSmtp::Client::Config m_client_config ;
-	G::Executable m_newfile_preprocessor ;
+	GNet::ResolverInfo m_client_resolver_info ;
+	Client::Config m_client_config ;
 	const Secrets & m_client_secrets ;
-	ProtocolMessageStore m_pms ;
-	std::string m_server ;
-	std::auto_ptr<Client> m_client ;
+	std::auto_ptr<ProtocolMessage> m_pm ;
+	GNet::ClientPtr<GSmtp::Client> m_client ;
 	unsigned long m_id ;
 	unsigned int m_connection_timeout ;
 	G::Signal3<bool,unsigned long,std::string> m_done_signal ;
-	G::Signal3<bool,bool,std::string> m_prepared_signal ;
 } ;
 
 #endif

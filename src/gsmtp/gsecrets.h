@@ -1,11 +1,10 @@
 //
 // Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,9 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
 /// \file gsecrets.h
@@ -69,36 +66,36 @@ public:
 		///< Destructor.
 
 	virtual bool valid() const ;
-		///< Returns false if the path was empty.
+		///< Final override from GSmtp::Valid virtual base.
 		///<
-		///< Override from Valid virtual base class.
+		///< The implementation returns false if the path was empty.
 
 	virtual std::string id( const std::string & mechanism ) const ;
+		///< Final override from GSmtp::SaslClient::Secrets.
+		///<
 		///< Returns the default id for client-side
 		///< authentication.
-		///<
-		///< Override from SaslClient::Secrets.
 
 	virtual std::string secret( const std::string & mechanism ) const ;
+		///< Final override from GSmtp::SaslClient::Secrets.
+		///<
 		///< Returns the default secret for client-side
 		///< authentication.
-		///<
-		///< Override from SaslClient::Secrets.
 
 	virtual std::string secret(  const std::string & mechanism , const std::string & id ) const ;
+		///< Final override from GSmtp::SaslServer::Secrets.
+		///<
 		///< Returns the given user's secret for server-side
 		///< authentication. Returns the empty string if not a
 		///< valid id.
-		///<
-		///< Override from SaslServer::Secrets.
 
 	virtual bool contains( const std::string & mechanism ) const ;
+		///< Final override from GSmtp::SaslServer::Secrets.
+		///<
 		///< Returns true if there is one or more server
 		///< secrets using the given mechanism. This can
 		///< be used to limit the list of mechanisms
 		///< advertised by a server.
-		///<
-		///< Override from SaslServer::Secrets.
 
 private:
 	Secrets( const Secrets & ) ; // not implemented
