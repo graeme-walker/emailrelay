@@ -15,6 +15,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 
-#error not used
+// TODO ...
 
-/// \file gsasl_cyrus.cpp
+// http://josefsson.org/gsasl
+
+/// \file gsasl_gnu.cpp

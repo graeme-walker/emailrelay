@@ -29,6 +29,7 @@
 #include "gmemory.h"
 #include "gxtext.h"
 #include "gclientprotocol.h"
+#include "gsocketprotocol.h"
 #include "gresolver.h"
 #include "glog.h"
 #include "gassert.h"
@@ -39,7 +40,9 @@ GSmtp::ClientProtocol::ClientProtocol( Sender & sender , const Secrets & secrets
 	m_thishost(config.thishost_name) ,
 	m_state(sInit) ,
 	m_to_accepted(0U) ,
+	m_server_has_auth(false) ,
 	m_server_has_8bitmime(false) ,
+	m_server_has_tls(false) ,
 	m_message_is_8bit(false) ,
 	m_authenticated_with_server(false) ,
 	m_must_authenticate(config.must_authenticate) ,
@@ -74,8 +77,15 @@ void GSmtp::ClientProtocol::start( const std::string & from , const G::Strings &
 
 void GSmtp::ClientProtocol::preprocessorDone( const std::string & reason )
 {
-	// sneakily convert the preprocessor response into an smtp Reply
-	applyEvent( reason.empty() ? Reply::ok() : Reply::error(std::string("preprocessing: ")+reason) ) ;
+	// convert the preprocessor response into a pretend smtp Reply
+	applyEvent( reason.empty() ?
+		Reply::ok(Reply::Internal_2xx) : Reply::error(std::string("preprocessing: ")+reason) ) ;
+}
+
+void GSmtp::ClientProtocol::secure()
+{
+	// convert the event into a pretend smtp Reply
+	applyEvent( Reply::ok(Reply::Internal_2yy) ) ;
 }
 
 void GSmtp::ClientProtocol::sendDone()
@@ -88,7 +98,7 @@ void GSmtp::ClientProtocol::sendDone()
 		if( endOfContent() )
 		{
 			m_state = sSentDot ;
-			send(".",true) ;
+			send( "." , true ) ;
 		}
 	}
 }
@@ -238,30 +248,43 @@ bool GSmtp::ClientProtocol::applyEvent( const Reply & reply , bool is_start_even
 		m_state = sSentHelo ;
 		sendHelo() ;
 	}
-	else if( (m_state==sSentEhlo || m_state==sSentHelo) && reply.is(Reply::Ok_250) )
+	else if( ( m_state == sSentEhlo || m_state == sSentHelo || m_state == sSentTlsEhlo ) && reply.is(Reply::Ok_250) )
 	{
 		G_ASSERT( m_sasl.get() != NULL ) ;
 		G_DEBUG( "GSmtp::ClientProtocol::applyEvent: ehlo reply \""
 			<< G::Str::printable(reply.text()) << "\"" ) ;
 
-		bool server_auth = serverAuth( reply ) ;
+		m_server_has_auth = serverAuth( reply ) ;
+		m_server_has_8bitmime = ( m_state == sSentEhlo || m_state == sSentTlsEhlo ) && reply.textContains("\n8BITMIME");
+		m_server_has_tls = m_state == sSentTlsEhlo || ( m_state == sSentEhlo && reply.textContains("\nSTARTTLS") ) ;
 		m_auth_mechanism = m_sasl->preferred( serverAuthMechanisms(reply) ) ;
-		m_server_has_8bitmime = m_state == sSentEhlo && reply.textContains("\n8BITMIME") ;
 
-		if( server_auth && !m_sasl->active() )
+		if( m_server_has_tls && !GNet::SocketProtocol::sslCapable() )
+		{
+			std::string msg( "GSmtp::ClientProtocol::applyEvent: cannot do tls/ssl required by remote smtp server" );
+			if( !m_auth_mechanism.empty() ) msg.append( ": authentication will probably fail" ) ;
+			G_WARNING( msg ) ;
+		}
+
+		if( m_state == sSentEhlo && m_server_has_tls && GNet::SocketProtocol::sslCapable() )
+		{
+			m_state = sStartTls ;
+			send( "STARTTLS" ) ;
+		}
+		else if( m_server_has_auth && !m_sasl->active() )
 		{
 			throw AuthenticationRequired() ;
 		}
-		else if( server_auth && m_sasl->active() && m_auth_mechanism.empty() )
+		else if( m_server_has_auth && m_sasl->active() && m_auth_mechanism.empty() )
 		{
 			throw NoMechanism() ;
 		}
-		else if( server_auth && m_sasl->active() )
+		else if( m_server_has_auth && m_sasl->active() )
 		{
 			m_state = sAuth1 ;
 			send( std::string("AUTH ") + m_auth_mechanism ) ;
 		}
-		else if( !server_auth && m_sasl->active() && m_must_authenticate )
+		else if( !m_server_has_auth && m_sasl->active() && m_must_authenticate )
 		{
 			// (this makes sense if we need to propagate messages' authentication credentials)
 			throw AuthenticationNotSupported() ;
@@ -272,11 +295,25 @@ bool GSmtp::ClientProtocol::applyEvent( const Reply & reply , bool is_start_even
 			startPreprocessing() ;
 		}
 	}
+	else if( m_state == sStartTls && reply.is(Reply::ServiceReady_220) )
+	{
+		m_sender.protocolSend( std::string() , 0U , true ) ; // go secure
+	}
+	else if( m_state == sStartTls && reply.is(Reply::NotAvailable_454) )
+	{
+		throw TlsError( reply.errorText() ) ;
+	}
+	else if( m_state == sStartTls && reply.is(Reply::Internal_2yy) )
+	{
+		m_state = sSentTlsEhlo ;
+		sendEhlo() ;
+	}
 	else if( m_state == sAuth1 && reply.is(Reply::Challenge_334) && Base64::valid(reply.text()) )
 	{
 		bool done = true ;
 		bool error = false ;
-		std::string rsp = m_sasl->response( m_auth_mechanism , Base64::decode(reply.text()) , done , error ) ;
+		bool sensitive = false ;
+		std::string rsp = m_sasl->response( m_auth_mechanism , Base64::decode(reply.text()) , done , error , sensitive);
 		if( error )
 		{
 			m_state = sAuth2 ;
@@ -285,7 +322,7 @@ bool GSmtp::ClientProtocol::applyEvent( const Reply & reply , bool is_start_even
 		else
 		{
 			m_state = done ? sAuth2 : m_state ;
-			send( Base64::encode(rsp,std::string()) ) ;
+			send( Base64::encode(rsp,std::string()) , false , sensitive ) ;
 		}
 	}
 	else if( m_state == sAuth1 && reply.is(Reply::NotAuthenticated_535) )
@@ -309,7 +346,7 @@ bool GSmtp::ClientProtocol::applyEvent( const Reply & reply , bool is_start_even
 			startPreprocessing() ; // (continue with or without sucessful authentication)
 		}
 	}
-	else if( m_state == sPreprocessing && reply.positive() )
+	else if( m_state == sPreprocessing && reply.is(Reply::Internal_2xx) )
 	{
 		m_state = sSentMail ;
 		sendMail() ;
@@ -354,14 +391,12 @@ bool GSmtp::ClientProtocol::applyEvent( const Reply & reply , bool is_start_even
 
 		size_t n = sendLines() ;
 
-		const bool log_content = false ; // set true here and in sendLine() if debugging
-		if( !log_content )
-			G_LOG( "GSmtp::ClientProtocol: tx>>: [" << n << " line(s) of content]" ) ;
+		G_LOG( "GSmtp::ClientProtocol: tx>>: [" << n << " line(s) of content]" ) ;
 
 		if( endOfContent() )
 		{
 			m_state = sSentDot ;
-			send( "." , true , log_content ) ;
+			send( "." , true ) ;
 		}
 	}
 	else if( m_state == sSentDataStub && !( reply.is(Reply::OkForData_354) || reply.positive() ) )
@@ -480,7 +515,7 @@ bool GSmtp::ClientProtocol::sendLine( std::string & line )
 		if( !stream.fail() )
 		{
 			line.append( crlf() ) ;
-			bool all_sent = m_sender.protocolSend( line , line.at(1U) == '.' ? 0U : 1U ) ;
+			bool all_sent = m_sender.protocolSend( line , line.at(1U) == '.' ? 0U : 1U , false ) ;
 			if( !all_sent && m_response_timeout != 0U )
 				startTimer( m_response_timeout ) ; // use response timer for when flow-control asserted
 			ok = all_sent ;
@@ -489,16 +524,21 @@ bool GSmtp::ClientProtocol::sendLine( std::string & line )
 	return ok ;
 }
 
-bool GSmtp::ClientProtocol::send( const std::string & line , bool eot , bool log )
+bool GSmtp::ClientProtocol::send( const std::string & line , bool eot , bool sensitive )
 {
 	if( m_response_timeout != 0U )
 		startTimer( m_response_timeout ) ;
 
 	std::string prefix( !eot && line.length() && line.at(0U) == '.' ? "." : "" ) ;
-	if( log )
+	if( sensitive )
+	{
+		G_LOG( "GSmtp::ClientProtocol: tx>>: [response not logged]" ) ;
+	}
+	else
+	{
 		G_LOG( "GSmtp::ClientProtocol: tx>>: \"" << prefix << G::Str::printable(line) << "\"" ) ;
-
-	return m_sender.protocolSend( prefix + line + crlf() , 0U ) ;
+	}
+	return m_sender.protocolSend( prefix + line + crlf() , 0U , false ) ;
 }
 
 const std::string & GSmtp::ClientProtocol::crlf()
@@ -551,6 +591,19 @@ GSmtp::ClientProtocolReply GSmtp::ClientProtocolReply::ok()
 	return reply ;
 }
 
+GSmtp::ClientProtocolReply GSmtp::ClientProtocolReply::ok( Value v )
+{
+	int i = static_cast<int>(v) ;
+	G_ASSERT( i >= 200 && i <= 299 ) ;
+	std::ostringstream ss ;
+	ss << i << " OK" ;
+	ClientProtocolReply reply( ss.str() ) ;
+	G_ASSERT( reply.positive() ) ;
+	G_ASSERT( reply.errorText().empty() ) ;
+	G_ASSERT( reply.is(v) ) ;
+	return reply ;
+}
+
 GSmtp::ClientProtocolReply GSmtp::ClientProtocolReply::error( const std::string & reason )
 {
 	ClientProtocolReply reply( std::string("500 ")+G::Str::printable(reason) ) ;
@@ -587,7 +640,8 @@ bool GSmtp::ClientProtocolReply::is( Value v ) const
 
 std::string GSmtp::ClientProtocolReply::errorText() const
 {
-	return value() == 250 ? std::string() : ( m_text.empty() ? std::string("error") : m_text ) ;
+	const bool positive_completion = type() == PositiveCompletion ;
+	return positive_completion ? std::string() : ( m_text.empty() ? std::string("error") : m_text ) ;
 }
 
 std::string GSmtp::ClientProtocolReply::text() const

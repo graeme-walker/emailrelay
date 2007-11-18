@@ -20,7 +20,6 @@
 
 mk_sources=\
 	gaddress_ipv4.cpp \
-	gbufferedclient.cpp \
 	gbufferedserverpeer.cpp \
 	gclient.cpp \
 	gconnection.cpp \
@@ -39,12 +38,12 @@ mk_sources=\
 	gresolverinfo.cpp \
 	gresolver_ipv4.cpp \
 	gresolver_win32.cpp \
-	gsender.cpp \
 	gserver.cpp \
 	gsimpleclient.cpp \
 	gsimpleclient_win32.cpp \
 	gsocket.cpp \
 	gsocket_win32.cpp \
+	gsocketprotocol.cpp \
 	gtimer.cpp \
 	gtimerlist.cpp
 

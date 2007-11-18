@@ -15,19 +15,18 @@ dnl along with this program.  If not, see <http://www.gnu.org/licenses/>.
 dnl ===
 
 dnl socketlen_t
-dnl derived from lars brinkhoff...
 dnl
 AC_DEFUN([ACLOCAL_TYPE_SOCKLEN_T],
-[AC_CACHE_CHECK([for socklen_t], aclocal_cv_type_socklen_t,
+[AC_CACHE_CHECK([for socklen_t],[aclocal_type_socklen_t],
 [
-	AC_TRY_COMPILE(
-		[#include <sys/types.h>
-#include <sys/socket.h>],
-		[socklen_t len = 42; return len;],
-		aclocal_cv_type_socklen_t=yes,
-		aclocal_cv_type_socklen_t=no )
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[[#include <sys/types.h>
+#include <sys/socket.h>]],
+		[[socklen_t len = 42; return len;]])],
+		aclocal_type_socklen_t=yes,
+		aclocal_type_socklen_t=no )
 ])
-	if test $aclocal_cv_type_socklen_t = yes; then
+	if test $aclocal_type_socklen_t = yes; then
 		AC_DEFINE(HAVE_SOCKLEN_T, 1,[Define to 1 if socklen_t type definition in sys/socket.h])
 	else
 		AC_DEFINE(HAVE_SOCKLEN_T, 0,[Define to 1 if socklen_t type definition in sys/socket.h])
@@ -37,18 +36,18 @@ AC_DEFUN([ACLOCAL_TYPE_SOCKLEN_T],
 dnl ipv6
 dnl
 AC_DEFUN([ACLOCAL_CHECK_IPV6],
-[AC_CACHE_CHECK([for ipv6], aclocal_cv_ipv6,
+[AC_CACHE_CHECK([for ipv6],[aclocal_ipv6],
 [
-	AC_TRY_COMPILE(
-		[#include <sys/types.h>
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[[#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>],
-		[sockaddr_in6 * p = 0;],
-		aclocal_cv_ipv6=yes ,
-		aclocal_cv_ipv6=no )
+#include <arpa/inet.h>]],
+		[[sockaddr_in6 * p = 0;]])],
+		aclocal_ipv6=yes ,
+		aclocal_ipv6=no )
 ])
-	if test $aclocal_cv_ipv6 = yes; then
+	if test $aclocal_ipv6 = yes; then
 		AC_DEFINE(HAVE_IPV6,1,[Define to 1 if ipv6 is available])
 	else
 		AC_DEFINE(HAVE_IPV6,0,[Define to 1 if ipv6 is available])
@@ -58,19 +57,19 @@ AC_DEFUN([ACLOCAL_CHECK_IPV6],
 dnl getipnodebyname for ipv6 rfc2553
 dnl
 AC_DEFUN([ACLOCAL_CHECK_GETIPNODEBYNAME],
-[AC_CACHE_CHECK([for getipnodebyname], aclocal_cv_getipnodebyname,
+[AC_CACHE_CHECK([for getipnodebyname],[aclocal_getipnodebyname],
 [
-	AC_TRY_COMPILE(
-		[#include <sys/types.h>
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[[#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <netdb.h>],
-		[int i=0; getipnodebyname("",AF_INET6,AI_DEFAULT,&i);],
-		aclocal_cv_getipnodebyname=yes ,
-		aclocal_cv_getipnodebyname=no )
+#include <netdb.h>]],
+		[[int i=0; getipnodebyname("",AF_INET6,AI_DEFAULT,&i);]])],
+		aclocal_getipnodebyname=yes ,
+		aclocal_getipnodebyname=no )
 ])
-	if test $aclocal_cv_getipnodebyname = yes; then
+	if test $aclocal_getipnodebyname = yes; then
 		AC_DEFINE(HAVE_GETIPNODEBYNAME,1,[Define to 1 if getipnodebyname() is available])
 	else
 		AC_DEFINE(HAVE_GETIPNODEBYNAME,0,[Define to 1 if getipnodebyname() is available])
@@ -80,17 +79,17 @@ AC_DEFUN([ACLOCAL_CHECK_GETIPNODEBYNAME],
 dnl check for sin6_len in sockaddr_in6
 dnl
 AC_DEFUN([ACLOCAL_CHECK_SIN6_LEN],
-[AC_CACHE_CHECK([for sin6_len], aclocal_cv_sin6_len,
+[AC_CACHE_CHECK([for sin6_len],[aclocal_sin6_len],
 [
-	AC_TRY_COMPILE(
-		[#include <sys/types.h>
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[[#include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>],
-		[struct sockaddr_in6 s; s.sin6_len = 1;],
-		aclocal_cv_sin6_len=yes ,
-		aclocal_cv_sin6_len=no )
+#include <netinet/in.h>]],
+		[[struct sockaddr_in6 s; s.sin6_len = 1;]])],
+		aclocal_sin6_len=yes ,
+		aclocal_sin6_len=no )
 ])
-	if test $aclocal_cv_sin6_len = yes; then
+	if test $aclocal_sin6_len = yes; then
 		AC_DEFINE(HAVE_SIN6_LEN,1,[Define to 1 if sockaddr_in6 has a sin6_len member])
 	else
 		AC_DEFINE(HAVE_SIN6_LEN,0,[Define to 1 if sockaddr_in6 has a sin6_len member])
@@ -100,17 +99,17 @@ AC_DEFUN([ACLOCAL_CHECK_SIN6_LEN],
 dnl setgroups
 dnl
 AC_DEFUN([ACLOCAL_CHECK_SETGROUPS],
-[AC_CACHE_CHECK([for setgroups], aclocal_cv_setgroups,
+[AC_CACHE_CHECK([for setgroups],[aclocal_setgroups],
 [
-	AC_TRY_COMPILE(
-		[#include <sys/types.h>
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[[#include <sys/types.h>
 #include <unistd.h>
-#include <grp.h>],
-		[setgroups(0,0) ;],
-		aclocal_cv_setgroups=yes ,
-		aclocal_cv_setgroups=no )
+#include <grp.h>]],
+		[[setgroups(0,0) ;]])],
+		aclocal_setgroups=yes ,
+		aclocal_setgroups=no )
 ])
-	if test $aclocal_cv_setgroups = yes; then
+	if test $aclocal_setgroups = yes; then
 		AC_DEFINE(HAVE_SETGROUPS,1,[Define to 1 if setgroups is available])
 	else
 		AC_DEFINE(HAVE_SETGROUPS,0,[Define to 1 if setgroups is available])
@@ -120,15 +119,15 @@ AC_DEFUN([ACLOCAL_CHECK_SETGROUPS],
 dnl gmtime_r
 dnl
 AC_DEFUN([ACLOCAL_CHECK_GMTIME_R],
-[AC_CACHE_CHECK([for gmtime_r], aclocal_cv_gmtime_r,
+[AC_CACHE_CHECK([for gmtime_r],[aclocal_gmtime_r],
 [
-	AC_TRY_COMPILE(
-		[#include <time.h>],
-		[gmtime_r((time_t*)0,(struct tm*)0) ;],
-		aclocal_cv_gmtime_r=yes ,
-		aclocal_cv_gmtime_r=no )
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[[#include <time.h>]],
+		[[gmtime_r((time_t*)0,(struct tm*)0) ;]])],
+		aclocal_gmtime_r=yes ,
+		aclocal_gmtime_r=no )
 ])
-	if test $aclocal_cv_gmtime_r = yes; then
+	if test $aclocal_gmtime_r = yes; then
 		AC_DEFINE(HAVE_GMTIME_R,1,[Define to 1 if gmtime_r in time.h])
 	else
 		AC_DEFINE(HAVE_GMTIME_R,0,[Define to 1 if gmtime_r in time.h])
@@ -138,15 +137,15 @@ AC_DEFUN([ACLOCAL_CHECK_GMTIME_R],
 dnl localtime_r
 dnl
 AC_DEFUN([ACLOCAL_CHECK_LOCALTIME_R],
-[AC_CACHE_CHECK([for localtime_r], aclocal_cv_localtime_r,
+[AC_CACHE_CHECK([for localtime_r],[aclocal_localtime_r],
 [
-	AC_TRY_COMPILE(
-		[#include <time.h>],
-		[localtime_r((time_t*)0,(struct tm*)0) ;],
-		aclocal_cv_localtime_r=yes ,
-		aclocal_cv_localtime_r=no )
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[[#include <time.h>]],
+		[[localtime_r((time_t*)0,(struct tm*)0) ;]])],
+		aclocal_localtime_r=yes ,
+		aclocal_localtime_r=no )
 ])
-	if test $aclocal_cv_localtime_r = yes; then
+	if test $aclocal_localtime_r = yes; then
 		AC_DEFINE(HAVE_LOCALTIME_R,1,[Define to 1 if localtime_r in time.h])
 	else
 		AC_DEFINE(HAVE_LOCALTIME_R,0,[Define to 1 if localtime_r in time.h])
@@ -157,16 +156,16 @@ dnl buggy ctime
 dnl sunpro5 ctime + unistd.h doesnt compile -- fix with time.h first
 dnl
 AC_DEFUN([ACLOCAL_CHECK_BUGGY_CTIME],
-[AC_CACHE_CHECK([for buggy ctime], aclocal_cv_buggy_ctime,
+[AC_CACHE_CHECK([for buggy ctime],[aclocal_buggy_ctime],
 [
-	AC_TRY_COMPILE(
-		[#include <ctime>
-#include <unistd.h>],
-		[] ,
-		aclocal_cv_buggy_ctime=no ,
-		aclocal_cv_buggy_ctime=yes )
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[[#include <ctime>
+#include <unistd.h>]],
+		[[ ]])] ,
+		aclocal_buggy_ctime=no ,
+		aclocal_buggy_ctime=yes )
 ])
-	if test $aclocal_cv_buggy_ctime = yes; then
+	if test $aclocal_buggy_ctime = yes; then
 		AC_DEFINE(HAVE_BUGGY_CTIME,1,[Define to 1 if <ctime> requires <time.h>])
 	else
 		AC_DEFINE(HAVE_BUGGY_CTIME,0,[Define to 1 if <ctime> requires <time.h>])
@@ -209,7 +208,7 @@ if test "$enable_gui" = "no"
 then
 	AC_DEFINE(HAVE_GUI,0,[Define to 1 to enable gui code])
 else
-	PKG_CHECK_MODULES(QT,QtGui >= 4.0.1,[qt4=yes],[AC_MSG_RESULT([no])])
+    PKG_CHECK_MODULES(QT,QtGui >= 4.0.1,[qt4=yes],[AC_MSG_RESULT([no])])
 	if test "$qt4" = "yes"
 	then
 		MOC="${e_qtmoc}"
@@ -243,9 +242,9 @@ AC_DEFUN([ENABLE_IPV6],
 [
 if test "$enable_ipv6" = "yes"
 then
-	if test "$aclocal_cv_ipv6" != "yes"
+	if test "$aclocal_ipv6" != "yes"
 	then
-		AC_MSG_WARN(ignoring --enable-ipv6)
+		AC_MSG_WARN([ignoring --enable-ipv6])
 		IP="ipv4"
 	else
 		IP="ipv6"
@@ -254,6 +253,60 @@ else
 	IP="ipv4"
 fi
 AC_SUBST(IP)
+])
+
+dnl with-openssl
+dnl
+AC_DEFUN([WITH_OPENSSL],
+if test "$with_openssl" != "no"
+then
+[AC_CACHE_CHECK([for openssl],[aclocal_openssl],
+[
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[[#include <openssl/ssl.h>]],
+		[[SSL_CTX * p = 0 ; return 1;]])],
+		aclocal_openssl=yes,
+		aclocal_openssl=no )
+])
+    if test "$aclocal_openssl" = "yes"
+	then
+		AC_DEFINE(HAVE_OPENSSL,1,[Define to 1 to enable tls/ssh code using openssl])
+		SSL_LIBS="-lssl -lcrypto"
+		SSL="openssl"
+	else
+		if test "$with_openssl" = "yes"
+		then
+			AC_MSG_WARN([ignoring --with-openssl, check config.log and try setting CFLAGS])
+		fi
+		AC_DEFINE(HAVE_OPENSSL,0,[Define to 1 to enable tls/ssh code using openssl])
+		SSL_LIBS=""
+		SSL="none"
+	fi
+else
+	AC_DEFINE(HAVE_OPENSSL,0,[Define to 1 to enable tls/ssh code using openssl])
+	SSL_LIBS=""
+	SSL="none"
+fi
+AC_SUBST(SSL_LIBS)
+AC_SUBST(SSL)
+])
+
+dnl enable-static-linking
+dnl
+dnl TODO remove -ldl
+dnl
+AC_DEFUN([ENABLE_STATIC_LINKING],
+[
+if test "$enable_static_linking" = "yes"
+then
+	STATIC_START="-Xlinker -Bstatic"
+	STATIC_END="-Xlinker -Bdynamic -ldl"
+else
+	STATIC_START=""
+	STATIC_END=""
+fi
+AC_SUBST(STATIC_START)
+AC_SUBST(STATIC_END)
 ])
 
 dnl with-workshop
@@ -276,7 +329,7 @@ if test "$with_doxygen" != ""
 then
 	if test "$with_doxygen" = "yes" -a "$HAVE_DOXYGEN" != "yes"
 	then
-		AC_MSG_WARN(ignoring --with-doxygen)
+		AC_MSG_WARN([ignoring --with-doxygen])
 	else
 		HAVE_DOXYGEN="$with_doxygen"
 		AC_SUBST(HAVE_DOXYGEN)
@@ -292,7 +345,7 @@ if test "$with_man2html" != ""
 then
 	if test "$with_man2html" = "yes" -a "$HAVE_MAN2HTML" != "yes"
 	then
-		AC_MSG_WARN(ignoring --with-man2html)
+		AC_MSG_WARN([ignoring --with-man2html])
 	else
 		HAVE_MAN2HTML="$with_man2html"
 		AC_SUBST(HAVE_MAN2HTML)

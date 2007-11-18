@@ -16,24 +16,22 @@
 #
 
 EXTRA_DIST=\
-	gaddress_ipv6.cpp \
-	gdescriptor_win32.cpp \
-	geventloop_win32.cpp \
-	glocal_win32.cpp \
-	grequest.cpp \
-	gresolver_ipv6.cpp \
-	gresolver_win32.cpp \
-	gsimpleclient_win32.cpp \
-	gsocket_win32.cpp \
-	mingw.mak
+    gaddress_ipv6.cpp \
+    gdescriptor_win32.cpp \
+    geventloop_win32.cpp \
+    glocal_win32.cpp \
+    grequest.cpp \
+    gresolver_ipv6.cpp \
+    gresolver_win32.cpp \
+    gsimpleclient_win32.cpp \
+    gsocket_win32.cpp \
+    mingw.mak
 
-INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib 
+INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib  -I$(top_srcdir)/src/gssl
 noinst_LIBRARIES = libgnet.a libipv4.a libipv6.a
 
 libgnet_a_SOURCES = \
 	gaddress.h \
-	gbufferedclient.cpp \
-	gbufferedclient.h \
 	gbufferedserverpeer.cpp \
 	gbufferedserverpeer.h \
 	gclientptr.h \
@@ -67,8 +65,6 @@ libgnet_a_SOURCES = \
 	gresolverinfo.cpp \
 	gresolverinfo.h \
 	gresolver_unix.cpp \
-	gsender.cpp \
-	gsender.h \
 	gserver.cpp \
 	gserver.h \
 	gsimpleclient.cpp \
@@ -77,6 +73,8 @@ libgnet_a_SOURCES = \
 	gsocket.cpp \
 	gsocket.h \
 	gsocket_unix.cpp \
+	gsocketprotocol.cpp \
+	gsocketprotocol.h \
 	gtimer.cpp \
 	gtimer.h \
 	gtimerlist.cpp \

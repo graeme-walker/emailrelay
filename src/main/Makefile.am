@@ -39,6 +39,8 @@ EXTRA_DIST=\
 	service.dsp \
 	service_install.cpp \
 	service_install.h \
+	service_remove.cpp \
+	service_remove.h \
 	service_wrapper.cpp \
 	submit.dsp \
 	winapp.cpp \
@@ -51,7 +53,7 @@ EXTRA_DIST=\
 	mingw.c \
 	mingw.mak
 
-INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet -I$(top_srcdir)/src/gsmtp -I$(top_srcdir)/src/gpop -DG_SPOOLDIR=\"$(e_spooldir)\"
+INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gssl -I$(top_srcdir)/src/gnet -I$(top_srcdir)/src/gsmtp -I$(top_srcdir)/src/gpop -DG_SPOOLDIR=\"$(e_spooldir)\"
 
 sbin_PROGRAMS = emailrelay emailrelay-submit emailrelay-passwd
 e_libexec_PROGRAMS = emailrelay-poke emailrelay-filter-copy
@@ -74,16 +76,18 @@ emailrelay_LDADD = \
 	$(top_builddir)/src/gpop/libgpop.a \
 	$(top_builddir)/src/gsmtp/libgsmtp.a \
 	$(top_builddir)/src/glib/libglib.a \
+	$(top_builddir)/src/gssl/libgssl.a \
 	$(top_builddir)/src/gnet/libgnet.a \
-	$(top_builddir)/src/gnet/lib$(IP).a
+	$(top_builddir)/src/gnet/lib$(IP).a \
+	$(STATIC_START) $(SSL_LIBS) $(STATIC_END)
 
 emailrelay_poke_SOURCES = poke.c
 emailrelay_poke_LDADD =
 
-emailrelay_passwd_SOURCES = passwd.cpp legal.cpp
+emailrelay_passwd_SOURCES = passwd.cpp legal.cpp legal.h
 emailrelay_passwd_LDADD = $(top_builddir)/src/glib/libglib.a
 
-emailrelay_submit_SOURCES = submit.cpp legal.cpp
+emailrelay_submit_SOURCES = submit.cpp legal.cpp legal.h
 emailrelay_submit_LDADD = \
 	$(top_builddir)/src/gsmtp/libgsmtp.a \
 	$(top_builddir)/src/glib/libglib.a \
@@ -91,7 +95,7 @@ emailrelay_submit_LDADD = \
 	$(top_builddir)/src/gnet/lib$(IP).a \
 	$(top_builddir)/src/glib/libglib.a
 
-emailrelay_filter_copy_SOURCES = filter_copy.cpp legal.cpp
+emailrelay_filter_copy_SOURCES = filter_copy.cpp filter.cpp filter.h legal.cpp legal.h
 emailrelay_filter_copy_LDADD = \
 	$(top_builddir)/src/glib/libglib.a
 

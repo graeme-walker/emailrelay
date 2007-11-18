@@ -60,7 +60,7 @@ public:
 	/// An interface used by ServerProtocol to send protocol replies.
 	class Sender
 	{
-		public: virtual void protocolSend( const std::string & s ) = 0 ;
+		public: virtual void protocolSend( const std::string & s , bool go_secure ) = 0 ;
 		public: virtual ~Sender() ;
 		private: void operator=( const Sender & ) ; // not implemented
 	} ;
@@ -110,6 +110,10 @@ public:
 		///< The string is expected to be CR-LF terminated.
 		///< Throws ProtocolDone at the end of the protocol.
 
+	void secure() ;
+		///< To be called when the transport protocol goes
+		///< into secure mode.
+
 protected:
 	virtual void onTimeout() ;
 		///< Final override from GNet::AbstractTimer.
@@ -129,6 +133,8 @@ private:
 		eData ,
 		eRcpt ,
 		eMail ,
+		eStartTls ,
+		eSecure ,
 		eVrfy ,
 		eVrfyReply ,
 		eHelp ,
@@ -136,6 +142,8 @@ private:
 		eAuthData ,
 		eContent ,
 		eEot ,
+		eDone ,
+		eTimeout ,
 		eUnknown
 	} ;
 	enum State
@@ -145,6 +153,7 @@ private:
 		sIdle ,
 		sGotMail ,
 		sGotRcpt ,
+		sVrfyStart ,
 		sVrfyIdle ,
 		sVrfyGotMail ,
 		sVrfyGotRcpt ,
@@ -153,6 +162,7 @@ private:
 		sData ,
 		sProcessing ,
 		sAuth ,
+		sStartingTls ,
 		s_Any ,
 		s_Same
 	} ;
@@ -161,7 +171,7 @@ private:
 private:
 	ServerProtocol( const ServerProtocol & ) ; // not implemented
 	void operator=( const ServerProtocol & ) ; // not implemented
-	void send( std::string ) ;
+	void send( std::string , bool = false ) ;
 	Event commandEvent( const std::string & ) const ;
 	std::string commandWord( const std::string & line ) const ;
 	std::string commandLine( const std::string & line ) const ;
@@ -186,11 +196,14 @@ private:
 	void doRset( const std::string & , bool & ) ;
 	void doData( const std::string & , bool & ) ;
 	void doContent( const std::string & , bool & ) ;
+	void doComplete( const std::string & , bool & ) ;
 	void doEot( const std::string & , bool & ) ;
 	void doVrfy( const std::string & , bool & ) ;
 	void doVrfyReply( const std::string & line , bool & ) ;
 	void doVrfyToReply( const std::string & line , bool & ) ;
 	void doNoRecipients( const std::string & , bool & ) ;
+	void doStartTls( const std::string & , bool & ) ;
+	void doSecure( const std::string & , bool & ) ;
 	void verifyDone( std::string , Verifier::Status status ) ;
 	void sendBadFrom( std::string ) ;
 	void sendChallenge( const std::string & ) ;
@@ -231,8 +244,10 @@ private:
 	Fsm m_fsm ;
 	std::string m_peer_name ;
 	bool m_authenticated ;
+	bool m_secure ;
 	SaslServer m_sasl ;
 	bool m_with_vrfy ;
+	bool m_with_ssl ;
 	std::string m_buffer ;
 	unsigned int m_preprocessor_timeout ;
 	unsigned int m_bad_client_count ;

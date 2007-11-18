@@ -20,6 +20,7 @@
 //
 
 #include "gdef.h"
+#include "gssl.h"
 #include "gmonitor.h"
 #include "run.h"
 #include "winform.h"
@@ -52,11 +53,18 @@ std::string Main::WinForm::text() const
 	ss
 		<< "E-MailRelay V" << Main::Run::versionNumber() << crlf << crlf
 		<< Main::News::text(crlf+crlf)
-		<< Main::Legal::warranty("",crlf) << crlf
 		<< Main::Legal::copyright() << crlf << crlf
+		<< GSsl::Library::credit("",crlf,crlf)
+		<< Main::Legal::warranty("",crlf) << crlf
 		<< "Configuration..." << crlf
 		<< m_cfg.str("* ",crlf)
 		;
+
+	if( GSsl::Library::instance() != NULL )
+	{
+		bool ssl = GSsl::Library::instance()->enabled() ;
+		ss << "* tls/ssl smtp client? " << (ssl?"yes":"no") << crlf ;
+	}
 
 	if( GNet::Monitor::instance() )
 	{

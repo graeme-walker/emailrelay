@@ -76,7 +76,7 @@ GSmtp::ServerPeer::ServerPeer( GNet::Server::PeerInfo peer_info ,
 	const std::string & verifier_address , unsigned int verifier_timeout ,
 	std::auto_ptr<ServerProtocol::Text> ptext ,
 	ServerProtocol::Config protocol_config ) :
-		GNet::BufferedServerPeer( peer_info , crlf() , true ) , // <= throw-on-flow-control
+		GNet::BufferedServerPeer( peer_info , crlf() ) ,
 		m_server( server ) ,
 		m_verifier( VerifierFactory::newVerifier(verifier_address,verifier_timeout) ) ,
 		m_pmessage( pmessage ) ,
@@ -110,9 +110,17 @@ bool GSmtp::ServerPeer::onReceive( const std::string & line )
 	return true ;
 }
 
-void GSmtp::ServerPeer::protocolSend( const std::string & line )
+void GSmtp::ServerPeer::onSecure()
+{
+	G_LOG( "GSmtp::ServerPeer::onSecure: tls/ssl protocol established with " << peerAddress().second.displayString() ) ;
+	m_protocol.secure() ;
+}
+
+void GSmtp::ServerPeer::protocolSend( const std::string & line , bool go_secure )
 {
 	send( line , 0U ) ; // GNet::Sender -- may throw SendError
+	if( go_secure )
+		sslAccept() ;
 }
 
 // ===

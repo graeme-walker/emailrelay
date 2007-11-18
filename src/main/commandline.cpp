@@ -19,6 +19,7 @@
 //
 
 #include "gdef.h"
+#include "gssl.h"
 #include "gsmtp.h"
 #include "legal.h"
 #include "configuration.h"
@@ -32,7 +33,6 @@ std::string Main::CommandLine::switchSpec( bool is_windows )
 {
 	std::string dir = GSmtp::MessageStore::defaultDirectory().str() ;
 	std::string pop_auth = GPop::Secrets::defaultPath() ;
-	std::string pop_level = pop_auth.empty() ? "0" : "3" ;
 	std::ostringstream ss ;
 	ss
 		<< (is_windows?switchSpec_windows():switchSpec_unix()) << "|"
@@ -50,11 +50,13 @@ std::string Main::CommandLine::switchSpec( bool is_windows )
 		<< "s!spool-dir!specifies the spool directory (default is \"" << dir << "\")!1!dir!2|"
 		<< "V!version!displays version information and exits!0!!2|"
 		<< ""
+		<< "j!client-tls!enables tls/ssl layer for smtp client (if openssl built in)!0!!3|"
+		<< "K!server-tls!enables tls/ssl layer for smtp server using the given openssl certificate file (if openssl built in)!1!pem-file!3|"
 		<< "g!debug!generates debug-level logging if compiled-in!0!!3|"
-		<< "C!client-auth!enables smtp authentication with remote server, using the given secrets file!1!file!3|"
+		<< "C!client-auth!enables smtp authentication with the remote server, using the given secrets file!1!file!3|"
 		<< "L!log-time!adds a timestamp to the logging output!0!!3|"
 		<< "S!server-auth!enables authentication of remote clients, using the given secrets file!1!file!3|"
-		<< "e!close-stderr!closes the standard error stream after start-up!0!!3|"
+		<< "e!close-stderr!closes the standard error stream soon after start-up!0!!3|"
 		<< "a!admin!enables the administration interface and specifies its listening port number!"
 			<< "1!admin-port!3|"
 		<< "x!dont-serve!disables acting as a server on any port (part of --as-client and usually used with --forward)!0!!3|"
@@ -70,7 +72,7 @@ std::string Main::CommandLine::switchSpec( bool is_windows )
 		<< "U!connection-timeout!sets the timeout (in seconds) when connecting to a remote server "
 			<< "(default is 40)!1!time!3|"
 		<< "m!immediate!enables immediate forwarding of messages as soon as they are received (requires --forward-to)!0!!3|"
-		<< "I!interface!defines the listening interface for new connections!1!ip-address!3|"
+		<< "I!interface!defines the listening interface for incoming connections!1!ip-address!3|"
 		<< "i!pid-file!defines a file for storing the daemon process-id!1!pid-file!3|"
 		<< "O!poll!enables polling of the spool directory for messages to be forwarded with the specified period (requires --forward-to)!1!period!3|"
 		<< "P!postmaster!!0!!0|"
@@ -78,11 +80,11 @@ std::string Main::CommandLine::switchSpec( bool is_windows )
 		<< "Y!client-filter!specifies an external program to process messages when they are forwarded!1!program!3|"
 		<< "Q!admin-terminate!enables the terminate command on the admin interface!0!!3|"
 		<< "A!anonymous!disables the smtp vrfy command and sends less verbose smtp responses!0!!3|"
-		<< "B!pop!enables the pop server!0!!" << pop_level << "|"
-		<< "E!pop-port!specifies the pop listening port number (requires --pop)!1!port!" << pop_level << "|"
-		<< "F!pop-auth!defines the pop server secrets file (default is \"" << pop_auth << "\")!1!file!" << pop_level << "|"
-		<< "G!pop-no-delete!disables message deletion via pop (requires --pop)!0!!" << pop_level << "|"
-		<< "J!pop-by-name!modifies the pop spool directory according to the user name (requires --pop)!0!!" << pop_level << "|"
+		<< "B!pop!enables the pop server!0!!3|"
+		<< "E!pop-port!specifies the pop listening port number (requires --pop)!1!port!3|"
+		<< "F!pop-auth!defines the pop server secrets file (default is \"" << pop_auth << "\")!1!file!3|"
+		<< "G!pop-no-delete!disables message deletion via pop (requires --pop)!0!!3|"
+		<< "J!pop-by-name!modifies the pop spool directory according to the user name (requires --pop)!0!!3|"
 		;
 	return ss.str() ;
 }
@@ -95,7 +97,7 @@ std::string Main::CommandLine::switchSpec_unix()
 		<< "t!no-daemon!does not detach from the terminal!0!!3|"
 		<< "u!user!names the effective user to switch to if started as root "
 			<< "(default is \"daemon\")!1!username!3|"
-		<< "k!syslog!force syslog output if logging is enabled (overrides --no-syslog)!0!!3|"
+		<< "k!syslog!forces syslog output if logging is enabled (overrides --no-syslog)!0!!3|"
 		<< "n!no-syslog!disables syslog output (always overridden by --syslog)!0!!3"
 		;
 	return ss.str() ;
@@ -106,11 +108,11 @@ std::string Main::CommandLine::switchSpec_windows()
 	std::ostringstream ss ;
 	ss
 		<< "l!log!writes log information on standard error and event log!0!!2|"
-		<< "t!no-daemon!use an ordinary window, not the system tray!0!!3|"
-		<< "k!syslog!force event log output if logging is enabled (overrides --no-syslog)!0!!3|"
-		<< "n!no-syslog!dont use the event log!0!!3|"
+		<< "t!no-daemon!uses an ordinary window, not the system tray!0!!3|"
+		<< "k!syslog!forces system event log output if logging is enabled (overrides --no-syslog)!0!!3|"
+		<< "n!no-syslog!disables use of the system event log!0!!3|"
 		<< "c!icon!selects the application icon!1!0^|1^|2^|3!3|"
-		<< "H!hidden!hides the application window (requires --no-daemon)!0!!3"
+		<< "H!hidden!hides the application window and suppresses message boxes (requires --no-daemon)!0!!3"
 		;
 	return ss.str() ;
 }
@@ -368,31 +370,38 @@ void Main::CommandLine::showNoop( bool e ) const
 	show.s() << m_arg.prefix() << ": no messages to send" << std::endl ;
 }
 
-void Main::CommandLine::showBanner( bool e ) const
+void Main::CommandLine::showBanner( bool e , const std::string & final ) const
 {
 	Show show( m_output , e ) ;
 	show.s()
-		<< "E-MailRelay V" << m_version << std::endl ;
+		<< "E-MailRelay V" << m_version << std::endl << final ;
 }
 
-void Main::CommandLine::showCopyright( bool e ) const
+void Main::CommandLine::showCopyright( bool e , const std::string & final ) const
 {
 	Show show( m_output , e ) ;
-	show.s() << Legal::copyright() << std::endl ;
+	show.s() << Legal::copyright() << std::endl << final ;
 }
 
-void Main::CommandLine::showWarranty( bool e ) const
+void Main::CommandLine::showWarranty( bool e , const std::string & final ) const
 {
 	Show show( m_output , e ) ;
-	show.s() << Legal::warranty("","\n") ;
+	show.s() << Legal::warranty("","\n") << final ;
+}
+
+void Main::CommandLine::showCredit( bool e , const std::string & final ) const
+{
+	Show show( m_output , e ) ;
+	show.s() << GSsl::Library::credit("","\n",final) ;
 }
 
 void Main::CommandLine::showVersion( bool e ) const
 {
 	Show show( m_output , e ) ;
-	showBanner( e ) ;
+	showBanner( e , "\n" ) ;
+	showCopyright( e , "\n" ) ;
+	showCredit( e , "\n" ) ;
 	showWarranty( e ) ;
-	showCopyright( e ) ;
 }
 
 // ===

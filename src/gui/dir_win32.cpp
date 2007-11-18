@@ -18,6 +18,7 @@
 // dir_win32.cpp
 //
 
+#include "gdef.h"
 #define _WIN32_IE 0x600
 #include <shlwapi.h>
 #include <shlobj.h>
@@ -60,12 +61,22 @@ G::Path Dir::os_install() const
 
 G::Path Dir::os_config() const
 {
-	return windows() ;
+	return special("programs") + "emailrelay" ; // was windows()
 }
 
 G::Path Dir::os_spool() const
 {
 	return windows() + "spool" + "emailrelay" ;
+}
+
+G::Path Dir::os_pid() const
+{
+	return special("programs") + "emailrelay" ; // was windows()
+}
+
+G::Path Dir::os_boot() const
+{
+	return G::Path() ;
 }
 
 G::Path Dir::cwd()
@@ -75,16 +86,6 @@ G::Path Dir::cwd()
 	buffer[sizeof(buffer)-1U] = '\0' ;
 	std::string s = n ? std::string(buffer) : std::string(".") ;
 	return G::Path( s ) ;
-}
-
-G::Path Dir::os_pid() const
-{
-	return windows() ;
-}
-
-G::Path Dir::os_boot() const
-{
-	return G::Path() ;
 }
 
 namespace
@@ -118,10 +119,6 @@ G::Path Dir::special( const std::string & type )
 		bool ok = S_OK == (*fn_basic)( NULL , CSIDL_PROGRAM_FILES , NULL , SHGFP_TYPE_CURRENT , buffer ) ;
 		buffer[sizeof(buffer)-1U] = '\0' ;
 		return ok ? G::Path(std::string(buffer)) : G::Path("c:/program files") ;
-	}
-	else if( type == "reskit" )
-	{
-		return special("programs")+"resource kit";
 	}
 	else
 	{
@@ -158,15 +155,7 @@ G::Path Dir::ntspecial( const std::string & type )
 			p = "c:/program files" ;
 		return p ;
 	}
-	if( type == "reskit" )
-	{
-		G::Path p = env("NTRESKIT") ;
-		if( p.str().empty() )
-			p = special("programs")+"resource kit";
-		return p ;
-	}
 	return G::Path() ;
 }
-
 
 /// \file dir_win32.cpp

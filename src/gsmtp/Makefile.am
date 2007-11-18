@@ -17,10 +17,10 @@
 
 EXTRA_DIST=\
 	gmessagestore_win32.cpp \
-	gsasl_cyrus.cpp \
+	gsasl_gnu.cpp \
 	mingw.mak
 
-INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet -DG_SPOOLDIR=\"$(e_spooldir)\"
+INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gssl -I$(top_srcdir)/src/gnet -DG_SPOOLDIR=\"$(e_spooldir)\"
 
 noinst_LIBRARIES = libgsmtp.a
 

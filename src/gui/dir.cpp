@@ -20,6 +20,7 @@
 // See also "dir_unix.cpp" and "dir_win32.cpp".
 //
 
+#include "gdef.h"
 #include "dir.h"
 #include "gstr.h"
 #include "gpath.h"
@@ -40,7 +41,6 @@ Dir::Dir( const std::string & argv0 , bool installed ) :
 	m_desktop = special("desktop") ;
 	m_login = special("login") ;
 	m_menu = special("menu") ;
-	m_reskit = special("reskit") ;
 }
 
 Dir::~Dir()
@@ -62,7 +62,7 @@ void Dir::read( std::istream & file )
 	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_desktop = line ;
 	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_login = line ;
 	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_menu = line ;
-	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_reskit = line ;
+	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) ; // reskit not used
 
 	// this is for completeness only...
 	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_install = line ;
@@ -91,11 +91,6 @@ G::Path Dir::login() const
 G::Path Dir::menu() const
 {
 	return m_menu ;
-}
-
-G::Path Dir::reskit() const
-{
-	return m_reskit ;
 }
 
 G::Path Dir::tmp() const

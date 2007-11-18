@@ -136,6 +136,10 @@ QT_LIBS = @QT_LIBS@
 RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SSL = @SSL@
+SSL_LIBS = @SSL_LIBS@
+STATIC_END = @STATIC_END@
+STATIC_START = @STATIC_START@
 STRIP = @STRIP@
 VERSION = @VERSION@
 abs_builddir = @abs_builddir@
@@ -190,7 +194,7 @@ top_srcdir = @top_srcdir@
 
 #
 #
-EXTRA_DIST = emailrelay.spec ChangeLog README.windows
+EXTRA_DIST = emailrelay.spec ChangeLog README.windows LICENSE
 SUBDIRS = src bin lib etc doc test
 e_doc_DATA = NEWS README ChangeLog
 all: config.h

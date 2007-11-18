@@ -18,7 +18,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl
 
 AC_INIT(src/gsmtp/gsmtp.h)
-AM_INIT_AUTOMAKE(emailrelay,1.6)
+AM_INIT_AUTOMAKE(emailrelay,1.7)
 AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
 
@@ -108,6 +108,18 @@ AC_ARG_WITH(man2html,AC_HELP_STRING([--with-man2html],[convert man pages to html
 WITH_MAN2HTML
 
 dnl ===
+dnl "--with-openssl"
+dnl
+AC_ARG_WITH(openssl,AC_HELP_STRING([--with-openssl],[use openssl for smtp client tls extension (default auto)]))
+WITH_OPENSSL
+
+dnl ===
+dnl "--enable-static-linking"
+dnl
+AC_ARG_ENABLE(static-linking,AC_HELP_STRING([--enable-static-linking],[prefer static linking for some libraries (default no)]))
+ENABLE_STATIC_LINKING
+
+dnl ===
 dnl directory tweaking and "--enable-fhs" ...
 dnl
 dnl define e_ prefixed variables with a gnu feel and then
@@ -135,5 +147,5 @@ ENABLE_FHS
 dnl ===
 dnl generate files...
 dnl
-AC_OUTPUT(Makefile src/Makefile src/glib/Makefile src/gnet/Makefile src/gsmtp/Makefile src/gpop/Makefile src/main/Makefile src/win32/Makefile src/gui/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile lib/sunpro5/Makefile bin/Makefile doc/Makefile etc/Makefile test/Makefile)
+AC_OUTPUT(Makefile src/Makefile src/glib/Makefile src/gssl/Makefile src/gnet/Makefile src/gsmtp/Makefile src/gpop/Makefile src/main/Makefile src/win32/Makefile src/gui/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile lib/sunpro5/Makefile bin/Makefile doc/Makefile etc/Makefile test/Makefile)
 

@@ -19,6 +19,7 @@
 //
 
 #include "gdef.h"
+#include "gssl.h"
 #include "gsmtp.h"
 #include "run.h"
 #include "gsmtpserver.h"
@@ -53,7 +54,7 @@
 
 std::string Main::Run::versionNumber()
 {
-	return "1.6" ;
+	return "1.7" ;
 }
 
 Main::Run::Run( Main::Output & output , const G::Arg & arg , const std::string & switch_spec ) :
@@ -252,6 +253,13 @@ void Main::Run::runCore()
 	//
 	checkScripts() ;
 
+	// ssl library singleton
+	//
+	bool ssl_active = cfg().clientTls() || !cfg().serverTlsFile().empty() ;
+	GSsl::Library ssl( ssl_active , cfg().serverTlsFile() ) ;
+	if( ssl_active && !ssl.enabled() )
+		throw G::Exception( "cannot do tls/ssl: openssl not built in" ) ;
+
 	// network monitor singleton
 	//
 	GNet::Monitor monitor ;
@@ -336,6 +344,8 @@ void Main::Run::doServing( const GSmtp::Secrets & client_secrets ,
 		extra_commands_map.insert( std::make_pair(std::string("version"),versionNumber()) ) ;
 		extra_commands_map.insert( std::make_pair(std::string("warranty"),
 			Legal::warranty(std::string(),std::string(1U,'\n'))) ) ;
+		extra_commands_map.insert( std::make_pair(std::string("credit"),
+			GSsl::Library::credit(std::string(),std::string(1U,'\n'),std::string())) ) ;
 		extra_commands_map.insert( std::make_pair(std::string("copyright"),Legal::copyright()) ) ;
 
 		m_admin_server <<= new GSmtp::AdminServer(

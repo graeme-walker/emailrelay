@@ -18,6 +18,7 @@
 // dir_unix.cpp
 //
 
+#include "gdef.h"
 #include "dir.h"
 #include "gpath.h"
 #include "gdirectory.h"
@@ -137,13 +138,11 @@ G::Path Dir::special( const std::string & type )
 	G::Path menu = data_home + "applications" ;
 	G::Path login = kdeAutostart( config_home + "autostart" ) ;
 	G::Path programs = "/usr/bin" ;
-	G::Path reskit ;
 
 	if( type == "desktop" ) return desktop ;
 	if( type == "menu" ) return menu ;
 	if( type == "login" ) return login ;
 	if( type == "programs" ) return programs ;
-	if( type == "reskit" ) return reskit ;
 	return G::Path() ;
 }
 

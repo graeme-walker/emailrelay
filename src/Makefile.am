@@ -15,4 +15,4 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 EXTRA_DIST = mingw.mak mingw-common.mak emailrelay.dsw
-SUBDIRS = glib gnet gsmtp gpop main win32 gui
+SUBDIRS = glib gssl gnet gsmtp gpop main win32 gui

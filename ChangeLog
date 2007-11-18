@@ -1,6 +1,14 @@
 E-MailRelay Change Log
 ======================
 
+1.6 -> 1.7
+----------
+* TLS/SSL support for SMTP using OpenSSL ("./configure --with-openssl" with "--client-tls" and "--server-tls").
+* Authentication mechanism "PLAIN" added.
+* Some tightening up of the SMTP server protocol.
+* Windows service wrapper has an "--uninstall" option.
+* Windows installation GUI uninstalls the service before reinstalling it.
+
 1.5 -> 1.6
 ----------
 * GPLv3 licence (see "http://gplv3.fsf.org").

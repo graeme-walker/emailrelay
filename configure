@@ -714,6 +714,10 @@ QT_LIBS
 MOC
 GUI_TRUE
 GUI_FALSE
+SSL_LIBS
+SSL
+STATIC_START
+STATIC_END
 e_docdir
 e_initdir
 e_spooldir
@@ -1321,6 +1325,8 @@ Optional Features:
   --enable-ipv6           enable ipv6 (default disabled)
   --enable-gui            enable configuration gui (requires Qt4) (default
                           auto)
+  --enable-static-linking prefer static linking for some libraries (default
+                          no)
   --enable-fhs            force FHS-compliant directories, ignoring --prefix
                           etc (default disabled)
 
@@ -1332,6 +1338,8 @@ Optional Packages:
   --with-doxygen          generate source code documentation with doxygen
                           (default auto)
   --with-man2html         convert man pages to html using man2html (default
+                          auto)
+  --with-openssl          use openssl for smtp client tls extension (default
                           auto)
 
 Some influential environment variables:
@@ -2108,7 +2116,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=emailrelay
- VERSION=1.6
+ VERSION=1.7
 
 
 cat >>confdefs.h <<_ACEOF
@@ -5987,7 +5995,7 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 { echo "$as_me:$LINENO: checking for socklen_t" >&5
 echo $ECHO_N "checking for socklen_t... $ECHO_C" >&6; }
-if test "${aclocal_cv_type_socklen_t+set}" = set; then
+if test "${aclocal_type_socklen_t+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -6024,20 +6032,20 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
 	 test -z "$ac_cxx_werror_flag" ||
 	 test ! -s conftest.err
        } && test -s conftest.$ac_objext; then
-  aclocal_cv_type_socklen_t=yes
+  aclocal_type_socklen_t=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-	aclocal_cv_type_socklen_t=no
+	aclocal_type_socklen_t=no
 fi
 
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
 fi
-{ echo "$as_me:$LINENO: result: $aclocal_cv_type_socklen_t" >&5
-echo "${ECHO_T}$aclocal_cv_type_socklen_t" >&6; }
-	if test $aclocal_cv_type_socklen_t = yes; then
+{ echo "$as_me:$LINENO: result: $aclocal_type_socklen_t" >&5
+echo "${ECHO_T}$aclocal_type_socklen_t" >&6; }
+	if test $aclocal_type_socklen_t = yes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_SOCKLEN_T 1
@@ -6053,7 +6061,7 @@ _ACEOF
 
 { echo "$as_me:$LINENO: checking for ipv6" >&5
 echo $ECHO_N "checking for ipv6... $ECHO_C" >&6; }
-if test "${aclocal_cv_ipv6+set}" = set; then
+if test "${aclocal_ipv6+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -6092,20 +6100,20 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
 	 test -z "$ac_cxx_werror_flag" ||
 	 test ! -s conftest.err
        } && test -s conftest.$ac_objext; then
-  aclocal_cv_ipv6=yes
+  aclocal_ipv6=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-	aclocal_cv_ipv6=no
+	aclocal_ipv6=no
 fi
 
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
 fi
-{ echo "$as_me:$LINENO: result: $aclocal_cv_ipv6" >&5
-echo "${ECHO_T}$aclocal_cv_ipv6" >&6; }
-	if test $aclocal_cv_ipv6 = yes; then
+{ echo "$as_me:$LINENO: result: $aclocal_ipv6" >&5
+echo "${ECHO_T}$aclocal_ipv6" >&6; }
+	if test $aclocal_ipv6 = yes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_IPV6 1
@@ -6121,7 +6129,7 @@ _ACEOF
 
 { echo "$as_me:$LINENO: checking for getipnodebyname" >&5
 echo $ECHO_N "checking for getipnodebyname... $ECHO_C" >&6; }
-if test "${aclocal_cv_getipnodebyname+set}" = set; then
+if test "${aclocal_getipnodebyname+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -6161,20 +6169,20 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
 	 test -z "$ac_cxx_werror_flag" ||
 	 test ! -s conftest.err
        } && test -s conftest.$ac_objext; then
-  aclocal_cv_getipnodebyname=yes
+  aclocal_getipnodebyname=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-	aclocal_cv_getipnodebyname=no
+	aclocal_getipnodebyname=no
 fi
 
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
 fi
-{ echo "$as_me:$LINENO: result: $aclocal_cv_getipnodebyname" >&5
-echo "${ECHO_T}$aclocal_cv_getipnodebyname" >&6; }
-	if test $aclocal_cv_getipnodebyname = yes; then
+{ echo "$as_me:$LINENO: result: $aclocal_getipnodebyname" >&5
+echo "${ECHO_T}$aclocal_getipnodebyname" >&6; }
+	if test $aclocal_getipnodebyname = yes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_GETIPNODEBYNAME 1
@@ -6190,7 +6198,7 @@ _ACEOF
 
 { echo "$as_me:$LINENO: checking for sin6_len" >&5
 echo $ECHO_N "checking for sin6_len... $ECHO_C" >&6; }
-if test "${aclocal_cv_sin6_len+set}" = set; then
+if test "${aclocal_sin6_len+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -6228,20 +6236,20 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
 	 test -z "$ac_cxx_werror_flag" ||
 	 test ! -s conftest.err
        } && test -s conftest.$ac_objext; then
-  aclocal_cv_sin6_len=yes
+  aclocal_sin6_len=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-	aclocal_cv_sin6_len=no
+	aclocal_sin6_len=no
 fi
 
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
 fi
-{ echo "$as_me:$LINENO: result: $aclocal_cv_sin6_len" >&5
-echo "${ECHO_T}$aclocal_cv_sin6_len" >&6; }
-	if test $aclocal_cv_sin6_len = yes; then
+{ echo "$as_me:$LINENO: result: $aclocal_sin6_len" >&5
+echo "${ECHO_T}$aclocal_sin6_len" >&6; }
+	if test $aclocal_sin6_len = yes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_SIN6_LEN 1
@@ -6257,7 +6265,7 @@ _ACEOF
 
 { echo "$as_me:$LINENO: checking for buggy ctime" >&5
 echo $ECHO_N "checking for buggy ctime... $ECHO_C" >&6; }
-if test "${aclocal_cv_buggy_ctime+set}" = set; then
+if test "${aclocal_buggy_ctime+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -6294,20 +6302,20 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
 	 test -z "$ac_cxx_werror_flag" ||
 	 test ! -s conftest.err
        } && test -s conftest.$ac_objext; then
-  aclocal_cv_buggy_ctime=no
+  aclocal_buggy_ctime=no
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-	aclocal_cv_buggy_ctime=yes
+	aclocal_buggy_ctime=yes
 fi
 
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
 fi
-{ echo "$as_me:$LINENO: result: $aclocal_cv_buggy_ctime" >&5
-echo "${ECHO_T}$aclocal_cv_buggy_ctime" >&6; }
-	if test $aclocal_cv_buggy_ctime = yes; then
+{ echo "$as_me:$LINENO: result: $aclocal_buggy_ctime" >&5
+echo "${ECHO_T}$aclocal_buggy_ctime" >&6; }
+	if test $aclocal_buggy_ctime = yes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_BUGGY_CTIME 1
@@ -6323,7 +6331,7 @@ _ACEOF
 
 { echo "$as_me:$LINENO: checking for gmtime_r" >&5
 echo $ECHO_N "checking for gmtime_r... $ECHO_C" >&6; }
-if test "${aclocal_cv_gmtime_r+set}" = set; then
+if test "${aclocal_gmtime_r+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -6359,20 +6367,20 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
 	 test -z "$ac_cxx_werror_flag" ||
 	 test ! -s conftest.err
        } && test -s conftest.$ac_objext; then
-  aclocal_cv_gmtime_r=yes
+  aclocal_gmtime_r=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-	aclocal_cv_gmtime_r=no
+	aclocal_gmtime_r=no
 fi
 
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
 fi
-{ echo "$as_me:$LINENO: result: $aclocal_cv_gmtime_r" >&5
-echo "${ECHO_T}$aclocal_cv_gmtime_r" >&6; }
-	if test $aclocal_cv_gmtime_r = yes; then
+{ echo "$as_me:$LINENO: result: $aclocal_gmtime_r" >&5
+echo "${ECHO_T}$aclocal_gmtime_r" >&6; }
+	if test $aclocal_gmtime_r = yes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_GMTIME_R 1
@@ -6388,7 +6396,7 @@ _ACEOF
 
 { echo "$as_me:$LINENO: checking for localtime_r" >&5
 echo $ECHO_N "checking for localtime_r... $ECHO_C" >&6; }
-if test "${aclocal_cv_localtime_r+set}" = set; then
+if test "${aclocal_localtime_r+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -6424,20 +6432,20 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
 	 test -z "$ac_cxx_werror_flag" ||
 	 test ! -s conftest.err
        } && test -s conftest.$ac_objext; then
-  aclocal_cv_localtime_r=yes
+  aclocal_localtime_r=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-	aclocal_cv_localtime_r=no
+	aclocal_localtime_r=no
 fi
 
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
 fi
-{ echo "$as_me:$LINENO: result: $aclocal_cv_localtime_r" >&5
-echo "${ECHO_T}$aclocal_cv_localtime_r" >&6; }
-	if test $aclocal_cv_localtime_r = yes; then
+{ echo "$as_me:$LINENO: result: $aclocal_localtime_r" >&5
+echo "${ECHO_T}$aclocal_localtime_r" >&6; }
+	if test $aclocal_localtime_r = yes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_LOCALTIME_R 1
@@ -6453,7 +6461,7 @@ _ACEOF
 
 { echo "$as_me:$LINENO: checking for setgroups" >&5
 echo $ECHO_N "checking for setgroups... $ECHO_C" >&6; }
-if test "${aclocal_cv_setgroups+set}" = set; then
+if test "${aclocal_setgroups+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
@@ -6491,20 +6499,20 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
 	 test -z "$ac_cxx_werror_flag" ||
 	 test ! -s conftest.err
        } && test -s conftest.$ac_objext; then
-  aclocal_cv_setgroups=yes
+  aclocal_setgroups=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-	aclocal_cv_setgroups=no
+	aclocal_setgroups=no
 fi
 
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
 fi
-{ echo "$as_me:$LINENO: result: $aclocal_cv_setgroups" >&5
-echo "${ECHO_T}$aclocal_cv_setgroups" >&6; }
-	if test $aclocal_cv_setgroups = yes; then
+{ echo "$as_me:$LINENO: result: $aclocal_setgroups" >&5
+echo "${ECHO_T}$aclocal_setgroups" >&6; }
+	if test $aclocal_setgroups = yes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_SETGROUPS 1
@@ -6664,7 +6672,7 @@ fi
 
 if test "$enable_ipv6" = "yes"
 then
-	if test "$aclocal_cv_ipv6" != "yes"
+	if test "$aclocal_ipv6" != "yes"
 	then
 		{ echo "$as_me:$LINENO: WARNING: ignoring --enable-ipv6" >&5
 echo "$as_me: WARNING: ignoring --enable-ipv6" >&2;}
@@ -6906,6 +6914,119 @@ echo "$as_me: WARNING: ignoring --with-man2html" >&2;}
 fi
 
 
+
+# Check whether --with-openssl was given.
+if test "${with_openssl+set}" = set; then
+  withval=$with_openssl;
+fi
+
+if test "$with_openssl" != "no"
+then
+{ echo "$as_me:$LINENO: checking for openssl" >&5
+echo $ECHO_N "checking for openssl... $ECHO_C" >&6; }
+if test "${aclocal_openssl+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+
+	cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <openssl/ssl.h>
+int
+main ()
+{
+SSL_CTX * p = 0 ; return 1;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_cxx_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  aclocal_openssl=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	aclocal_openssl=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+fi
+{ echo "$as_me:$LINENO: result: $aclocal_openssl" >&5
+echo "${ECHO_T}$aclocal_openssl" >&6; }
+    if test "$aclocal_openssl" = "yes"
+	then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_OPENSSL 1
+_ACEOF
+
+		SSL_LIBS="-lssl -lcrypto"
+		SSL="openssl"
+	else
+		if test "$with_openssl" = "yes"
+		then
+			{ echo "$as_me:$LINENO: WARNING: ignoring --with-openssl, check config.log and try setting CFLAGS" >&5
+echo "$as_me: WARNING: ignoring --with-openssl, check config.log and try setting CFLAGS" >&2;}
+		fi
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_OPENSSL 0
+_ACEOF
+
+		SSL_LIBS=""
+		SSL="none"
+	fi
+else
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_OPENSSL 0
+_ACEOF
+
+	SSL_LIBS=""
+	SSL="none"
+fi
+
+
+
+
+# Check whether --enable-static-linking was given.
+if test "${enable_static_linking+set}" = set; then
+  enableval=$enable_static_linking;
+fi
+
+
+if test "$enable_static_linking" = "yes"
+then
+	STATIC_START="-Xlinker -Bstatic"
+	STATIC_END="-Xlinker -Bdynamic -ldl"
+else
+	STATIC_START=""
+	STATIC_END=""
+fi
+
+
+
+
 # Check whether --enable-fhs was given.
 if test "${enable_fhs+set}" = set; then
   enableval=$enable_fhs;
@@ -6961,7 +7082,7 @@ then
 fi
 
 
-ac_config_files="$ac_config_files Makefile src/Makefile src/glib/Makefile src/gnet/Makefile src/gsmtp/Makefile src/gpop/Makefile src/main/Makefile src/win32/Makefile src/gui/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile lib/sunpro5/Makefile bin/Makefile doc/Makefile etc/Makefile test/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile src/glib/Makefile src/gssl/Makefile src/gnet/Makefile src/gsmtp/Makefile src/gpop/Makefile src/main/Makefile src/win32/Makefile src/gui/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile lib/sunpro5/Makefile bin/Makefile doc/Makefile etc/Makefile test/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -7566,6 +7687,7 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "src/glib/Makefile") CONFIG_FILES="$CONFIG_FILES src/glib/Makefile" ;;
+    "src/gssl/Makefile") CONFIG_FILES="$CONFIG_FILES src/gssl/Makefile" ;;
     "src/gnet/Makefile") CONFIG_FILES="$CONFIG_FILES src/gnet/Makefile" ;;
     "src/gsmtp/Makefile") CONFIG_FILES="$CONFIG_FILES src/gsmtp/Makefile" ;;
     "src/gpop/Makefile") CONFIG_FILES="$CONFIG_FILES src/gpop/Makefile" ;;
@@ -7784,6 +7906,10 @@ QT_LIBS!$QT_LIBS$ac_delim
 MOC!$MOC$ac_delim
 GUI_TRUE!$GUI_TRUE$ac_delim
 GUI_FALSE!$GUI_FALSE$ac_delim
+SSL_LIBS!$SSL_LIBS$ac_delim
+SSL!$SSL$ac_delim
+STATIC_START!$STATIC_START$ac_delim
+STATIC_END!$STATIC_END$ac_delim
 e_docdir!$e_docdir$ac_delim
 e_initdir!$e_initdir$ac_delim
 e_spooldir!$e_spooldir$ac_delim
@@ -7795,7 +7921,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 13; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 17; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
