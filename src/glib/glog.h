@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -89,16 +89,19 @@ private:
 /// independent means.
 ///
 #define G_LOG_OUTPUT( expr , severity ) do { G::Log(severity,__FILE__,__LINE__) << expr ; } while(0)
-#if defined(_DEBUG) && ! defined(G_NO_DEBUG)
+#if defined(G_WITH_DEBUG) || ( defined(_DEBUG) && ! defined(G_NO_DEBUG) )
 #define G_DEBUG( expr ) G_LOG_OUTPUT( expr , G::Log::s_Debug )
 #else
 #define G_DEBUG( expr )
 #endif
 #if ! defined(G_NO_LOG)
 #define G_LOG( expr ) G_LOG_OUTPUT( expr , G::Log::s_LogVerbose )
-#define G_LOG_S( expr ) G_LOG_OUTPUT( expr , G::Log::s_LogSummary )
 #else
 #define G_LOG( expr )
+#endif
+#if ! defined(G_NO_LOG_S)
+#define G_LOG_S( expr ) G_LOG_OUTPUT( expr , G::Log::s_LogSummary )
+#else
 #define G_LOG_S( expr )
 #endif
 #define G_WARNING( expr ) G_LOG_OUTPUT( expr , G::Log::s_Warning )

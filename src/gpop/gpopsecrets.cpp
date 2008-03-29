@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ class GPop::SecretsImp
 public:
 	explicit SecretsImp( const std::string & path ) ;
 	std::string path() const ;
-	std::string secret(  const std::string & mechanism , const std::string & id ) const ;
+	std::string secret( const std::string & mechanism , const std::string & id ) const ;
 	bool contains( const std::string & mechanism ) const ;
 	std::string m_path ;
 	GSmtp::Secrets m_secrets ;
@@ -86,7 +86,7 @@ std::string GPop::SecretsImp::path() const
 	return m_path ;
 }
 
-std::string GPop::SecretsImp::secret(  const std::string & mechanism , const std::string & id ) const
+std::string GPop::SecretsImp::secret( const std::string & mechanism , const std::string & id ) const
 {
 	return m_secrets.secret( mechanism , id ) ;
 }

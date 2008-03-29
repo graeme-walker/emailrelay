@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -99,7 +99,7 @@ void GPop::Store::checkPath( G::Path dir_path , bool by_name , bool allow_delete
 		G::DirectoryList iter ;
 		{
 			DirectoryReader claim_reader ;
-			iter.init( dir_path ) ;
+			iter.readAll( dir_path ) ;
 		}
 
 		int n = 0 ;
@@ -193,7 +193,7 @@ void GPop::StoreLock::lock( const std::string & user )
 	{
 		DirectoryReader claim_reader ;
 		G::DirectoryList iter ;
-		iter.init( m_dir , "emailrelay.*.envelope" ) ;
+		iter.readType( m_dir , ".envelope" ) ;
 		while( iter.more() )
 		{
 			File file( contentPath(iter.fileName().str()) ) ;
@@ -460,7 +460,7 @@ bool GPop::StoreLock::unlinked( Store & store , const File & file ) const
 		G::DirectoryList iter ;
 		{
 			DirectoryReader claim_reader ;
-			iter.init( store.dir() ) ;
+			iter.readAll( store.dir() ) ;
 		}
 		while( iter.more() )
 		{

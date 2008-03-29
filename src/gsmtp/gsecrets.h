@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ class GSmtp::Secrets : public GSmtp::SaslClient::Secrets , public GSmtp::SaslSer
 public:
 	G_EXCEPTION( OpenError , "cannot read secrets file" ) ;
 
-	explicit Secrets( const std::string & storage_path ,
+	Secrets( const std::string & storage_path ,
 		const std::string & debug_name ,
 		const std::string & server_type = std::string() ) ;
 			///< Constructor. In principle the repository 'storage-path'
@@ -61,6 +61,9 @@ public:
 			///<
 			///< Throws on error, although an empty path is not
 			///< considered an error: see valid().
+
+	Secrets() ;
+		///< Default constructor for an in-valid(), empty-path object.
 
 	virtual ~Secrets() ;
 		///< Destructor.
@@ -82,7 +85,7 @@ public:
 		///< Returns the default secret for client-side
 		///< authentication.
 
-	virtual std::string secret(  const std::string & mechanism , const std::string & id ) const ;
+	virtual std::string secret( const std::string & mechanism , const std::string & id ) const ;
 		///< Final override from GSmtp::SaslServer::Secrets.
 		///<
 		///< Returns the given user's secret for server-side

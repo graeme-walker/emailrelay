@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -58,7 +58,7 @@ stylesheet="${2}"
 
 if test "${stylesheet}" != "" -a \! -f "${stylesheet}"
 then
-	echo `basename $0`: warning: missing stylesheet: ${stylesheet} >&2
+	: # echo `basename $0`: warning: missing stylesheet: ${stylesheet} >&2
 fi
 
 Main()

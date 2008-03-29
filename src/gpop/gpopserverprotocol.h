@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -159,7 +159,7 @@ private:
 	void sendInit() ;
 	void sendError() ;
 	void sendOk() ;
-	static std::string crlf() ;
+	static const std::string & crlf() ;
 	Event commandEvent( const std::string & ) const ;
 	int commandNumber( const std::string & , int , size_t index = 1U ) const ;
 	void sendList( const std::string & , bool ) ;

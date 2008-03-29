@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -15,7 +15,53 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+ADMIN_SOURCES_ = gadminserver.cpp gadminserver.h
+
+if ADMIN
+ADMIN_EXTRA_DIST =
+ADMIN_SOURCES = $(ADMIN_SOURCES_)
+else
+ADMIN_EXTRA_DIST = $(ADMIN_SOURCES_)
+ADMIN_SOURCES =
+endif
+
+if AUTH
+AUTH_EXTRA_DIST = gsasl_none.cpp gsecrets_none.cpp
+AUTH_SOURCES = gsasl_native.cpp gsecrets_full.cpp
+else
+AUTH_EXTRA_DIST = gsasl_native.cpp gsecrets_full.cpp
+AUTH_SOURCES = gsasl_none.cpp gsecrets_none.cpp
+endif
+
+EXEC_SOURCES_=\
+	gexecutableprocessor.cpp \
+	gexecutableprocessor.h \
+	gexecutableverifier.cpp \
+	gexecutableverifier.h \
+	gnetworkprocessor.cpp \
+	gnetworkprocessor.h \
+	gnetworkverifier.cpp \
+	gnetworkverifier.h \
+	gprocessorfactory_exec_enabled.cpp \
+	grequestclient.cpp \
+	grequestclient.h \
+	gspamclient.cpp \
+	gspamclient.h \
+	gspamprocessor.cpp \
+	gspamprocessor.h \
+	gverifierfactory_exec_enabled.cpp
+
+if EXEC
+EXEC_EXTRA_DIST = gprocessorfactory_exec_disabled.cpp gverifierfactory_exec_disabled.cpp
+EXEC_SOURCES = $(EXEC_SOURCES_)
+else
+EXEC_EXTRA_DIST = $(EXEC_SOURCES_)
+EXEC_SOURCES = gprocessorfactory_exec_disabled.cpp gverifierfactory_exec_disabled.cpp
+endif
+
 EXTRA_DIST=\
+	$(ADMIN_EXTRA_DIST) \
+	$(EXEC_EXTRA_DIST) \
 	gmessagestore_win32.cpp \
 	gsasl_gnu.cpp \
 	mingw.mak
@@ -25,48 +71,38 @@ INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib -I$(
 noinst_LIBRARIES = libgsmtp.a
 
 libgsmtp_a_SOURCES = \
-	gadminserver.cpp \
-	gadminserver.h \
+	$(ADMIN_SOURCES) \
+	$(EXEC_SOURCES) \
+	$(AUTH_SOURCES) \
 	gbase64.cpp \
 	gbase64.h \
 	gclientprotocol.cpp \
 	gclientprotocol.h \
-	gexecutableprocessor.cpp \
-	gexecutableprocessor.h \
-	gexecutableverifier.cpp \
-	gexecutableverifier.h \
 	gfactoryparser.cpp \
 	gfactoryparser.h \
 	gfilestore.cpp \
 	gfilestore.h \
+	ginternalverifier.cpp \
+	ginternalverifier.h \
 	gmessagestore.cpp \
 	gmessagestore.h \
 	gmessagestore_unix.cpp \
-	gnetworkprocessor.cpp \
-	gnetworkprocessor.h \
-	gnetworkverifier.cpp \
-	gnetworkverifier.h \
+	gnullprocessor.cpp \
+	gnullprocessor.h \
+	gprocessorfactory.h \
 	gnewfile.cpp \
 	gnewfile.h \
 	gnewmessage.cpp \
 	gnewmessage.h \
-	gnullprocessor.cpp \
-	gnullprocessor.h \
 	gprocessor.cpp \
 	gprocessor.h \
-	gprocessorfactory.cpp \
-	gprocessorfactory.h \
 	gprotocolmessage.cpp \
 	gprotocolmessageforward.cpp \
 	gprotocolmessageforward.h \
 	gprotocolmessage.h \
 	gprotocolmessagestore.cpp \
 	gprotocolmessagestore.h \
-	grequestclient.cpp \
-	grequestclient.h \
 	gsasl.h \
-	gsasl_native.cpp \
-	gsecrets.cpp \
 	gsecrets.h \
 	gserverprotocol.cpp \
 	gserverprotocol.h \
@@ -75,16 +111,13 @@ libgsmtp_a_SOURCES = \
 	gsmtp.h \
 	gsmtpserver.cpp \
 	gsmtpserver.h \
-	gspamclient.cpp \
-	gspamclient.h \
-	gspamprocessor.cpp \
-	gspamprocessor.h \
 	gstoredfile.cpp \
 	gstoredfile.h \
 	gstoredmessage.cpp \
 	gstoredmessage.h \
 	gverifier.cpp \
 	gverifier.h \
-	gverifierfactory.cpp \
-	gverifierfactory.h
+	gverifierfactory.h \
+	gverifierstatus.cpp \
+	gverifierstatus.h
 

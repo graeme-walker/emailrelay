@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -257,23 +257,25 @@ void GGui::Dialog::end()
 
 void GGui::Dialog::privateEnd( int i )
 {
-	if( handle() == NULL ) return ;
-	G_DEBUG( "GGui::Dialog::privateEnd: " << i ) ;
-	if( m_modal )
-		::EndDialog( handle() , i ) ;
-	else
-		::DestroyWindow( handle() ) ;
+	if( handle() != NULL )
+	{
+		G_DEBUG( "GGui::Dialog::privateEnd: " << i ) ;
+		if( m_modal )
+			::EndDialog( handle() , i ) ;
+		else
+			::DestroyWindow( handle() ) ;
+	}
 }
 
 void GGui::Dialog::onClose()
 {
-	privateEnd(1) ;
+	privateEnd( 1 ) ;
 }
 
 void GGui::Dialog::onCommand( UINT id )
 {
 	if( id == IDOK )
-		privateEnd(1) ;
+		privateEnd( 1 ) ;
 }
 
 bool GGui::Dialog::run( int resource_id )

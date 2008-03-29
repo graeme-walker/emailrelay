@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -70,8 +70,9 @@ public:
 	bool empty() const ;
 		///< Returns true if there are no pages add()ed.
 
-	void dump( std::ostream & , const std::string & prefix = std::string(), const std::string & eol = "\n" ) const;
-		///< Dumps the pages to a stream.
+	void dump( std::ostream & , const std::string & prefix = std::string() ,
+		const std::string & eol = "\n" , bool with_passwords = true ) const;
+			///< Dumps the pages to a stream.
 
 	void wait( bool ) ;
 		///< Disables all buttons.

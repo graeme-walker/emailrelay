@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -194,7 +194,7 @@ std::string G::Date::yyyy() const
 	return ss.str() ;
 }
 
-G::Date &G::Date::operator++()
+G::Date & G::Date::operator++()
 {
 	++m_day ;
 	if( m_day == (lastDay(m_month,m_year)+1U) )
@@ -269,7 +269,7 @@ unsigned int G::Date::lastDay( unsigned int month , unsigned int year )
 
 bool G::Date::isLeapYear( unsigned int y )
 {
-    return y >= 1800U && ( y % 400U == 0U || ( y % 100U != 0U && y % 4U == 0U ) ) ;
+	return y >= 1800U && ( y % 400U == 0U || ( y % 100U != 0U && y % 4U == 0U ) ) ;
 }
 
 bool G::Date::operator==( const Date &other ) const

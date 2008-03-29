@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,6 +21,12 @@
 	unpack.h
 
 	A 'C' interface for unpacking packed executables.
+
+	This is written in "C" so that a self-extracting archive does
+	not have any dependence on the C++ runtime library. This is
+	important for Windows since the MinGW C++ runtime is not installed
+	as standard.
+
 */
 
 #ifndef G_UNPACK_C_H__
@@ -53,9 +59,14 @@ int unpack_count( const Unpack * p ) ;
  */
 char * unpack_name( const Unpack * p , int i ) ;
 
-/** Releases the given unpack_name() buffer.
+/** Returns the flags of the i'th file in a heap buffer.
+ *  Returns the zero-length string on error. Free with unpack_free().
  */
-void unpack_free( char * name ) ;
+char * unpack_flags( const Unpack * p , int i ) ;
+
+/** Releases the given unpack_name()/unpack_flags() buffer.
+ */
+void unpack_free( char * str ) ;
 
 /** Returns the packed size of the i'th file.
  */

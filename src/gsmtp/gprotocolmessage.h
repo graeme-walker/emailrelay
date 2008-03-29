@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -87,7 +87,7 @@ public:
 		///< Sets the message envelope 'from'.
 		///< Returns false if an invalid user.
 
-	virtual bool addTo( const std::string & to_user , Verifier::Status to_status ) = 0 ;
+	virtual bool addTo( const std::string & to_user , VerifierStatus to_status ) = 0 ;
 		///< Adds an envelope 'to'.
 		///<
 		///< The 'to_status' parameter comes from
@@ -103,27 +103,27 @@ public:
 		///< Precondition: at least one
 		///< successful addTo() call
 
-	virtual void addText( const std::string & ) = 0 ;
-		///< Adds text.
-		///< Precondition: at least one
-		///< successful addTo() call
+	virtual bool addText( const std::string & ) = 0 ;
+		///< Adds text. Returns false on error, typically because a size
+		///< limit is reached.
+		///<
+		///< Precondition: at least one successful addTo() call
 
 	virtual std::string from() const = 0 ;
 		///< Returns the setFrom() string.
 
-	virtual void process( const std::string & authenticated_client_id ,
-		const std::string & peer_ip_address ) = 0 ;
-			///< Starts asynchronous processing of the
-			///< message. Once processing is complete the
-			///< message state is cleared and the doneSignal()
-			///< is raised. The signal may be raised before
-			///< process() returns.
-			///<
-			///< The client-id parameter is used to propogate
-			///< authentication information from the SMTP
-			///< AUTH command into individual messages.
-			///< It is the empty string for unauthenticated
-			///< clients. See also GSmtp::Sasl::id().
+	virtual void process( const std::string & authenticated_client_id , const std::string & peer_ip_address ) = 0 ;
+		///< Starts asynchronous processing of the
+		///< message. Once processing is complete the
+		///< message state is cleared and the doneSignal()
+		///< is raised. The signal may be raised before
+		///< process() returns.
+		///<
+		///< The client-id parameter is used to propogate
+		///< authentication information from the SMTP
+		///< AUTH command into individual messages.
+		///< It is the empty string for unauthenticated
+		///< clients. See also GSmtp::Sasl::id().
 
 private:
 	void operator=( const ProtocolMessage & ) ; // not implemented

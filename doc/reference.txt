@@ -125,6 +125,9 @@ where <switch> is:
 # --server-tls (-K)
   Enables tls/ssl layer for smtp server using the given openssl certificate file (if openssl built in).
 
+# --size (-M)
+  Limits the size of submitted messages.
+
 # --spool-dir (-s)
   Specifies the spool directory (default is "/var/spool/emailrelay").
 
@@ -535,6 +538,15 @@ switch) but the remote server does not support the AUTH extension, or does not
 support the LOGIN or CRAM-MD5 mechanism, then E-MailRelay will log an error
 and not forward any messages.
 
+If E-MailRelay successfully authenticates with the remote server then the
+client's authentication name (if any) is passed as a parameter to the MAIL
+command when the message is forwarded. Some SMTP servers are reported to reject
+the message if the name on the MAIL command does not match the name used to
+authenticate with them. However, the name passed as a parameter to the MAIL
+command is stored in the message's envelope file, so a "--filter" script can be
+used to change this to match whatever the remote server expects. An example
+script is provided in the distribution.
+
 Note that some ISPs require separate POP/IMAP authentication before SMTP access
 from a particular IP address is allowed. This type of POP-before-SMTP
 authentication can be done outside the E-MailRelay system by POP/IMAP utilities
@@ -742,8 +754,7 @@ To force FHS compliance you can use the "--enable-fhs" switch when running
 * /var/spool/emailrelay/emailrelay.*.envelope
 
 For finer control of the directory structure the following can be specified on
-the "configure" command-line (but note that the "--enable-fhs" will override
-them):
+the "configure" command-line:
 * --mandir=<dir>
 * --sbindir=<dir>
 * e_libexecdir=<dir>
@@ -780,4 +791,4 @@ the ".pc" file by setting "LDFLAGS":
 
 
 
-Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
+Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.

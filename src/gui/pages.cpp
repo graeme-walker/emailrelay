@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,10 +24,12 @@
 #include "legal.h"
 #include "dir.h"
 #include "boot.h"
+#include "gstr.h"
 #include "gfile.h"
 #include "gprocess.h"
 #include "gidentity.h"
 #include "gmd5.h"
+#include "gxtext.h"
 #include "gdebug.h"
 #include <stdexcept>
 #include <fstream>
@@ -36,13 +38,13 @@ namespace
 {
 	std::string encrypt( const std::string & pwd , const std::string & mechanism )
 	{
-		return mechanism == "CRAM-MD5" ? G::Md5::mask(pwd) : pwd ;
+		return mechanism == "CRAM-MD5" ? G::Md5::mask(pwd) : G::Xtext::encode(pwd) ;
 	}
 }
 
 // ==
 
-TitlePage::TitlePage( GDialog & dialog , const std::string & name ,
+TitlePage::TitlePage( GDialog & dialog , const State & , const std::string & name ,
 	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) :
 		GPage(dialog,name,next_1,next_2,finish,close)
 {
@@ -61,15 +63,15 @@ std::string TitlePage::nextPage()
 	return next1() ;
 }
 
-void TitlePage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ) const
+void TitlePage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
 {
-	GPage::dump( stream , prefix , eol ) ;
+	GPage::dump( stream , prefix , eol , p ) ;
 }
 
 // ==
 
-LicensePage::LicensePage( GDialog & dialog , const std::string & name ,
-	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) :
+LicensePage::LicensePage( GDialog & dialog , const State & , const std::string & name ,
+	const std::string & next_1 , const std::string & next_2 , bool finish , bool close , bool accepted ) :
 		GPage(dialog,name,next_1,next_2,finish,close)
 {
 	m_text_edit = new QTextEdit;
@@ -82,7 +84,7 @@ LicensePage::LicensePage( GDialog & dialog , const std::string & name ,
 	m_agree_checkbox = new QCheckBox(tr("I agree to the terms and conditions of the license"));
 	setFocusProxy( m_agree_checkbox ) ;
 
-	if( testMode() )
+	if( testMode() || accepted )
 		m_agree_checkbox->setChecked(true) ;
 
 	QVBoxLayout *layout = new QVBoxLayout;
@@ -99,9 +101,9 @@ std::string LicensePage::nextPage()
 	return next1() ;
 }
 
-void LicensePage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ) const
+void LicensePage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
 {
-	GPage::dump( stream , prefix , eol ) ;
+	GPage::dump( stream , prefix , eol , p ) ;
 }
 
 bool LicensePage::isComplete()
@@ -111,7 +113,7 @@ bool LicensePage::isComplete()
 
 // ==
 
-DirectoryPage::DirectoryPage( GDialog & dialog , const std::string & name ,
+DirectoryPage::DirectoryPage( GDialog & dialog , const State & state , const std::string & name ,
 	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ,
 	const Dir & dir , bool installing ) :
 		GPage(dialog,name,next_1,next_2,finish,close) ,
@@ -163,9 +165,9 @@ DirectoryPage::DirectoryPage( GDialog & dialog , const std::string & name ,
 
 	setFocusProxy( m_install_dir_edit_box ) ;
 
-	m_install_dir_edit_box->setText( QString(m_dir.install().str().c_str()) ) ;
-	m_spool_dir_edit_box->setText( QString(m_dir.spool().str().c_str()) ) ;
-	m_config_dir_edit_box->setText( QString(m_dir.config().str().c_str()) ) ;
+	m_install_dir_edit_box->setText( QString(state.value("dir-install",Dir::install().str()).c_str()) ) ;
+	m_spool_dir_edit_box->setText( QString(state.value("dir-spool",m_dir.spool().str()).c_str()) ) ;
+	m_config_dir_edit_box->setText( QString(state.value("dir-config",m_dir.config().str()).c_str()) ) ;
 
 	QVBoxLayout * layout = new QVBoxLayout;
 	layout->addWidget(newTitle(tr("Directories"))) ;
@@ -177,15 +179,14 @@ DirectoryPage::DirectoryPage( GDialog & dialog , const std::string & name ,
 
 	if( ! m_installing )
 	{
-		// if just configuring dont allow the base directories to change -- they
-		// are read from the ".state" file written by "make install"
+		// if just configuring dont allow the base directories to change
 		//
 		m_install_dir_browse_button->setEnabled(false) ;
 		m_install_dir_edit_box->setEnabled(false) ;
 		m_config_dir_browse_button->setEnabled(false) ;
 		m_config_dir_edit_box->setEnabled(false) ;
-		m_spool_dir_browse_button->setEnabled(false) ; // ??
-		m_spool_dir_edit_box->setEnabled(false) ; // ??
+		//m_spool_dir_browse_button->setEnabled(false) ; // ??
+		//m_spool_dir_edit_box->setEnabled(false) ; // ??
 	}
 
 	connect( m_install_dir_browse_button , SIGNAL(clicked()) , this , SLOT(browseInstall()) ) ;
@@ -228,18 +229,44 @@ std::string DirectoryPage::nextPage()
 	return next1() ;
 }
 
-void DirectoryPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ) const
+G::Path DirectoryPage::normalise( const G::Path & dir ) const
 {
-	GPage::dump( stream , prefix , eol ) ;
-	stream << prefix << "dir-install: " << value(m_install_dir_edit_box) << eol ;
-	stream << prefix << "dir-spool: " << value(m_spool_dir_edit_box) << eol ;
-	stream << prefix << "dir-config: " << value(m_config_dir_edit_box) << eol ;
-	stream << prefix << "dir-pid: " << m_dir.pid() << eol ;
-	stream << prefix << "dir-desktop: " << m_dir.desktop() << eol ;
-	stream << prefix << "dir-login: " << m_dir.login() << eol ;
-	stream << prefix << "dir-menu: " << m_dir.menu() << eol ;
-	stream << prefix << "dir-reskit: " << std::string() << eol ;
-	stream << prefix << "dir-boot: " << m_dir.boot() << eol ;
+	// make relative paths relative to the home directory
+	// since gui users wont have a sense of the cwd
+
+	G::Path result = dir ;
+	if( dir.isRelative() && Dir::home() != G::Path() )
+	{
+		if( dir.str() == "~" )
+		{
+			result = Dir::home() ;
+		}
+		else if( dir.str().at(0U) == '~' )
+		{
+			result = G::Path( Dir::home() , dir.str().substr(1U) ) ;
+		}
+		else
+		{
+			result = G::Path::join( Dir::home() , dir ) ;
+		}
+	}
+	return result ;
+}
+
+void DirectoryPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
+{
+	GPage::dump( stream , prefix , eol , p ) ;
+	std::string ws = " " ;
+	dumpItem( stream , prefix , "dir-install" , normalise(G::Str::trimmed(value(m_install_dir_edit_box),ws)) , eol ) ;
+	dumpItem( stream , prefix , "dir-spool" , normalise(G::Str::trimmed(value(m_spool_dir_edit_box),ws)) , eol ) ;
+	G::Path config_dir = normalise(G::Str::trimmed(value(m_config_dir_edit_box),ws)) ;
+	dumpItem( stream , prefix , "dir-config" , config_dir , eol ) ;
+	dumpItem( stream , prefix , "dir-pid" , m_dir.pid(config_dir) , eol ) ;
+	dumpItem( stream , prefix , "dir-desktop" , m_dir.desktop() , eol ) ;
+	dumpItem( stream , prefix , "dir-login" , m_dir.login() , eol ) ;
+	dumpItem( stream , prefix , "dir-menu" , m_dir.menu() , eol ) ;
+	dumpItem( stream , prefix , "dir-reskit" , std::string() , eol ) ;
+	dumpItem( stream , prefix , "dir-boot" , Boot::able(m_dir.boot()) ? m_dir.boot() : G::Path() , eol ) ;
 }
 
 bool DirectoryPage::isComplete()
@@ -252,15 +279,15 @@ bool DirectoryPage::isComplete()
 
 // ==
 
-DoWhatPage::DoWhatPage( GDialog & dialog, const std::string & name ,
+DoWhatPage::DoWhatPage( GDialog & dialog , const State & state , const std::string & name ,
 	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) :
 		GPage(dialog,name,next_1,next_2,finish,close)
 {
 	m_pop_checkbox = new QCheckBox(tr("&POP3 server"));
 	m_smtp_checkbox = new QCheckBox(tr("&SMTP server"));
-	m_smtp_checkbox->setChecked(true) ;
-	if( testMode() )
-		m_pop_checkbox->setChecked(true) ;
+
+	m_smtp_checkbox->setChecked( state.value("do-smtp",true) ) ;
+	m_pop_checkbox->setChecked( state.value("do-pop",testMode()) ) ;
 
 	QVBoxLayout * server_type_box_layout = new QVBoxLayout ;
 	server_type_box_layout->addWidget( m_pop_checkbox ) ;
@@ -269,22 +296,37 @@ DoWhatPage::DoWhatPage( GDialog & dialog, const std::string & name ,
 	QGroupBox * server_type_group = new QGroupBox(tr("Server")) ;
 	server_type_group->setLayout( server_type_box_layout ) ;
 
-	m_immediate_checkbox = new QRadioButton(tr("&After a message is received"));
+	m_immediate_checkbox = new QRadioButton(tr("&Synchronously"));
+	m_on_disconnect_checkbox = new QRadioButton(tr("When client &disconnects"));
 	m_periodically_checkbox = new QRadioButton(tr("&Check periodically"));
 	m_on_demand_checkbox = new QRadioButton(tr("&Only when triggered"));
-	m_immediate_checkbox->setChecked(true) ;
+
+	if( state.value("forward-immediate",true) )
+		m_immediate_checkbox->setChecked(true) ;
+	else if( state.value("forward-on-disconnect",false) )
+		m_on_disconnect_checkbox->setChecked(true) ;
+	else if( state.value("forward-poll",false) )
+		m_periodically_checkbox->setChecked(true) ;
+	else
+		m_on_demand_checkbox->setChecked(true) ;
 
 	QLabel * period_label = new QLabel( tr("e&very") ) ;
 	m_period_combo = new QComboBox ;
 	m_period_combo->addItem( tr("second") ) ;
 	m_period_combo->addItem( tr("minute") ) ;
 	m_period_combo->addItem( tr("hour") ) ;
-	m_period_combo->setCurrentIndex( 1 ) ;
+	if( state.value("forward-poll-period") == "second" )
+		m_period_combo->setCurrentIndex( 0 ) ;
+	else if ( state.value("forward-poll-period","minute") == "minute" )
+		m_period_combo->setCurrentIndex( 1 ) ;
+	else
+		m_period_combo->setCurrentIndex( 2 ) ;
 	m_period_combo->setEditable( false ) ;
 	period_label->setBuddy( m_period_combo ) ;
 
 	QVBoxLayout * forwarding_box_layout = new QVBoxLayout ;
 	forwarding_box_layout->addWidget( m_immediate_checkbox ) ;
+	forwarding_box_layout->addWidget( m_on_disconnect_checkbox ) ;
 	{
 		QHBoxLayout * inner = new QHBoxLayout ;
 		inner->addWidget( m_periodically_checkbox ) ;
@@ -306,6 +348,7 @@ DoWhatPage::DoWhatPage( GDialog & dialog, const std::string & name ,
 
 	connect( m_pop_checkbox , SIGNAL(toggled(bool)) , this , SIGNAL(pageUpdateSignal()) ) ;
 	connect( m_smtp_checkbox , SIGNAL(toggled(bool)) , this , SIGNAL(pageUpdateSignal()) ) ;
+	connect( m_on_disconnect_checkbox , SIGNAL(toggled(bool)) , this , SLOT(onToggle()) ) ;
 	connect( m_periodically_checkbox , SIGNAL(toggled(bool)) , this , SLOT(onToggle()) ) ;
 	connect( m_smtp_checkbox , SIGNAL(toggled(bool)) , this , SLOT(onToggle()) ) ;
 
@@ -332,14 +375,15 @@ std::string DoWhatPage::nextPage()
 			next2() ;
 }
 
-void DoWhatPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ) const
+void DoWhatPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
 {
-	GPage::dump( stream , prefix , eol ) ;
-	stream << prefix << "do-pop: " << value(m_pop_checkbox) << eol ;
-	stream << prefix << "do-smtp: " << value(m_smtp_checkbox) << eol ;
-	stream << prefix << "forward-immediate: " << value(m_immediate_checkbox) << eol ;
-	stream << prefix << "forward-poll: " << value(m_periodically_checkbox) << eol ;
-	stream << prefix << "forward-poll-period: " << value(m_period_combo) << eol ;
+	GPage::dump( stream , prefix , eol , p ) ;
+	dumpItem( stream , prefix , "do-pop" , value(m_pop_checkbox) , eol ) ;
+	dumpItem( stream , prefix , "do-smtp" , value(m_smtp_checkbox) , eol ) ;
+	dumpItem( stream , prefix , "forward-immediate" , value(m_immediate_checkbox) , eol ) ;
+	dumpItem( stream , prefix , "forward-on-disconnect" , value(m_on_disconnect_checkbox) , eol ) ;
+	dumpItem( stream , prefix , "forward-poll" , value(m_periodically_checkbox) , eol ) ;
+	dumpItem( stream , prefix , "forward-poll-period" , value(m_period_combo) , eol ) ;
 }
 
 bool DoWhatPage::isComplete()
@@ -351,12 +395,12 @@ bool DoWhatPage::isComplete()
 
 // ==
 
-PopPage::PopPage( GDialog & dialog , const std::string & name ,
+PopPage::PopPage( GDialog & dialog , const State & state , const std::string & name ,
 	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) :
 		GPage(dialog,name,next_1,next_2,finish,close)
 {
 	QLabel * port_label = new QLabel( tr("P&ort:") ) ;
-	m_port_edit_box = new QLineEdit( tr("110") ) ;
+	m_port_edit_box = new QLineEdit( state.value("pop-port","110").c_str() ) ;
 	port_label->setBuddy( m_port_edit_box ) ;
 
 	QHBoxLayout * server_layout = new QHBoxLayout ;
@@ -369,13 +413,9 @@ PopPage::PopPage( GDialog & dialog , const std::string & name ,
 	m_one = new QRadioButton( tr("&One client") ) ;
 	m_shared = new QRadioButton( tr("&Many clients sharing a spool directory") ) ;
 	m_pop_by_name = new QRadioButton( tr("M&any clients with separate spool directories") ) ;
-	m_one->setChecked(true) ;
 
 	m_no_delete_checkbox = new QCheckBox( tr("Disable message deletion") ) ;
-	m_no_delete_checkbox->setChecked(true) ;
-
 	m_auto_copy_checkbox = new QCheckBox( tr("Copy SMTP messages to all") ) ;
-	m_auto_copy_checkbox->setChecked(false) ;
 
 	QGridLayout * radio_layout = new QGridLayout ;
 	radio_layout->addWidget( m_one , 0 , 0 ) ;
@@ -383,6 +423,15 @@ PopPage::PopPage( GDialog & dialog , const std::string & name ,
 	radio_layout->addWidget( m_no_delete_checkbox , 1 , 1 ) ;
 	radio_layout->addWidget( m_pop_by_name , 2 , 0 ) ;
 	radio_layout->addWidget( m_auto_copy_checkbox , 2 , 1 ) ;
+
+	if( state.value("pop-simple",true) )
+		m_one->setChecked( true ) ;
+	else if( state.value("pop-shared",false) )
+		m_shared->setChecked( true ) ;
+	else if( state.value("pop-by-name",false) )
+		m_pop_by_name->setChecked( true ) ;
+	m_no_delete_checkbox->setChecked( state.value("pop-shared-no-delete",true) ) ;
+	m_auto_copy_checkbox->setChecked( state.value("pop-by-name-auto-copy",false) ) ;
 
 	QGroupBox * accounts_group = new QGroupBox(tr("Client accounts")) ;
 	accounts_group->setLayout( radio_layout ) ;
@@ -410,15 +459,15 @@ std::string PopPage::nextPage()
 			next2() ;
 }
 
-void PopPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ) const
+void PopPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
 {
-	GPage::dump( stream , prefix , eol ) ;
-	stream << prefix << "pop-port: " << value(m_port_edit_box) << eol ;
-	stream << prefix << "pop-simple: " << value(m_one) << eol ;
-	stream << prefix << "pop-shared: " << value(m_shared) << eol ;
-	stream << prefix << "pop-shared-no-delete: " << value(m_no_delete_checkbox) << eol ;
-	stream << prefix << "pop-by-name: " << value(m_pop_by_name) << eol ;
-	stream << prefix << "pop-by-name-auto-copy: " << value(m_auto_copy_checkbox) << eol ;
+	GPage::dump( stream , prefix , eol , p ) ;
+	dumpItem( stream , prefix , "pop-port" , value(m_port_edit_box) , eol ) ;
+	dumpItem( stream , prefix , "pop-simple" , value(m_one) , eol ) ;
+	dumpItem( stream , prefix , "pop-shared" , value(m_shared) , eol ) ;
+	dumpItem( stream , prefix , "pop-shared-no-delete" , value(m_no_delete_checkbox) , eol ) ;
+	dumpItem( stream , prefix , "pop-by-name" , value(m_pop_by_name) , eol ) ;
+	dumpItem( stream , prefix , "pop-by-name-auto-copy" , value(m_auto_copy_checkbox) , eol ) ;
 }
 
 bool PopPage::isComplete()
@@ -434,15 +483,21 @@ void PopPage::onToggle()
 
 // ==
 
-PopAccountsPage::PopAccountsPage( GDialog & dialog , const std::string & name ,
-	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) :
-		GPage(dialog,name,next_1,next_2,finish,close)
+PopAccountsPage::PopAccountsPage( GDialog & dialog , const State & state , const std::string & name ,
+	const std::string & next_1 , const std::string & next_2 , bool finish , bool close , bool have_accounts ) :
+		GPage(dialog,name,next_1,next_2,finish,close) ,
+		m_have_accounts(have_accounts)
 {
 	m_mechanism_combo = new QComboBox ;
 	m_mechanism_combo->addItem( tr("APOP") ) ;
 	m_mechanism_combo->addItem( tr("CRAM-MD5") ) ;
 	m_mechanism_combo->addItem( tr("LOGIN") ) ;
-	m_mechanism_combo->setCurrentIndex( 1 ) ;
+	if( state.value("pop-auth-mechanism") == "APOP" )
+		m_mechanism_combo->setCurrentIndex( 0 ) ;
+	else if( state.value("pop-auth-mechanism") == "LOGIN" )
+		m_mechanism_combo->setCurrentIndex( 2 ) ;
+	else
+		m_mechanism_combo->setCurrentIndex( 1 ) ;
 	m_mechanism_combo->setEditable( false ) ;
 	QLabel * mechanism_label = new QLabel( tr("Authentication &mechanism") ) ;
 	mechanism_label->setBuddy( m_mechanism_combo ) ;
@@ -474,7 +529,10 @@ PopAccountsPage::PopAccountsPage( GDialog & dialog , const std::string & name ,
 		m_pwd_1->setText("secret") ;
 	}
 
-	QGroupBox * account_group = new QGroupBox(tr("Accounts")) ;
+	QGroupBox * account_group =
+		m_have_accounts ?
+			new QGroupBox(tr("New Accounts")) :
+			new QGroupBox(tr("Accounts")) ;
 	account_group->setLayout( account_layout ) ;
 
 	QVBoxLayout *layout = new QVBoxLayout;
@@ -511,21 +569,25 @@ std::string PopAccountsPage::nextPage()
 			next1() ;
 }
 
-void PopAccountsPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ) const
+void PopAccountsPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p) const
 {
-	GPage::dump( stream , prefix , eol ) ;
-	stream << prefix << "pop-auth-mechanism: " << value(m_mechanism_combo) << eol ;
-	stream << prefix << "pop-account-1-name: " << value(m_name_1) << eol ;
-	stream << prefix << "pop-account-1-password: " << encrypt(value(m_pwd_1),value(m_mechanism_combo)) << eol ;
-	stream << prefix << "pop-account-2-name: " << value(m_name_2) << eol ;
-	stream << prefix << "pop-account-2-password: " << encrypt(value(m_pwd_2),value(m_mechanism_combo)) << eol ;
-	stream << prefix << "pop-account-3-name: " << value(m_name_3) << eol ;
-	stream << prefix << "pop-account-3-password: " << encrypt(value(m_pwd_3),value(m_mechanism_combo)) << eol ;
+	GPage::dump( stream , prefix , eol , p ) ;
+	dumpItem( stream , prefix , "pop-auth-mechanism" , value(m_mechanism_combo) , eol ) ;
+	if( p )
+	{
+		dumpItem( stream , prefix , "pop-account-1-name" , value(m_name_1) , eol ) ;
+		dumpItem( stream , prefix , "pop-account-1-password" , encrypt(value(m_pwd_1),value(m_mechanism_combo)) , eol );
+		dumpItem( stream , prefix , "pop-account-2-name" , value(m_name_2) , eol ) ;
+		dumpItem( stream , prefix , "pop-account-2-password" , encrypt(value(m_pwd_2),value(m_mechanism_combo)) , eol );
+		dumpItem( stream , prefix , "pop-account-3-name" , value(m_name_3) , eol ) ;
+		dumpItem( stream , prefix , "pop-account-3-password" , encrypt(value(m_pwd_3),value(m_mechanism_combo)) , eol );
+	}
 }
 
 bool PopAccountsPage::isComplete()
 {
 	return
+		m_have_accounts ||
 		( !m_name_1->text().isEmpty() && !m_pwd_1->text().isEmpty() ) ||
 		( !m_name_2->text().isEmpty() && !m_pwd_2->text().isEmpty() ) ||
 		( !m_name_3->text().isEmpty() && !m_pwd_3->text().isEmpty() ) ;
@@ -533,15 +595,21 @@ bool PopAccountsPage::isComplete()
 
 // ==
 
-PopAccountPage::PopAccountPage( GDialog & dialog , const std::string & name ,
-	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) :
-		GPage(dialog,name,next_1,next_2,finish,close)
+PopAccountPage::PopAccountPage( GDialog & dialog , const State & state , const std::string & name ,
+	const std::string & next_1 , const std::string & next_2 , bool finish , bool close , bool have_account ) :
+		GPage(dialog,name,next_1,next_2,finish,close) ,
+		m_have_account(have_account)
 {
 	m_mechanism_combo = new QComboBox ;
 	m_mechanism_combo->addItem( tr("APOP") ) ;
 	m_mechanism_combo->addItem( tr("CRAM-MD5") ) ;
 	m_mechanism_combo->addItem( tr("LOGIN") ) ;
-	m_mechanism_combo->setCurrentIndex( 1 ) ;
+	if( state.value("pop-auth-mechanism") == "APOP" )
+		m_mechanism_combo->setCurrentIndex( 0 ) ;
+	else if( state.value("pop-auth-mechanism") == "LOGIN" )
+		m_mechanism_combo->setCurrentIndex( 2 ) ;
+	else
+		m_mechanism_combo->setCurrentIndex( 1 ) ;
 	m_mechanism_combo->setEditable( false ) ;
 	QLabel * mechanism_label = new QLabel( tr("Authentication &mechanism") ) ;
 	mechanism_label->setBuddy( m_mechanism_combo ) ;
@@ -563,7 +631,10 @@ PopAccountPage::PopAccountPage( GDialog & dialog , const std::string & name ,
 		m_pwd_1->setText("secret") ;
 	}
 
-	QGroupBox * account_group = new QGroupBox(tr("Account")) ;
+	QGroupBox * account_group =
+		m_have_account ?
+			new QGroupBox(tr("New Account")) :
+			new QGroupBox(tr("Account")) ;
 	account_group->setLayout( account_layout ) ;
 
 	QVBoxLayout *layout = new QVBoxLayout;
@@ -592,28 +663,33 @@ std::string PopAccountPage::nextPage()
 			next1() ;
 }
 
-void PopAccountPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ) const
+void PopAccountPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
 {
-	GPage::dump( stream , prefix , eol ) ;
-	stream << prefix << "pop-auth-mechanism: " << value(m_mechanism_combo) << eol ;
-	stream << prefix << "pop-account-1-name: " << value(m_name_1) << eol ;
-	stream << prefix << "pop-account-1-password: " << encrypt(value(m_pwd_1),value(m_mechanism_combo)) << eol ;
+	GPage::dump( stream , prefix , eol , p ) ;
+	dumpItem( stream , prefix , "pop-auth-mechanism" , value(m_mechanism_combo) , eol ) ;
+	if( p )
+	{
+		dumpItem( stream , prefix , "pop-account-1-name" , value(m_name_1) , eol ) ;
+		dumpItem( stream , prefix , "pop-account-1-password" , encrypt(value(m_pwd_1),value(m_mechanism_combo)) , eol );
+	}
 }
 
 bool PopAccountPage::isComplete()
 {
 	return
-		!m_name_1->text().isEmpty() && !m_pwd_1->text().isEmpty() ;
+		m_have_account ||
+		( !m_name_1->text().isEmpty() && !m_pwd_1->text().isEmpty() ) ;
 }
 
 // ==
 
-SmtpServerPage::SmtpServerPage( GDialog & dialog , const std::string & name ,
-	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) :
-		GPage(dialog,name,next_1,next_2,finish,close)
+SmtpServerPage::SmtpServerPage( GDialog & dialog , const State & state , const std::string & name ,
+	const std::string & next_1 , const std::string & next_2 , bool finish , bool close , bool have_account ) :
+		GPage(dialog,name,next_1,next_2,finish,close) ,
+		m_have_account(have_account)
 {
 	QLabel * port_label = new QLabel(tr("P&ort:")) ;
-	m_port_edit_box = new QLineEdit(tr("25")) ;
+	m_port_edit_box = new QLineEdit( state.value("smtp-server-port","25").c_str() ) ;
 	port_label->setBuddy( m_port_edit_box ) ;
 
 	QHBoxLayout * server_layout = new QHBoxLayout ;
@@ -626,11 +702,15 @@ SmtpServerPage::SmtpServerPage( GDialog & dialog , const std::string & name ,
 	//
 
 	m_auth_checkbox = new QCheckBox( tr("&Require authentication") ) ;
+	m_auth_checkbox->setChecked( state.value("smtp-server-auth",false) ) ;
 
 	m_mechanism_combo = new QComboBox ;
 	m_mechanism_combo->addItem( tr("CRAM-MD5") ) ;
 	m_mechanism_combo->addItem( tr("LOGIN") ) ;
-	m_mechanism_combo->setCurrentIndex( 0 ) ;
+	if( state.value("smtp-server-auth-mechanism") == "LOGIN" )
+		m_mechanism_combo->setCurrentIndex( 1 ) ;
+	else
+		m_mechanism_combo->setCurrentIndex( 0 ) ;
 	m_mechanism_combo->setEditable( false ) ;
 	QLabel * mechanism_label = new QLabel( tr("Authentication &mechanism") ) ;
 	mechanism_label->setBuddy( m_mechanism_combo ) ;
@@ -663,7 +743,10 @@ SmtpServerPage::SmtpServerPage( GDialog & dialog , const std::string & name ,
 	account_layout->addWidget( account_pwd_label , 1 , 0 ) ;
 	account_layout->addWidget( m_account_pwd , 1 , 1 ) ;
 
-	m_account_group = new QGroupBox(tr("Account")) ;
+	m_account_group =
+		m_have_account ?
+			new QGroupBox(tr("New Account")) :
+			new QGroupBox(tr("Account")) ;
 	m_account_group->setLayout( account_layout ) ;
 
 	//
@@ -676,11 +759,7 @@ SmtpServerPage::SmtpServerPage( GDialog & dialog , const std::string & name ,
 	trust_layout->addWidget( trust_label ) ;
 	trust_layout->addWidget( m_trust_address ) ;
 	m_trust_group->setLayout( trust_layout ) ;
-
-	if( testMode() )
-	{
-		m_trust_address->setText( "192.168.0.*" ) ;
-	}
+	m_trust_address->setText( state.value("smtp-server-trust",testMode()?"192.168.0.*":"").c_str() ) ;
 	
 	//
 
@@ -710,15 +789,19 @@ std::string SmtpServerPage::nextPage()
 	return next1() ;
 }
 
-void SmtpServerPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ) const
+void SmtpServerPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
 {
-	GPage::dump( stream , prefix , eol ) ;
-	stream << prefix << "smtp-server-port: " << value(m_port_edit_box) << eol ;
-	stream << prefix << "smtp-server-auth: " << value(m_auth_checkbox) << eol ;
-	stream << prefix << "smtp-server-auth-mechanism: " << value(m_mechanism_combo) << eol ;
-	stream << prefix << "smtp-server-account-name: " << value(m_account_name) << eol ;
-	stream << prefix << "smtp-server-account-password: " << encrypt(value(m_account_pwd),value(m_mechanism_combo)) << eol ;
-	stream << prefix << "smtp-server-trust: " << value(m_trust_address) << eol ;
+	GPage::dump( stream , prefix , eol , p ) ;
+	dumpItem( stream , prefix , "smtp-server-port" , value(m_port_edit_box) , eol ) ;
+	dumpItem( stream , prefix , "smtp-server-auth" , value(m_auth_checkbox) , eol ) ;
+	dumpItem( stream , prefix , "smtp-server-auth-mechanism" , value(m_mechanism_combo) , eol ) ;
+	if( p )
+	{
+		dumpItem( stream , prefix , "smtp-server-account-name" , value(m_account_name) , eol ) ;
+		dumpItem( stream , prefix , "smtp-server-account-password" ,
+			encrypt(value(m_account_pwd),value(m_mechanism_combo)) , eol ) ;
+	}
+	dumpItem( stream , prefix , "smtp-server-trust" , value(m_trust_address) , eol ) ;
 }
 
 void SmtpServerPage::onToggle()
@@ -731,27 +814,28 @@ void SmtpServerPage::onToggle()
 bool SmtpServerPage::isComplete()
 {
 	return
-		! m_port_edit_box->text().isEmpty() &&
-		( ! m_auth_checkbox->isChecked() || (
+		! m_port_edit_box->text().isEmpty() && (
+		m_have_account ||
+		!m_auth_checkbox->isChecked() || (
 			! m_account_name->text().isEmpty() &&
 			! m_account_pwd->text().isEmpty() ) ) ;
 }
 
 // ==
 
-SmtpClientPage::SmtpClientPage( GDialog & dialog , const std::string & name ,
-	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) :
-		GPage(dialog,name,next_1,next_2,finish,close)
+SmtpClientPage::SmtpClientPage( GDialog & dialog , const State & state , const std::string & name ,
+	const std::string & next_1 , const std::string & next_2 , bool finish , bool close , bool have_account ) :
+		GPage(dialog,name,next_1,next_2,finish,close) ,
+		m_have_account(have_account)
 {
 	QLabel * server_label = new QLabel(tr("&Hostname:")) ;
 	m_server_edit_box = new QLineEdit ;
 	server_label->setBuddy( m_server_edit_box ) ;
 
-	if( testMode() )
-		m_server_edit_box->setText("myisp.net") ;
+	m_server_edit_box->setText( state.value("smtp-client-host",testMode()?"myisp.net":"").c_str() ) ;
 
 	QLabel * port_label = new QLabel( tr("P&ort:") ) ;
-	m_port_edit_box = new QLineEdit( tr("25") ) ;
+	m_port_edit_box = new QLineEdit( state.value("smtp-client-port","25").c_str() ) ;
 	port_label->setBuddy( m_port_edit_box ) ;
 
 	QHBoxLayout * server_layout = new QHBoxLayout ;
@@ -765,14 +849,18 @@ SmtpClientPage::SmtpClientPage( GDialog & dialog , const std::string & name ,
 	server_group->setLayout( server_layout ) ;
 
 	m_tls_checkbox = new QCheckBox( tr("&Allow TLS/SSL encryption") ) ;
-	m_tls_checkbox->setChecked(true) ;
+	m_tls_checkbox->setChecked( state.value("smtp-client-tls",true) ) ;
 
 	m_auth_checkbox = new QCheckBox( tr("&Supply authentication") ) ;
+	m_auth_checkbox->setChecked( state.value("smtp-client-auth",false) ) ;
 
 	m_mechanism_combo = new QComboBox ;
 	m_mechanism_combo->addItem( tr("CRAM-MD5") ) ;
 	m_mechanism_combo->addItem( tr("LOGIN") ) ;
-	m_mechanism_combo->setCurrentIndex( 0 ) ;
+	if( state.value("smtp-client-auth-mechanism") == "LOGIN" )
+		m_mechanism_combo->setCurrentIndex( 1 ) ;
+	else
+		m_mechanism_combo->setCurrentIndex( 0 ) ;
 	m_mechanism_combo->setEditable( false ) ;
 	QLabel * mechanism_label = new QLabel( tr("Authentication &mechanism") ) ;
 	mechanism_label->setBuddy( m_mechanism_combo ) ;
@@ -799,7 +887,10 @@ SmtpClientPage::SmtpClientPage( GDialog & dialog , const std::string & name ,
 	account_layout->addWidget( account_pwd_label , 1 , 0 ) ;
 	account_layout->addWidget( m_account_pwd , 1 , 1 ) ;
 
-	m_account_group = new QGroupBox(tr("Account")) ;
+	m_account_group =
+		m_have_account ?
+			new QGroupBox(tr("New Account")) :
+			new QGroupBox(tr("Account")) ;
 	m_account_group->setLayout( account_layout ) ;
 
 	QVBoxLayout *layout = new QVBoxLayout;
@@ -840,31 +931,36 @@ std::string SmtpClientPage::nextPage()
 	return next1() ;
 }
 
-void SmtpClientPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ) const
+void SmtpClientPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
 {
-	GPage::dump( stream , prefix , eol ) ;
-	stream << prefix << "smtp-client-host: " << value(m_server_edit_box) << eol ;
-	stream << prefix << "smtp-client-port: " << value(m_port_edit_box) << eol ;
-	stream << prefix << "smtp-client-tls: " << value(m_tls_checkbox) << eol ;
-	stream << prefix << "smtp-client-auth: " << value(m_auth_checkbox) << eol ;
-	stream << prefix << "smtp-client-auth-mechanism: " << value(m_mechanism_combo) << eol ;
-	stream << prefix << "smtp-client-account-name: " << value(m_account_name) << eol ;
-	stream << prefix << "smtp-client-account-password: " << encrypt(value(m_account_pwd),value(m_mechanism_combo)) << eol ;
+	GPage::dump( stream , prefix , eol , p ) ;
+	dumpItem( stream , prefix , "smtp-client-host" , value(m_server_edit_box) , eol ) ;
+	dumpItem( stream , prefix , "smtp-client-port" , value(m_port_edit_box) , eol ) ;
+	dumpItem( stream , prefix , "smtp-client-tls" , value(m_tls_checkbox) , eol ) ;
+	dumpItem( stream , prefix , "smtp-client-auth" , value(m_auth_checkbox) , eol ) ;
+	dumpItem( stream , prefix , "smtp-client-auth-mechanism" , value(m_mechanism_combo) , eol ) ;
+	if( p )
+	{
+		dumpItem( stream , prefix , "smtp-client-account-name" , value(m_account_name) , eol ) ;
+		dumpItem( stream , prefix , "smtp-client-account-password" ,
+			encrypt(value(m_account_pwd),value(m_mechanism_combo)) , eol ) ;
+	}
 }
 
 bool SmtpClientPage::isComplete()
 {
 	return
 		! m_port_edit_box->text().isEmpty() &&
-		! m_server_edit_box->text().isEmpty() &&
-		( ! m_auth_checkbox->isChecked() || (
+		! m_server_edit_box->text().isEmpty() && (
+		m_have_account ||
+		! m_auth_checkbox->isChecked() || (
 			! m_account_name->text().isEmpty() &&
 			! m_account_pwd->text().isEmpty() ) ) ;
 }
 
 // ==
 
-LoggingPage::LoggingPage( GDialog & dialog , const std::string & name ,
+LoggingPage::LoggingPage( GDialog & dialog , const State & state , const std::string & name ,
 	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) :
 		GPage(dialog,name,next_1,next_2,finish,close)
 {
@@ -876,8 +972,10 @@ LoggingPage::LoggingPage( GDialog & dialog , const std::string & name ,
 	logging_layout->addWidget( m_verbose_checkbox ) ;
 	logging_layout->addWidget( m_syslog_checkbox ) ;
 	logging_layout->addWidget( m_debug_checkbox ) ;
-	m_syslog_checkbox->setChecked(true) ;
-	m_debug_checkbox->setEnabled(false) ;
+
+	m_syslog_checkbox->setChecked( state.value("logging-syslog",true) ) ;
+	m_verbose_checkbox->setChecked( state.value("logging-verbose",false) ) ;
+	m_debug_checkbox->setEnabled( state.value("logging-debug",false) ) ;
 
 	QGroupBox * logging_group = new QGroupBox(tr("Logging")) ;
 	logging_group->setLayout( logging_layout ) ;
@@ -896,17 +994,17 @@ std::string LoggingPage::nextPage()
 	return next1() ;
 }
 
-void LoggingPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ) const
+void LoggingPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
 {
-	GPage::dump( stream , prefix , eol ) ;
-	stream << prefix << "logging-verbose: " << value(m_verbose_checkbox) << eol ;
-	stream << prefix << "logging-debug: " << value(m_debug_checkbox) << eol ;
-	stream << prefix << "logging-syslog: " << value(m_syslog_checkbox) << eol ;
+	GPage::dump( stream , prefix , eol , p ) ;
+	dumpItem( stream , prefix , "logging-verbose" , value(m_verbose_checkbox) , eol ) ;
+	dumpItem( stream , prefix , "logging-debug" , value(m_debug_checkbox) , eol ) ;
+	dumpItem( stream , prefix , "logging-syslog" , value(m_syslog_checkbox) , eol ) ;
 }
 
 // ==
 
-ListeningPage::ListeningPage( GDialog & dialog , const std::string & name ,
+ListeningPage::ListeningPage( GDialog & dialog , const State & state , const std::string & name ,
 	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) :
 		GPage(dialog,name,next_1,next_2,finish,close)
 {
@@ -915,8 +1013,14 @@ ListeningPage::ListeningPage( GDialog & dialog , const std::string & name ,
 	m_one_radio = new QRadioButton(tr("&One")) ;
 	QLabel * listening_interface_label = new QLabel(tr("&Interface:")) ;
 	listening_interface_label->setBuddy( m_listening_interface ) ;
-	m_all_radio->setChecked(true) ;
-	m_listening_interface->setEnabled(false) ;
+
+	bool state_value_all = state.value("listening-all",!testMode()) ;
+	if( state_value_all )
+		m_all_radio->setChecked( true ) ;
+	else
+		m_one_radio->setChecked( true ) ;
+	m_listening_interface->setEnabled( !state_value_all ) ;
+	m_listening_interface->setText( state.value("listening-interface",testMode()?"192.168.1.0":"").c_str() ) ;
 
 	QGridLayout * listening_layout = new QGridLayout ;
 	listening_layout->addWidget( m_all_radio , 0 , 0 ) ;
@@ -930,6 +1034,7 @@ ListeningPage::ListeningPage( GDialog & dialog , const std::string & name ,
 	//
 
 	m_remote_checkbox = new QCheckBox(tr("&Allow remote clients")) ;
+	m_remote_checkbox->setChecked( state.value("listening-remote",false) ) ;
 
 	QHBoxLayout * connections_layout = new QHBoxLayout ;
 	connections_layout->addWidget( m_remote_checkbox ) ;
@@ -945,14 +1050,6 @@ ListeningPage::ListeningPage( GDialog & dialog , const std::string & name ,
 	layout->addWidget(connections_group) ;
 	layout->addStretch() ;
 	setLayout( layout ) ;
-
-	if( testMode() )
-	{
-		m_one_radio->setChecked(true) ;
-		m_all_radio->setChecked(false) ;
-		m_listening_interface->setEnabled(true) ;
-		m_listening_interface->setText("192.168.1.0") ;
-	}
 
 	connect( m_all_radio , SIGNAL(toggled(bool)) , this , SLOT(onToggle()) ) ;
 	connect( m_all_radio , SIGNAL(toggled(bool)) , this , SIGNAL(pageUpdateSignal()) ) ;
@@ -981,19 +1078,21 @@ bool ListeningPage::isComplete()
 		!m_listening_interface->text().isEmpty() ;
 }
 
-void ListeningPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ) const
+void ListeningPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
 {
-	GPage::dump( stream , prefix , eol ) ;
-	stream << prefix << "listening-all: " << value(m_all_radio) << eol ;
-	stream << prefix << "listening-interface: " << value(m_listening_interface) << eol ;
-	stream << prefix << "listening-remote: " << value(m_remote_checkbox) << eol ;
+	GPage::dump( stream , prefix , eol , p ) ;
+	dumpItem( stream , prefix , "listening-all" , value(m_all_radio) , eol ) ;
+	dumpItem( stream , prefix , "listening-interface" , value(m_listening_interface) , eol ) ;
+	dumpItem( stream , prefix , "listening-remote" , value(m_remote_checkbox) , eol ) ;
 }
 
 // ==
 
-StartupPage::StartupPage( GDialog & dialog , const std::string & name ,
-	const std::string & next_1 , const std::string & next_2 , bool finish , bool close , const Dir & dir ) :
-		GPage(dialog,name,next_1,next_2,finish,close)
+StartupPage::StartupPage( GDialog & dialog , const State & state , const std::string & name ,
+	const std::string & next_1 , const std::string & next_2 , bool finish , bool close , const Dir & dir ,
+	bool is_mac ) :
+		GPage(dialog,name,next_1,next_2,finish,close) ,
+		m_is_mac(is_mac)
 {
 	m_on_boot_checkbox = new QCheckBox( tr("At &system startup") ) ;
 	m_at_login_checkbox = new QCheckBox( tr("&When logging in") ) ;
@@ -1001,15 +1100,25 @@ StartupPage::StartupPage( GDialog & dialog , const std::string & name ,
 	auto_layout->addWidget( m_on_boot_checkbox ) ;
 	auto_layout->addWidget( m_at_login_checkbox ) ;
 
-	// (using dir.boot() is okay for now here since we do not allow the user to change it)
-	m_on_boot_checkbox->setEnabled( Boot::able(dir.boot(),"emailrelay") ) ;
-
 	m_add_menu_item_checkbox = new QCheckBox( tr("Add to start menu") ) ;
 	m_add_desktop_item_checkbox = new QCheckBox( tr("Add to desktop") ) ;
+
 	QVBoxLayout * manual_layout = new QVBoxLayout ;
 	manual_layout->addWidget( m_add_menu_item_checkbox ) ;
 	manual_layout->addWidget( m_add_desktop_item_checkbox ) ;
-	m_add_menu_item_checkbox->setChecked(true) ;
+
+	if( m_is_mac )
+	{
+		m_add_menu_item_checkbox->setEnabled( false ) ;
+		m_add_desktop_item_checkbox->setEnabled( false ) ;
+	}
+	bool on_boot_able = Boot::able(dir.boot()) ;
+	m_on_boot_checkbox->setEnabled( on_boot_able ) ;
+
+	m_at_login_checkbox->setChecked( state.value("start-at-login",false) ) ;
+	m_add_menu_item_checkbox->setChecked( state.value("start-link-menu",!m_is_mac) ) ;
+	m_add_desktop_item_checkbox->setChecked( state.value("start-link-desktop",false) ) ;
+	m_on_boot_checkbox->setChecked( on_boot_able && state.value("start-on-boot",false) ) ;
 
 	QGroupBox * auto_group = new QGroupBox(tr("Automatic")) ;
 	auto_group->setLayout( auto_layout ) ;
@@ -1023,6 +1132,14 @@ StartupPage::StartupPage( GDialog & dialog , const std::string & name ,
 	layout->addWidget(manual_group) ;
 	layout->addStretch() ;
 	setLayout( layout ) ;
+
+	connect( m_on_boot_checkbox , SIGNAL(toggled(bool)), this, SIGNAL(pageUpdateSignal()));
+	connect( m_add_desktop_item_checkbox , SIGNAL(toggled(bool)), this, SIGNAL(pageUpdateSignal()));
+}
+
+bool StartupPage::isComplete()
+{
+	return true ;
 }
 
 std::string StartupPage::nextPage()
@@ -1030,18 +1147,19 @@ std::string StartupPage::nextPage()
 	return next1() ;
 }
 
-void StartupPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ) const
+void StartupPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
 {
-	GPage::dump( stream , prefix , eol ) ;
-	stream << prefix << "start-on-boot: " << value(m_on_boot_checkbox) << eol ;
-	stream << prefix << "start-at-login: " << value(m_at_login_checkbox) << eol ;
-	stream << prefix << "start-link-menu: " << value(m_add_menu_item_checkbox) << eol ;
-	stream << prefix << "start-link-desktop: " << value(m_add_desktop_item_checkbox) << eol ;
+	GPage::dump( stream , prefix , eol , p ) ;
+	dumpItem( stream , prefix , "start-is-mac" , value(m_is_mac) , eol ) ;
+	dumpItem( stream , prefix , "start-on-boot" , value(m_on_boot_checkbox) , eol ) ;
+	dumpItem( stream , prefix , "start-at-login" , value(m_at_login_checkbox) , eol ) ;
+	dumpItem( stream , prefix , "start-link-menu" , value(m_add_menu_item_checkbox) , eol ) ;
+	dumpItem( stream , prefix , "start-link-desktop" , value(m_add_desktop_item_checkbox) , eol ) ;
 }
 
 // ==
 
-ReadyPage::ReadyPage( GDialog & dialog , const std::string & name , const std::string & next_1 ,
+ReadyPage::ReadyPage( GDialog & dialog , const State & , const std::string & name , const std::string & next_1 ,
 	const std::string & next_2 , bool finish , bool close , bool installing ) :
 		GPage(dialog,name,next_1,next_2,finish,close) ,
 		m_installing(installing)
@@ -1061,7 +1179,7 @@ void ReadyPage::onShow( bool )
 
 std::string ReadyPage::verb( bool pp ) const
 {
-	return std::string( m_installing ? (pp?"install":"installed") : (pp?"configured":"configure") ) ;
+	return std::string( m_installing ? (pp?"installed":"install") : (pp?"configured":"configure") ) ;
 }
 
 QString ReadyPage::text() const
@@ -1078,19 +1196,21 @@ std::string ReadyPage::nextPage()
 	return next1() ;
 }
 
-void ReadyPage::dump( std::ostream & , const std::string & , const std::string & ) const
+void ReadyPage::dump( std::ostream & s , const std::string & prefix , const std::string & eol , bool p ) const
 {
-	// no-op
+	GPage::dump( s , prefix , eol , p ) ;
 }
 
 // ==
 
-ProgressPage::ProgressPage( GDialog & dialog , const std::string & name ,
+ProgressPage::ProgressPage( GDialog & dialog , const State & , const std::string & name ,
 	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ,
-	G::Path argv0 , G::Path dump_file ) :
+	G::Path argv0 , G::Path payload , G::Path state_path , bool installing ) :
 		GPage(dialog,name,next_1,next_2,finish,close) ,
-		m_installer(argv0) ,
-		m_dump_file(dump_file)
+		m_argv0(argv0) ,
+		m_state_path(state_path) ,
+		m_installer(argv0,payload,installing) ,
+		m_installing(installing)
 {
 	m_text_edit = new QTextEdit;
 	m_text_edit->setReadOnly(true) ;
@@ -1108,20 +1228,35 @@ void ProgressPage::onShow( bool back )
 {
 	if( ! back )
 	{
-		// ask the pages to dump their configuration into our stringstream
+		// dump page state into a state file -- note that this is not
+		// necessarily the same state file as the installer creates --
+		// when installing we need to write (at least) two state files --
+		// we ignore file creation errors when installing since the
+		// cwd directory could be read-only in some cases
+		//
+		if( ! m_state_path.str().empty() )
+		{
+			std::stringstream ss ;
+			dialog().dump( ss , "" , "\n" , false ) ;
+			std::ofstream state_stream( m_state_path.str().c_str() ) ;
+			State::write( state_stream , ss.str() , m_argv0 ) ;
+			if( !state_stream.good() && !m_installing )
+				throw std::runtime_error( std::string()+"cannot write state to \""+m_state_path.str()+"\"" ) ;
+			state_stream.close() ;
+			if( G::File::exists(m_state_path) )
+				G::File::chmodx( m_state_path ) ;
+		}
+
+		// dump page state into a stringstream
 		std::stringstream ss ;
 		dialog().dump( ss ) ;
 
-		// copy to file for testing purposes
-		if( ! m_dump_file.str().empty() )
-		{
-			std::ofstream dump_file( m_dump_file.str().c_str() ) ;
-			dump_file << ss.str() ;
-		}
-
-		// run the installer
+		// start running the installer
 		m_installer.start( ss ) ; // reads from istream
-		dialog().wait( true ) ;
+		//std::istream iss(ss.rdbuf()) ; m_installer.start( iss ) ; // for gcc 2.95
+		dialog().wait( true ) ; // disable buttons
+
+		// run a continuous zero-length timer that calls poke()
 		m_text = QString() ;
 		m_text_edit->setPlainText( m_text ) ;
 		m_timer = new QTimer( this ) ;
@@ -1135,7 +1270,7 @@ void ProgressPage::poke()
 	try
 	{
 		if( m_timer == NULL )
-			throw std::runtime_error("internal error") ;
+			throw std::runtime_error("internal error: no timer") ;
 
 		bool more = m_installer.next() ;
 		if( more )
@@ -1149,6 +1284,8 @@ void ProgressPage::poke()
 			dialog().wait( false ) ;
 			m_timer->stop() ;
 			{ QTimer * p = m_timer ; m_timer = NULL ; delete p ; }
+			if( m_installer.failed() )
+				addLine( "** failed **" ) ;
 		}
 		emit pageUpdateSignal() ;
 	}
@@ -1166,7 +1303,7 @@ void ProgressPage::poke()
 
 void ProgressPage::addLine( const std::string & line )
 {
-	G_DEBUG( "ProcessPage::addLine: [" << line << "]" ) ;
+	G_DEBUG( "ProcessPage::addLine: [" << G::Str::printable(line) << "]" ) ;
 	m_text.append( line.c_str() ) ;
 	m_text_edit->setFontFamily("courier") ;
 	m_text_edit->setPlainText( m_text ) ;
@@ -1177,9 +1314,9 @@ std::string ProgressPage::nextPage()
 	return next1() ;
 }
 
-void ProgressPage::dump( std::ostream & , const std::string & , const std::string & ) const
+void ProgressPage::dump( std::ostream & s , const std::string & prefix , const std::string & eol , bool p ) const
 {
-	// no-op
+	GPage::dump( s , prefix , eol , p ) ;
 }
 
 bool ProgressPage::closeButton() const
@@ -1199,7 +1336,7 @@ bool ProgressPage::isComplete()
 
 // ==
 
-EndPage_::EndPage_( GDialog & dialog , const std::string & name ) :
+EndPage_::EndPage_( GDialog & dialog , const State & , const std::string & name ) :
 	GPage(dialog,name,"","",true,true)
 {
 	QVBoxLayout *layout = new QVBoxLayout;
@@ -1213,9 +1350,9 @@ std::string EndPage_::nextPage()
 	return std::string() ;
 }
 
-void EndPage_::dump( std::ostream & , const std::string & , const std::string & ) const
+void EndPage_::dump( std::ostream & s , const std::string & prefix , const std::string & eol , bool p ) const
 {
-	// no-op
+	GPage::dump( s , prefix , eol , p ) ;
 }
 
 /// \file pages.cpp

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -59,7 +59,8 @@ public:
 			///< the first one controls output.
 
 	explicit LogOutput( bool output_with_logging , bool verbose_and_debug = true ) ;
-		///< Constructor.
+		///< Constructor for test programs. Only generates output if the
+		///< first parameter is true. Never uses syslog.
 
 	virtual ~LogOutput() ;
 		///< Destructor.
@@ -102,9 +103,9 @@ private:
 	static std::string itoa( int ) ;
 	static std::string fileAndLine( const char * , int ) ;
 	static void halt() ;
+	static LogOutput * & pthis() ;
 
 private:
-	static LogOutput * m_this ;
 	std::string m_prefix ;
 	bool m_enabled ;
 	bool m_summary_log ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "gdef.h"
 #include "gdaemon.h"
 #include "gprocess.h"
+#include "gnewprocess.h"
 
 void G::Daemon::detach( PidFile & pid_file )
 {
@@ -32,13 +33,13 @@ void G::Daemon::detach()
 {
 	// see Stevens, ISBN 0-201-563137-7, ch 13.
 
-	if( Process::fork() == Process::Parent )
+	if( NewProcess::fork() == NewProcess::Parent )
 		::_exit( 0 ) ;
 
 	setsid() ;
 	G_IGNORE Process::cd( "/" , Process::NoThrow() ) ;
 
-	if( Process::fork() == Process::Parent )
+	if( NewProcess::fork() == NewProcess::Parent )
 		::_exit( 0 ) ;
 }
 

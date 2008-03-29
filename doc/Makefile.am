@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -41,13 +41,13 @@ converter_mu2docbook=$(top_builddir)/bin/mu2docbook.sh
 run_doxygen=$(top_builddir)/bin/doxygen.sh
 
 .txt.html:
-	$(converter_html) -a "$(AWK)" $(top_srcdir)/doc/$*.txt $(stylesheet) > $*.html
+	$(converter_html) -a "$(AWK)" "$(top_srcdir)/doc/$*.txt" "$(stylesheet)" > "$*.html"
 
 .txt.mu:
-	$(converter_txt2mu) -a "$(AWK)" $(top_srcdir)/doc/$*.txt > $*.mu
+	$(converter_txt2mu) -a "$(AWK)" "$(top_srcdir)/doc/$*.txt" > "$*.mu"
 
 .mu.db:
-	$(converter_mu2docbook) -a "$(AWK)" -x < $(top_builddir)/doc/$*.mu > $*.db
+	$(converter_mu2docbook) -a "$(AWK)" -x < "$(top_builddir)/doc/$*.mu" > "$*.db"
 
 head.db: $(converter_mu2docbook)
 	$(converter_mu2docbook) -a "$(AWK)" --head "E-MailRelay" > head.db.tmp && mv -f head.db.tmp head.db
@@ -65,39 +65,39 @@ emailrelay.docbook: head.db tail.db userguide.db reference.db developer.db
 	$(run_doxygen) "$(HAVE_DOXYGEN)" "$(top_srcdir)" "$(top_builddir)" && touch .dox
 
 emailrelay-man.html: emailrelay.1
-	if test "$(HAVE_MAN2HTML)" = "yes" ; then man2html -r -L. emailrelay.1 < /dev/null > emailrelay-man.html.tmp && mv emailrelay-man.html.tmp emailrelay-man.html ; grep -v '^Content-type:' < emailrelay-man.html > emailrelay-man.html.tmp && mv emailrelay-man.html.tmp emailrelay-man.html ; fi
+	if test "$(HAVE_MAN2HTML)" = "yes" ; then man2html -r -L. emailrelay.1 < /dev/null > emailrelay-man.html.tmp && mv emailrelay-man.html.tmp emailrelay-man.html ; grep -v '^Content-type:' < emailrelay-man.html | grep -v '^Time:' > emailrelay-man.html.tmp ; mv emailrelay-man.html.tmp emailrelay-man.html ; fi
 
 developer.html reference.html userguide.html: $(converter_html)
 
 developer.mu reference.mu userguide.mu: $(converter_txt2mu)
 
 readme.html: $(top_srcdir)/README $(converter_html)
-	$(converter_html) -a "$(AWK)" $(top_srcdir)/README $(stylesheet) > readme.html
+	$(converter_html) -a "$(AWK)" "$(top_srcdir)/README" "$(stylesheet)" > readme.html
 
 changelog.html: $(top_srcdir)/ChangeLog $(converter_html)
-	$(converter_html) -a "$(AWK)" $(top_srcdir)/ChangeLog $(stylesheet) > changelog.html
+	$(converter_html) -a "$(AWK)" "$(top_srcdir)/ChangeLog" "$(stylesheet)" > changelog.html
 
 emailrelay.1.gz : emailrelay.1
-	if test -n "$(GZIP)" ; then $(GZIP) -c $(top_srcdir)/doc/emailrelay.1 > emailrelay.1.gz ; fi
+	if test -n "$(GZIP)" ; then $(GZIP) -c "$(top_srcdir)/doc/emailrelay.1" > emailrelay.1.gz ; fi
 
 emailrelay-passwd.1.gz : emailrelay-passwd.1
-	if test -n "$(GZIP)" ; then $(GZIP) -c $(top_srcdir)/doc/emailrelay-passwd.1 > emailrelay-passwd.1.gz ; fi
+	if test -n "$(GZIP)" ; then $(GZIP) -c "$(top_srcdir)/doc/emailrelay-passwd.1" > emailrelay-passwd.1.gz ; fi
 
 emailrelay-submit.1.gz : emailrelay-submit.1
-	if test -n "$(GZIP)" ; then $(GZIP) -c $(top_srcdir)/doc/emailrelay-submit.1 > emailrelay-submit.1.gz ; fi
+	if test -n "$(GZIP)" ; then $(GZIP) -c "$(top_srcdir)/doc/emailrelay-submit.1" > emailrelay-submit.1.gz ; fi
 
 emailrelay-filter-copy.1.gz : emailrelay-filter-copy.1
-	if test -n "$(GZIP)" ; then $(GZIP) -c $(top_srcdir)/doc/emailrelay-filter-copy.1 > emailrelay-filter-copy.1.gz ; fi
+	if test -n "$(GZIP)" ; then $(GZIP) -c "$(top_srcdir)/doc/emailrelay-filter-copy.1" > emailrelay-filter-copy.1.gz ; fi
 
 emailrelay-poke.1.gz: emailrelay-poke.1
-	if test -n "$(GZIP)" ; then $(GZIP) -c $(top_srcdir)/doc/emailrelay-poke.1 > emailrelay-poke.1.gz ; fi
+	if test -n "$(GZIP)" ; then $(GZIP) -c "$(top_srcdir)/doc/emailrelay-poke.1" > emailrelay-poke.1.gz ; fi
 
 install-data-local: install-e_docDATA
-	$(mkinstalldirs) $(DESTDIR)$(e_docdir)/doxygen
-	if test "$(HAVE_DOXYGEN)" = "yes" ; then for file in doxygen/* ; do $(INSTALL) $$file $(DESTDIR)$(e_docdir)/$$file ; done ; fi
+	$(mkinstalldirs) "$(DESTDIR)$(e_docdir)/doxygen"
+	if test "$(HAVE_DOXYGEN)" = "yes" ; then for file in doxygen/* ; do $(INSTALL) "$$file" "$(DESTDIR)$(e_docdir)/$$file" ; done ; fi
 
 uninstall-local:
-	-rm -f $(DESTDIR)$(e_docdir)/doxygen/* 2>/dev/null
-	-rmdir $(DESTDIR)$(e_docdir)/doxygen 2>/dev/null
-	-rmdir $(DESTDIR)$(e_docdir) 2>/dev/null
+	-find "$(DESTDIR)$(e_docdir)/doxygen" -type f | xargs rm -f
+	-rmdir "$(DESTDIR)$(e_docdir)/doxygen" 2>/dev/null
+	-rmdir "$(DESTDIR)$(e_docdir)" 2>/dev/null
 

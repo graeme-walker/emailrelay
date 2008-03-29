@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -63,6 +63,28 @@ sub port { return shift->{'m_port'} }
 sub server { return shift->{'m_server'} }
 sub t { return shift->{'m_t'} }
 
+sub ehlo
+{
+	my ( $this ) = @_ ;
+	my $t = $this->t() ;
+	$t->buffer_empty() ; # sync
+	$t->cmd( "ehlo here" ) ;
+}
+
+sub mail
+{
+	my ( $this , $to_fail ) = @_ ;
+	my $t = $this->t() ;
+	if( $to_fail )
+	{
+		$t->cmd( String => "mail from:<me\@here>" , Prompt => '/530 authentication required/' ) ;
+	}
+	else
+	{
+		$t->cmd( "mail from:<me\@here>" ) ;
+	}
+}
+
 sub submit_start
 {
 	my ( $this ) = @_ ;
@@ -103,7 +125,6 @@ sub submit_line
 sub submit
 {
 	my ( $this , $to_fail ) = @_ ;
-	my $t = $this->t() ;
 	$this->submit_start() ;
 	$this->submit_line( "This is a test." ) ;
 	$this->submit_end( $to_fail ) ;

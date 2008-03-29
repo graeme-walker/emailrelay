@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,26 +22,34 @@
 #include "dir.h"
 #include "gpath.h"
 #include "gdirectory.h"
-#include "gprocess.h"
+#include "gnewprocess.h"
 #include "gfile.h"
-#include <cstdlib> //getenv
 #include <stdexcept>
 #include <unistd.h>
 
-#ifndef G_SPOOLDIR
-	#define G_SPOOLDIR ""
+#ifndef G_SBINDIR
+	#define G_SBINDIR ""
 #endif
-
-#ifndef G_SYSCONFDIR
-	#define G_SYSCONFDIR ""
-#endif
-
 #ifndef G_LIBEXECDIR
 	#define G_LIBEXECDIR ""
 #endif
-
-#ifndef G_DESTDIR
-	#define G_DESTDIR ""
+#ifndef G_EXAMPLESDIR
+	#define G_EXAMPLESDIR ""
+#endif
+#ifndef G_SYSCONFDIR
+	#define G_SYSCONFDIR ""
+#endif
+#ifndef G_MANDIR
+	#define G_MANDIR ""
+#endif
+#ifndef G_DOCDIR
+	#define G_DOCDIR ""
+#endif
+#ifndef G_SPOOLDIR
+	#define G_SPOOLDIR ""
+#endif
+#ifndef G_INITDIR
+	#define G_INITDIR ""
 #endif
 
 namespace
@@ -54,7 +62,7 @@ namespace
 		args.push_back( "--userpath" ) ;
 		args.push_back( key ) ;
 
-		G::Process::ChildProcess child = G::Process::spawn( exe , args ) ;
+		G::NewProcess::ChildProcess child = G::NewProcess::spawn( exe , args ) ;
 		child.wait() ;
 		std::string s = child.read() ;
 		return s.empty() ? default_ : G::Path(s) ;
@@ -69,18 +77,6 @@ namespace
 	{
 		return kde( "autostart" , default_ ) ;
 	}
-
-	std::string env( const std::string & key , const std::string & default_ = std::string() )
-	{
-		const char * p = ::getenv( key.c_str() ) ;
-		return p == NULL ? default_ : std::string(p) ;
-	}
-
-	G::Path envPath( const std::string & key , const G::Path & default_ = std::string() )
-	{
-		const char * p = ::getenv( key.c_str() ) ;
-		return p == NULL ? default_ : G::Path(std::string(p)) ;
-	}
 }
 
 std::string Dir::dotexe()
@@ -88,28 +84,48 @@ std::string Dir::dotexe()
 	return std::string() ;
 }
 
-G::Path Dir::os_install() const
+G::Path Dir::os_install()
 {
-	std::string s( G_DESTDIR ) ;
-	if( s.empty() )
-		s = "/usr/sbin" ;
-	return s ;
+	// this is what to present to the user as the
+	// default base of the install
+
+	return "/usr" ;
 }
 
-G::Path Dir::os_config() const
+G::Path Dir::os_gui( const G::Path & install )
 {
-	std::string s( G_SYSCONFDIR ) ;
-	if( s.empty() )
-		s = "/etc" ;
-	return s ;
+	return install + "sbin" + "emailrelay-gui.real" ; // should use G_SBINDIR
+}
+
+G::Path Dir::os_icon( const G::Path & install )
+{
+	return install + "lib" + "emailrelay" + "emailrelay-icon.png" ; // should use G_LIBEXECDIR
+}
+
+G::Path Dir::os_server( const G::Path & install )
+{
+	return install + "sbin" + "emailrelay" ; // should use G_SBINDIR
+}
+
+G::Path Dir::os_bootcopy( const G::Path & , const G::Path & )
+{
+	return G::Path() ;
+}
+
+G::Path Dir::os_config()
+{
+	std::string sysconfdir( G_SYSCONFDIR ) ;
+	if( sysconfdir.empty() )
+		sysconfdir = "/etc" ;
+	return sysconfdir ;
 }
 
 G::Path Dir::os_spool() const
 {
-        std::string spooldir( G_SPOOLDIR ) ;
-        if( spooldir.empty() )
-                spooldir = "/var/spool/emailrelay" ;
-        return spooldir ;
+	std::string spooldir( G_SPOOLDIR ) ;
+	if( spooldir.empty() )
+		spooldir = "/var/spool/emailrelay" ;
+	return spooldir ;
 }
 
 G::Path Dir::cwd()
@@ -121,20 +137,24 @@ G::Path Dir::cwd()
 	return G::Path( s ) ;
 }
 
-G::Path Dir::os_pid() const
+G::Path Dir::os_pid()
 {
 	return oneOf( "/var/run" , "/tmp" ) ;
+}
+
+G::Path Dir::os_pid( const G::Path & pid_dir , const G::Path & )
+{
+	return pid_dir ;
 }
 
 G::Path Dir::special( const std::string & type )
 {
 	// see "http://standards.freedesktop.org"
 
-	G::Path home = envPath( "HOME" , "~" ) ;
-	G::Path data_home = envPath( "XDG_DATA_HOME" , home + ".local" + "share" ) ;
-	G::Path config_home = envPath( "XDG_CONFIG_HOME" , home + ".config" ) ;
+	G::Path data_home = envPath( "XDG_DATA_HOME" , home() + ".local" + "share" ) ;
+	G::Path config_home = envPath( "XDG_CONFIG_HOME" , home() + ".config" ) ;
 
-	G::Path desktop = kdeDesktop( home + "Desktop" ) ;
+	G::Path desktop = kdeDesktop( home() + "Desktop" ) ;
 	G::Path menu = data_home + "applications" ;
 	G::Path login = kdeAutostart( config_home + "autostart" ) ;
 	G::Path programs = "/usr/bin" ;
@@ -146,9 +166,12 @@ G::Path Dir::special( const std::string & type )
 	return G::Path() ;
 }
 
-G::Path Dir::os_boot() const
+G::Path Dir::os_boot()
 {
-	return oneOf( "/etc/init.d" , "/Library/StartupItems" , "/sbin/init.d" ) ;
+	std::string s( G_INITDIR ) ;
+	if( !s.empty() )
+		return s ;
+	return "/etc/init.d" ;
 }
 
 bool Dir::ok( const std::string & s )

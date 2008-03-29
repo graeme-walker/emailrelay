@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -212,9 +212,9 @@ public:
 		///< If the 'eight-bit-strict' flag is true then an eight-bit
 		///< message being sent to a seven-bit server will be failed.
 
-	G::Signal1<std::string> & doneSignal() ;
+	G::Signal2<std::string,int> & doneSignal() ;
 		///< Returns a signal that is raised once the protocol has
-		///< finished with a given message. The signal parameter
+		///< finished with a given message. The first signal parameter
 		///< is the empty string, or a non-empty reason on error.
 
 	G::Signal0 & preprocessorSignal() ;
@@ -271,7 +271,7 @@ private:
 	static const std::string & crlf() ;
 	bool applyEvent( const Reply & event , bool is_start_event = false ) ;
 	static bool parseReply( Reply & , const std::string & , std::string & ) ;
-	void raiseDoneSignal( const std::string & , bool = false ) ;
+	void raiseDoneSignal( const std::string & , int = 0 , bool = false ) ;
 	bool serverAuth( const ClientProtocolReply & reply ) const ;
 	G::Strings serverAuthMechanisms( const ClientProtocolReply & reply ) const ;
 	void startPreprocessing() ;
@@ -302,7 +302,7 @@ private:
 	unsigned int m_response_timeout ;
 	unsigned int m_ready_timeout ;
 	unsigned int m_preprocessor_timeout ;
-	G::Signal1<std::string> m_done_signal ;
+	G::Signal2<std::string,int> m_done_signal ;
 	G::Signal0 m_preprocessor_signal ;
 } ;
 

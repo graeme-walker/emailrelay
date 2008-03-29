@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include "gstrings.h"
 #include "gexecutableverifier.h"
 #include "gprocess.h"
+#include "gnewprocess.h"
 #include "gfile.h"
 #include "groot.h"
 #include "gstr.h"
@@ -47,23 +48,10 @@ void GSmtp::ExecutableVerifier::verify( const std::string & to ,
 	std::string host = G::Str::tail( to , to.find('@') , std::string() ) ;
 
 	VerifierStatus status =
-		m_exe.exe() == G::Path() ?
-			verifyInternal( to , std::string() , std::string() , std::string() ) :
 			verifyExternal( to , G::Str::upper(user) , G::Str::upper(host) ,
 				G::Str::upper(GNet::Local::fqdn()) , from , ip , mechanism , extra ) ;
 
 	doneSignal().emit( to , status ) ;
-}
-
-GSmtp::VerifierStatus GSmtp::ExecutableVerifier::verifyInternal( const std::string & address , const std::string & ,
-	const std::string & , const std::string & ) const
-{
-	// accept all addresses as if remote
-	VerifierStatus status ;
-	status.is_valid = true ;
-	status.is_local = false ;
-	status.address = address ;
-	return status ;
 }
 
 GSmtp::VerifierStatus GSmtp::ExecutableVerifier::verifyExternal( const std::string & address ,
@@ -84,7 +72,7 @@ GSmtp::VerifierStatus GSmtp::ExecutableVerifier::verifyExternal( const std::stri
 		<< "\"" << mechanism << "\" \"" << extra << "\"" ) ;
 
 	std::string response ;
-	int rc = G::Process::spawn( G::Root::nobody() , m_exe.exe() , args , &response ) ;
+	int rc = G::NewProcess::spawn( G::Root::nobody() , m_exe.exe() , args , &response ) ;
 
 	G_LOG( "GSmtp::ExecutableVerifier: " << rc << ": \"" << G::Str::printable(response) << "\"" ) ;
 	G::Str::trimRight( response , " \n\t" ) ;

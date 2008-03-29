@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -18,16 +18,35 @@
 # Makefile.am
 #
 
+BUNDLE=E-MailRelay-Configure
+SETUP_BUNDLE=E-MailRelay-Install
+IMAGE=E-MailRelay.dmg
+
+if MAC
+MAC_EXTRA_DIST = dir_unix.cpp boot_unix.cpp glink_unix.cpp emailrelay-icon.icns
+MAC_SOURCES = dir_mac.cpp boot_mac.cpp glink_mac.cpp
+MAC_NOINST = $(BUNDLE).app
+MAC_PROGS = emailrelay-start-gui emailrelay-unpack
+MAKE_SETUP_STUB = payload-stub
+else
+MAC_EXTRA_DIST = dir_mac.cpp boot_mac.cpp glink_mac.cpp guistart.cpp emailrelay-icon.icns
+MAC_SOURCES = dir_unix.cpp boot_unix.cpp glink_unix.cpp
+MAC_PROGS =
+MAC_NOINST =
+MAKE_SETUP_STUB = emailrelay-gui.real
+endif
+
 EXTRA_DIST=\
-	Info.plist \
+	boot_win32.cpp \
+	dir_win32.cpp \
 	emailrelay-icon.png \
 	gcominit.h \
-	dir_win32.cpp \
+	glink_win32.cpp \
 	mingw.mak \
-	mac.mak \
+	mock \
 	pack.cpp \
 	run.c \
-	mock
+	$(MAC_EXTRA_DIST)
 
 if GUI
 
@@ -62,56 +81,80 @@ INCLUDES=\
 	-I$(top_srcdir)/src/gsmtp \
 	-I$(top_srcdir)/src/gpop \
 	-I$(top_srcdir)/src/main \
+	-DG_SBINDIR=\"$(sbindir)\" \
 	-DG_SPOOLDIR=\"$(e_spooldir)\" \
+	-DG_INITDIR=\"$(e_initdir)\" \
 	-DG_SYSCONFDIR=\"$(e_sysconfdir)\" \
 	-DG_LIBEXECDIR=\"$(e_libexecdir)\" \
-	-DG_DESTDIR=\"$(DESTDIR)\"
+	-DG_MANDIR=\"$(mandir)\" \
+	-DG_DOCDIR=\"$(e_docdir)\" \
+	-DG_EXAMPLESDIR=\"$(e_examplesdir)\"
 
 AM_CPPFLAGS=$(QT_CFLAGS)
 
-sbin_PROGRAMS = emailrelay-gui
-noinst_SCRIPTS = mock
+sbin_PROGRAMS = emailrelay-gui.real $(MAC_PROGS)
+noinst_SCRIPTS = mock $(MAC_NOINST)
+noinst_PROGRAMS = pack emailrelay-unpack
 
-emailrelay_gui_SOURCES = \
+emailrelay_gui_real_SOURCES = \
+	$(MAC_SOURCES) \
+	boot.h \
+	dir.cpp \
+	dir.h \
 	gdialog.cpp \
 	gdialog.h \
 	glink.h \
-	glink.cpp \
 	gpage.cpp \
 	gpage.h \
-	gunpack.h \
+	guimain.cpp \
 	gunpack.cpp \
-	dir.cpp \
-	dir_unix.cpp \
-	dir.h \
-	boot.cpp \
-	boot.h \
+	gunpack.h \
 	installer.cpp \
 	installer.h \
-	guimain.cpp \
 	legal.cpp \
 	legal.h \
 	pages.cpp \
 	pages.h \
 	qt.h \
+	state.cpp \
+	state.h \
 	unpack.c \
 	unpack.h
 
-emailrelay_gui_DEPENDENCIES = $(MOC_OBJECTS)
+emailrelay_gui_real_DEPENDENCIES = $(MOC_OBJECTS)
 
-emailrelay_gui_LDADD = \
+emailrelay_gui_real_LDADD = \
 	$(MOC_OBJECTS) \
 	$(top_builddir)/src/glib/libglib.a \
 	$(QT_LIBS)
 
+pack_SOURCES = pack.cpp
+pack_LDADD = $(top_builddir)/src/glib/libglib.a
 
-# tell the configuration gui where make install has put everything -- see Dir::read() in dir.cpp
+emailrelay_unpack_SOURCES = unpackmain.c unpack.c
+emailrelay_unpack_LDADD =
+
+emailrelay_start_gui_SOURCES = guistart.cpp
+emailrelay_start_gui_LDADD =
+
 install-exec-hook:
-	echo $(DESTDIR)$(e_spooldir) > $(DESTDIR)$(sbindir)/emailrelay-gui.state
-	echo $(DESTDIR)$(e_sysconfdir) >> $(DESTDIR)$(sbindir)/emailrelay-gui.state
+	@echo "#!/bin/sh" > "$(DESTDIR)$(sbindir)/emailrelay-gui"
+	@echo DIR_SPOOL=\"$(DESTDIR)$(e_spooldir)\" >> "$(DESTDIR)$(sbindir)/emailrelay-gui"
+	@echo DIR_CONFIG=\"$(DESTDIR)$(e_sysconfdir)\" >> "$(DESTDIR)$(sbindir)/emailrelay-gui"
+	@echo exec $(DESTDIR)$(sbindir)/emailrelay-gui.real \"$$\@\" >> "$(DESTDIR)$(sbindir)/emailrelay-gui"
+	@chmod +x "$(DESTDIR)$(sbindir)/emailrelay-gui"
+	-if test -d "$(BUNDLE).app" ; then cp -R "$(BUNDLE).app" "$(DESTDIR)$(sbindir)" ; fi
 
 uninstall-hook:
-	-rm $(DESTDIR)$(sbindir)/emailrelay-gui.state
+	-rm "$(DESTDIR)$(sbindir)/emailrelay-gui"
+	-rm -rf "$(DESTDIR)$(sbindir)/$(BUNDLE).app"
+
+clean-local:
+	-rm -rf "$(BUNDLE).app"
+	-rm -rf "$(SETUP_BUNDLE).app"
+	-rm -f emailrelay-setup payload-stub payload
+	-rm -f "$(IMAGE)"
+	-rm -f "emailrelay-setup.state"
 
 else
 
@@ -120,3 +163,39 @@ install-exec-hook:
 uninstall-hook:
 
 endif
+
+$(BUNDLE).app: emailrelay-start-gui
+	../../bin/make-bundle.sh -f "$(BUNDLE)" emailrelay-start-gui "$(top_srcdir)/src/gui/emailrelay-icon.icns"
+
+.PHONY: bundle
+bundle: $(BUNDLE).app
+
+payload-stub:
+	-@echo '#!/bin/sh' > payload-stub
+	-@echo 'exit 23' >> payload-stub
+
+emailrelay-setup: pack $(MAKE_SETUP_STUB) ../../bin/make-setup.sh
+	../../bin/make-setup.sh $(MAKE_SETUP_DEBUG) $@ $(MAKE_SETUP_STUB) pack "$(top_srcdir)/src/gui/emailrelay-icon.png"
+	@chmod +x $@
+
+payload: pack payload-stub ../../bin/make-setup.sh
+	../../bin/make-setup.sh $(MAKE_SETUP_DEBUG) $@ payload-stub pack "$(top_srcdir)/src/gui/emailrelay-icon.png"
+
+$(SETUP_BUNDLE).app: emailrelay-gui.real payload ../../bin/make-bundle.sh
+	../../bin/make-bundle.sh -f "$(SETUP_BUNDLE)" emailrelay-gui.real "$(top_srcdir)/src/gui/emailrelay-icon.icns"
+	mv "$(SETUP_BUNDLE).app/Contents/MacOS/E-MailRelay-Install" "$(SETUP_BUNDLE).app/Contents/emailrelay-gui.real"
+	( cd "$(SETUP_BUNDLE).app/Contents/MacOS" && ln -s ../emailrelay-gui.real E-MailRelay-Install )
+	../../bin/make-qt-enabled.sh -f "$(SETUP_BUNDLE).app/Contents/emailrelay-gui.real" "Frameworks"
+	cp payload "$(SETUP_BUNDLE).app/Contents/"
+
+.PHONY: setup-bundle
+setup-bundle: $(SETUP_BUNDLE).app
+
+$(IMAGE): $(SETUP_BUNDLE).app emailrelay-unpack
+	-@rm -f "$(SETUP_BUNDLE).app/Contents/MacOS/$(SETUP_BUNDLE).state"
+	cp emailrelay-unpack "$(SETUP_BUNDLE).app/Contents/"
+	hdiutil create -srcfolder "$(SETUP_BUNDLE).app" "$(IMAGE)" && hdiutil internet-enable -yes "$(IMAGE)"
+
+.PHONY: image
+image: $(IMAGE)
+

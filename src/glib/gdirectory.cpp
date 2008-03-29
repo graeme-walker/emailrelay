@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "gdef.h"
 #include "gdirectory.h"
 #include "gfs.h"
+#include "gstr.h"
 #include "glog.h"
 
 G::Directory::Directory() :
@@ -78,45 +79,63 @@ G::DirectoryList::DirectoryList() :
 {
 }
 
-void G::DirectoryList::init( const G::Path & dir , const std::string & wildcard )
+void G::DirectoryList::readAll( const G::Path & dir )
 {
+	readType( dir , std::string() ) ;
+}
+
+void G::DirectoryList::readType( const G::Path & dir , const std::string & suffix , unsigned int limit )
+{
+	// we do our own filename matching here so as to reduce
+	// our dependency on the glob()bing DirectoryIterator
+
 	Directory directory( dir ) ;
-	DirectoryIterator iter( directory , wildcard ) ;
-	while( iter.more() && !iter.error() )
+	DirectoryIterator iter( directory ) ;
+	for( unsigned int i = 0U ; iter.more() && !iter.error() ; ++i )
 	{
-		m_is_dir.push_back( iter.isDir() ) ;
-		m_path.push_back( iter.filePath() ) ;
-		m_name.push_back( iter.fileName() ) ;
+		if( suffix.empty() || Str::tailMatch(iter.fileName().str(),suffix) )
+		{
+			if( limit == 0U || m_path.size() < limit )
+			{
+				m_is_dir.push_back( iter.isDir() ) ;
+				m_path.push_back( iter.filePath() ) ;
+				m_name.push_back( iter.fileName() ) ;
+			}
+			if( m_path.size() == limit )
+				break ;
+		}
 	}
 }
 
 bool G::DirectoryList::more()
 {
+	bool more = false ;
 	if( m_first )
 	{
 		m_first = false ;
-		return ! m_is_dir.empty() ;
+		more = ! m_is_dir.empty() ;
 	}
 	else
 	{
 		m_index++ ;
-		return m_index < m_is_dir.size() ;
+		more = m_index < m_is_dir.size() ;
 	}
+	return more ;
 }
 
 bool G::DirectoryList::isDir() const
 {
-	return !! m_is_dir.at(m_index) ;
+	return !! m_is_dir[m_index] ;
 }
 
 G::Path G::DirectoryList::filePath() const
 {
-	return m_path.at(m_index) ;
+	return m_path[m_index] ;
 }
 
 G::Path G::DirectoryList::fileName() const
 {
-	return m_name.at(m_index) ;
+	return m_name[m_index] ;
 }
 
 /// \file gdirectory.cpp

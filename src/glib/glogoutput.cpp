@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,13 +20,12 @@
 
 #include "gdef.h"
 #include "glogoutput.h"
+#include "glimits.h"
 #include <sstream>
 #include <string>
 #include <ctime>
 
 // (note that the implementation here has to be reentrant and using only the standard runtime library)
-
-G::LogOutput * G::LogOutput::m_this = NULL ;
 
 G::LogOutput::LogOutput( const std::string & prefix , bool enabled , bool summary_log ,
 	bool verbose_log , bool debug , bool level , bool timestamp , bool strip ,
@@ -45,8 +44,8 @@ G::LogOutput::LogOutput( const std::string & prefix , bool enabled , bool summar
 		m_handle(0) ,
 		m_handle_set(false)
 {
-	if( m_this == NULL )
-		m_this = this ;
+	if( pthis() == NULL )
+		pthis() = this ;
 	init() ;
 }
 
@@ -64,21 +63,27 @@ G::LogOutput::LogOutput( bool enabled_and_summary , bool verbose_and_debug ) :
 	m_handle(0) ,
 	m_handle_set(false)
 {
-	if( m_this == NULL )
-		m_this = this ;
+	if( pthis() == NULL )
+		pthis() = this ;
 	init() ;
 }
 
 G::LogOutput::~LogOutput()
 {
-	if( m_this == this )
-		m_this = NULL ;
+	if( pthis() == this )
+		pthis() = NULL ;
 	cleanup() ;
+}
+
+G::LogOutput * & G::LogOutput::pthis()
+{
+	static G::LogOutput * p = NULL ;
+	return p ;
 }
 
 G::LogOutput * G::LogOutput::instance()
 {
-	return m_this ;
+	return pthis() ;
 }
 
 bool G::LogOutput::enable( bool enabled )
@@ -90,8 +95,8 @@ bool G::LogOutput::enable( bool enabled )
 
 void G::LogOutput::output( Log::Severity severity , const char * file , int line , const std::string & text )
 {
-	if( m_this != NULL )
-		m_this->doOutput( severity , file , line , text ) ;
+	if( instance() != NULL )
+		instance()->doOutput( severity , file , line , text ) ;
 }
 
 void G::LogOutput::doOutput( Log::Severity severity , const char * file , int line , const std::string & text )
@@ -108,7 +113,7 @@ void G::LogOutput::doOutput( Log::Severity severity , const char * file , int li
 	if( do_output )
 	{
 		// allocate a buffer
-		const size_type limit = 1000U ;
+		const size_type limit = static_cast<size_type>(limits::log) ;
 		std::string buffer ;
 		buffer.reserve( (text.length()>limit?limit:text.length()) + 40U ) ;
 
@@ -243,7 +248,7 @@ std::string G::LogOutput::itoa( int n_ )
 	bool zero = n == 0U ;
 	char * p = buffer + buffer_size - 1U ;
 	for( *p-- = '\0' ; n > 0U ; --p , n /= 10U )
-		*p = '0' + (n % 10U) ;
+		*p = static_cast<char>( '0' + (n % 10U) ) ;
 	return zero ? buffer : (p+1U) ;
 }
 

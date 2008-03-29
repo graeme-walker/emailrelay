@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -60,7 +60,7 @@ public:
 		///< Final override from GPop::ServerProtocol::Sender.
 
 protected:
-	virtual void onDelete() ;
+	virtual void onDelete( const std::string & ) ;
 		///< Final override from GNet::ServerPeer.
 
 	virtual bool onReceive( const std::string & ) ;
@@ -76,7 +76,7 @@ private:
 	ServerPeer( const ServerPeer & ) ;
 	void operator=( const ServerPeer & ) ;
 	void processLine( const std::string & line ) ;
-	static std::string crlf() ;
+	static const std::string & crlf() ;
 
 private:
 	Server & m_server ;

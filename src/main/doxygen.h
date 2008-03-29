@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+   Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -66,6 +66,19 @@ Key classes are:
 
  */
 
+/*! \namespace GSsl
+\short
+TLS/SSL transport layer security classes.
+
+The GSsl namespace contains classes that implement the TLS/SSL
+security layer.
+
+Key classes are:
+- Protocol
+- Library
+
+ */
+
 /*! \namespace GSmtp
 \short
 SMTP and message-store classes.
@@ -96,7 +109,6 @@ Key classes are:
 - EventLoop
 - MultiServer
 - Resolver
-- Sender
 - Server
 - Socket
 - Timer

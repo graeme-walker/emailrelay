@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ GGui::DeviceContext::DeviceContext( HWND hwnd ) :
 	m_hwnd(hwnd) ,
 	m_do_release(true)
 {
-	m_hdc = ::GetDC(m_hwnd) ;
+	m_hdc = ::GetDC( m_hwnd ) ;
 }
 
 GGui::DeviceContext::DeviceContext( HDC hdc ) :
@@ -86,27 +86,27 @@ HDC GGui::ScreenDeviceContext::operator()()
 
 int GGui::ScreenDeviceContext::colours() const
 {
-	return ::GetDeviceCaps(m_dc,NUMCOLORS) ;
+	return ::GetDeviceCaps( m_dc , NUMCOLORS ) ;
 }
 
 int GGui::ScreenDeviceContext::dx() const
 {
-	return ::GetDeviceCaps(m_dc,HORZRES) ;
+	return ::GetDeviceCaps( m_dc , HORZRES ) ;
 }
 
 int GGui::ScreenDeviceContext::dy() const
 {
-	return ::GetDeviceCaps(m_dc,VERTRES) ;
+	return ::GetDeviceCaps( m_dc , VERTRES ) ;
 }
 
 int GGui::ScreenDeviceContext::aspectx() const
 {
-	return ::GetDeviceCaps(m_dc,ASPECTX) ;
+	return ::GetDeviceCaps( m_dc , ASPECTX ) ;
 }
 
 int GGui::ScreenDeviceContext::aspecty() const
 {
-	return ::GetDeviceCaps(m_dc,ASPECTY) ;
+	return ::GetDeviceCaps( m_dc , ASPECTY ) ;
 }
 
 /// \file gdc.cpp

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -293,6 +293,11 @@ std::string GNet::Socket::reasonString() const
 void GNet::Socket::shutdown( bool for_writing )
 {
 	::shutdown( m_socket , for_writing ? 1 : 0 ) ;
+}
+
+int GNet::Socket::fd( Credentials ) const
+{
+	return static_cast<int>( m_socket ) ;
 }
 
 //==

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,24 +19,10 @@
 //
 
 #include "gdef.h"
+#include "glimits.h"
 #include "glocal.h"
 #include "gresolver.h"
 #include "glog.h"
-#include <sstream>
-
-std::string GNet::Local::hostname()
-{
-	char buffer[1024U] = { '\0' } ;
-	if( 0 != ::gethostname( buffer , sizeof(buffer)-1U ) )
-	{
-		int error = ::WSAGetLastError() ;
-		std::ostringstream ss ;
-		ss << "gethostname() (" << error << ")" ;
-		throw Error( ss.str() ) ;
-	}
-	buffer[sizeof(buffer)-1U] = '\0' ;
-	return std::string(buffer) ;
-}
 
 GNet::Address GNet::Local::canonicalAddressImp()
 {

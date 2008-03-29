@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -99,11 +99,8 @@ void GSmtp::StoredFile::readEnvelopeCore( bool check )
 	readFlag( stream ) ;
 	readFrom( stream ) ;
 	readToList( stream ) ;
-	if( m_format == FileStore::format() )
-	{
-		readAuthentication( stream ) ;
-		readClientIp( stream ) ;
-	}
+	readAuthentication( stream ) ;
+	readClientIp( stream ) ;
 	readEnd( stream ) ;
 
 	if( check && m_to_remote.size() == 0U )
@@ -119,7 +116,7 @@ void GSmtp::StoredFile::readFormat( std::istream & stream )
 {
 	std::string format_line = getline(stream) ;
 	m_format = value(format_line,"Format") ;
-	if( m_format != FileStore::format() && m_format != FileStore::format(-1) )
+	if( m_format != FileStore::format() )
 		throw InvalidFormat( m_format ) ;
 }
 
@@ -241,9 +238,10 @@ std::string GSmtp::StoredFile::value( const std::string & s , const std::string 
 	return s.substr(pos+2U) ;
 }
 
-std::string GSmtp::StoredFile::crlf()
+const std::string & GSmtp::StoredFile::crlf()
 {
-	return std::string( "\015\012" ) ;
+	static const std::string s( "\015\012" ) ;
+	return s ;
 }
 
 bool GSmtp::StoredFile::lock()
@@ -276,11 +274,11 @@ void GSmtp::StoredFile::unlock()
 	}
 }
 
-void GSmtp::StoredFile::fail( const std::string & reason )
+void GSmtp::StoredFile::fail( const std::string & reason , int reason_code )
 {
-	if( G::File::exists( m_envelope_path ) ) // client-side preprocessing may have removed it
+	if( G::File::exists(m_envelope_path) ) // client-side preprocessing may have removed it
 	{
-		addReason( m_envelope_path , reason ) ;
+		addReason( m_envelope_path , reason , reason_code ) ;
 
 		G::Path bad_path = badPath( m_envelope_path ) ;
 		G_LOG_S( "GSmtp::StoredMessage: failing file: "
@@ -292,12 +290,13 @@ void GSmtp::StoredFile::fail( const std::string & reason )
 	}
 }
 
-void GSmtp::StoredFile::addReason( const G::Path & path , const std::string & reason )
+void GSmtp::StoredFile::addReason( const G::Path & path , const std::string & reason , int reason_code )
 {
 	FileWriter claim_writer ;
 	std::ofstream file( path.str().c_str() ,
 		std::ios_base::binary | std::ios_base::app ) ; // "app", not "ate", for win32
 	file << FileStore::x() << "Reason: " << reason << crlf() ;
+	file << FileStore::x() << "ReasonCode:" ; if( reason_code ) file << " " << reason_code ; file << crlf() ;
 }
 
 G::Path GSmtp::StoredFile::badPath( G::Path busy_path )

@@ -1,4 +1,4 @@
-dnl Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+dnl Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 dnl 
 dnl This program is free software: you can redistribute it and/or modify
 dnl it under the terms of the GNU General Public License as published by
@@ -17,8 +17,9 @@ dnl
 dnl Process this file with autoconf to produce a configure script.
 dnl
 
-AC_INIT(src/gsmtp/gsmtp.h)
-AM_INIT_AUTOMAKE(emailrelay,1.7)
+AC_INIT([E-MailRelay],[1.8],,[emailrelay])
+AC_CONFIG_SRCDIR(src/gsmtp/gsmtp.h)
+AM_INIT_AUTOMAKE([no-define])
 AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
 
@@ -65,6 +66,7 @@ ACLOCAL_CHECK_BUGGY_CTIME
 ACLOCAL_CHECK_GMTIME_R
 ACLOCAL_CHECK_LOCALTIME_R
 ACLOCAL_CHECK_SETGROUPS
+ACLOCAL_CHECK_QT4
 
 dnl ===
 dnl initialise aclocal/pkg.m4...
@@ -74,13 +76,13 @@ PKG_PROG_PKG_CONFIG(0.9.0)
 dnl ===
 dnl "--enable-debug"
 dnl
-AC_ARG_ENABLE(debug,AC_HELP_STRING([--enable-debug],[enable extra debug messages at compile-time (default disabled)]))
+AC_ARG_ENABLE(debug,AC_HELP_STRING([--enable-debug],[enable extra debug messages at compile-time (default no)]))
 ENABLE_DEBUG
 
 dnl ===
 dnl "--enable-ipv6"
 dnl
-AC_ARG_ENABLE(ipv6,AC_HELP_STRING([--enable-ipv6],[enable ipv6 (default disabled)]))
+AC_ARG_ENABLE(ipv6,AC_HELP_STRING([--enable-ipv6],[enable ipv6 (default no)]))
 ENABLE_IPV6
 
 dnl ===
@@ -90,10 +92,76 @@ AC_ARG_ENABLE(gui,AC_HELP_STRING([--enable-gui],[enable configuration gui (requi
 ENABLE_GUI
 
 dnl ===
-dnl "--with-workshop"
+dnl "--enable-verbose"
 dnl
-AC_ARG_WITH(workshop,AC_HELP_STRING([--with-workshop],[use Sun WorkShop 'CC -xar' as the 'ar' tool (default disabled)]))
-WITH_WORKSHOP
+AC_ARG_ENABLE(verbose,AC_HELP_STRING([--enable-verbose],[enable verbose logging (default yes)]))
+ENABLE_VERBOSE
+
+dnl ===
+dnl "--enable-pop"
+dnl
+AC_ARG_ENABLE(pop,AC_HELP_STRING([--enable-pop],[enable pop3 protocol (default yes)]))
+ENABLE_POP
+
+dnl ===
+dnl "--enable-exec"
+dnl
+AC_ARG_ENABLE(exec,AC_HELP_STRING([--enable-exec],[enable running of external programs (disable-exec requires disable-gui) (default yes)]))
+ENABLE_EXEC
+
+dnl ===
+dnl "--enable-admin"
+dnl
+AC_ARG_ENABLE(exec,AC_HELP_STRING([--enable-admin],[enable admin interface (default yes)]))
+ENABLE_ADMIN
+
+dnl ===
+dnl "--enable-auth"
+dnl
+AC_ARG_ENABLE(exec,AC_HELP_STRING([--enable-auth],[enable authentication (disable-auth requires disable-pop) (default yes)]))
+ENABLE_AUTH
+
+dnl ===
+dnl "--enable-dns"
+dnl
+AC_ARG_ENABLE(exec,AC_HELP_STRING([--enable-dns],[enable dns lookup (default yes)]))
+ENABLE_DNS
+
+dnl ===
+dnl "--enable-identity"
+dnl
+AC_ARG_ENABLE(exec,AC_HELP_STRING([--enable-identity],[enable process userid switching (default yes)]))
+ENABLE_IDENTITY
+
+dnl ===
+dnl "--enable-small-config"
+dnl
+AC_ARG_ENABLE(exec,AC_HELP_STRING([--enable-small-config],[enable simplified confuration code for smaller binaries (rtfm) (default no)]))
+ENABLE_SMALL_CONFIG
+
+dnl ===
+dnl "--enable-small-fragments"
+dnl
+AC_ARG_ENABLE(exec,AC_HELP_STRING([--enable-small-fragments],[enable fragmented object files for smaller binaries (default no)]))
+ENABLE_SMALL_FRAGMENTS
+
+dnl ===
+dnl "--enable-small-exceptions"
+dnl
+AC_ARG_ENABLE(small_exceptions,AC_HELP_STRING([--enable-small-exceptions],[optimise exception classes for smaller binaries (default no)]))
+ENABLE_SMALL_EXCEPTIONS
+
+dnl ===
+dnl "--enable-proxy"
+dnl
+AC_ARG_ENABLE(proxy,AC_HELP_STRING([--enable-proxy],[enable proxying (default yes)]))
+ENABLE_PROXY
+
+dnl ===
+dnl "--enable-mac"
+dnl
+AC_ARG_ENABLE(mac,AC_HELP_STRING([--enable-mac],[enable building for a mac os x target (default auto)]))
+ENABLE_MAC
 
 dnl ===
 dnl "--with-doxygen"
@@ -114,6 +182,12 @@ AC_ARG_WITH(openssl,AC_HELP_STRING([--with-openssl],[use openssl for smtp client
 WITH_OPENSSL
 
 dnl ===
+dnl "--with-glob"
+dnl
+AC_ARG_WITH(glob,AC_HELP_STRING([--with-glob],[use glob() for reading directories (default auto)]))
+WITH_GLOB
+
+dnl ===
 dnl "--enable-static-linking"
 dnl
 AC_ARG_ENABLE(static-linking,AC_HELP_STRING([--enable-static-linking],[prefer static linking for some libraries (default no)]))
@@ -122,30 +196,22 @@ ENABLE_STATIC_LINKING
 dnl ===
 dnl directory tweaking and "--enable-fhs" ...
 dnl
-dnl define e_ prefixed variables with a gnu feel and then
-dnl use the enable_fhs macro tweak them for fhs
+dnl define e_ prefixed directory variables
 dnl
 dnl not AC_PREFIX_DEFAULT([/usr])
-AC_ARG_ENABLE(fhs,AC_HELP_STRING([--enable-fhs],[force FHS-compliant directories, ignoring --prefix etc (default disabled)]))
+AC_ARG_ENABLE(fhs,AC_HELP_STRING([--enable-fhs],[force FHS-compliant directories, ignoring --prefix etc (default no)]))
+SET_DIRECTORIES
 AC_SUBST(e_docdir)
-if test "$e_docdir" = "" ; then e_docdir="$docdir" ; fi
-if test "$e_docdir" = "" ; then e_docdir="$datadir/$PACKAGE/doc" ; fi
 AC_SUBST(e_initdir)
-if test "$e_initdir" = "" ; then e_initdir="$libexecdir/$PACKAGE/init" ; fi
 AC_SUBST(e_spooldir)
-if test "$e_spooldir" = "" ; then e_spooldir="$localstatedir/spool/$PACKAGE" ; fi
 AC_SUBST(e_examplesdir)
-if test "$e_examplesdir" = "" ; then e_examplesdir="$libexecdir/$PACKAGE/examples" ; fi
 AC_SUBST(e_libexecdir)
-if test "$e_libexecdir" = "" ; then e_libexecdir="$libexecdir/$PACKAGE" ; fi
 AC_SUBST(e_sysconfdir)
-if test "$e_sysconfdir" = "" ; then e_sysconfdir="$sysconfdir" ; fi
 AC_SUBST(e_qtmoc)
 if test "$e_qtmoc" = "" ; then e_qtmoc="moc" ; fi
-ENABLE_FHS
 
 dnl ===
 dnl generate files...
 dnl
-AC_OUTPUT(Makefile src/Makefile src/glib/Makefile src/gssl/Makefile src/gnet/Makefile src/gsmtp/Makefile src/gpop/Makefile src/main/Makefile src/win32/Makefile src/gui/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile lib/sunpro5/Makefile bin/Makefile doc/Makefile etc/Makefile test/Makefile)
+AC_OUTPUT(Makefile src/Makefile src/glib/Makefile src/gssl/Makefile src/gnet/Makefile src/gsmtp/Makefile src/gpop/Makefile src/main/Makefile src/win32/Makefile src/gui/Makefile lib/Makefile lib/gcc2.95/Makefile lib/msvc6.0/Makefile bin/Makefile doc/Makefile etc/Makefile test/Makefile extra/Makefile extra/mips/Makefile src/fragments/Makefile)
 

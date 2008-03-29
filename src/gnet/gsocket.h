@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 namespace GNet
 {
 	class Socket ;
+	class SocketProtocol ;
 	class StreamSocket ;
 	class DatagramSocket ;
 	class AcceptPair ;
@@ -42,7 +43,7 @@ namespace GNet
 /// The Socket class encapsulates a non-blocking
 /// Unix socket file descriptor or a Windows 'SOCKET' handle.
 /// The class hides all differences between BSD sockets and
-/// WinSock.
+/// Winsock.
 ///
 /// (Non-blocking network i/o is particularly appropriate for single-
 /// threaded server processes which manage multiple client connections.
@@ -56,6 +57,12 @@ class GNet::Socket
 public:
 	typedef size_t size_type ;
 	typedef ssize_t ssize_type ;
+	/// A credentials class that allows SocketProtocol to call Socket::fd().
+	class Credentials
+	{
+		friend class SocketProtocol ;
+		Credentials( const char * ) {}
+	} ;
 
 	virtual ~Socket() ;
 		///< Destructor.
@@ -187,6 +194,10 @@ public:
 
 	void shutdown( bool for_writing = true ) ;
 		///< Shuts the socket for writing (or reading).
+
+	int fd( Credentials ) const ;
+		///< Returns the socket descriptor as an integer.
+		///< Only callable from SocketProtocol.
 
 protected:
 	Socket( int domain , int type , int protocol ) ;

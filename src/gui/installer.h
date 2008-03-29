@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,8 +34,10 @@ class InstallerImp ;
 class Installer
 {
 public:
-	explicit Installer( G::Path argv0 ) ;
+	Installer( G::Path argv0 , G::Path payload , bool install_mode ) ;
 		///< Constructor. Initialise with start().
+		///< Normally the argv0 and payload paths
+		///< are the same.
 
 	~Installer() ;
 		///< Destructor.
@@ -70,6 +72,8 @@ private:
 
 private:
 	G::Path m_argv0 ;
+	G::Path m_payload ;
+	bool m_installing ;
 	InstallerImp * m_imp ;
 	std::string m_reason ;
 } ;

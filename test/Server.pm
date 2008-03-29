@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -50,6 +50,7 @@ sub new
 		m_pid => undef ,
 		m_pop_secrets => System::tempfile("pop.auth",$tmp_dir) ,
 		m_client_secrets => System::tempfile("client.auth",$tmp_dir) ,
+		m_server_secrets => System::tempfile("server.auth",$tmp_dir) ,
 		m_poll_timeout => 1 ,
 		m_dst => "dummy:25" ,
 		m_spool_dir => (defined($spool_dir)?$spool_dir:System::createSpoolDir(undef,$tmp_dir)) ,
@@ -58,6 +59,7 @@ sub new
 		m_filter => System::tempfile("filter",$tmp_dir) ,
 		m_client_filter => System::tempfile("client-filter",$tmp_dir) ,
 		m_scanner => "net:localhost:$scanner_port" ,
+		m_max_size => 1000 ,
 	) ;
 	my $this = bless \%me , $classname ;
 	$this->_check() ;
@@ -72,6 +74,7 @@ sub scannerAddress { return shift->{'m_scanner'} }
 sub popPort { return shift->{'m_pop_port'} }
 sub popSecrets { return shift->{'m_pop_secrets'} }
 sub clientSecrets { return shift->{'m_client_secrets'} }
+sub serverSecrets { return shift->{'m_server_secrets'} }
 sub pollTimeout { return shift->{'m_poll_timeout'} }
 sub set_pollTimeout { $_[0]->{'m_poll_timeout'} = $_[1] }
 sub stdout { return shift->{'m_stdout'} }
@@ -86,6 +89,7 @@ sub user { return shift->{'m_user'} }
 sub command { return shift->{'m_full_command'} }
 sub filter { return shift->{'m_filter'} }
 sub clientFilter { return shift->{'m_client_filter'} }
+sub maxSize { return shift->{'m_max_size'} }
 sub rc { return shift->{'m_rc'} }
 
 sub _check
@@ -110,9 +114,9 @@ sub canRun
 {
 	my ( $this , $port_list_ref ) = @_ ;
 	my @port_list = defined($port_list_ref) ? @$port_list_ref : Port::list() ;
-	return 
-		Port::isFree($this->smtpPort(),@port_list) && 
-		Port::isFree($this->adminPort(),@port_list) && 
+	return
+		Port::isFree($this->smtpPort(),@port_list) &&
+		Port::isFree($this->adminPort(),@port_list) &&
 		Port::isFree($this->popPort(),@port_list) ;
 }
 
@@ -127,7 +131,7 @@ sub _switches
 {
 	my ( %sw ) = @_ ;
 
-	return 
+	return
 		"" .
 		( exists($sw{AsServer}) ? "--as-server " : "" ) .
 		( exists($sw{Log}) ? "--log " : "" ) .
@@ -157,6 +161,8 @@ sub _switches
 		( exists($sw{Scanner}) ? "--filter __SCANNER__ " : "" ) .
 		( exists($sw{DontServe}) ? "--dont-serve " : "" ) .
 		( exists($sw{ClientAuth}) ? "--client-auth __CLIENT_SECRETS__ " : "" ) .
+		( exists($sw{MaxSize}) ? "--size __MAX_SIZE__ " : "" ) .
+		( exists($sw{ServerSecrets}) ? "--server-auth __SERVER_SECRETS__ " : "" ) .
 		"" ;
 }
 
@@ -179,6 +185,8 @@ sub _set_all
 	$command_tail = _set( $command_tail , "__CLIENT_FILTER__" , $this->clientFilter() ) ;
 	$command_tail = _set( $command_tail , "__SCANNER__" , $this->scannerAddress() ) ;
 	$command_tail = _set( $command_tail , "__CLIENT_SECRETS__" , $this->clientSecrets() ) ;
+	$command_tail = _set( $command_tail , "__MAX_SIZE__" , $this->maxSize() ) ;
+	$command_tail = _set( $command_tail , "__SERVER_SECRETS__" , $this->serverSecrets() ) ;
 
 	my $valgrind = "" ;
 	return $valgrind . $this->exe() . " " .  $command_tail ;
@@ -271,8 +279,17 @@ sub cleanup
 	unlink( $this->stderr() ) ;
 	unlink( $this->popSecrets() ) ;
 	unlink( $this->clientSecrets() ) ;
+	unlink( $this->serverSecrets() ) ;
 	unlink( $this->filter() ) ;
 	unlink( $this->clientFilter() ) ;
+}
+
+sub hasDebug
+{
+	my ( $this ) = @_ ;
+	my $exe = $this->exe() ;
+	my $rc = system( "strings \"$exe\" | fgrep -q 'G_TEST'" ) ;
+	return $rc == 0 ;
 }
 
 1 ;

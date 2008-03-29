@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -65,7 +65,7 @@ GSmtp::FileIterator::FileIterator( FileStore & store , const G::Path & dir , boo
 	m_lock(lock)
 {
 	DirectoryReader claim_reader ;
-	m_iter.init( dir , "*.envelope" ) ;
+	m_iter.readType( dir , ".envelope" ) ;
 }
 
 std::auto_ptr<GSmtp::StoredMessage> GSmtp::FileIterator::next()
@@ -86,7 +86,7 @@ std::auto_ptr<GSmtp::StoredMessage> GSmtp::FileIterator::next()
 			return std::auto_ptr<StoredMessage>( m.release() ) ;
 
 		if( m_lock )
-			m->fail( reason ) ;
+			m->fail( reason , 0 ) ; // TODO
 		else
 			G_WARNING( "GSmtp::MessageStore: ignoring \"" << m_iter.filePath() << "\": " << reason ) ;
 	}
@@ -95,12 +95,13 @@ std::auto_ptr<GSmtp::StoredMessage> GSmtp::FileIterator::next()
 
 // ===
 
-GSmtp::FileStore::FileStore( const G::Path & dir , bool optimise ) :
+GSmtp::FileStore::FileStore( const G::Path & dir , bool optimise , unsigned long max_size ) :
 	m_seq(1UL) ,
 	m_dir(dir) ,
 	m_optimise(optimise) ,
 	m_empty(false) ,
-	m_repoll(false)
+	m_repoll(false) ,
+	m_max_size(max_size)
 {
 	m_pid_modifier = static_cast<unsigned long>(G::DateTime::now()) % 1000000UL ;
 	checkPath( dir ) ;
@@ -111,12 +112,9 @@ std::string GSmtp::FileStore::x()
 	return "X-MailRelay-" ;
 }
 
-std::string GSmtp::FileStore::format( int n )
+std::string GSmtp::FileStore::format()
 {
-	if( n == 0 )
-		return "#2821.3" ; // current -- includes message authentication and client ip
-	else
-		return "#2821.2" ; // old
+	return "#2821.3" ;
 }
 
 void GSmtp::FileStore::checkPath( const G::Path & directory_path )
@@ -209,10 +207,10 @@ bool GSmtp::FileStore::empty() const
 
 bool GSmtp::FileStore::emptyCore() const
 {
-	G::DirectoryList iter ;
+	G::DirectoryList list ;
 	DirectoryReader claim_reader ;
-	iter.init( m_dir , "*.envelope" ) ;
-	const bool no_more = !iter.more() ;
+	list.readType( m_dir , ".envelope" , 1U ) ;
+	const bool no_more = !list.more() ;
 	return no_more ;
 }
 
@@ -247,7 +245,7 @@ std::auto_ptr<GSmtp::StoredMessage> GSmtp::FileStore::get( unsigned long id )
 std::auto_ptr<GSmtp::NewMessage> GSmtp::FileStore::newMessage( const std::string & from )
 {
 	m_empty = false ;
-	return std::auto_ptr<NewMessage>( new NewFile(from,*this) ) ;
+	return std::auto_ptr<NewMessage>( new NewFile(from,*this,m_max_size) ) ;
 }
 
 void GSmtp::FileStore::updated()

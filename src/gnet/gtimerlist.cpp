@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -62,17 +62,14 @@ void GNet::TimerList::add( AbstractTimer & t )
 
 void GNet::TimerList::remove( AbstractTimer & t )
 {
-	bool removed = false ;
 	for( List::iterator p = m_list.begin() ; p != m_list.end() ; ++p )
 	{
 		if( *p == &t )
 		{
 			*p = NULL ;
-			removed = true ;
 			break ;
 		}
 	}
-	// could assert(removed) here
 }
 
 void GNet::TimerList::update( G::DateTime::EpochTime t_old )

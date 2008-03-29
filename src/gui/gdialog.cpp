@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -211,10 +211,11 @@ GPage & GDialog::previousPage( unsigned int distance )
 	return page(*p) ;
 }
 
-void GDialog::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ) const
+void GDialog::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ,
+	bool with_passwords ) const
 {
 	for( History::const_iterator p = m_history.begin() ; p != m_history.end() ; ++p )
-		page(*p).dump( stream , prefix , eol ) ;
+		page(*p).dump( stream , prefix , eol , with_passwords ) ;
 }
 
 void GDialog::wait( bool wait_on )

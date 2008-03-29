@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -42,7 +42,8 @@
 # Once all the servers have been killed the separate log files are 
 # concatenated into the summary log file "/tmp/emailrelay-test.sh.out".
 #
-# If this test takes more a minute then it has failed.
+# If this test takes more a minute (without valgrind) then it 
+# has failed.
 #
 # usage: emailrelay-chain-test.sh [-v] [-f] [-d] [-n] [<exe-dir> [<content-file>]]
 #	-v    use valgrind

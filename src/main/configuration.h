@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -37,8 +37,9 @@ namespace Main
 /// \class Main::Configuration
 /// An interface for returning application configuration
 /// information. This implementation is minimaly dependent on the
-/// command line in order to simplify moving to the windows registry
-/// (for example) in the future.
+/// command line in order to simplify moving to (eg) the windows registry
+/// or a configuration file in the future.
+///
 /// \see CommandLine
 ///
 class Main::Configuration
@@ -46,11 +47,6 @@ class Main::Configuration
 public:
 	explicit Configuration( const CommandLine & cl ) ;
 		///< Constructor. The reference is kept.
-
-	std::string str( const std::string & line_prefix = std::string() ,
-		const std::string & eol = std::string("\n") ) const ;
-			///< Reports the configuration in a multi-line
-			///< string.
 
 	unsigned int port() const ;
 		///< Returns the main listening port number.
@@ -68,9 +64,6 @@ public:
 
 	bool closeStderr() const ;
 		///< Returns true if stderr should be closed.
-
-	bool immediate() const ;
-		///< Returns true if proxying.
 
 	bool log() const ;
 		///< Returns true if doing logging.
@@ -90,7 +83,7 @@ public:
 	bool daemon() const ;
 		///< Returns true if running as a daemon.
 
-	bool doForwarding() const ;
+	bool doForwardingOnStartup() const ;
 		///< Returns true if running as a client.
 
 	bool doServing() const ;
@@ -184,10 +177,27 @@ public:
 		///< Returns the path of an external address verifier program.
 
 	bool doPolling() const ;
-		///< Returns true if doing client polling.
+		///< Returns true if doing poll-based forwarding.
+
+	bool pollingLog() const ;
+		///< Returns true if polling activity should be logged.
 
 	unsigned int pollingTimeout() const ;
-		///< Returns the polling timeout.
+		///< Returns the timeout for periodic polling.
+
+	bool immediate() const ;
+		///< Returns true if forwarding should occur as soon as each
+		///< message body is received and before receipt is
+		///< acknowledged.
+
+	bool forwardingOnStore() const ;
+		///< Returns true if forwarding should occur as each message
+		///< is stored, after it is acknowledged. (This will result
+		///< in a complete client session per message.)
+
+	bool forwardingOnDisconnect() const ;
+		///< Returns true if forwarding should occur when the
+		///< submitter's network connection disconnects.
 
 	bool withTerminate() const ;
 		///< Returns true if the admin interface should support the
@@ -214,14 +224,16 @@ public:
 		///< Returns the tls certificate file if the server
 		///< should support tls.
 
-private:
-	const CommandLine & m_cl ;
+	unsigned int maxSize() const ;
+		///< Returns the maximum size of submitted messages, or zero.
 
 private:
-	static std::string yn( bool ) ;
-	static std::string any( const std::string & ) ;
-	std::string na() const ;
-	std::string na( const std::string & ) const ;
+	bool contains( const char * ) const ;
+	std::string value( const char * ) const ;
+	unsigned int value( const char * , unsigned int ) const ;
+
+private:
+	const CommandLine & m_cl ;
 } ;
 
 #endif

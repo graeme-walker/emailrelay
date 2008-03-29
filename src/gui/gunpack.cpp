@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -164,15 +164,17 @@ void G::Unpack::init()
 	for(;;)
 	{
 		std::string file_path ;
+		std::string flags ;
 		unsigned long file_size = 0UL ;
-		input >> file_size >> file_path ;
+		input >> file_size >> flags >> file_path ;
+		G::Str::replaceAll( file_path , std::string(1U,'\001') , " " ) ; // SOHs can be used for spaces in filenames
 		G_DEBUG( "Unpack::unpack: [" << file_path << "] [" << file_size << "]" ) ;
 		if( file_size == 0U )
 		{
 			check( file_path == "end" , "invalid internal directory" ) ;
 			break ;
 		}
-		m_map.insert( Map::value_type(file_path,Entry(file_path,file_size,file_offset)) ) ;
+		m_map.insert( Map::value_type(file_path,Entry(file_path,file_size,file_offset,flags)) ) ;
 		file_offset += file_size ;
 		if( file_size > m_max_size )
 			m_max_size = file_size ;
@@ -207,12 +209,24 @@ G::Strings G::Unpack::names() const
 	return result ;
 }
 
+std::string G::Unpack::flags( const std::string & name ) const
+{
+	Map::const_iterator p = m_map.find(name) ;
+	if( p == m_map.end() ) throw NoSuchFile(name) ;
+	return (*p).second.flags ;
+}
+
 void G::Unpack::unpack( const Path & to_dir )
 {
 	for( Map::iterator p = m_map.begin() ; p != m_map.end() ; ++p )
 	{
 		unpack( to_dir , *m_input , (*p).second ) ;
 	}
+}
+
+void G::Unpack::unpack( const Path & to_dir , std::istream & input , const Entry & entry )
+{
+	unpack( input , entry.offset , entry.size , Path::join(to_dir,entry.path) ) ;
 }
 
 void G::Unpack::unpack( const Path & to_dir , const std::string & name )
@@ -223,24 +237,32 @@ void G::Unpack::unpack( const Path & to_dir , const std::string & name )
 	unpack( to_dir , *m_input , (*p).second ) ;
 }
 
-void G::Unpack::unpack( const Path & to_dir , std::istream & input , const Entry & entry )
+void G::Unpack::unpack( const std::string & name , const Path & dst )
+{
+	G_DEBUG( "Unpack::unpack: [" << name << "] (" << m_map.size() << ")" ) ;
+	Map::iterator p = m_map.find(name) ;
+	if( p == m_map.end() ) throw NoSuchFile(name) ;
+	unpack( *m_input , (*p).second.offset , (*p).second.size , dst ) ;
+}
+
+void G::Unpack::unpack( std::istream & input, unsigned long entry_offset, unsigned long entry_size, const Path & dst )
 {
 	// sync up
-	input.seekg( m_start + entry.offset ) ;
+	input.seekg( m_start + entry_offset ) ;
 	m_buffer.clear() ;
 
 	// read file data
-	G_DEBUG( "Unpack::unpack: reading " << entry.size << " bytes at offset " << (m_start+entry.offset)
-		<< "(0x" << std::hex << (m_start+entry.offset) << ") for \"" << entry.path << "\"" ) ;
+	G_DEBUG( "Unpack::unpack: reading " << entry_size << " bytes at offset " << (m_start+entry_offset)
+		<< "(0x" << std::hex << (m_start+entry_offset) << ") for \"" << dst << "\"" ) ;
 	unsigned long i = 0UL ;
-	for( ; i < entry.size && input.good() ; i++ )
+	for( ; i < entry_size && input.good() ; i++ )
 		m_buffer.push_back( input.get() ) ;
 	check( input.good() , "read error" ) ;
-	check( i == entry.size , "read error (2)" ) ;
-	check( m_buffer.size() == entry.size , "read error (3)" ) ;
+	check( i == entry_size , "read error (2)" ) ;
+	check( m_buffer.size() == entry_size , "read error (3)" ) ;
 
 	// continue
-	unpack( Path(to_dir,entry.path) , m_buffer ) ;
+	unpack( dst , m_buffer ) ;
 }
 
 void G::Unpack::unpack( const Path & dst , const std::vector<char> & buffer )
@@ -288,25 +310,34 @@ void G::Unpack::unpack( std::ostream & output , const std::vector<char> & buffer
 
 void G::Unpack::unpackOriginal( const Path & dst )
 {
+	std::string reason = unpackOriginal( dst , NoThrow() ) ;
+	if( !reason.empty() )
+		throw PackingError( reason ) ;
+}
+
+std::string G::Unpack::unpackOriginal( const Path & dst , NoThrow )
+{
 	if( m_input == NULL || m_offset == 0 )
-		return ;
+		return std::string() ;
 
 	std::istream & input = *m_input ;
 	input.seekg( 0UL ) ;
 	if( !input.good() )
-		throw PackingError( "cannot open file for reading" ) ;
+		return "cannot open file for reading" ;
 
 	std::ofstream out( dst.str().c_str() , std::ios::binary | std::ios::out | std::ios::trunc ) ;
 	if( !out.good() )
-		throw PackingError( "cannot open file for reading: " + dst.str() ) ;
+		return std::string() + "cannot open file for reading: " + dst.str() ;
 
 	copy( input , out , m_offset ) ;
 	if( !input.good() )
-		throw PackingError( "cannot read file" ) ;
+		return "cannot read file" ;
 
 	out.flush() ;
 	if( !out.good() )
-		throw PackingError( "cannot write: " + dst.str() ) ;
+		return std::string() + "cannot write: " + dst.str() ;
+
+	return std::string() ;
 }
 
 void G::Unpack::copy( std::istream & in , std::ostream & out , std::streamsize size )

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@ G::Arg::Arg( int argc , char *argv[] )
 	for( int i = 0 ; i < argc ; i++ )
 		m_array.push_back( argv[i] ) ;
 
+	setExe() ;
 	setPrefix() ;
 }
 
@@ -42,6 +43,8 @@ G::Arg::~Arg()
 
 G::Arg::Arg()
 {
+	setExe() ;
+	setPrefix() ;
 	// now use parse()
 }
 
@@ -67,71 +70,6 @@ void G::Arg::setPrefix()
 	Path path( m_array[0U] ) ;
 	path.removeExtension() ;
 	m_prefix = path.basename() ;
-}
-
-void G::Arg::parse( HINSTANCE hinstance , const std::string & command_line )
-{
-	m_array.push_back( moduleName(hinstance) ) ;
-	parseCore( command_line ) ;
-	setPrefix() ;
-}
-
-void G::Arg::reparse( const std::string & command_line )
-{
-	while( m_array.size() > 1U ) m_array.pop_back() ;
-	parseCore( command_line ) ;
-}
-
-void G::Arg::parseCore( const std::string & command_line )
-{
-	std::string s( command_line ) ;
-	protect( s ) ;
-	G::Str::splitIntoTokens( s , m_array , " " ) ;
-	unprotect( m_array ) ;
-	dequote( m_array ) ;
-}
-
-void G::Arg::protect( std::string & s )
-{
-	// replace all quoted spaces with a replacement
-	// (could do better: escaped quotes, tabs, single quotes)
-	G_DEBUG( "protect: before: " << Str::printable(s) ) ;
-	bool in_quote = false ;
-	const char quote = '"' ;
-	const char space = ' ' ;
-	const char replacement = '\0' ;
-	for( std::string::size_type pos = 0U ; pos < s.length() ; pos++ )
-	{
-		if( s.at(pos) == quote ) in_quote = ! in_quote ;
-		if( in_quote && s.at(pos) == space ) s[pos] = replacement ;
-	}
-	G_DEBUG( "protect: after: " << Str::printable(s) ) ;
-}
-
-void G::Arg::unprotect( StringArray & array )
-{
-	// restore replacements to spaces
-	const char space = ' ' ;
-	const char replacement = '\0' ;
-	for( StringArray::iterator p = array.begin() ; p != array.end() ; ++p )
-	{
-		std::string & s = *p ;
-		G::Str::replaceAll( s , std::string(1U,replacement) , std::string(1U,space) ) ;
-	}
-}
-
-void G::Arg::dequote( StringArray & array )
-{
-	// remove quotes if first and last characters
-	char qq = '\"' ;
-	for( StringArray::iterator p = array.begin() ; p != array.end() ; ++p )
-	{
-		std::string & s = *p ;
-		if( s.length() > 1U && s.at(0U) == qq && s.at(s.length()-1U) == qq )
-		{
-			s = s.substr(1U,s.length()-2U) ;
-		}
-	}
 }
 
 bool G::Arg::contains( const std::string & sw , size_type sw_args , bool cs ) const

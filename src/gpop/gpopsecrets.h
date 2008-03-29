@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -68,7 +68,7 @@ public:
 	virtual bool valid() const ;
 		///< Returns true. Final override from GSmtp::Valid virtual base class.
 
-	virtual std::string secret(  const std::string & mechanism , const std::string & id ) const ;
+	virtual std::string secret( const std::string & mechanism , const std::string & id ) const ;
 		///< Returns the given user's secret. Returns the
 		///< empty string if not a valid id.
 		///<

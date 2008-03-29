@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -108,9 +108,14 @@ private:
 class G::DirectoryIterator
 {
 public:
-	explicit DirectoryIterator( const Directory & dir , const std::string & wc = std::string() ) ;
+	DirectoryIterator( const Directory & dir , const std::string & wc ) ;
 		///< Constructor taking a directory reference
-		///< and an optional wildcard specification.
+		///< and a wildcard specification. Iterates over
+		///< all matching files in the directory.
+
+	explicit DirectoryIterator( const Directory & dir ) ;
+		///< Constructor taking a directory reference.
+		///< Iterates over all files in the directory.
 
 	~DirectoryIterator() ;
 		///< Destructor.
@@ -148,16 +153,24 @@ private:
 
 /// \class G::DirectoryList
 /// A Directory iterator that does all file i/o in one go.
+/// The implementation uses DirectoryIterator.
 ///
 class G::DirectoryList
 {
 public:
 	DirectoryList() ;
-		///< Default constructor for an empty list. Initialise with init().
+		///< Default constructor for an empty list. Initialise with a
+		///< read method.
 
-	void init( const Path & dir , const std::string & wc = std::string() ) ;
-		///< An initialiser that is to be used after default construction.
-		///< All file i/o is done in here.
+	void readAll( const Path & dir ) ;
+		///< An initialiser that is to be used after default
+		///< construction. Reads all files in the directory.
+		///< All file i/o is done in readAll()/readType().
+
+	void readType( const Path & dir , const std::string & suffix , unsigned int limit = 0U ) ;
+		///< An initialiser that is to be used after default
+		///< construction. Reads all files that have the given suffix.
+		///< All file i/o is done in readAll()/readType().
 
 	bool more() ;
 		///< Returns true if more and advances by one.

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -292,10 +292,10 @@ void GNet::Select::runOnce()
 
 	if( G::Test::enabled("slow-event-loop") )
 	{
-		Timeval timeout ;
-		timeout.tv_sec = 0 ;
-		timeout.tv_usec = 100000 ;
-		::select( 0 , NULL , NULL , NULL , &timeout ) ;
+		Timeval timeout_slow ;
+		timeout_slow.tv_sec = 0 ;
+		timeout_slow.tv_usec = 100000 ;
+		::select( 0 , NULL , NULL , NULL , &timeout_slow ) ;
 	}
 }
 

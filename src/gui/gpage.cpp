@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include "gstr.h"
 #include "gpage.h"
 #include "gdialog.h"
+#include "state.h"
 
 bool GPage::m_test_mode = false ;
 
@@ -90,9 +91,26 @@ QLabel * GPage::newTitle( QString s )
 	return label ;
 }
 
-void GPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ) const
+void GPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool ) const
 {
-	stream << prefix << "# " << name() << eol ;
+	stream << prefix << "# page: " << name() << eol ;
+}
+
+void GPage::dumpItem( std::ostream & stream , const std::string & prefix , const std::string & key ,
+	const G::Path & value , const std::string & eol ) const
+{
+	dumpItem( stream , prefix , key , value.str() , eol ) ;
+}
+
+void GPage::dumpItem( std::ostream & stream , const std::string & prefix , const std::string & key ,
+	const std::string & value , const std::string & eol ) const
+{
+	State::write( stream , key , value , prefix , eol ) ;
+}
+
+std::string GPage::value( bool b )
+{
+	return b ? "y" : "n" ;
 }
 
 std::string GPage::value( const QAbstractButton * p )

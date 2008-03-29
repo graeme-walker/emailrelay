@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -93,7 +93,7 @@ public:
 	virtual void destroy() ;
 		///< Final override from GSmtp::StoredMessage.
 
-	virtual void fail( const std::string & reason ) ;
+	virtual void fail( const std::string & reason , int reason_code ) ;
 		///< Final override from GSmtp::StoredMessage.
 
 	virtual std::auto_ptr<std::istream> extractContentStream() ;
@@ -111,7 +111,7 @@ public:
 private:
 	StoredFile( const StoredFile & ) ; // not implemented
 	void operator=( const StoredFile & ) ; // not implemented
-	static std::string crlf() ;
+	static const std::string & crlf() ;
 	std::string getline( std::istream & stream ) const ;
 	std::string value( const std::string & s , const std::string & k = std::string() ) const ;
 	G::Path contentPath() const ;
@@ -124,7 +124,7 @@ private:
 	void readAuthentication( std::istream & stream ) ;
 	void readClientIp( std::istream & stream ) ;
 	void readEnvelopeCore( bool ) ;
-	static void addReason( const G::Path & path , const std::string & reason ) ;
+	static void addReason( const G::Path & path , const std::string & , int ) ;
 	static G::Path badPath( G::Path ) ;
 	void unlock() ;
 

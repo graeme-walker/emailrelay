@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include "gpath.h"
 #include "gdialog.h"
 #include "gpage.h"
+#include "state.h"
 
 class QCheckBox;
 class QComboBox;
@@ -45,11 +46,11 @@ class TitlePage;
 class TitlePage : public GPage
 {
 public:
-	TitlePage( GDialog & dialog , const std::string & name ,
+	TitlePage( GDialog & dialog , const State & state , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) ;
 
 	virtual std::string nextPage() ;
-	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
+	virtual void dump( std::ostream & , const std::string & , const std::string & , bool ) const ;
 
 private:
 	QLabel * m_label ;
@@ -59,11 +60,11 @@ private:
 class LicensePage : public GPage
 {
 public:
-	LicensePage( GDialog & dialog , const std::string & name ,
-		const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) ;
+	LicensePage( GDialog & dialog , const State & state , const std::string & name ,
+		const std::string & next_1 , const std::string & next_2 , bool finish , bool close , bool accepted ) ;
 
 	virtual std::string nextPage() ;
-	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
+	virtual void dump( std::ostream & , const std::string & , const std::string & , bool ) const ;
 	virtual bool isComplete() ;
 
 private:
@@ -74,12 +75,12 @@ private:
 class DirectoryPage : public GPage
 {Q_OBJECT
 public:
-	DirectoryPage( GDialog & dialog , const std::string & name ,
+	DirectoryPage( GDialog & dialog , const State & state , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 , bool finish , bool close ,
 		const Dir & dir , bool installing ) ;
 
 	virtual std::string nextPage() ;
-	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
+	virtual void dump( std::ostream & , const std::string & , const std::string & , bool ) const ;
 	virtual bool isComplete() ;
 
 private slots:
@@ -89,6 +90,7 @@ private slots:
 
 private:
 	QString browse( QString ) ;
+	G::Path normalise( const G::Path & ) const ;
 
 private:
 	const Dir & m_dir ;
@@ -110,17 +112,18 @@ private:
 class DoWhatPage : public GPage
 {Q_OBJECT
 public:
-	DoWhatPage( GDialog & dialog , const std::string & name ,
+	DoWhatPage( GDialog & dialog , const State & state , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) ;
 
 	virtual std::string nextPage() ;
-	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
+	virtual void dump( std::ostream & , const std::string & , const std::string & , bool ) const ;
 	virtual bool isComplete() ;
 
 private:
 	QCheckBox * m_pop_checkbox ;
 	QCheckBox * m_smtp_checkbox ;
 	QRadioButton * m_immediate_checkbox ;
+	QRadioButton * m_on_disconnect_checkbox ;
 	QRadioButton * m_periodically_checkbox ;
 	QRadioButton * m_on_demand_checkbox ;
 	QComboBox * m_period_combo ;
@@ -133,11 +136,11 @@ private slots:
 class PopPage : public GPage
 {Q_OBJECT
 public:
-	explicit PopPage( GDialog & dialog , const std::string & name ,
+	explicit PopPage( GDialog & dialog , const State & state , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) ;
 
 	virtual std::string nextPage() ;
-	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
+	virtual void dump( std::ostream & , const std::string & , const std::string & , bool ) const ;
 	virtual bool isComplete() ;
 
 private slots:
@@ -155,14 +158,15 @@ private:
 class PopAccountsPage : public GPage
 {
 public:
-	explicit PopAccountsPage( GDialog & dialog , const std::string & name ,
-		const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) ;
+	explicit PopAccountsPage( GDialog & dialog , const State & state , const std::string & name ,
+		const std::string & next_1 , const std::string & next_2 , bool finish , bool close , bool have_accounts ) ;
 
 	virtual std::string nextPage() ;
-	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
+	virtual void dump( std::ostream & , const std::string & , const std::string & , bool ) const ;
 	virtual bool isComplete() ;
 
 private:
+	bool m_have_accounts ;
 	QComboBox * m_mechanism_combo ;
 	QLineEdit * m_name_1 ;
 	QLineEdit * m_pwd_1 ;
@@ -175,14 +179,15 @@ private:
 class PopAccountPage : public GPage
 {
 public:
-	explicit PopAccountPage( GDialog & dialog , const std::string & name ,
-		const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) ;
+	explicit PopAccountPage( GDialog & dialog , const State & state , const std::string & name ,
+		const std::string & next_1 , const std::string & next_2 , bool finish , bool close , bool have_account ) ;
 
 	virtual std::string nextPage() ;
-	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
+	virtual void dump( std::ostream & , const std::string & , const std::string & , bool ) const ;
 	virtual bool isComplete() ;
 
 private:
+	bool m_have_account ;
 	QComboBox * m_mechanism_combo ;
 	QLineEdit * m_name_1 ;
 	QLineEdit * m_pwd_1 ;
@@ -191,14 +196,15 @@ private:
 class SmtpServerPage : public GPage
 {Q_OBJECT
 public:
-	SmtpServerPage( GDialog & dialog , const std::string & name ,
-		const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) ;
+	SmtpServerPage( GDialog & dialog , const State & state , const std::string & name ,
+		const std::string & next_1 , const std::string & next_2 , bool finish , bool close , bool have_account ) ;
 
 	virtual std::string nextPage() ;
-	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
+	virtual void dump( std::ostream & , const std::string & , const std::string & , bool ) const ;
 	virtual bool isComplete() ;
 
 private:
+	bool m_have_account ;
 	QLineEdit * m_port_edit_box ;
 	QCheckBox * m_auth_checkbox ;
 	QComboBox * m_mechanism_combo ;
@@ -215,14 +221,15 @@ private slots:
 class SmtpClientPage : public GPage
 {Q_OBJECT
 public:
-	SmtpClientPage( GDialog & dialog , const std::string & name ,
-		const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) ;
+	SmtpClientPage( GDialog & dialog , const State & state , const std::string & name ,
+		const std::string & next_1 , const std::string & next_2 , bool finish , bool close , bool have_account ) ;
 
 	virtual std::string nextPage() ;
-	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
+	virtual void dump( std::ostream & , const std::string & , const std::string & , bool ) const ;
 	virtual bool isComplete() ;
 
 private:
+	bool m_have_account ;
 	QLineEdit * m_server_edit_box ;
 	QLineEdit * m_port_edit_box ;
 	QCheckBox * m_tls_checkbox ;
@@ -239,14 +246,16 @@ private slots:
 class StartupPage : public GPage
 {
 public:
-	StartupPage( GDialog & dialog , const std::string & name ,
+	StartupPage( GDialog & dialog , const State & state , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 , bool finish , bool close ,
-		const Dir & dir ) ;
+		const Dir & dir , bool is_mac ) ;
 
 	virtual std::string nextPage() ;
-	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
+	virtual void dump( std::ostream & , const std::string & , const std::string & , bool ) const ;
+	virtual bool isComplete() ;
 
 private:
+	bool m_is_mac ;
 	QCheckBox * m_on_boot_checkbox ;
 	QCheckBox * m_at_login_checkbox ;
 	QCheckBox * m_add_menu_item_checkbox ;
@@ -257,11 +266,11 @@ private:
 class LoggingPage : public GPage
 {
 public:
-	LoggingPage( GDialog & dialog , const std::string & name ,
+	LoggingPage( GDialog & dialog , const State & state , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) ;
 
 	virtual std::string nextPage() ;
-	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
+	virtual void dump( std::ostream & , const std::string & , const std::string & , bool ) const ;
 
 private:
 	QCheckBox * m_debug_checkbox ;
@@ -272,11 +281,11 @@ private:
 class ListeningPage : public GPage
 {Q_OBJECT
 public:
-	ListeningPage( GDialog & dialog , const std::string & name ,
+	ListeningPage( GDialog & dialog , const State & state , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 , bool finish , bool close ) ;
 
 	virtual std::string nextPage() ;
-	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
+	virtual void dump( std::ostream & , const std::string & , const std::string & , bool ) const ;
 	virtual bool isComplete() ;
 
 private slots:
@@ -292,11 +301,11 @@ private:
 class ReadyPage : public GPage
 {
 public:
-	ReadyPage( GDialog & dialog , const std::string & name , const std::string & next_1 ,
+	ReadyPage( GDialog & dialog , const State & state , const std::string & name , const std::string & next_1 ,
 		const std::string & next_2 , bool finish , bool close , bool installing ) ;
 
 	virtual std::string nextPage() ;
-	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
+	virtual void dump( std::ostream & , const std::string & , const std::string & , bool ) const ;
 	virtual void onShow( bool back ) ;
 
 private:
@@ -311,11 +320,12 @@ private:
 class ProgressPage : public GPage
 {Q_OBJECT
 public:
-	ProgressPage( GDialog & dialog , const std::string & name , const std::string & next_1 ,
-		const std::string & next_2 , bool finish , bool close , G::Path argv0 , G::Path dump_file ) ;
+	ProgressPage( GDialog & dialog , const State & state , const std::string & name , const std::string & next_1 ,
+		const std::string & next_2 , bool finish , bool close ,
+		G::Path argv0 , G::Path payload , G::Path state_path , bool install ) ;
 
 	virtual std::string nextPage() ;
-	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
+	virtual void dump( std::ostream & , const std::string & , const std::string & , bool ) const ;
 	virtual void onShow( bool back ) ;
 	virtual bool closeButton() const ;
 	virtual bool isComplete() ;
@@ -327,20 +337,22 @@ private:
 	void addLine( const std::string & ) ;
 
 private:
+	G::Path m_argv0 ;
+	G::Path m_state_path ;
 	QTextEdit * m_text_edit ;
 	QTimer * m_timer ;
 	Installer m_installer ;
+	bool m_installing ;
 	QString m_text ;
-	G::Path m_dump_file ;
 } ;
 
 class EndPage_ : public GPage
 {
 public:
-	EndPage_( GDialog & dialog , const std::string & name ) ;
+	EndPage_( GDialog & dialog , const State & state , const std::string & name ) ;
 
 	virtual std::string nextPage() ;
-	virtual void dump( std::ostream & , const std::string & , const std::string & ) const ;
+	virtual void dump( std::ostream & , const std::string & , const std::string & , bool ) const ;
 } ;
 
 #endif

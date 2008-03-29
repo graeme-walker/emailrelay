@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,16 +24,15 @@
 #include "dir.h"
 #include "gstr.h"
 #include "gpath.h"
-#include <stdexcept>
+#include "gdebug.h"
+#include "state.h"
+#include <cstdlib> //getenv
 
-Dir::Dir( const std::string & argv0 , bool installed ) :
-	m_argv0(argv0)
+Dir::Dir( const std::string & argv0 )
 {
-	G::Path exe_dir = G::Path(m_argv0).dirname() ;
+	G::Path exe_dir = G::Path(argv0).dirname() ;
 	m_thisdir = ( exe_dir.isRelative() && !exe_dir.hasDriveLetter() ) ? ( cwd() + exe_dir.str() ) : exe_dir ;
-	m_thisexe = G::Path( m_thisdir , G::Path(m_argv0).basename() ) ;
-	m_tmp = m_thisdir ; // TODO -- check writable
-	m_install = installed ? m_thisdir : os_install() ;
+	m_thisexe = G::Path( m_thisdir , G::Path(argv0).basename() ) ;
 	m_spool = os_spool() ;
 	m_config = os_config() ;
 	m_pid = os_pid() ;
@@ -47,25 +46,40 @@ Dir::~Dir()
 {
 }
 
-void Dir::read( std::istream & file )
+void Dir::read( const State & state )
 {
-	std::string line ;
+	// these are presented by the gui -- they are normally present in the file
+	// because they are written by both "make install" and by the DirectoryPage class
+	m_spool = state.value( "dir-spool" , m_spool ) ;
+	m_config = state.value( "dir-config" , m_config ) ;
 
-	// these are presented by the gui...
-	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_spool = line ;
-	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_config = line ;
+	// these allow "make install" to take full control if it needs to -- probably
+	// not present in the file
+	m_pid = state.value( "dir-pid" , m_pid ) ;
+	m_boot = state.value( "dir-boot" , m_boot ) ;
+	m_desktop = state.value( "dir-desktop" , m_desktop ) ;
+	m_login = state.value( "dir-login" , m_login ) ;
+	m_menu = state.value( "dir-menu" , m_menu ) ;
+}
 
-	// these allow "make install" to take full control if it needs to...
-	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_pid = line ;
-	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_boot = line ;
-	line = G::Str::readLineFrom(file,"\n") ; // was m_startup -- ignored
-	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_desktop = line ;
-	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_login = line ;
-	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_menu = line ;
-	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) ; // reskit not used
+G::Path Dir::install()
+{
+	return os_install() ;
+}
 
-	// this is for completeness only...
-	line = G::Str::readLineFrom(file,"\n") ; if( file.good() && !line.empty() ) m_install = line ;
+G::Path Dir::gui( const G::Path & base )
+{
+	return os_gui( base ) ;
+}
+
+G::Path Dir::icon( const G::Path & base )
+{
+	return os_icon( base ) ;
+}
+
+G::Path Dir::server( const G::Path & base )
+{
+	return os_server( base ) ;
 }
 
 G::Path Dir::thisdir() const
@@ -93,14 +107,14 @@ G::Path Dir::menu() const
 	return m_menu ;
 }
 
-G::Path Dir::tmp() const
+G::Path Dir::pid( const G::Path & config ) const
 {
-	return m_tmp ;
+	return os_pid( m_pid , config ) ;
 }
 
-G::Path Dir::pid() const
+G::Path Dir::config( int )
 {
-	return m_pid ;
+	return os_config() ;
 }
 
 G::Path Dir::config() const
@@ -108,19 +122,41 @@ G::Path Dir::config() const
 	return m_config ;
 }
 
-G::Path Dir::install() const
-{
-	return m_install ;
-}
-
 G::Path Dir::spool() const
 {
 	return m_spool ;
 }
 
+G::Path Dir::boot( int )
+{
+	return os_boot() ;
+}
+
 G::Path Dir::boot() const
 {
 	return m_boot ;
+}
+
+G::Path Dir::bootcopy( const G::Path & boot , const G::Path & install )
+{
+	return os_bootcopy( boot , install ) ;
+}
+
+std::string Dir::env( const std::string & key , const std::string & default_ )
+{
+	const char * p = ::getenv( key.c_str() ) ;
+	return p == NULL ? default_ : std::string(p) ;
+}
+
+G::Path Dir::envPath( const std::string & key , const G::Path & default_ )
+{
+	const char * p = ::getenv( key.c_str() ) ;
+	return p == NULL ? default_ : G::Path(std::string(p)) ;
+}
+
+G::Path Dir::home()
+{
+	return envPath( "HOME" , "~" ) ;
 }
 
 /// \file dir.cpp

@@ -1,4 +1,4 @@
-.\" Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+.\" Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 .\" 
 .\" This program is free software: you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -168,6 +168,9 @@ Enables authentication of remote clients, using the given secrets file.
 .TP
 .B \-K, --server-tls \fI<pem-file>\fR
 Enables tls/ssl layer for smtp server using the given openssl certificate file (if openssl built in).
+.TP
+.B \-M, --size \fI<bytes>\fR
+Limits the size of submitted messages.
 .TP
 .B \-s, --spool-dir \fI<dir>\fR
 Specifies the spool directory (default is \fI/var/spool/emailrelay\fR).

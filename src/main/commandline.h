@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,19 +26,20 @@
 #include "garg.h"
 #include "configuration.h"
 #include "output.h"
-#include "ggetopt.h"
+#include "gstrings.h"
 #include <string>
-#include <iostream>
 
 /// \namespace Main
 namespace Main
 {
 	class CommandLine ;
+	class CommandLineImp ;
 }
 
 /// \class Main::CommandLine
 /// A class which deals with the command-line interface
-/// to the process (both input and output).
+/// to the process, both input and output. The input side is mostly
+/// done by providing a Configuration object via the cfg() method.
 ///
 class Main::CommandLine
 {
@@ -50,14 +51,35 @@ public:
 		const std::string & version ) ;
 			///< Constructor.
 
+	~CommandLine() ;
+		///< Destructor.
+
 	Configuration cfg() const ;
 		///< Returns a Configuration object.
 
 	bool contains( const std::string & switch_ ) const ;
 		///< Returns true if the command line contained the give switch.
 
+	bool contains( const char * switch_ ) const ;
+		///< Returns true if the command line contained the give switch.
+
 	std::string value( const std::string & switch_ ) const ;
-		///< Returns the given switch's value.
+		///< Returns the given switch's string value.
+
+	std::string value( const char * switch_ ) const ;
+		///< Returns the given switch's string value.
+
+	unsigned int value( const std::string & switch_ , unsigned int default_ ) const ;
+		///< Returns the given switch's integer value.
+
+	unsigned int value( const char * switch_ , unsigned int default_ ) const ;
+		///< Returns the given switch's integer value.
+
+	G::Strings value( const std::string & switch_ , const std::string & separators ) const ;
+		///< Returns the given switch's list-of-string value.
+
+	G::Strings value( const char * switch_ , const char * separators ) const ;
+		///< Returns the given switch's list-of-string value.
 
 	unsigned int argc() const ;
 		///< Returns the number of non-switch arguments on the command line.
@@ -77,6 +99,9 @@ public:
 	void showSemanticError( bool error_stream = true ) const ;
 		///< Writes the logic errors.
 
+	void logSemanticWarnings() const ;
+		///< Emits warnings about conflicting switches.
+
 	void showArgcError( bool error_stream = true ) const ;
 		///< Writes a too-many-arguments error message.
 
@@ -93,35 +118,11 @@ public:
 		///< Writes a copyright message.
 
 private:
-	void showWarranty( bool error_stream , const std::string & = std::string() ) const ;
-	void showCredit( bool error_stream , const std::string & = std::string() ) const ;
-	void showShortHelp( bool error_stream ) const ;
-	std::string semanticError() const ;
-	void showUsage( bool e ) const ;
-	void showExtraHelp( bool error_stream ) const ;
-	static std::string switchSpec_unix() ;
-	static std::string switchSpec_windows() ;
+	CommandLine( const CommandLine & ) ; // not implemented
+	void operator=( const CommandLine & ) ; // not implemented
 
 private:
-	Output & m_output ;
-	std::string m_version ;
-	G::Arg m_arg ;
-	G::GetOpt m_getopt ;
-
-public:
-	/// A private implementation class used by Main::CommandLine.
-	class Show
-	{
-		public: Show( Main::Output & , bool e ) ;
-		public: std::ostream & s() ;
-		public: ~Show() ;
-		private: Show( const Show & ) ; // not implemented
-		private: void operator=( const Show & ) ; // not implemented
-		private: std::ostringstream m_ss ;
-		private: Main::Output & m_output ;
-		private: bool m_e ;
-		private: static Show * m_this ;
-	} ;
+	CommandLineImp * m_imp ;
 } ;
 
 #endif

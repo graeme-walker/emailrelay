@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 #include "gmultiserver.h"
 #include "gexecutable.h"
 #include "gstr.h"
+#include "gstrings.h"
 #include "glinebuffer.h"
 #include "gserverprotocol.h"
 #include "gclientptr.h"
@@ -67,7 +68,7 @@ protected:
 	virtual bool onReceive( const std::string & ) ;
 		///< Final override from GNet::BufferedServerPeer.
 
-	virtual void onDelete() ;
+	virtual void onDelete( const std::string & ) ;
 		///< Final override from GNet::ServerPeer.
 
 	virtual void onSecure() ;
@@ -87,7 +88,7 @@ private:
 	void warranty() ;
 	void version() ;
 	void copyright() ;
-	static std::string crlf() ;
+	static const std::string & crlf() ;
 	void prompt() ;
 
 private:

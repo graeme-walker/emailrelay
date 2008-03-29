@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -92,7 +92,7 @@ public:
 		///< Runs the application.
 		///< Precondition: prepare() returned true
 
-	Configuration cfg() const ;
+	const Configuration & config() const ;
 		///< Returns a configuration object.
 
 	static std::string versionNumber() ;
@@ -108,7 +108,7 @@ private:
 	Run( const Run & ) ; // not implemented
 	void operator=( const Run & ) ; // not implemented
 	void runCore() ;
-	void doForwarding( GSmtp::MessageStore & , const GSmtp::Secrets & , GNet::EventLoop & ) ;
+	void doForwardingOnStartup( GSmtp::MessageStore & , const GSmtp::Secrets & , GNet::EventLoop & ) ;
 	void doServing( const GSmtp::Secrets & , GSmtp::MessageStore & , const GSmtp::Secrets & ,
 		GPop::Store & , const GPop::Secrets & , G::PidFile & , GNet::EventLoop & ) ;
 	void closeFiles() ;
@@ -119,11 +119,14 @@ private:
 	void forwardingClientDone( std::string , bool ) ; // Client::doneSignal()
 	void pollingClientDone( std::string , bool ) ; // Client::doneSignal()
 	void clientEvent( std::string , std::string ) ; // Client::eventSignal()
+	void serverEvent( std::string , std::string ) ; // Server::eventSignal()
 	void raiseStoreEvent( bool ) ;
 	void raiseNetworkEvent( std::string , std::string ) ;
 	void emit( const std::string & , const std::string & , const std::string & ) ;
 	void onPollTimeout() ;
-	std::string doPoll() ;
+	void onForwardingTimeout() ;
+	void doForwarding( const std::string & ) ;
+	std::string doForwardingCore() ;
 	void checkPorts() const ;
 	static void checkPort( const std::string & , unsigned int ) ;
 	GSmtp::Client::Config clientConfig() const ;
@@ -137,6 +140,7 @@ private:
 	Output & m_output ;
 	std::string m_switch_spec ;
 	std::auto_ptr<CommandLine> m_cl ;
+	std::auto_ptr<Configuration> m_cfg ;
 	std::auto_ptr<G::LogOutput> m_log_output ;
 	G::Arg m_arg ;
 	G::Signal3<std::string,std::string,std::string> m_signal ;
@@ -144,9 +148,11 @@ private:
 	std::auto_ptr<GSmtp::Secrets> m_client_secrets ;
 	std::auto_ptr<GPop::Secrets> m_pop_secrets ;
 	std::auto_ptr<GSmtp::AdminServer> m_admin_server ;
+	std::auto_ptr<GSmtp::Server> m_smtp_server ;
 	std::auto_ptr<GNet::Timer<Run> > m_poll_timer ;
-	GNet::ResolverInfo m_polling_client_resolver_info ;
-	GNet::ClientPtr<GSmtp::Client> m_polling_client ; // order dependency -- late
+	std::auto_ptr<GNet::Timer<Run> > m_forwarding_timer ;
+	GNet::ResolverInfo m_client_resolver_info ;
+	GNet::ClientPtr<GSmtp::Client> m_client ; // order dependency -- late
 	bool m_prepare_error ;
 } ;
 

@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ mk_zlib=$(mk_qt)/src/3rdparty/zlib
 endif
 
 mk_sources=\
-	boot.cpp \
+	boot_win32.cpp \
 	gdialog.cpp \
 	gpage.cpp \
 	dir.cpp \
@@ -52,8 +52,9 @@ mk_sources=\
 	moc_gdialog.cpp \
 	moc_gpage.cpp \
 	moc_pages.cpp \
-	glink.cpp \
+	glink_win32.cpp \
 	gunpack.cpp \
+	state.cpp \
 	unpack.c
 
 service_objects=../main/service_install.o ../main/service_remove.o
@@ -87,6 +88,8 @@ syslibs=\
 	-luuid
 
 mk_defines_extra=\
+	-DG_WIN32_IE \
+	-DG_WIN32_DCOM \
 	-DQT_LARGEFILE_SUPPORT \
 	-DQT_GUI_LIB \
 	-DQT_CORE_LIB \

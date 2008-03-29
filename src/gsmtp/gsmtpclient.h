@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -120,13 +120,13 @@ protected:
 
 private:
 	virtual bool protocolSend( const std::string & , size_t , bool ) ; // override from private base class
-	void protocolDone( std::string ) ; // see ClientProtocol::doneSignal()
+	void protocolDone( std::string , int ) ; // see ClientProtocol::doneSignal()
 	void preprocessorStart() ;
 	void preprocessorDone( bool ) ;
-	static std::string crlf() ;
+	static const std::string & crlf() ;
 	bool sendNext() ;
 	void start( StoredMessage & ) ;
-	void messageFail( const std::string & reason ) ;
+	void messageFail( const std::string & , int = 0 ) ;
 	void messageDestroy() ;
 
 private:

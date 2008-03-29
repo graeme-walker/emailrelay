@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -145,7 +145,7 @@ public:
 	void reset() { m_emitted = false ; }
 } ;
 
-/// Function: slot
+///
 /// Part of the slot/signal system.
 ///
 template <typename T>
@@ -219,7 +219,7 @@ public:
 	void reset() { m_emitted = false ; }
 } ;
 
-/// Function: slot
+///
 /// Part of the slot/signal system.
 ///
 template <typename T,typename P>
@@ -293,7 +293,7 @@ public:
 	void reset() { m_emitted = false ; }
 } ;
 
-/// Function: slot
+///
 /// Part of the slot/signal system.
 ///
 template <typename T, typename P1, typename P2>
@@ -367,7 +367,7 @@ public:
 	void reset() { m_emitted = false ; }
 } ;
 
-/// Function: slot
+///
 /// Part of the slot/signal system.
 ///
 template <typename T, typename P1, typename P2, typename P3>

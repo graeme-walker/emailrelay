@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@ public:
 	virtual void destroy() = 0 ;
 		///< Deletes the message within the store.
 
-	virtual void fail( const std::string & reason ) = 0 ;
+	virtual void fail( const std::string & reason , int reason_code ) = 0 ;
 		///< Marks the message as failed within the store.
 
 	virtual bool eightBit() const = 0 ;

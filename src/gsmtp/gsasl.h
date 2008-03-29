@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -195,6 +195,7 @@ public:
 	std::string response( const std::string & mechanism , const std::string & challenge ,
 		bool & done , bool & error , bool & sensitive ) const ;
 			///< Returns a response to the given challenge.
+			///< Returns various boolean flags by reference.
 
 	std::string preferred( const G::Strings & mechanisms ) const ;
 		///< Returns the name of the preferred mechanism taken from

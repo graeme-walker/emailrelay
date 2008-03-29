@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -21,7 +21,8 @@
 #
 
 mk_sources=\
-	commandline.cpp \
+	admin_enabled.cpp \
+	commandline_full.cpp \
 	configuration.cpp \
 	legal.cpp \
 	news.cpp \

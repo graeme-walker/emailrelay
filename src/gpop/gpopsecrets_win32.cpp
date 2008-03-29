@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,13 +19,14 @@
 //
 
 #include "gdef.h"
+#include "glimits.h"
 #include "gpop.h"
 #include "gpopsecrets.h"
 #include "gpath.h"
 
 std::string GPop::Secrets::defaultPath()
 {
-	char buffer[(MAX_PATH * 2U) + 1U] ;
+	char buffer[G::limits::path] ;
 	if( 0 == ::GetWindowsDirectory( buffer , sizeof(buffer)-1U ) )
 		buffer[0] = '\0' ;
 

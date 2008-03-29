@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,14 +24,13 @@
 #include "gdef.h"
 #include <memory>
 
-/// Template function: operator<<=
-/// A portable fix for the problem of resetting an auto_ptr<>
-/// portably. MSVC6.0 & GCC 2.91 do not have a reset() method,
-/// and GCC 2.95 has a non-const assignment operators.
+///
+/// A portable fix for the problem of resetting an
+/// auto_ptr<>. Some compilers do not have a reset() method,
+/// and some have non-const assignment operators.
 ///
 /// Usage:
 /// \code
-/// #include <memory>
 /// #include "gmemory.h"
 /// {
 ///   std::auto_ptr<Foo> ptr ;
@@ -51,7 +50,7 @@ void operator<<=( std::auto_ptr<T> & ap , T * p )
 	ap = temp ;
 }
 
-/// Template function: operator<<=
+///
 /// A version for null-pointer constants.
 ///
 template <typename T>

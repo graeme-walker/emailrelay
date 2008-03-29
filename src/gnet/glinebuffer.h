@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 namespace GNet
 {
 	class LineBuffer ;
+	class LineBufferIterator ;
 }
 
 /// \class GNet::LineBuffer
@@ -82,19 +83,72 @@ public:
 		///< The line terminator is not included.
 
 private:
+	friend class LineBufferIterator ;
 	LineBuffer( const LineBuffer & ) ;
 	void operator=( const LineBuffer & ) ;
-	void load() ;
+	void fix( std::string::size_type ) ;
 	void check( std::string::size_type ) ;
+	void lock() ;
+	void unlock( std::string::size_type ) ;
 
 private:
 	static unsigned long m_limit ;
 	std::string m_eol ;
-	std::string m_current ;
+	std::string::size_type m_eol_length ;
 	std::string m_store ;
-	bool m_more ;
+	std::string::size_type m_p ;
+	bool m_current_valid ; // mutable
+	std::string m_current ; // mutable
 	bool m_throw ;
+	bool m_locked ;
 } ;
+
+/// \class GNet::LineBufferIterator
+/// An iterator class for GNet::LineBuffer.
+/// Use of this class is optional but it may provide
+/// some performance improvement. You are not allowed to add()
+/// more data to the underlying line buffer while iterating.
+///
+class GNet::LineBufferIterator
+{
+public:
+	explicit LineBufferIterator( LineBuffer & ) ;
+		///< Constructor.
+
+	~LineBufferIterator() ;
+		///< Destructor.
+
+	bool more() const ;
+		///< Returns true if there is a line() to be had.
+
+	const std::string & line() ;
+		///< Returns the current line and increments the iterator.
+		///< Precondition: more()
+
+private:
+	LineBufferIterator( const LineBufferIterator & ) ; // not implemented
+	void operator=( const LineBufferIterator & ) ; // not implemented
+
+private:
+	LineBuffer & m_b ;
+	std::string::size_type m_n ;
+	std::string::size_type m_store_length ;
+} ;
+
+inline
+GNet::LineBufferIterator::LineBufferIterator( LineBuffer & b ) :
+	m_b(b) ,
+	m_n(0U) ,
+	m_store_length(b.m_store.length())
+{
+	m_b.lock() ;
+}
+
+inline
+GNet::LineBufferIterator::~LineBufferIterator()
+{
+	m_b.unlock( m_n ) ;
+}
 
 #endif
 

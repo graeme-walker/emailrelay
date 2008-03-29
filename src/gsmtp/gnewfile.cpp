@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,15 +30,19 @@
 #include "gxtext.h"
 #include "gassert.h"
 #include "glog.h"
+#include <functional>
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 
-GSmtp::NewFile::NewFile( const std::string & from , FileStore & store ) :
+GSmtp::NewFile::NewFile( const std::string & from , FileStore & store , unsigned long max_size ) :
 	m_store(store) ,
 	m_from(from) ,
 	m_committed(false) ,
 	m_eight_bit(false) ,
-	m_saved(false)
+	m_saved(false) ,
+	m_size(0UL) ,
+	m_max_size(max_size)
 {
 	// ask the store for a unique id
 	//
@@ -114,12 +118,14 @@ void GSmtp::NewFile::addTo( const std::string & to , bool local )
 		m_to_remote.push_back( to ) ;
 }
 
-void GSmtp::NewFile::addText( const std::string & line )
+bool GSmtp::NewFile::addText( const std::string & line )
 {
+	m_size += ( line.size() + 2U ) ;
 	if( ! m_eight_bit )
-		m_eight_bit = isEightBit(line) ;
+		m_eight_bit = isEightBit( line ) ;
 
 	*(m_content.get()) << line << crlf() ;
+	return m_max_size == 0UL || m_size < m_max_size ;
 }
 
 void GSmtp::NewFile::flushContent()
@@ -151,16 +157,17 @@ void GSmtp::NewFile::deleteEnvelope()
 	}
 }
 
+namespace
+{
+	struct EightBit : std::unary_function<char,bool>
+	{
+		bool operator()( char c ) { return static_cast<unsigned char>(c) & 0x80U ; }
+	} ;
+}
+
 bool GSmtp::NewFile::isEightBit( const std::string & line )
 {
-	std::string::const_iterator end = line.end() ;
-	for( std::string::const_iterator p = line.begin() ; p != end ; ++p )
-	{
-		const unsigned char c = static_cast<unsigned char>(*p) ;
-		if( c > 0x7fU )
-			return true ;
-	}
-	return false ;
+	return std::find_if( line.begin() , line.end() , EightBit() ) != line.end() ;
 }
 
 bool GSmtp::NewFile::saveEnvelope( const std::string & auth_id , const std::string & client_ip ) const
@@ -222,7 +229,7 @@ void GSmtp::NewFile::writeEnvelope( std::ostream & stream , const std::string & 
 
 const std::string & GSmtp::NewFile::crlf() const
 {
-	static std::string s( "\015\012" ) ;
+	static const std::string s( "\015\012" ) ;
 	return s ;
 }
 

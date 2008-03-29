@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,9 +33,10 @@
 #include "gassert.h"
 #include "glog.h"
 
-std::string GSmtp::Client::crlf()
+const std::string & GSmtp::Client::crlf()
 {
-	return std::string("\015\012") ;
+	static const std::string s( "\015\012" ) ;
+	return s ;
 }
 
 GSmtp::Client::Client( const GNet::ResolverInfo & remote , const Secrets & secrets , Config config ) :
@@ -161,7 +162,7 @@ void GSmtp::Client::start( StoredMessage & message )
 		message.authentication() , server_name , content_stream ) ;
 }
 
-void GSmtp::Client::protocolDone( std::string reason )
+void GSmtp::Client::protocolDone( std::string reason , int reason_code )
 {
 	G_DEBUG( "GSmtp::Client::protocolDone: \"" << reason << "\"" ) ;
 	if( ! reason.empty() )
@@ -174,7 +175,7 @@ void GSmtp::Client::protocolDone( std::string reason )
 	else
 	{
 		m_processor->abort() ;
-		messageFail( reason ) ;
+		messageFail( reason , reason_code ) ;
 	}
 
 	if( m_store != NULL )
@@ -200,11 +201,11 @@ void GSmtp::Client::messageDestroy()
 	}
 }
 
-void GSmtp::Client::messageFail( const std::string & reason )
+void GSmtp::Client::messageFail( const std::string & reason , int reason_code )
 {
 	if( m_message.get() != NULL )
 	{
-		m_message->fail( reason ) ;
+		m_message->fail( reason , reason_code ) ;
 		m_message <<= 0 ;
 	}
 }
@@ -222,7 +223,7 @@ void GSmtp::Client::onDelete( const std::string & error , bool )
 	if( ! error.empty() )
 	{
 		G_LOG( "GSmtp::Client: smtp client error: \"" << error << "\"" ) ; // was warning
-		messageFail( error ) ; // if not already failed or destroyed
+		messageFail( error , 0 ) ; // if not already failed or destroyed
 	}
 	m_message <<= 0 ;
 }

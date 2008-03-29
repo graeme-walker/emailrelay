@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -48,6 +48,7 @@ public:
 	G_EXCEPTION( CannotMkdir , "cannot mkdir" ) ;
 	G_EXCEPTION( CannotChmod , "cannot chmod file" ) ;
 	G_EXCEPTION( CannotLink , "cannot create symlink" ) ;
+	G_EXCEPTION( CannotCreate , "cannot create empty file" ) ;
 	G_EXCEPTION( SizeOverflow , "file size overflow" ) ;
 	G_EXCEPTION( TimeError , "cannot get file modification time" ) ;
 	typedef DateTime::EpochTime time_type ;
@@ -75,7 +76,7 @@ public:
 
 	static void copy( std::istream & from , std::ostream & to ,
 		std::streamsize limit = 0U , std::string::size_type block = 0U ) ;
-			///< Copies a stream.
+			///< Copies a stream with an optional size limit.
 
 	static bool mkdirs( const Path & dir , const NoThrow & , int = 100 ) ;
 		///< Creates a directory and all necessary parents. Returns false on error.
@@ -129,8 +130,12 @@ public:
 		///< this does not return a definitive result so it should
 		///< only used for generating warnings on a false return.
 
+	static void create( const Path & ) ;
+		///< Creates an empty file. Throws on error.
+
 private:
 	friend class G::DirectoryIteratorImp ;
+	static std::string copy( const Path & , const Path & , int ) ;
 	static std::string sizeString( g_uint32_t hi , g_uint32_t lo ) ; // win32
 	static bool exists( const Path & , bool , bool ) ;
 	static bool exists( const char * , bool & ) ; // o/s-specific

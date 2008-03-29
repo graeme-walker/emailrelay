@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -94,8 +94,8 @@ bool filter_run( const std::string & content )
 		{
 			directory_count++ ;
 			G::Path target = G::Path( iter.filePath() , envelope_name ) ;
-			bool ok = G::File::copy( envelope_path , target , G::File::NoThrow() ) ;
-			if( !ok )
+			bool copied = G::File::copy( envelope_path , target , G::File::NoThrow() ) ;
+			if( !copied )
 				failures.push_back( iter.fileName().str() ) ;
 		}
 	}

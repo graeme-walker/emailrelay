@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -38,9 +38,23 @@ G::Identity::Identity( const std::string & name ) :
 	m_h(0)
 {
 	::passwd * pw = ::getpwnam( name.c_str() ) ; // (no leak here, the rtl maintains a structure on the heap)
-	if( pw == NULL ) throw NoSuchUser(name) ;
-	m_uid = pw->pw_uid ;
-	m_gid = pw->pw_gid ;
+	if( pw == NULL )
+	{
+		if( name == "root" ) // in case no /etc/passwd
+		{
+			m_uid = 0 ;
+			m_gid = 0 ;
+		}
+		else
+		{
+			throw NoSuchUser(name) ;
+		}
+	}
+	else
+	{
+		m_uid = pw->pw_uid ;
+		m_gid = pw->pw_gid ;
+	}
 }
 
 G::Identity G::Identity::effective()

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 #include "gsmtpclient.h"
 #include "gmessagestore.h"
 #include "gnewmessage.h"
+#include "gverifierstatus.h"
 #include <string>
 #include <memory>
 
@@ -79,13 +80,13 @@ public:
 	virtual bool setFrom( const std::string & from_user ) ;
 		///< Final override from GSmtp::ProtocolMessage.
 
-	virtual bool addTo( const std::string & to_user , Verifier::Status to_status ) ;
+	virtual bool addTo( const std::string & to_user , VerifierStatus to_status ) ;
 		///< Final override from GSmtp::ProtocolMessage.
 
 	virtual void addReceived( const std::string & ) ;
 		///< Final override from GSmtp::ProtocolMessage.
 
-	virtual void addText( const std::string & ) ;
+	virtual bool addText( const std::string & ) ;
 		///< Final override from GSmtp::ProtocolMessage.
 
 	virtual std::string from() const ;

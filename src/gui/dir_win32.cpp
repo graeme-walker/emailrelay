@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,26 +19,20 @@
 //
 
 #include "gdef.h"
-#define _WIN32_IE 0x600
 #include <shlwapi.h>
 #include <shlobj.h>
+
 #ifndef SHGFP_TYPE_CURRENT
 #define SHGFP_TYPE_CURRENT 0
+#endif
+#ifndef CSIDL_PROGRAM_FILES
+#define CSIDL_PROGRAM_FILES 38
 #endif
 
 #include "dir.h"
 #include "gfile.h"
 #include "gpath.h"
 #include <stdexcept>
-#include <cstdlib> //getenv
-
-std::string Dir::env( const std::string & key , const std::string & default_ )
-{
-	const char * p = getenv( key.c_str() ) ;
-	if( p == NULL )
-		return default_ ;
-	return std::string(p) ;
-}
 
 G::Path Dir::windows()
 {
@@ -54,12 +48,27 @@ std::string Dir::dotexe()
 	return ".exe" ;
 }
 
-G::Path Dir::os_install() const
+G::Path Dir::os_install()
 {
 	return special("programs") + "emailrelay" ;
 }
 
-G::Path Dir::os_config() const
+G::Path Dir::os_gui( const G::Path & base )
+{
+	return base + "emailrelay-gui.exe" ;
+}
+
+G::Path Dir::os_icon( const G::Path & base )
+{
+	return os_server( base ) ; // icon is a resource in the exe
+}
+
+G::Path Dir::os_server( const G::Path & base )
+{
+	return base + "emailrelay.exe" ;
+}
+
+G::Path Dir::os_config()
 {
 	return special("programs") + "emailrelay" ; // was windows()
 }
@@ -69,12 +78,24 @@ G::Path Dir::os_spool() const
 	return windows() + "spool" + "emailrelay" ;
 }
 
-G::Path Dir::os_pid() const
+G::Path Dir::os_pid()
 {
-	return special("programs") + "emailrelay" ; // was windows()
+	return G::Path() ;
 }
 
-G::Path Dir::os_boot() const
+G::Path Dir::os_pid( const G::Path & , const G::Path & config_dir )
+{
+	return config_dir ;
+}
+
+G::Path Dir::os_boot()
+{
+	// empty implies no access (see call to Boot::able() in pages.cpp),
+	// so the default has to be a bogus value
+	return "services" ;
+}
+
+G::Path Dir::os_bootcopy( const G::Path & , const G::Path & )
 {
 	return G::Path() ;
 }

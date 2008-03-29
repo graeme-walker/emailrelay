@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -92,7 +92,7 @@ static std::string process( const G::Path & spool_dir , std::istream & stream ,
 	{
 		std::string to = *to_p ;
 		G::Str::trim( to , " \t\r\n" ) ;
-		GSmtp::Verifier::Status status( to ) ;
+		GSmtp::VerifierStatus status( to ) ;
 		msg->addTo( status.address , status.is_local ) ;
 	}
 

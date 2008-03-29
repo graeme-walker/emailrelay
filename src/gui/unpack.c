@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+   Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
    
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -41,6 +41,7 @@ typedef struct Entry_tag
 	char * path ; 
 	unsigned long size ; 
 	unsigned long offset ; 
+	char * flags ; 
 } Entry ;
 typedef struct M_tag
 {
@@ -107,6 +108,15 @@ static char * strdup_( const char * src )
 	return dst ;
 }
 
+static void replace_all( char * p , size_t n , char c1 , char c2 )
+{
+	for( ; p && *p && n ; p++ , n-- )
+	{
+		if( *p == c1 )
+			*p = c2 ;
+	}
+}
+
 static char * first_slash( char * p )
 {
 	char * p1 = p ? strchr( p , '/' ) : NULL ;
@@ -133,13 +143,14 @@ static bool is_slash( const char * p )
 
 static char * chomp( char * path )
 {
+	char * nul ;
 	bool windows_has_drive = strlen(path) > 2U && path[1] == ':' ;
 	bool windows_is_unc = strlen(path) > 2U && is_slash(path+0) && is_slash(path+1) ;
 	char * unc_root = first_slash( after(first_slash(path+2)) ) ;
 	char * p = last_slash( path ) ;
 	bool is_root = ( p == path ) || ( windows_has_drive && p == (path+2) ) || ( windows_is_unc && p == unc_root ) ;
 	p = (p && !is_root) ? p : NULL ;
-	char * nul = p ? p : (path+strlen(path)) ;
+	nul = p ? p : (path+strlen(path)) ;
 	*nul = '\0' ;
 	return p ;
 }
@@ -185,9 +196,10 @@ static Bytef * zptr( char * p )
 
 static M * unpack_new_( const char * path , Fn fn )
 {
+	M * m ;
 	if( path == NULL ) return NULL ;
 
-	M * m = (M*) malloc( sizeof(M) ) ;
+	m = (M*) malloc( sizeof(M) ) ;
 	if( m == NULL ) return NULL ;
 
 	m->fn = fn ;
@@ -221,6 +233,7 @@ static void unpack_delete_( M * m )
 		{
 			Entry * temp = p ;
 			if( p->path ) free( p->path ) ;
+			if( p->flags ) free( p->flags ) ;
 			p = p->next ;
 			free( temp ) ;
 		}
@@ -230,9 +243,9 @@ static void unpack_delete_( M * m )
 
 static int unpack_count_( const M * m )
 {
+	int n = 0 ;
 	const Entry * p = NULL ;
 	if( m == NULL ) return 0 ;
-	int n = 0 ;
 	for( p = m->map ; p != NULL ; p = p->next , n++ )
 		/* no-op */ ;
 	return n ;
@@ -259,6 +272,13 @@ static char * unpack_name_( const M * m , int n )
 	return strdup_(name) ;
 }
 
+static char * unpack_flags_( const M * m , int n )
+{
+	const Entry * p = unpack_entry( m , n ) ;
+	const char * flags = p ? p->flags : "" ;
+	return strdup_(flags) ;
+}
+
 static unsigned long unpack_packed_size_( const M * m , int n )
 {
 	const Entry * p = unpack_entry( m , n ) ;
@@ -268,9 +288,10 @@ static unsigned long unpack_packed_size_( const M * m , int n )
 static unsigned long file_size( const char * path )
 {
 	static struct stat zero ;
-	if( path == NULL ) return 0UL ;
 	struct stat buf = zero ;
-	int rc = stat( path , &buf ) ;
+	int rc ;
+	if( path == NULL ) return 0UL ;
+	rc = stat( path , &buf ) ;
 	if( rc != 0 ) buf.st_size = 0 ;
 	return buf.st_size ;
 }
@@ -333,15 +354,22 @@ static bool unpack_init( M * m )
 	file_offset = 0UL ;
 	for(;;)
 	{
+		char * file_flags = NULL ;
 		char * file_path = NULL ;
 		unsigned long file_size = 0UL ;
 		char big_buffer[10001] ;
 
-		rc = fscanf( m->input , "%lu" , &file_size ) ;
+		rc = fscanf( m->input , "%lu" , &file_size ) ; /* size */
 		check_that( rc == 1 , "table entry size error" ) ;
-		rc = fscanf( m->input , "%10000s" , big_buffer ) ; /* TODO */
+		rc = fscanf( m->input , "%10000s" , big_buffer ) ; /* flags */
 		check_that( rc == 1 , "table entry read error" ) ;
 		big_buffer[sizeof(big_buffer)-1] = '\0' ;
+		file_flags = strdup_(big_buffer) ;
+		check_that( file_flags != NULL , "out of memory" ) ;
+		rc = fscanf( m->input , "%10000s" , big_buffer ) ; /* path */
+		check_that( rc == 1 , "table entry read error" ) ;
+		big_buffer[sizeof(big_buffer)-1] = '\0' ;
+		replace_all( big_buffer , sizeof(big_buffer) , '\001' , ' ' ) ;
 		file_path = strdup_(big_buffer) ;
 		check_that( file_path != NULL , "out of memory" ) ;
 
@@ -349,21 +377,25 @@ static bool unpack_init( M * m )
 		{
 			check_that( strcmp(file_path,"end") == 0 , "invalid internal directory" ) ;
 			free( file_path ) ;
+			free( file_flags ) ;
 			break ;
 		}
 
-		Entry * entry = malloc( sizeof(Entry) ) ;
-		check_that( entry != NULL , "out of memory" ) ;
-		entry->next = NULL ;
-		entry->path = file_path ;
-		entry->size = file_size ;
-		entry->offset = file_offset ;
+		{
+			Entry * entry = malloc( sizeof(Entry) ) ;
+			check_that( entry != NULL , "out of memory" ) ;
+			entry->next = NULL ;
+			entry->path = file_path ;
+			entry->size = file_size ;
+			entry->offset = file_offset ;
+			entry->flags = file_flags ;
 
-		if( tail == NULL )
-			m->map = entry ;
-		else
-			tail->next = entry ;
-		tail = entry ;
+			if( tail == NULL )
+				m->map = entry ;
+			else
+				tail->next = entry ;
+			tail = entry ;
+		}
 
 		file_offset += file_size ;
 		if( file_size > m->max_size )
@@ -528,6 +560,11 @@ int unpack_count( const Unpack * p )
 char * unpack_name( const Unpack * p , int i )
 {
 	return unpack_name_( (const M*)p , i ) ;
+}
+
+char * unpack_flags( const Unpack * p , int i )
+{
+	return unpack_flags_( (const M*)p , i ) ;
 }
 
 void unpack_free( char * p )

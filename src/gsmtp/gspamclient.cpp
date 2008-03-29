@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ void GSmtp::SpamClient::request( const std::string & path )
 	m_in_lines = 0UL ;
 	m_in_size = 0UL ;
 
-	std::string username = "spam" ; // TODO
+	std::string username = "spam" ; // TODO -- configurable username in SPAMC protocol? environment variable?
 	m_header_out.push_back( std::string() + "PROCESS SPAMC/1.4" ) ;
 	m_header_out.push_back( std::string() + "User: " + username ) ;
 	m_header_out.push_back( std::string() + "Content-length: " + G::File::sizeString(m_path) ) ;
@@ -127,7 +127,7 @@ bool GSmtp::SpamClient::nextContentLine( std::string & line )
 	{
 		if( m_header_out_index < m_header_out.size() )
 		{
-			line = m_header_out.at(m_header_out_index++) ;
+			line = m_header_out[m_header_out_index++] ;
 			G_LOG( "GSmtp::SpamClient::sendContent: spam>>: \"" << G::Str::printable(line) << "\"" ) ;
 			ok = true ;
 		}
@@ -222,7 +222,7 @@ std::string GSmtp::SpamClient::part( const std::string & line , unsigned int i ,
 {
 	StringArray part ;
 	G::Str::splitIntoTokens( line , part , "\t :" ) ;
-	return part.size() > i ? part.at(i) : default_ ;
+	return part.size() > i ? part[i] : default_ ;
 }
 
 unsigned long GSmtp::SpamClient::headerBodyLength() const

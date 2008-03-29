@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@
 # 
 # The GUI build also needs the zlib library (http://www.zlib.net), but the
 # zlib source code is normally available within the Qt distribution under the 
-# src/3rdparty directory. To build the zlib library from the source code in Qt 
+# "src/3rdparty" directory. To build the zlib library from the source code in Qt 
 # you can go through the whole Qt build, or try something like this:
 #
 #    c:\qt\src\3rdparty\zlib> c:\mingw\bin\mingw32-make CC=gcc CFLAGS=-I../../corelib/global
@@ -54,19 +54,19 @@
 ## "mk_ssl" is set to "openssl" for tls/ssl support, or "none"
 mk_ssl=none
 ##
-## "mk_openssl" points to the openssl directory (tls/ssl only)
+## "mk_openssl" points to the openssl directory (for openssl build)
 mk_openssl=c:/openssl-0.9.8x
 ##
 ## "mk_gui" is set to "gui" to enable the GUI build, or "none"
 mk_gui=none
 ##
-## "mk_qt" points to the Qt installation directory (gui only)
+## "mk_qt" points to the Qt installation directory (for gui build)
 mk_qt=c:/qt
 ##
-## "mk_zlib" points to the zlib directory (gui only)
+## "mk_zlib" points to the zlib directory (for gui build)
 mk_zlib=$(mk_qt)/src/3rdparty/zlib
 ##
-## "mk_mingw" points to a directory containing the mingw runtime dll (gui only)
+## "mk_mingw" points to a directory containing the mingw runtime dll (for gui build)
 mk_mingw=$(mk_qt)/bin
 ##
 ###
@@ -77,7 +77,7 @@ endif
 
 mk_ar=ar rc
 mk_rc=$(mk_bin)windres
-mk_rm_f=rm -f
+mk_rm_f=del
 mk_objects_1=$(mk_sources:.cpp=.o)
 mk_objects=$(mk_objects_1:.c=.o)
 mk_cc=$(mk_bin)gcc

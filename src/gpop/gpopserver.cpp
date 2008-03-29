@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -40,14 +40,16 @@ GPop::ServerPeer::ServerPeer( GNet::Server::PeerInfo peer_info , Server & server
 	m_protocol.init() ;
 }
 
-std::string GPop::ServerPeer::crlf()
+const std::string & GPop::ServerPeer::crlf()
 {
-	return std::string("\015\012") ;
+	static const std::string s( "\015\012" ) ;
+	return s ;
 }
 
-void GPop::ServerPeer::onDelete()
+void GPop::ServerPeer::onDelete( const std::string & reason )
 {
-	G_LOG_S( "GPop::ServerPeer: pop connection closed: " << peerAddress().second.displayString() ) ;
+	G_LOG_S( "GPop::ServerPeer: pop connection closed: " << reason << (reason.empty()?"":": ")
+		<< peerAddress().second.displayString() ) ;
 }
 
 void GPop::ServerPeer::onSecure()
@@ -133,9 +135,9 @@ GPop::Server::Config::Config() :
 }
 
 GPop::Server::Config::Config( bool allow_remote_ , unsigned int port_ , const G::Strings & interfaces_ ) :
-		allow_remote(allow_remote_) ,
-		port(port_) ,
-		interfaces(interfaces_)
+	allow_remote(allow_remote_) ,
+	port(port_) ,
+	interfaces(interfaces_)
 {
 }
 

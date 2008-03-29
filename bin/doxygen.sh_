@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # doxygen.sh
 #
 # Used by doc/Makefile to run doxygen with a bit of 
-# post-processing.
+# config-file pre-processing.
 #
 # usage: doxygen <have-doxygen> <top-srcdir> <top-builddir>
 #
@@ -28,7 +28,7 @@ HAVE_DOXYGEN="$1"
 top_srcdir="$2"
 top_builddir="$3"
 
-if test "$HAVE_DOXYGEN" = "yes" -o -z "$HAVE_DOXYGEN"
+if test "$HAVE_DOXYGEN" = "yes"
 then 
 	cat "${top_srcdir}/src/main/doxygen.cfg" | \
 	sed "s:__TOP_SRC__:${top_srcdir}:g" | \

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -56,6 +56,30 @@
 		#if ! HAVE_SOCKLEN_T
 			typedef int socklen_t ;
 		#endif
+
+		/* just in case, undefine if defined as zero in config.h */
+		#if defined(USE_NO_ADMIN) && 0 == USE_NO_ADMIN
+			#undef USE_NO_ADMIN
+		#endif
+		#if defined(USE_NO_AUTH) && 0 == USE_NO_AUTH
+			#undef USE_NO_AUTH
+		#endif
+		#if defined(USE_NO_EXEC) && 0 == USE_NO_EXEC
+			#undef USE_NO_EXEC
+		#endif
+		#if defined(USE_NO_POP) && 0 == USE_NO_POP
+			#undef USE_NO_POP
+		#endif
+		#if defined(USE_SMALL_CONFIG) && 0 == USE_SMALL_CONFIG
+			#undef USE_SMALL_CONFIG
+		#endif
+		#if defined(USE_SMALL_EXCEPTIONS) && 0 == USE_SMALL_EXCEPTIONS
+			#undef USE_SMALL_EXCEPTIONS
+		#endif
+		#if defined(USE_IPV6) && 0 == USE_IPV6
+			#undef USE_IPV6
+		#endif
+
 	#else
 		#define HAVE_ZLIB_H 1
 	#endif
@@ -82,6 +106,19 @@
 	#endif
 	#if defined( __GNUC__ )
 		#define G_COMPILER_IS_GNU 1
+	#endif
+
+	/* Define extra microsoft header tweaks
+	 */
+	#ifdef G_WIN32_IE
+		#ifndef _WIN32_IE
+			#define _WIN32_IE 0x600
+		#endif
+	#endif
+	#ifdef G_WIN32_DCOM
+		#ifndef _WIN32_DCOM
+			#define _WIN32_DCOM
+		#endif
 	#endif
 
 	/* Include main o/s headers
@@ -120,7 +157,6 @@
 		#include <exception>
 		#include <fstream>
 		#include <iostream>
-		#include <limits>
 		#include <memory>
 		#include <sstream>
 		#include <string>
@@ -173,6 +209,16 @@
 		#define G_IGNORE
 	#else
 		#define G_IGNORE (void)
+	#endif
+
+	/* Use smaller buffers and limits if building with the uClibc run-time library.
+	 * See glimits.h. This assumes that features.h has been included as a side-effect
+	 * of including system headers above.
+	 */
+	#ifdef __UCLIBC__
+		#ifndef G_NOT_SMALL
+			#define G_SMALL
+		#endif
 	#endif
 
 	/* Autoconf, part 2

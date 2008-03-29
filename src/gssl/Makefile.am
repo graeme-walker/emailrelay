@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -15,15 +15,22 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+if OPENSSL
+OPENSSL_EXTRA_DIST = gssl_none.cpp
+OPENSSL_SOURCES = gssl_openssl.cpp
+else
+OPENSSL_EXTRA_DIST = gssl_openssl.cpp
+OPENSSL_SOURCES = gssl_none.cpp
+endif
+
 EXTRA_DIST=\
-    gssl_none.cpp \
-	gssl_openssl.cpp \
+    $(OPENSSL_EXTRA_DIST) \
     mingw.mak
 
 INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib 
 noinst_LIBRARIES = libgssl.a
 
 libgssl_a_SOURCES = \
-	gssl.cpp \
+	$(OPENSSL_SOURCES) \
 	gssl.h
 

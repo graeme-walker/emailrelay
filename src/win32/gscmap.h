@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #define G_SCMAP_H
 
 #include "gdef.h"
+#include "glimits.h"
 
 /// \namespace GGui
 namespace GGui
@@ -65,7 +66,7 @@ private:
 	void operator=( const SubClassMap &other ) ;
 
 private:
-	enum { SlotsLimit = 80 } ;
+	enum { SlotsLimit = G::limits::win32_subclass_limit } ;
 	struct Slot
 	{
 		Proc proc ;

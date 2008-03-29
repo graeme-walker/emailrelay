@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -84,6 +84,8 @@ private:
 	static char m_port_separator ;
 } ;
 
+char GNet::AddressImp::m_port_separator = ':' ;
+
 // ===
 
 /// \class GNet::AddressStorageImp
@@ -97,8 +99,7 @@ public:
 } ;
 
 // ===
-
-char GNet::AddressImp::m_port_separator = ':' ;
+//pragma fragments
 
 int GNet::AddressImp::family()
 {
@@ -559,36 +560,39 @@ G::Strings GNet::Address::wildcards() const
 	unsigned int n2 = G::Str::toUInt(part[2]) ;
 	unsigned int n3 = G::Str::toUInt(part[3]) ;
 
-	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + part[3] + "/32" ) ;
-	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + G::Str::fromUInt(n3&0xfe) + "/31" ) ;
-	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + G::Str::fromUInt(n3&0xfc) + "/30" ) ;
-	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + G::Str::fromUInt(n3&0xf8) + "/29" ) ;
-	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + G::Str::fromUInt(n3&0xf0) + "/28" ) ;
-	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + G::Str::fromUInt(n3&0xe0) + "/27" ) ;
-	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + G::Str::fromUInt(n3&0xc0) + "/26" ) ;
-	result.push_back( part[0] + "." + part[1] + "." + part[2] + "." + G::Str::fromUInt(n3&0x80) + "/25" ) ;
-	result.push_back( part[0] + "." + part[1] + "." + part[2] + ".0/24" ) ;
-	result.push_back( part[0] + "." + part[1] + "." + part[2] + ".*" ) ;
+	const std::string part_0_1_2 = part[0] + "." + part[1] + "." + part[2] + "." ;
+	result.push_back( part_0_1_2 + part[3] + "/32" ) ;
+	result.push_back( part_0_1_2 + G::Str::fromUInt(n3&0xfe) + "/31" ) ;
+	result.push_back( part_0_1_2 + G::Str::fromUInt(n3&0xfc) + "/30" ) ;
+	result.push_back( part_0_1_2 + G::Str::fromUInt(n3&0xf8) + "/29" ) ;
+	result.push_back( part_0_1_2 + G::Str::fromUInt(n3&0xf0) + "/28" ) ;
+	result.push_back( part_0_1_2 + G::Str::fromUInt(n3&0xe0) + "/27" ) ;
+	result.push_back( part_0_1_2 + G::Str::fromUInt(n3&0xc0) + "/26" ) ;
+	result.push_back( part_0_1_2 + G::Str::fromUInt(n3&0x80) + "/25" ) ;
+	result.push_back( part_0_1_2 + "0/24" ) ;
+	result.push_back( part_0_1_2 + "*" ) ;
 
-	result.push_back( part[0] + "." + part[1] + "." + G::Str::fromUInt(n2&0xfe) + ".0/23" ) ;
-	result.push_back( part[0] + "." + part[1] + "." + G::Str::fromUInt(n2&0xfc) + ".0/22" ) ;
-	result.push_back( part[0] + "." + part[1] + "." + G::Str::fromUInt(n2&0xf8) + ".0/21" ) ;
-	result.push_back( part[0] + "." + part[1] + "." + G::Str::fromUInt(n2&0xf0) + ".0/20" ) ;
-	result.push_back( part[0] + "." + part[1] + "." + G::Str::fromUInt(n2&0xe0) + ".0/19" ) ;
-	result.push_back( part[0] + "." + part[1] + "." + G::Str::fromUInt(n2&0xc0) + ".0/18" ) ;
-	result.push_back( part[0] + "." + part[1] + "." + G::Str::fromUInt(n2&0x80) + ".0/17" ) ;
-	result.push_back( part[0] + "." + part[1] + ".0.0/16" ) ;
-	result.push_back( part[0] + "." + part[1] + ".*.*" ) ;
+	const std::string part_0_1 = part[0] + "." + part[1] + "." ;
+	result.push_back( part_0_1 + G::Str::fromUInt(n2&0xfe) + ".0/23" ) ;
+	result.push_back( part_0_1 + G::Str::fromUInt(n2&0xfc) + ".0/22" ) ;
+	result.push_back( part_0_1 + G::Str::fromUInt(n2&0xf8) + ".0/21" ) ;
+	result.push_back( part_0_1 + G::Str::fromUInt(n2&0xf0) + ".0/20" ) ;
+	result.push_back( part_0_1 + G::Str::fromUInt(n2&0xe0) + ".0/19" ) ;
+	result.push_back( part_0_1 + G::Str::fromUInt(n2&0xc0) + ".0/18" ) ;
+	result.push_back( part_0_1 + G::Str::fromUInt(n2&0x80) + ".0/17" ) ;
+	result.push_back( part_0_1 + "0.0/16" ) ;
+	result.push_back( part_0_1 + "*.*" ) ;
 
-	result.push_back( part[0] + "." + G::Str::fromUInt(n1&0xfe) + ".0.0/15" ) ;
-	result.push_back( part[0] + "." + G::Str::fromUInt(n1&0xfc) + ".0.0/14" ) ;
-	result.push_back( part[0] + "." + G::Str::fromUInt(n1&0xf8) + ".0.0/13" ) ;
-	result.push_back( part[0] + "." + G::Str::fromUInt(n1&0xf0) + ".0.0/12" ) ;
-	result.push_back( part[0] + "." + G::Str::fromUInt(n1&0xe0) + ".0.0/11" ) ;
-	result.push_back( part[0] + "." + G::Str::fromUInt(n1&0xc0) + ".0.0/10" ) ;
-	result.push_back( part[0] + "." + G::Str::fromUInt(n1&0x80) + ".0.0/9" ) ;
-	result.push_back( part[0] + ".0.0.0/8" ) ;
-	result.push_back( part[0] + ".*.*.*" ) ;
+	const std::string part_0 = part[0] + "." ;
+	result.push_back( part_0 + G::Str::fromUInt(n1&0xfe) + ".0.0/15" ) ;
+	result.push_back( part_0 + G::Str::fromUInt(n1&0xfc) + ".0.0/14" ) ;
+	result.push_back( part_0 + G::Str::fromUInt(n1&0xf8) + ".0.0/13" ) ;
+	result.push_back( part_0 + G::Str::fromUInt(n1&0xf0) + ".0.0/12" ) ;
+	result.push_back( part_0 + G::Str::fromUInt(n1&0xe0) + ".0.0/11" ) ;
+	result.push_back( part_0 + G::Str::fromUInt(n1&0xc0) + ".0.0/10" ) ;
+	result.push_back( part_0 + G::Str::fromUInt(n1&0x80) + ".0.0/9" ) ;
+	result.push_back( part_0 + "0.0.0/8" ) ;
+	result.push_back( part_0 + "*.*.*" ) ;
 
 	result.push_back( G::Str::fromUInt(n0&0xfe) + ".0.0.0/7" ) ;
 	result.push_back( G::Str::fromUInt(n0&0xfc) + ".0.0.0/6" ) ;

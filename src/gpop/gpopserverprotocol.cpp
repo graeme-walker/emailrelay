@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -311,7 +311,8 @@ void GPop::ServerProtocol::doRetr( const std::string & line , bool & more )
 	}
 	else
 	{
-		m_content = m_store_lock.get( id ) ;
+		std::auto_ptr<std::istream> content( m_store_lock.get(id) ) ; // for gcc2.95
+		m_content <<= content.release() ;
 		m_body_limit = -1L ;
 
 		std::ostringstream ss ;
@@ -332,7 +333,8 @@ void GPop::ServerProtocol::doTop( const std::string & line , bool & more )
 	}
 	else
 	{
-		m_content = m_store_lock.get( id ) ;
+		std::auto_ptr<std::istream> content( m_store_lock.get(id) ) ; // for gcc2.95
+		m_content <<= content.release() ;
 		m_body_limit = n ;
 		m_in_body = false ;
 		sendOk() ;
@@ -464,9 +466,10 @@ void GPop::ServerProtocol::send( std::string line )
 	m_sender.protocolSend( line , 0U ) ;
 }
 
-std::string GPop::ServerProtocol::crlf()
+const std::string & GPop::ServerProtocol::crlf()
 {
-	return "\r\n" ;
+	static const std::string s( "\015\012" ) ;
+	return s ;
 }
 
 // ===

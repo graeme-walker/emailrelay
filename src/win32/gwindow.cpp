@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -161,8 +161,7 @@ LRESULT GGui::Window::wndProc( HWND hwnd , UINT msg , WPARAM wparam , LPARAM lpa
 LRESULT GGui::Window::sendUserString( HWND hwnd , const char * string )
 {
 	G_ASSERT( string != NULL ) ;
-	return ::SendMessage( hwnd , Cracker::wm_user_other() , 0 ,
-		reinterpret_cast<LPARAM>(string) ) ;
+	return ::SendMessage( hwnd , Cracker::wm_user_other() , 0 , reinterpret_cast<LPARAM>(string) ) ;
 }
 
 LRESULT GGui::Window::onUserOther( WPARAM , LPARAM lparam )
@@ -285,10 +284,9 @@ GGui::Size GGui::Window::borderSize( bool has_menu )
 
 void GGui::Window::resize( Size new_size , bool repaint )
 {
-	// note that GetWindowRect() returns coordinates
-	// relative to the top left corner of the screen --
-	// MoveWindow takes coordinates relative to the
-	// screen for top-level windows, but relative to
+	// note that GetWindowRect() returns coordinates relative to the
+	// top left corner of the screen -- MoveWindow() takes coordinates
+	// relative to the screen for top-level windows, but relative to
 	// the parent window for child windows
 
 	RECT rect ;
@@ -302,12 +300,7 @@ void GGui::Window::resize( Size new_size , bool repaint )
 			rect.top = 0 ;
 		}
 
-		::MoveWindow( handle() ,
-			rect.left ,
-			rect.top ,
-			new_size.dx ,
-			new_size.dy ,
-			repaint ) ;
+		::MoveWindow( handle() , rect.left , rect.top , new_size.dx , new_size.dy , repaint ) ;
 	}
 }
 
@@ -318,6 +311,5 @@ void GGui::Window::onException( std::exception & e )
 	//
 	throw ;
 }
-
 
 /// \file gwindow.cpp

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@
 ### END INIT INFO
 ##
 
-# choose an infrastructure style
+# choose an infrastructure style -- linux-standard-base (lsb) or unix
 #
 if test -f /lib/lsb/init-functions
 then 
@@ -63,7 +63,8 @@ if test \! -d "${var_run}" ; then var_run="/tmp" ; fi
 if test \! -x "${emailrelay}" ; then emailrelay="`pwd`/emailrelay" ; fi
 pid_file="${var_run}/emailrelay.pid"
 PATH="${PATH}:/sbin:/bin:/usr/bin"
-cfg_file="/etc/emailrelay.conf"
+ECHO="echo" ; if test -x /bin/echo ; then ECHO="/bin/echo" ; fi
+cfg_file="__SYSCONF_DIR__/emailrelay.conf"
 
 # server configuration using the config file
 #
@@ -85,7 +86,7 @@ unix_reset()
 
 unix_cmd_start()
 {
-	echo -n "${1}"
+	$ECHO -n "${1}"
 	shift
 	"$@"
 	unix_errno="$?"
@@ -99,8 +100,8 @@ unix_cmd_start()
 
 unix_cmd_stop()
 {
-	echo -n "${1}"
-	if test -f "${pid_file}" && test "`cat ${pid_file}`" != ""
+	$ECHO -n "${1}"
+	if test -f "${pid_file}" && test "`cat \"${pid_file}\"`" != ""
 	then
 		kill "`cat ${pid_file}`"
 		rm -f "${pid_file}" 2>/dev/null
@@ -116,8 +117,8 @@ unix_cmd_restarted()
 
 unix_cmd_status()
 {
-	echo -n "${1}"
-	if test -f "${pid_file}" && test "`cat ${pid_file}`" != "" && kill -0 "`cat ${pid_file}`" 2>/dev/null
+	$ECHO -n "${1}"
+	if test -f "${pid_file}" && test "`cat \"${pid_file}\"`" != "" && kill -0 "`cat \"${pid_file}\"`" 2>/dev/null
 	then
 		echo " ... running"
 		unix_errno="0"
@@ -211,7 +212,7 @@ case "${1}" in
 
 	start)
 		shift
-		${style}_cmd_start "Starting E-MailRelay server" ${emailrelay} ${start_switches} "$@"
+		${style}_cmd_start "Starting E-MailRelay server" "${emailrelay}" ${start_switches} "$@"
 		;;
 
 	stop)

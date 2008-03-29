@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -15,22 +15,43 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+if DNS
+DNS_EXTRA_DIST = gresolver_dns_disabled.cpp glocal_dns_disabled.cpp
+DNS_SOURCES = gresolver_unix.cpp gresolver_ip.cpp glocal_unix.cpp
+else
+DNS_EXTRA_DIST = gresolver_unix.cpp gresolver_ip.cpp glocal_unix.cpp
+DNS_SOURCES = gresolver_dns_disabled.cpp glocal_dns_disabled.cpp
+endif
+
+if SMALL_FRAGMENTS
+FRAGMENTS_EXTRA_DIST = gmonitor.cpp gaddress_ipv4.cpp gaddress_ip.cpp
+FRAGMENTS_SOURCES =
+else
+FRAGMENTS_EXTRA_DIST = gaddress_ipv4.cpp
+FRAGMENTS_SOURCES = gmonitor.cpp gaddress_ip.cpp
+endif
+
 EXTRA_DIST=\
-    gaddress_ipv6.cpp \
+	$(DNS_EXTRA_DIST) \
+	$(FRAGMENTS_EXTRA_DIST) \
+	gaddress_ipv6.cpp \
+	gresolver_ipv4.cpp \
+	gresolver_ipv6.cpp \
     gdescriptor_win32.cpp \
     geventloop_win32.cpp \
     glocal_win32.cpp \
-    grequest.cpp \
-    gresolver_ipv6.cpp \
+    grequest_win32.cpp \
     gresolver_win32.cpp \
     gsimpleclient_win32.cpp \
     gsocket_win32.cpp \
     mingw.mak
 
 INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib  -I$(top_srcdir)/src/gssl
-noinst_LIBRARIES = libgnet.a libipv4.a libipv6.a
+noinst_LIBRARIES = libgnet.a
 
 libgnet_a_SOURCES = \
+	$(DNS_SOURCES) \
+	$(FRAGMENTS_SOURCES) \
 	gaddress.h \
 	gbufferedserverpeer.cpp \
 	gbufferedserverpeer.h \
@@ -53,8 +74,6 @@ libgnet_a_SOURCES = \
 	glinebuffer.h \
 	glocal.cpp \
 	glocal.h \
-	glocal_unix.cpp \
-	gmonitor.cpp \
 	gmonitor.h \
 	gmultiserver.cpp \
 	gmultiserver.h \
@@ -64,14 +83,13 @@ libgnet_a_SOURCES = \
 	gresolver.h \
 	gresolverinfo.cpp \
 	gresolverinfo.h \
-	gresolver_unix.cpp \
 	gserver.cpp \
 	gserver.h \
 	gsimpleclient.cpp \
 	gsimpleclient.h \
 	gsimpleclient_unix.cpp \
-	gsocket.cpp \
 	gsocket.h \
+	gsocket.cpp \
 	gsocket_unix.cpp \
 	gsocketprotocol.cpp \
 	gsocketprotocol.h \
@@ -79,7 +97,4 @@ libgnet_a_SOURCES = \
 	gtimer.h \
 	gtimerlist.cpp \
 	gtimerlist.h
-
-libipv4_a_SOURCES=gaddress_ipv4.cpp gresolver_ipv4.cpp
-libipv6_a_SOURCES=gaddress_ip.cpp gresolver_ip.cpp
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -84,7 +84,7 @@ bool GSmtp::ProtocolMessageForward::setFrom( const std::string & from )
 	return m_pm->setFrom( from ) ;
 }
 
-bool GSmtp::ProtocolMessageForward::addTo( const std::string & to , Verifier::Status to_status )
+bool GSmtp::ProtocolMessageForward::addTo( const std::string & to , VerifierStatus to_status )
 {
 	return m_pm->addTo( to , to_status ) ;
 }
@@ -94,9 +94,9 @@ void GSmtp::ProtocolMessageForward::addReceived( const std::string & line )
 	m_pm->addReceived( line ) ;
 }
 
-void GSmtp::ProtocolMessageForward::addText( const std::string & line )
+bool GSmtp::ProtocolMessageForward::addText( const std::string & line )
 {
-	m_pm->addText( line ) ;
+	return m_pm->addText( line ) ;
 }
 
 std::string GSmtp::ProtocolMessageForward::from() const

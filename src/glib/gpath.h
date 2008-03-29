@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 ///
 /// \file gpath.h
 ///
-	
+
 #ifndef G_PATH_H
 #define G_PATH_H
 
@@ -47,13 +47,13 @@ public:
 	Path() ;
 		///< Default constructor. Creates
 		///< a zero-length path.
-		
+
 	Path( const std::string & path ) ;
 		///< Implicit constructor.
-		
+
 	Path( const char * path ) ;
 		///< Implicit constructor.
-		
+
 	Path( const Path & path , const std::string & tail ) ;
 		///< Constructor with an implicit pathAppend().
 
@@ -62,7 +62,7 @@ public:
 
 	Path( const Path & other ) ;
 		///< Copy constructor.
-		
+
 	~Path() ;
 		///< Destructor.
 
@@ -98,18 +98,11 @@ public:
 		///< eg. "\\machine\drive" -> ""
 
 	std::string extension() const ;
-		///< Returns the path's original extension, even after
-		///< removeExtension(). Returns the zero-length string if
-		///< there is none.
-	
+		///< Returns the path's filename extension. Returns the
+		///< zero-length string if there is none.
+
 	void removeExtension() ;
-		///< Modifies the path by removing any extension. However,
-		///< the extension returned by extension() is unchanged.
-		
-	void setExtension( const std::string & extension ) ;
-		///< Replaces the extension. Any leading dot in the given
-		///< string is ignored. (The given extension will be returned
-		///< by subsequent calls to extension().)
+		///< Modifies the path by removing any extension.
 
 	bool isAbsolute() const ;
 		///< Returns !isRelative().
@@ -123,38 +116,38 @@ public:
 
 	Path & operator=( const Path & other ) ;
 		///< Assignment operator.
-	
-	void setDirectory( const std::string & dir ) ;
-		///< Sets the drive/directory.
-		
+
 	void pathAppend( const std::string & tail ) ;
 		///< Appends a filename to the path. A path separator
 		///< is added if necessary.
 
 	static G::Path join( const G::Path & p1 , const G::Path & p2 ) ;
-		///< Joins two paths together. The second should be a
-		///< relative path.
+		///< Joins two paths together. The second should normally be
+		///< a relative path, although absolute paths are allowed.
 
 	Strings split( bool no_dot = true ) const ;
 		///< Spits the path into a list of component parts.
+		///< Eliminates "/./" parts if the optional parameter
+		///< is true.
 
 	bool operator==( const Path & path ) const ;
 		///< Comparison operator.
-	
+
 	bool operator!=( const Path & path ) const ;
 		///< Comparison operator.
-	
+
 private:
 	void set( const std::string & path ) ;
 	void normalise() ;
-	void clear() ;	
+	void clear() ;
 	static std::string slashString() ;
 	static std::string doubleSlashString() ;
 	std::string driveString() const ;
 	std::string::size_type slashAt() const ;
-	bool noSlash() const ;
-	std::string noTail() const ;
+	bool hasNoSlash() const ;
+	std::string withoutTail() const ;
 	bool hasNetworkDrive() const ;
+	std::string dirnameImp() const ;
 
 private:
 	std::string m_str ;

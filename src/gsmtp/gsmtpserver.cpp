@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -88,14 +88,18 @@ GSmtp::ServerPeer::ServerPeer( GNet::Server::PeerInfo peer_info ,
 	m_protocol.init() ;
 }
 
-std::string GSmtp::ServerPeer::crlf()
+const std::string & GSmtp::ServerPeer::crlf()
 {
-	return std::string("\015\012") ;
+	static const std::string s( "\015\012" ) ;
+	return s ;
 }
 
-void GSmtp::ServerPeer::onDelete()
+void GSmtp::ServerPeer::onDelete( const std::string & reason )
 {
-	G_LOG_S( "GSmtp::ServerPeer: smtp connection closed: " << peerAddress().second.displayString() ) ;
+	G_LOG_S( "GSmtp::ServerPeer: smtp connection closed: " << reason << (reason.empty()?"":": ")
+		<< peerAddress().second.displayString() ) ;
+
+	m_server.eventSignal().emit( "done" , reason ) ;
 }
 
 void GSmtp::ServerPeer::onSendComplete()
@@ -151,6 +155,11 @@ GSmtp::Server::~Server()
 	serverCleanup() ; // base class
 }
 
+G::Signal2<std::string,std::string> & GSmtp::Server::eventSignal()
+{
+	return m_event_signal ;
+}
+
 void GSmtp::Server::report() const
 {
 	serverReport( "smtp" ) ; // base class
@@ -195,8 +204,12 @@ GSmtp::ProtocolMessage * GSmtp::Server::newProtocolMessageStore( std::auto_ptr<P
 
 GSmtp::ProtocolMessage * GSmtp::Server::newProtocolMessageForward( std::auto_ptr<ProtocolMessage> pm )
 {
+ #ifdef USE_NO_PROXY
+	throw G::Exception( "proxying disabled at build time" ) ;
+ #else
 	return new ProtocolMessageForward( m_store , pm ,
 		m_client_config , m_client_secrets , m_smtp_server , m_smtp_connection_timeout ) ;
+ #endif
 }
 
 GSmtp::ProtocolMessage * GSmtp::Server::newProtocolMessage()
@@ -205,17 +218,17 @@ GSmtp::ProtocolMessage * GSmtp::Server::newProtocolMessage()
 
 	std::auto_ptr<Processor> store_processor( ProcessorFactory::newProcessor(m_processor_address,m_processor_timeout) );
 
-	std::auto_ptr<ProtocolMessage> store( newProtocolMessageStore(store_processor) ) ;
+	std::auto_ptr<ProtocolMessage> pmstore( newProtocolMessageStore(store_processor) ) ;
 
 	const bool do_forward = ! m_smtp_server.empty() ;
 	if( do_forward )
 	{
-		std::auto_ptr<ProtocolMessage> forward( newProtocolMessageForward(store) ) ;
+		std::auto_ptr<ProtocolMessage> forward( newProtocolMessageForward(pmstore) ) ;
 		return forward.release() ;
 	}
 	else
 	{
-		return store.release() ;
+		return pmstore.release() ;
 	}
 }
 

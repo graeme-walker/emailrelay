@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -312,8 +312,7 @@ protected:
 
 private:
 	typedef void (Cracker::*Fn)(int,int,bool,bool) ;
-	LRESULT doMouseButton( Fn fn , MouseButton , MouseButtonDirection ,
-		unsigned int , WPARAM , LPARAM ) ;
+	LRESULT doMouseButton( Fn fn , MouseButton , MouseButtonDirection , unsigned int , WPARAM , LPARAM ) ;
 } ;
 
 #endif

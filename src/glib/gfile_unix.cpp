@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2007 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,8 +19,10 @@
 //
 	
 #include "gdef.h"
+#include "glimits.h"
 #include "gfile.h"
 #include "gprocess.h"
+#include "gdebug.h"
 #include <errno.h>
 #include <sys/stat.h>
 #include <sstream>
@@ -89,7 +91,18 @@ G::File::time_type G::File::time( const Path & path , const NoThrow & )
 
 bool G::File::chmodx( const Path & path , bool do_throw )
 {
-	bool ok = 0 == ::chmod( path.str().c_str() , S_IRUSR | S_IWUSR | S_IXUSR ) ;
+	mode_t mode = S_IRUSR | S_IWUSR | S_IXUSR ;
+	struct stat statbuf ;
+	if( 0 == ::stat( path.str().c_str() , &statbuf ) )
+	{
+		G_DEBUG( "G::File::chmodx: old: " << statbuf.st_mode ) ;
+		mode = statbuf.st_mode | S_IXUSR ;
+		if( mode & S_IRGRP ) mode |= S_IXGRP ;
+		if( mode & S_IROTH ) mode |= S_IXOTH ;
+		G_DEBUG( "G::File::chmodx: new: " << mode ) ;
+	}
+
+	bool ok = 0 == ::chmod( path.str().c_str() , mode ) ;
 	if( !ok && do_throw )
 		throw CannotChmod( path.str() ) ;
 	return ok ;
@@ -100,19 +113,28 @@ void G::File::link( const Path & target , const Path & new_link )
 	if( !link(target,new_link,NoThrow()) )
 	{
 		int error = G::Process::errno_() ; // keep first
-		CannotLink e( new_link.str() ) ;
 		std::ostringstream ss ;
-		ss << "(" << error << ")" ;
-		e.append( ss.str() ) ;
-		throw e ;
+		ss << "[" << new_link << "] -> [" << target << "] " "(" << error << ")" ;
+		throw CannotLink( ss.str() ) ;
 	}
 }
 
 bool G::File::link( const Path & target , const Path & new_link , const NoThrow & )
 {
-	if( exists(target) )
-		remove( target , NoThrow() ) ;
-	int rc = ::symlink( target.str().c_str() , new_link.str().c_str() ) ;
+	// optimisation
+	char buffer[limits::path] ;
+	int rc = ::readlink( new_link.str().c_str() , buffer , sizeof(buffer) ) ;
+	if( rc > 0 && rc != sizeof(buffer) )
+	{
+		std::string old_target( buffer , rc ) ;
+		if( target.str() == old_target )
+			return true ;
+	}
+
+	if( exists(new_link) )
+		remove( new_link , NoThrow() ) ;
+
+	rc = ::symlink( target.str().c_str() , new_link.str().c_str() ) ;
 	// dont put anything here
 	return rc == 0 ;
 }
