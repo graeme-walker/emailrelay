@@ -56,7 +56,7 @@
 
 std::string Main::Run::versionNumber()
 {
-	return "1.8" ;
+	return "1.8.1" ;
 }
 
 Main::Run::Run( Main::Output & output , const G::Arg & arg , const std::string & switch_spec ) :
@@ -332,6 +332,9 @@ void Main::Run::doServing( const GSmtp::Secrets & client_secrets ,
 	const Configuration & cfg = config() ;
 	if( cfg.doSmtp() )
 	{
+		if( cfg.immediate() )
+			G_WARNING( "Run::doServing: using --immediate can result in client timeout errors: try --poll=0 instead" ) ;
+
 		m_smtp_server <<= new GSmtp::Server(
 			store ,
 			client_secrets ,
