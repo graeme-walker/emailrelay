@@ -26,6 +26,7 @@
 #include "gfs.h"
 #include "glog.h"
 #include <iostream>
+#include <cstring> // std::strerror()
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -122,7 +123,7 @@ int G::Process::errno_( int e )
 
 std::string G::Process::strerror( int errno_ )
 {
-	char * p = ::strerror( errno_ ) ;
+	char * p = std::strerror( errno_ ) ;
 	return std::string( p ? p : "" ) ;
 }
 

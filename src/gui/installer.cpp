@@ -51,6 +51,7 @@
 #include <map>
 #include <set>
 #include <list>
+#include <cstdlib>
 
 #ifdef CreateDirectory
 #undef CreateDirectory
