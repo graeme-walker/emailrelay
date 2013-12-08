@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -61,13 +61,14 @@ public:
 	/// An iterator class for GSmtp::MessageStore.
 	class Iterator
 	{
-		public: std::auto_ptr<StoredMessage> next() ;
-		private: IteratorImp * m_imp ;
 		public: Iterator() ;
 		public: explicit Iterator( IteratorImp * ) ;
 		public: ~Iterator() ;
 		public: Iterator( const Iterator & ) ;
 		public: Iterator & operator=( const Iterator & ) ;
+		public: std::auto_ptr<StoredMessage> next() ;
+		public: void last() ;
+		private: IteratorImp * m_imp ;
 	} ;
 
 	static G::Path defaultDirectory() ;
@@ -108,9 +109,15 @@ public:
 		///< then some stored messages may be marked as bad,
 		///< or deleted (if they have no recipients).
 
+	virtual Iterator failures() = 0 ;
+		///< Returns an iterator for failed messages.
+
 	virtual void repoll() = 0 ;
 		///< Ensures that the next updated() signal() has
 		///< its parameter set to true.
+
+	virtual void unfailAll() = 0 ;
+		///< Causes messages marked as failed to be unmarked.
 
 	virtual void updated() = 0 ;
 		///< Called by associated classes to indicate that the

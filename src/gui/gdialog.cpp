@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,11 +25,40 @@
 #include <algorithm>
 #include <stdexcept>
 
+GDialog::GDialog( bool with_help ) :
+	QDialog(NULL) ,
+	m_first(true) ,
+	m_help_button(NULL) ,
+	m_cancel_button(NULL) ,
+	m_back_button(NULL) ,
+	m_next_button(NULL) ,
+	m_finish_button(NULL) ,
+	m_waiting(false)
+{
+	init( with_help ) ;
+}
+
 GDialog::GDialog( QWidget *parent ) :
 	QDialog(parent) ,
 	m_first(true) ,
+	m_help_button(NULL) ,
+	m_cancel_button(NULL) ,
+	m_back_button(NULL) ,
+	m_next_button(NULL) ,
+	m_finish_button(NULL) ,
 	m_waiting(false)
 {
+	init( false ) ;
+}
+
+void GDialog::init( bool with_help )
+{
+	if( with_help )
+	{
+		m_help_button = new QPushButton(tr("&Help")) ;
+		connect( m_help_button, SIGNAL(clicked()) , this , SLOT(helpButtonClicked()) ) ;
+	}
+
 	m_cancel_button = new QPushButton(tr("Cancel")) ;
 	m_back_button = new QPushButton(tr("< &Back")) ;
 	m_next_button = new QPushButton(tr("Next >")) ;
@@ -41,6 +70,8 @@ GDialog::GDialog( QWidget *parent ) :
 	connect( m_finish_button, SIGNAL(clicked()) , this , SLOT(finishButtonClicked()) ) ;
 
 	m_button_layout = new QHBoxLayout ;
+	if( m_help_button != NULL )
+		m_button_layout->addWidget( m_help_button ) ;
 	m_button_layout->addStretch( 1 ) ;
 	m_button_layout->addWidget( m_cancel_button ) ;
 	m_button_layout->addWidget( m_back_button ) ;
@@ -68,7 +99,8 @@ void GDialog::add( GPage * page )
 
 void GDialog::add()
 {
-	pageUpdated() ;
+	if( !empty() )
+		pageUpdated() ;
 }
 
 bool GDialog::empty() const
@@ -95,6 +127,13 @@ void GDialog::setFirstPage( GPage & page )
 {
 	m_history.push_back(page.name()) ;
 	switchPage( m_history.back() ) ;
+}
+
+void GDialog::helpButtonClicked()
+{
+	std::string base = "http://emailrelay.sourceforge.net/help/" ;
+	std::string url = base + page(currentPageName()).helpName() + ".html" ;
+	QDesktopServices::openUrl( QString(url.c_str()) ) ;
 }
 
 void GDialog::backButtonClicked()
@@ -144,6 +183,8 @@ void GDialog::pageUpdated()
 		m_next_button->setEnabled(false) ;
 		m_finish_button->setText(tr("Close")) ;
 		m_finish_button->setEnabled(true) ;
+		if( m_help_button != NULL )
+			m_help_button->setEnabled(!current_page.helpName().empty()) ;
 	}
 	else
 	{
@@ -163,6 +204,9 @@ void GDialog::pageUpdated()
 
 		active_button->setEnabled( active_state ) ;
 		inactive_button->setEnabled( false ) ;
+
+		if( m_help_button != NULL )
+			m_help_button->setEnabled(!current_page.helpName().empty()) ;
 	}
 }
 
@@ -211,11 +255,20 @@ GPage & GDialog::previousPage( unsigned int distance )
 	return page(*p) ;
 }
 
-void GDialog::dump( std::ostream & stream , const std::string & prefix , const std::string & eol ,
-	bool with_passwords ) const
+void GDialog::dumpStateVariables( std::ostream & stream ) const
+{
+	dump( stream , false ) ;
+}
+
+void GDialog::dumpInstallVariables( std::ostream & stream ) const
+{
+	dump( stream , true ) ;
+}
+
+void GDialog::dump( std::ostream & stream , bool for_install ) const
 {
 	for( History::const_iterator p = m_history.begin() ; p != m_history.end() ; ++p )
-		page(*p).dump( stream , prefix , eol , with_passwords ) ;
+		page(*p).dump( stream , for_install ) ;
 }
 
 void GDialog::wait( bool wait_on )

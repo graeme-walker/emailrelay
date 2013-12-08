@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -113,7 +113,8 @@ void G::Arg::removeAt( size_type sw_index , size_type sw_args )
 	G_ASSERT( sw_index > 0U && sw_index < m_array.size() ) ;
 	if( sw_index > 0U && sw_index < m_array.size() )
 	{
-		StringArray::iterator p = m_array.begin() + sw_index ;
+		StringArray::iterator p = m_array.begin() ;
+		for( size_type i = 0U ; i < sw_index ; i++ ) ++p ; // (rather than cast)
 		p = m_array.erase( p ) ;
 		for( size_type i = 0U ; i < sw_args && p != m_array.end() ; i++ )
 			p = m_array.erase( p ) ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -88,7 +88,7 @@ G::Path Dir::os_config()
 	return sysconfdir ;
 }
 
-G::Path Dir::os_spool() const
+G::Path Dir::os_spool()
 {
 	std::string spooldir( G_SPOOLDIR ) ;
 	if( spooldir.empty() )
@@ -105,14 +105,9 @@ G::Path Dir::cwd()
 	return G::Path( s ) ;
 }
 
-G::Path Dir::os_pid()
+G::Path Dir::os_pid( const G::Path & )
 {
-	return ok("/var/run") ? "var/run" : "/tmp" ;
-}
-
-G::Path Dir::os_pid( const G::Path & pid_dir , const G::Path & )
-{
-	return pid_dir ;
+	return ok("/var/run") ? "/var/run" : "/tmp" ;
 }
 
 G::Path Dir::special( const std::string & type )
@@ -139,6 +134,11 @@ bool Dir::ok( const std::string & s )
 		G::File::exists(G::Path(s)) &&
 		G::Directory(G::Path(s)).valid() &&
 		G::Directory(G::Path(s)).writeable() ;
+}
+
+G::Path Dir::home()
+{
+	return envPath( "HOME" , "~" ) ;
 }
 
 /// \file dir_mac.cpp

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "gexecutable.h"
 #include "glimits.h"
 #include "gstr.h"
+#include <stdexcept>
 
 bool G::Executable::osNativelyRunnable() const
 {
@@ -33,14 +34,14 @@ void G::Executable::osAddWrapper()
 {
 	std::string windows ;
 	{
-		char buffer[limits::path] = { '\0' } ;
-		unsigned int n = sizeof(buffer) ;
-		::GetWindowsDirectory( buffer , n-1U ) ;
-		buffer[n-1U] = '\0' ;
-		windows = std::string(buffer) ;
+    	char buffer[MAX_PATH] = { 0 } ;
+    	unsigned int n = ::GetWindowsDirectoryA( buffer , MAX_PATH ) ;
+    	if( n == 0 || n > MAX_PATH )
+        	throw std::runtime_error( "cannot determine the windows directory" ) ;
+    	windows = std::string( buffer , n ) ;
 	}
 
-	G::Path cscript ( windows , "system32" , "cscript.exe" ) ;
+	G::Path cscript( windows , "system32" , "cscript.exe" ) ;
 	m_args.push_front( m_exe.str() ) ;
 	m_args.push_front( "//B" ) ; // portable?
 	m_args.push_front( "//nologo" ) ;

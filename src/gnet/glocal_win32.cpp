@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -49,7 +49,7 @@ std::string GNet::Local::fqdnImp()
 	std::string::size_type pos = result.find( '.' ) ;
 	if( pos == std::string::npos )
 	{
-		G_WARNING( "GNet::Local: no valid domain in \"" << result << "\": defaulting to \".local\"" ) ;
+		G_WARNING( "GNet::Local: no domain name in \"" << result << "\": defaulting to \".local\"" ) ;
 		result.append( ".local" ) ;
 	}
 

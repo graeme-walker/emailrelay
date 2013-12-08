@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 #include "gdef.h"
 #include "glocal.h"
-#include <cstdlib> // getenv
+#include "genvironment.h"
 
 GNet::Address GNet::Local::canonicalAddressImp()
 {
@@ -32,8 +32,7 @@ std::string GNet::Local::fqdnImp()
 	std::string host = hostname() ;
 	if( host.find('.') == std::string::npos )
 	{
-		const char * domainname = std::getenv("DOMAINNAME") ;
-		std::string domain = std::string( domainname == NULL ? "local" : domainname ) ;
+		std::string domain = G::Environment::get( "DOMAINNAME" , "local" ) ;
 		return host + "." + domain ;
 	}
 	else

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -103,6 +103,9 @@ public:
 	virtual MessageStore::Iterator iterator( bool lock ) ;
 		///< Final override from GSmtp::MessageStore.
 
+	virtual MessageStore::Iterator failures() ;
+		///< Final override from GSmtp::MessageStore.
+
 	virtual std::auto_ptr<NewMessage> newMessage( const std::string & from ) ;
 		///< Final override from GSmtp::MessageStore.
 
@@ -113,7 +116,14 @@ public:
 		///< Returns an identifier for the storage format
 		///< implemented by this class.
 
+	static bool knownFormat( const std::string & format ) ;
+		///< Returns true if the storage format string is
+		///< recognised and supported for reading.
+
 	virtual void repoll() ;
+		///< Final override from GSmtp::MessageStore.
+
+	virtual void unfailAll() ;
 		///< Final override from GSmtp::MessageStore.
 
 	virtual void updated() ;

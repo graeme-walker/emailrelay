@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include "legal.h"
 #include "dir.h"
 #include "boot.h"
+#include "mapfile.h"
 #include "gstr.h"
 #include "gfile.h"
 #include "gprocess.h"
@@ -63,9 +64,9 @@ std::string TitlePage::nextPage()
 	return next1() ;
 }
 
-void TitlePage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
+void TitlePage::dump( std::ostream & stream , bool for_install ) const
 {
-	GPage::dump( stream , prefix , eol , p ) ;
+	GPage::dump( stream , for_install ) ;
 }
 
 // ==
@@ -101,9 +102,9 @@ std::string LicensePage::nextPage()
 	return next1() ;
 }
 
-void LicensePage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
+void LicensePage::dump( std::ostream & stream , bool for_install ) const
 {
-	GPage::dump( stream , prefix , eol , p ) ;
+	GPage::dump( stream , for_install ) ;
 }
 
 bool LicensePage::isComplete()
@@ -115,9 +116,8 @@ bool LicensePage::isComplete()
 
 DirectoryPage::DirectoryPage( GDialog & dialog , const State & state , const std::string & name ,
 	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ,
-	const Dir & dir , bool installing ) :
+	bool installing ) :
 		GPage(dialog,name,next_1,next_2,finish,close) ,
-		m_dir(dir) ,
 		m_installing(installing)
 {
 	m_install_dir_label = new QLabel(tr("&Directory:")) ;
@@ -137,6 +137,7 @@ DirectoryPage::DirectoryPage( GDialog & dialog , const State & state , const std
 
 	m_spool_dir_label = new QLabel(tr("D&irectory:")) ;
 	m_spool_dir_edit_box = new QLineEdit ;
+	tip( m_spool_dir_edit_box , "--spool-dir" ) ;
 	m_spool_dir_label->setBuddy(m_spool_dir_edit_box) ;
 	m_spool_dir_browse_button = new QPushButton(tr("B&rowse")) ;
 
@@ -165,9 +166,16 @@ DirectoryPage::DirectoryPage( GDialog & dialog , const State & state , const std
 
 	setFocusProxy( m_install_dir_edit_box ) ;
 
-	m_install_dir_edit_box->setText( QString(state.value("dir-install",Dir::install().str()).c_str()) ) ;
-	m_spool_dir_edit_box->setText( QString(state.value("dir-spool",m_dir.spool().str()).c_str()) ) ;
-	m_config_dir_edit_box->setText( QString(state.value("dir-config",m_dir.config().str()).c_str()) ) ;
+	m_install_dir_edit_box->setText( qstr(state.value("dir-install")) ) ;
+	m_spool_dir_edit_box->setText( qstr(state.value("dir-spool")) ) ;
+	m_config_dir_edit_box->setText( qstr(state.value("dir-config")) ) ;
+
+	// these are not editable for now - could be turned into edit boxes
+	m_pid_dir = state.value("dir-pid") ;
+	m_boot_dir = state.value("dir-boot") ;
+	m_desktop_dir = state.value("dir-desktop") ;
+	m_menu_dir = state.value("dir-menu") ;
+	m_login_dir = state.value("dir-login") ;
 
 	QVBoxLayout * layout = new QVBoxLayout;
 	layout->addWidget(newTitle(tr("Directories"))) ;
@@ -253,20 +261,21 @@ G::Path DirectoryPage::normalise( const G::Path & dir ) const
 	return result ;
 }
 
-void DirectoryPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
+void DirectoryPage::dump( std::ostream & stream , bool for_install ) const
 {
-	GPage::dump( stream , prefix , eol , p ) ;
+	GPage::dump( stream , for_install ) ;
 	std::string ws = " " ;
-	dumpItem( stream , prefix , "dir-install" , normalise(G::Str::trimmed(value(m_install_dir_edit_box),ws)) , eol ) ;
-	dumpItem( stream , prefix , "dir-spool" , normalise(G::Str::trimmed(value(m_spool_dir_edit_box),ws)) , eol ) ;
-	G::Path config_dir = normalise(G::Str::trimmed(value(m_config_dir_edit_box),ws)) ;
-	dumpItem( stream , prefix , "dir-config" , config_dir , eol ) ;
-	dumpItem( stream , prefix , "dir-pid" , m_dir.pid(config_dir) , eol ) ;
-	dumpItem( stream , prefix , "dir-desktop" , m_dir.desktop() , eol ) ;
-	dumpItem( stream , prefix , "dir-login" , m_dir.login() , eol ) ;
-	dumpItem( stream , prefix , "dir-menu" , m_dir.menu() , eol ) ;
-	dumpItem( stream , prefix , "dir-reskit" , std::string() , eol ) ;
-	dumpItem( stream , prefix , "dir-boot" , Boot::able(m_dir.boot()) ? m_dir.boot() : G::Path() , eol ) ;
+	dumpItem( stream , for_install , "dir-install" , normalise(G::Str::trimmed(value(m_install_dir_edit_box),ws)) ) ;
+	dumpItem( stream , for_install , "dir-spool" , normalise(G::Str::trimmed(value(m_spool_dir_edit_box),ws)) ) ;
+	dumpItem( stream , for_install , "dir-config" , normalise(G::Str::trimmed(value(m_config_dir_edit_box),ws)) ) ;
+	if( for_install )
+	{
+		dumpItem( stream , for_install , "dir-pid" , m_pid_dir ) ;
+		dumpItem( stream , for_install , "dir-boot" , m_boot_dir ) ;
+		dumpItem( stream , for_install , "dir-desktop" , m_desktop_dir ) ;
+		dumpItem( stream , for_install , "dir-menu" , m_menu_dir ) ;
+		dumpItem( stream , for_install , "dir-login" , m_login_dir ) ;
+	}
 }
 
 bool DirectoryPage::isComplete()
@@ -277,6 +286,11 @@ bool DirectoryPage::isComplete()
 		!m_config_dir_edit_box->text().isEmpty() ;
 }
 
+std::string DirectoryPage::helpName() const
+{
+	return name() ;
+}
+
 // ==
 
 DoWhatPage::DoWhatPage( GDialog & dialog , const State & state , const std::string & name ,
@@ -284,10 +298,12 @@ DoWhatPage::DoWhatPage( GDialog & dialog , const State & state , const std::stri
 		GPage(dialog,name,next_1,next_2,finish,close)
 {
 	m_pop_checkbox = new QCheckBox(tr("&POP3 server"));
+	tip( m_pop_checkbox , "Allow clients to see spooled messages using POP" ) ;
 	m_smtp_checkbox = new QCheckBox(tr("&SMTP server"));
+	tip( m_smtp_checkbox , "Allow clients to submit new messages using SMTP" ) ;
 
 	m_smtp_checkbox->setChecked( state.value("do-smtp",true) ) ;
-	m_pop_checkbox->setChecked( state.value("do-pop",testMode()) ) ;
+	m_pop_checkbox->setChecked( testMode() || state.value("do-pop",false) ) ;
 
 	QVBoxLayout * server_type_box_layout = new QVBoxLayout ;
 	server_type_box_layout->addWidget( m_pop_checkbox ) ;
@@ -297,9 +313,13 @@ DoWhatPage::DoWhatPage( GDialog & dialog , const State & state , const std::stri
 	server_type_group->setLayout( server_type_box_layout ) ;
 
 	m_immediate_checkbox = new QRadioButton(tr("&Synchronously"));
+	tip( m_immediate_checkbox , "--immediate" ) ;
 	m_on_disconnect_checkbox = new QRadioButton(tr("When client &disconnects"));
+	tip( m_on_disconnect_checkbox , "--poll 0" ) ;
 	m_periodically_checkbox = new QRadioButton(tr("&Check periodically"));
+	tip( m_periodically_checkbox , "--poll" ) ;
 	m_on_demand_checkbox = new QRadioButton(tr("&Only when triggered"));
+	tip( m_on_demand_checkbox , "--admin" ) ;
 
 	if( state.value("forward-immediate",false) )
 		m_immediate_checkbox->setChecked(true) ;
@@ -336,7 +356,7 @@ DoWhatPage::DoWhatPage( GDialog & dialog , const State & state , const std::stri
 	}
 	forwarding_box_layout->addWidget( m_on_demand_checkbox ) ;
 
-	m_forwarding_group = new QGroupBox(tr("SMTP forwarding")) ;
+	m_forwarding_group = new QGroupBox(tr("Mail forwarding")) ;
 	m_forwarding_group->setLayout( forwarding_box_layout ) ;
 
 	QVBoxLayout *layout = new QVBoxLayout;
@@ -363,7 +383,7 @@ void DoWhatPage::onToggle()
 
 std::string DoWhatPage::nextPage()
 {
-	// sneaky feature...
+	// sneaky feature - see PopAccountsPage::nextPage()
 	if( dialog().currentPageName() != name() )
 	{
 		return m_smtp_checkbox->isChecked() ? next2() : std::string() ;
@@ -375,15 +395,15 @@ std::string DoWhatPage::nextPage()
 			next2() ;
 }
 
-void DoWhatPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
+void DoWhatPage::dump( std::ostream & stream , bool for_install ) const
 {
-	GPage::dump( stream , prefix , eol , p ) ;
-	dumpItem( stream , prefix , "do-pop" , value(m_pop_checkbox) , eol ) ;
-	dumpItem( stream , prefix , "do-smtp" , value(m_smtp_checkbox) , eol ) ;
-	dumpItem( stream , prefix , "forward-immediate" , value(m_immediate_checkbox) , eol ) ;
-	dumpItem( stream , prefix , "forward-on-disconnect" , value(m_on_disconnect_checkbox) , eol ) ;
-	dumpItem( stream , prefix , "forward-poll" , value(m_periodically_checkbox) , eol ) ;
-	dumpItem( stream , prefix , "forward-poll-period" , value(m_period_combo) , eol ) ;
+	GPage::dump( stream , for_install ) ;
+	dumpItem( stream , for_install , "do-pop" , value(m_pop_checkbox) ) ;
+	dumpItem( stream , for_install , "do-smtp" , value(m_smtp_checkbox) ) ;
+	dumpItem( stream , for_install , "forward-immediate" , value(m_immediate_checkbox) ) ;
+	dumpItem( stream , for_install , "forward-on-disconnect" , value(m_on_disconnect_checkbox) ) ;
+	dumpItem( stream , for_install , "forward-poll" , value(m_periodically_checkbox) ) ;
+	dumpItem( stream , for_install , "forward-poll-period" , value(m_period_combo) ) ;
 }
 
 bool DoWhatPage::isComplete()
@@ -393,6 +413,11 @@ bool DoWhatPage::isComplete()
 		m_smtp_checkbox->isChecked() ;
 }
 
+std::string DoWhatPage::helpName() const
+{
+	return name() ;
+}
+
 // ==
 
 PopPage::PopPage( GDialog & dialog , const State & state , const std::string & name ,
@@ -400,7 +425,8 @@ PopPage::PopPage( GDialog & dialog , const State & state , const std::string & n
 		GPage(dialog,name,next_1,next_2,finish,close)
 {
 	QLabel * port_label = new QLabel( tr("P&ort:") ) ;
-	m_port_edit_box = new QLineEdit( state.value("pop-port","110").c_str() ) ;
+	m_port_edit_box = new QLineEdit( qstr(state.value("pop-port","110")) ) ;
+	tip( m_port_edit_box , "--pop-port" ) ;
 	port_label->setBuddy( m_port_edit_box ) ;
 
 	QHBoxLayout * server_layout = new QHBoxLayout ;
@@ -413,9 +439,12 @@ PopPage::PopPage( GDialog & dialog , const State & state , const std::string & n
 	m_one = new QRadioButton( tr("&One client") ) ;
 	m_shared = new QRadioButton( tr("&Many clients sharing a spool directory") ) ;
 	m_pop_by_name = new QRadioButton( tr("M&any clients with separate spool directories") ) ;
+	tip( m_pop_by_name , "--pop-by-name" ) ;
 
 	m_no_delete_checkbox = new QCheckBox( tr("Disable message deletion") ) ;
+	tip( m_no_delete_checkbox , "--pop-no-delete" ) ;
 	m_auto_copy_checkbox = new QCheckBox( tr("Copy SMTP messages to all") ) ;
+	tip( m_auto_copy_checkbox , "--filter=emailrelay-filter-copy" ) ;
 
 	QGridLayout * radio_layout = new QGridLayout ;
 	radio_layout->addWidget( m_one , 0 , 0 ) ;
@@ -424,9 +453,9 @@ PopPage::PopPage( GDialog & dialog , const State & state , const std::string & n
 	radio_layout->addWidget( m_pop_by_name , 2 , 0 ) ;
 	radio_layout->addWidget( m_auto_copy_checkbox , 2 , 1 ) ;
 
-	if( state.value("pop-simple",true) )
+	if( testModeValue() == 1 || state.value("pop-simple",true) )
 		m_one->setChecked( true ) ;
-	else if( state.value("pop-shared",false) )
+	else if( testModeValue() == 2 || state.value("pop-shared",false) )
 		m_shared->setChecked( true ) ;
 	else if( state.value("pop-by-name",false) )
 		m_pop_by_name->setChecked( true ) ;
@@ -459,15 +488,15 @@ std::string PopPage::nextPage()
 			next2() ;
 }
 
-void PopPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
+void PopPage::dump( std::ostream & stream , bool for_install ) const
 {
-	GPage::dump( stream , prefix , eol , p ) ;
-	dumpItem( stream , prefix , "pop-port" , value(m_port_edit_box) , eol ) ;
-	dumpItem( stream , prefix , "pop-simple" , value(m_one) , eol ) ;
-	dumpItem( stream , prefix , "pop-shared" , value(m_shared) , eol ) ;
-	dumpItem( stream , prefix , "pop-shared-no-delete" , value(m_no_delete_checkbox) , eol ) ;
-	dumpItem( stream , prefix , "pop-by-name" , value(m_pop_by_name) , eol ) ;
-	dumpItem( stream , prefix , "pop-by-name-auto-copy" , value(m_auto_copy_checkbox) , eol ) ;
+	GPage::dump( stream , for_install ) ;
+	dumpItem( stream , for_install , "pop-port" , value(m_port_edit_box) ) ;
+	dumpItem( stream , for_install , "pop-simple" , value(m_one) ) ;
+	dumpItem( stream , for_install , "pop-shared" , value(m_shared) ) ;
+	dumpItem( stream , for_install , "pop-shared-no-delete" , value(m_no_delete_checkbox) ) ;
+	dumpItem( stream , for_install , "pop-by-name" , value(m_pop_by_name) ) ;
+	dumpItem( stream , for_install , "pop-by-name-auto-copy" , value(m_auto_copy_checkbox) ) ;
 }
 
 bool PopPage::isComplete()
@@ -479,6 +508,11 @@ void PopPage::onToggle()
 {
 	m_no_delete_checkbox->setEnabled( m_shared->isChecked() ) ;
 	m_auto_copy_checkbox->setEnabled( m_pop_by_name->isChecked() ) ;
+}
+
+std::string PopPage::helpName() const
+{
+	return name() ;
 }
 
 // ==
@@ -506,13 +540,19 @@ PopAccountsPage::PopAccountsPage( GDialog & dialog , const State & state , const
 	QLabel * name_label = new QLabel(tr("Name:")) ;
 	QLabel * pwd_label = new QLabel(tr("Password:")) ;
 	m_name_1 = new QLineEdit ;
+	tip( m_name_1 , NameTip() ) ;
 	m_pwd_1 = new QLineEdit ;
+	tip( m_pwd_1 , PasswordTip() ) ;
 	m_pwd_1->setEchoMode( QLineEdit::Password ) ;
 	m_name_2 = new QLineEdit ;
+	tip( m_name_2 , NameTip() ) ;
 	m_pwd_2 = new QLineEdit ;
+	tip( m_pwd_2 , PasswordTip() ) ;
 	m_pwd_2->setEchoMode( QLineEdit::Password ) ;
 	m_name_3 = new QLineEdit ;
+	tip( m_name_3 , NameTip() ) ;
 	m_pwd_3 = new QLineEdit ;
+	tip( m_pwd_3 , PasswordTip() ) ;
 	m_pwd_3->setEchoMode( QLineEdit::Password ) ;
 	account_layout->addWidget( name_label , 0 , 0 ) ;
 	account_layout->addWidget( pwd_label , 0 , 1 ) ;
@@ -560,8 +600,8 @@ std::string PopAccountsPage::nextPage()
 {
 	// only the dowhat page knows whether we should do smtp -- a special	
 	// feature of the dowhat page's nextPage() is that if it detects
-	// that it is not the current page then it will give us an empty string
-	// if no smtp is required
+	// that it is not the current page (ie. if it's called from here)
+	// then it will give us an empty string if no smtp is required
 
 	return
 		dialog().previousPage(2U).nextPage().empty() ?
@@ -569,18 +609,18 @@ std::string PopAccountsPage::nextPage()
 			next1() ;
 }
 
-void PopAccountsPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p) const
+void PopAccountsPage::dump( std::ostream & stream , bool for_install ) const
 {
-	GPage::dump( stream , prefix , eol , p ) ;
-	dumpItem( stream , prefix , "pop-auth-mechanism" , value(m_mechanism_combo) , eol ) ;
-	if( p )
+	GPage::dump( stream , for_install ) ;
+	dumpItem( stream , for_install , "pop-auth-mechanism" , value(m_mechanism_combo) ) ;
+	if( for_install )
 	{
-		dumpItem( stream , prefix , "pop-account-1-name" , value(m_name_1) , eol ) ;
-		dumpItem( stream , prefix , "pop-account-1-password" , encrypt(value(m_pwd_1),value(m_mechanism_combo)) , eol );
-		dumpItem( stream , prefix , "pop-account-2-name" , value(m_name_2) , eol ) ;
-		dumpItem( stream , prefix , "pop-account-2-password" , encrypt(value(m_pwd_2),value(m_mechanism_combo)) , eol );
-		dumpItem( stream , prefix , "pop-account-3-name" , value(m_name_3) , eol ) ;
-		dumpItem( stream , prefix , "pop-account-3-password" , encrypt(value(m_pwd_3),value(m_mechanism_combo)) , eol );
+		dumpItem( stream , for_install , "pop-account-1-name" , value(m_name_1) ) ;
+		dumpItem( stream , for_install , "pop-account-1-password" , encrypt(value(m_pwd_1),value(m_mechanism_combo)) );
+		dumpItem( stream , for_install , "pop-account-2-name" , value(m_name_2) ) ;
+		dumpItem( stream , for_install , "pop-account-2-password" , encrypt(value(m_pwd_2),value(m_mechanism_combo)) );
+		dumpItem( stream , for_install , "pop-account-3-name" , value(m_name_3) ) ;
+		dumpItem( stream , for_install , "pop-account-3-password" , encrypt(value(m_pwd_3),value(m_mechanism_combo)) );
 	}
 }
 
@@ -591,6 +631,11 @@ bool PopAccountsPage::isComplete()
 		( !m_name_1->text().isEmpty() && !m_pwd_1->text().isEmpty() ) ||
 		( !m_name_2->text().isEmpty() && !m_pwd_2->text().isEmpty() ) ||
 		( !m_name_3->text().isEmpty() && !m_pwd_3->text().isEmpty() ) ;
+}
+
+std::string PopAccountsPage::helpName() const
+{
+	return name() ;
 }
 
 // ==
@@ -618,7 +663,9 @@ PopAccountPage::PopAccountPage( GDialog & dialog , const State & state , const s
 	QLabel * name_label = new QLabel(tr("Name:")) ;
 	QLabel * pwd_label = new QLabel(tr("Password:")) ;
 	m_name_1 = new QLineEdit ;
+	tip( m_name_1 , NameTip() ) ;
 	m_pwd_1 = new QLineEdit ;
+	tip( m_pwd_1 , PasswordTip() ) ;
 	m_pwd_1->setEchoMode( QLineEdit::Password ) ;
 	account_layout->addWidget( name_label , 0 , 0 ) ;
 	account_layout->addWidget( m_name_1 , 0 , 1 ) ;
@@ -663,14 +710,14 @@ std::string PopAccountPage::nextPage()
 			next1() ;
 }
 
-void PopAccountPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
+void PopAccountPage::dump( std::ostream & stream , bool for_install ) const
 {
-	GPage::dump( stream , prefix , eol , p ) ;
-	dumpItem( stream , prefix , "pop-auth-mechanism" , value(m_mechanism_combo) , eol ) ;
-	if( p )
+	GPage::dump( stream , for_install ) ;
+	dumpItem( stream , for_install , "pop-auth-mechanism" , value(m_mechanism_combo) ) ;
+	if( for_install )
 	{
-		dumpItem( stream , prefix , "pop-account-1-name" , value(m_name_1) , eol ) ;
-		dumpItem( stream , prefix , "pop-account-1-password" , encrypt(value(m_pwd_1),value(m_mechanism_combo)) , eol );
+		dumpItem( stream , for_install , "pop-account-1-name" , value(m_name_1) ) ;
+		dumpItem( stream , for_install , "pop-account-1-password" , encrypt(value(m_pwd_1),value(m_mechanism_combo)) ) ;
 	}
 }
 
@@ -681,6 +728,11 @@ bool PopAccountPage::isComplete()
 		( !m_name_1->text().isEmpty() && !m_pwd_1->text().isEmpty() ) ;
 }
 
+std::string PopAccountPage::helpName() const
+{
+	return name() ;
+}
+
 // ==
 
 SmtpServerPage::SmtpServerPage( GDialog & dialog , const State & state , const std::string & name ,
@@ -689,7 +741,8 @@ SmtpServerPage::SmtpServerPage( GDialog & dialog , const State & state , const s
 		m_have_account(have_account)
 {
 	QLabel * port_label = new QLabel(tr("P&ort:")) ;
-	m_port_edit_box = new QLineEdit( state.value("smtp-server-port","25").c_str() ) ;
+	m_port_edit_box = new QLineEdit( qstr(state.value("smtp-server-port","25")) ) ;
+	tip( m_port_edit_box , "--port" ) ;
 	port_label->setBuddy( m_port_edit_box ) ;
 
 	QHBoxLayout * server_layout = new QHBoxLayout ;
@@ -702,6 +755,7 @@ SmtpServerPage::SmtpServerPage( GDialog & dialog , const State & state , const s
 	//
 
 	m_auth_checkbox = new QCheckBox( tr("&Require authentication") ) ;
+	tip( m_auth_checkbox , "--server-auth" ) ;
 	m_auth_checkbox->setChecked( state.value("smtp-server-auth",false) ) ;
 
 	m_mechanism_combo = new QComboBox ;
@@ -723,10 +777,12 @@ SmtpServerPage::SmtpServerPage( GDialog & dialog , const State & state , const s
 
 	QLabel * account_name_label = new QLabel(tr("&Name:")) ;
 	m_account_name = new QLineEdit ;
+	tip( m_account_name , NameTip() ) ;
 	account_name_label->setBuddy( m_account_name ) ;
 
 	QLabel * account_pwd_label = new QLabel(tr("&Password:")) ;
 	m_account_pwd = new QLineEdit ;
+	tip( m_account_pwd , PasswordTip() ) ;
 	m_account_pwd->setEchoMode( QLineEdit::Password ) ;
 	account_pwd_label->setBuddy( m_account_pwd ) ;
 
@@ -754,12 +810,13 @@ SmtpServerPage::SmtpServerPage( GDialog & dialog , const State & state , const s
 	QLabel * trust_label = new QLabel(tr("&IP address:")) ;
 	m_trust_address = new QLineEdit ;
 	trust_label->setBuddy( m_trust_address ) ;
+	tip( m_trust_address , "eg. 192.168.0.0/8" ) ;
 	m_trust_group = new QGroupBox(tr("Exemptions")) ;
 	QHBoxLayout * trust_layout = new QHBoxLayout ;
 	trust_layout->addWidget( trust_label ) ;
 	trust_layout->addWidget( m_trust_address ) ;
 	m_trust_group->setLayout( trust_layout ) ;
-	m_trust_address->setText( state.value("smtp-server-trust",testMode()?"192.168.0.*":"").c_str() ) ;
+	m_trust_address->setText( qstr(state.value("smtp-server-trust",testMode()?"192.168.0.*":"")) ) ;
 	
 	//
 
@@ -789,19 +846,19 @@ std::string SmtpServerPage::nextPage()
 	return next1() ;
 }
 
-void SmtpServerPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
+void SmtpServerPage::dump( std::ostream & stream , bool for_install ) const
 {
-	GPage::dump( stream , prefix , eol , p ) ;
-	dumpItem( stream , prefix , "smtp-server-port" , value(m_port_edit_box) , eol ) ;
-	dumpItem( stream , prefix , "smtp-server-auth" , value(m_auth_checkbox) , eol ) ;
-	dumpItem( stream , prefix , "smtp-server-auth-mechanism" , value(m_mechanism_combo) , eol ) ;
-	if( p )
+	GPage::dump( stream , for_install ) ;
+	dumpItem( stream , for_install , "smtp-server-port" , value(m_port_edit_box) ) ;
+	dumpItem( stream , for_install , "smtp-server-auth" , value(m_auth_checkbox) ) ;
+	dumpItem( stream , for_install , "smtp-server-auth-mechanism" , value(m_mechanism_combo) ) ;
+	if( for_install )
 	{
-		dumpItem( stream , prefix , "smtp-server-account-name" , value(m_account_name) , eol ) ;
-		dumpItem( stream , prefix , "smtp-server-account-password" ,
-			encrypt(value(m_account_pwd),value(m_mechanism_combo)) , eol ) ;
+		dumpItem( stream , for_install , "smtp-server-account-name" , value(m_account_name) ) ;
+		dumpItem( stream , for_install , "smtp-server-account-password" ,
+			encrypt(value(m_account_pwd),value(m_mechanism_combo)) ) ;
 	}
-	dumpItem( stream , prefix , "smtp-server-trust" , value(m_trust_address) , eol ) ;
+	dumpItem( stream , for_install , "smtp-server-trust" , value(m_trust_address) ) ;
 }
 
 void SmtpServerPage::onToggle()
@@ -821,6 +878,11 @@ bool SmtpServerPage::isComplete()
 			! m_account_pwd->text().isEmpty() ) ) ;
 }
 
+std::string SmtpServerPage::helpName() const
+{
+	return name() ;
+}
+
 // ==
 
 SmtpClientPage::SmtpClientPage( GDialog & dialog , const State & state , const std::string & name ,
@@ -832,10 +894,11 @@ SmtpClientPage::SmtpClientPage( GDialog & dialog , const State & state , const s
 	m_server_edit_box = new QLineEdit ;
 	server_label->setBuddy( m_server_edit_box ) ;
 
-	m_server_edit_box->setText( state.value("smtp-client-host",testMode()?"myisp.net":"").c_str() ) ;
+	tip( m_server_edit_box , "--forward-to" ) ;
+	m_server_edit_box->setText( qstr(state.value("smtp-client-host",testMode()?"myisp.net":"")) ) ;
 
 	QLabel * port_label = new QLabel( tr("P&ort:") ) ;
-	m_port_edit_box = new QLineEdit( state.value("smtp-client-port","25").c_str() ) ;
+	m_port_edit_box = new QLineEdit( qstr(state.value("smtp-client-port","25")) ) ;
 	port_label->setBuddy( m_port_edit_box ) ;
 
 	QHBoxLayout * server_layout = new QHBoxLayout ;
@@ -850,9 +913,11 @@ SmtpClientPage::SmtpClientPage( GDialog & dialog , const State & state , const s
 
 	m_tls_checkbox = new QCheckBox( tr("&Allow TLS/SSL encryption") ) ;
 	m_tls_checkbox->setChecked( state.value("smtp-client-tls",true) ) ;
+	tip( m_tls_checkbox , "--client-tls" ) ;
 
 	m_auth_checkbox = new QCheckBox( tr("&Supply authentication") ) ;
 	m_auth_checkbox->setChecked( state.value("smtp-client-auth",false) ) ;
+	tip( m_auth_checkbox , "--client-auth" ) ;
 
 	m_mechanism_combo = new QComboBox ;
 	m_mechanism_combo->addItem( tr("CRAM-MD5") ) ;
@@ -867,10 +932,12 @@ SmtpClientPage::SmtpClientPage( GDialog & dialog , const State & state , const s
 
 	QLabel * account_name_label = new QLabel(tr("&Name:")) ;
 	m_account_name = new QLineEdit ;
+	tip( m_account_name , NameTip() ) ;
 	account_name_label->setBuddy( m_account_name ) ;
 
 	QLabel * account_pwd_label = new QLabel(tr("&Password:")) ;
 	m_account_pwd = new QLineEdit ;
+	tip( m_account_pwd , PasswordTip() ) ;
 	m_account_pwd->setEchoMode( QLineEdit::Password ) ;
 	account_pwd_label->setBuddy( m_account_pwd ) ;
 
@@ -931,19 +998,19 @@ std::string SmtpClientPage::nextPage()
 	return next1() ;
 }
 
-void SmtpClientPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
+void SmtpClientPage::dump( std::ostream & stream , bool for_install ) const
 {
-	GPage::dump( stream , prefix , eol , p ) ;
-	dumpItem( stream , prefix , "smtp-client-host" , value(m_server_edit_box) , eol ) ;
-	dumpItem( stream , prefix , "smtp-client-port" , value(m_port_edit_box) , eol ) ;
-	dumpItem( stream , prefix , "smtp-client-tls" , value(m_tls_checkbox) , eol ) ;
-	dumpItem( stream , prefix , "smtp-client-auth" , value(m_auth_checkbox) , eol ) ;
-	dumpItem( stream , prefix , "smtp-client-auth-mechanism" , value(m_mechanism_combo) , eol ) ;
-	if( p )
+	GPage::dump( stream , for_install ) ;
+	dumpItem( stream , for_install , "smtp-client-host" , value(m_server_edit_box) ) ;
+	dumpItem( stream , for_install , "smtp-client-port" , value(m_port_edit_box) ) ;
+	dumpItem( stream , for_install , "smtp-client-tls" , value(m_tls_checkbox) ) ;
+	dumpItem( stream , for_install , "smtp-client-auth" , value(m_auth_checkbox) ) ;
+	dumpItem( stream , for_install , "smtp-client-auth-mechanism" , value(m_mechanism_combo) ) ;
+	if( for_install )
 	{
-		dumpItem( stream , prefix , "smtp-client-account-name" , value(m_account_name) , eol ) ;
-		dumpItem( stream , prefix , "smtp-client-account-password" ,
-			encrypt(value(m_account_pwd),value(m_mechanism_combo)) , eol ) ;
+		dumpItem( stream , for_install , "smtp-client-account-name" , value(m_account_name) ) ;
+		dumpItem( stream , for_install , "smtp-client-account-password" ,
+			encrypt(value(m_account_pwd),value(m_mechanism_combo)) ) ;
 	}
 }
 
@@ -958,6 +1025,11 @@ bool SmtpClientPage::isComplete()
 			! m_account_pwd->text().isEmpty() ) ) ;
 }
 
+std::string SmtpClientPage::helpName() const
+{
+	return name() ;
+}
+
 // ==
 
 LoggingPage::LoggingPage( GDialog & dialog , const State & state , const std::string & name ,
@@ -965,8 +1037,11 @@ LoggingPage::LoggingPage( GDialog & dialog , const State & state , const std::st
 		GPage(dialog,name,next_1,next_2,finish,close)
 {
 	m_debug_checkbox = new QCheckBox( tr("&Debug messages") ) ;
+	tip( m_debug_checkbox , "--debug" ) ;
 	m_verbose_checkbox = new QCheckBox( tr("&Verbose logging") ) ;
+	tip( m_verbose_checkbox , "--verbose" ) ;
 	m_syslog_checkbox = new QCheckBox( tr("&Write to the system log") ) ;
+	tip( m_syslog_checkbox , "--syslog" ) ;
 
 	QVBoxLayout * logging_layout = new QVBoxLayout ;
 	logging_layout->addWidget( m_verbose_checkbox ) ;
@@ -994,12 +1069,17 @@ std::string LoggingPage::nextPage()
 	return next1() ;
 }
 
-void LoggingPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
+void LoggingPage::dump( std::ostream & stream , bool for_install ) const
 {
-	GPage::dump( stream , prefix , eol , p ) ;
-	dumpItem( stream , prefix , "logging-verbose" , value(m_verbose_checkbox) , eol ) ;
-	dumpItem( stream , prefix , "logging-debug" , value(m_debug_checkbox) , eol ) ;
-	dumpItem( stream , prefix , "logging-syslog" , value(m_syslog_checkbox) , eol ) ;
+	GPage::dump( stream , for_install ) ;
+	dumpItem( stream , for_install , "logging-verbose" , value(m_verbose_checkbox) ) ;
+	dumpItem( stream , for_install , "logging-debug" , value(m_debug_checkbox) ) ;
+	dumpItem( stream , for_install , "logging-syslog" , value(m_syslog_checkbox) ) ;
+}
+
+std::string LoggingPage::helpName() const
+{
+	return name() ;
 }
 
 // ==
@@ -1009,8 +1089,10 @@ ListeningPage::ListeningPage( GDialog & dialog , const State & state , const std
 		GPage(dialog,name,next_1,next_2,finish,close)
 {
 	m_listening_interface = new QLineEdit ;
+	tip( m_listening_interface , "eg. 127.0.0.1" ) ;
 	m_all_radio = new QRadioButton(tr("&All interfaces")) ;
 	m_one_radio = new QRadioButton(tr("&One")) ;
+	tip( m_one_radio , "--interface" ) ;
 	QLabel * listening_interface_label = new QLabel(tr("&Interface:")) ;
 	listening_interface_label->setBuddy( m_listening_interface ) ;
 
@@ -1020,7 +1102,7 @@ ListeningPage::ListeningPage( GDialog & dialog , const State & state , const std
 	else
 		m_one_radio->setChecked( true ) ;
 	m_listening_interface->setEnabled( !state_value_all ) ;
-	m_listening_interface->setText( state.value("listening-interface",testMode()?"192.168.1.0":"").c_str() ) ;
+	m_listening_interface->setText( qstr(state.value("listening-interface",testMode()?"192.168.1.0":"")) ) ;
 
 	QGridLayout * listening_layout = new QGridLayout ;
 	listening_layout->addWidget( m_all_radio , 0 , 0 ) ;
@@ -1034,6 +1116,7 @@ ListeningPage::ListeningPage( GDialog & dialog , const State & state , const std
 	//
 
 	m_remote_checkbox = new QCheckBox(tr("&Allow remote clients")) ;
+	tip( m_remote_checkbox , "--remote-clients" ) ;
 	m_remote_checkbox->setChecked( state.value("listening-remote",false) ) ;
 
 	QHBoxLayout * connections_layout = new QHBoxLayout ;
@@ -1078,19 +1161,24 @@ bool ListeningPage::isComplete()
 		!m_listening_interface->text().isEmpty() ;
 }
 
-void ListeningPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
+void ListeningPage::dump( std::ostream & stream , bool for_install ) const
 {
-	GPage::dump( stream , prefix , eol , p ) ;
-	dumpItem( stream , prefix , "listening-all" , value(m_all_radio) , eol ) ;
-	dumpItem( stream , prefix , "listening-interface" , value(m_listening_interface) , eol ) ;
-	dumpItem( stream , prefix , "listening-remote" , value(m_remote_checkbox) , eol ) ;
+	GPage::dump( stream , for_install ) ;
+	dumpItem( stream , for_install , "listening-all" , value(m_all_radio) ) ;
+	dumpItem( stream , for_install , "listening-interface" , value(m_listening_interface) ) ;
+	dumpItem( stream , for_install , "listening-remote" , value(m_remote_checkbox) ) ;
+}
+
+std::string ListeningPage::helpName() const
+{
+	return name() ;
 }
 
 // ==
 
 StartupPage::StartupPage( GDialog & dialog , const State & state , const std::string & name ,
-	const std::string & next_1 , const std::string & next_2 , bool finish , bool close , const Dir & dir ,
-	bool is_mac ) :
+	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ,
+	bool start_on_boot_able , bool is_mac ) :
 		GPage(dialog,name,next_1,next_2,finish,close) ,
 		m_is_mac(is_mac)
 {
@@ -1112,13 +1200,12 @@ StartupPage::StartupPage( GDialog & dialog , const State & state , const std::st
 		m_add_menu_item_checkbox->setEnabled( false ) ;
 		m_add_desktop_item_checkbox->setEnabled( false ) ;
 	}
-	bool on_boot_able = Boot::able(dir.boot()) ;
-	m_on_boot_checkbox->setEnabled( on_boot_able ) ;
+	m_on_boot_checkbox->setEnabled( start_on_boot_able ) ;
 
 	m_at_login_checkbox->setChecked( state.value("start-at-login",false) ) ;
 	m_add_menu_item_checkbox->setChecked( state.value("start-link-menu",!m_is_mac) ) ;
 	m_add_desktop_item_checkbox->setChecked( state.value("start-link-desktop",false) ) ;
-	m_on_boot_checkbox->setChecked( on_boot_able && state.value("start-on-boot",false) ) ;
+	m_on_boot_checkbox->setChecked( start_on_boot_able && state.value("start-on-boot",false) ) ;
 
 	QGroupBox * auto_group = new QGroupBox(tr("Automatic")) ;
 	auto_group->setLayout( auto_layout ) ;
@@ -1147,14 +1234,22 @@ std::string StartupPage::nextPage()
 	return next1() ;
 }
 
-void StartupPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool p ) const
+void StartupPage::dump( std::ostream & stream , bool for_install ) const
 {
-	GPage::dump( stream , prefix , eol , p ) ;
-	dumpItem( stream , prefix , "start-is-mac" , value(m_is_mac) , eol ) ;
-	dumpItem( stream , prefix , "start-on-boot" , value(m_on_boot_checkbox) , eol ) ;
-	dumpItem( stream , prefix , "start-at-login" , value(m_at_login_checkbox) , eol ) ;
-	dumpItem( stream , prefix , "start-link-menu" , value(m_add_menu_item_checkbox) , eol ) ;
-	dumpItem( stream , prefix , "start-link-desktop" , value(m_add_desktop_item_checkbox) , eol ) ;
+	GPage::dump( stream , for_install ) ;
+	dumpItem( stream , for_install , "start-on-boot" , value(m_on_boot_checkbox) ) ;
+	dumpItem( stream , for_install , "start-at-login" , value(m_at_login_checkbox) ) ;
+	dumpItem( stream , for_install , "start-link-menu" , value(m_add_menu_item_checkbox) ) ;
+	dumpItem( stream , for_install , "start-link-desktop" , value(m_add_desktop_item_checkbox) ) ;
+	if( for_install )
+	{
+		dumpItem( stream , for_install , "start-is-mac" , value(m_is_mac) ) ;
+	}
+}
+
+std::string StartupPage::helpName() const
+{
+	return name() ;
 }
 
 // ==
@@ -1196,9 +1291,14 @@ std::string ReadyPage::nextPage()
 	return next1() ;
 }
 
-void ReadyPage::dump( std::ostream & s , const std::string & prefix , const std::string & eol , bool p ) const
+void ReadyPage::dump( std::ostream & s , bool for_install ) const
 {
-	GPage::dump( s , prefix , eol , p ) ;
+	GPage::dump( s , for_install ) ;
+}
+
+std::string ReadyPage::helpName() const
+{
+	return name() ;
 }
 
 // ==
@@ -1228,32 +1328,27 @@ void ProgressPage::onShow( bool back )
 {
 	if( ! back )
 	{
-		// dump page state into a state file -- note that this is not
-		// necessarily the same state file as the installer creates --
-		// when installing we need to write (at least) two state files --
-		// we ignore file creation errors when installing since the
-		// cwd directory could be read-only in some cases
-		//
+		// store the gui state variables in a state file (possibly the config file)
 		if( ! m_state_path.str().empty() )
 		{
 			std::stringstream ss ;
-			dialog().dump( ss , "" , "\n" , false ) ;
-			std::ofstream state_stream( m_state_path.str().c_str() ) ;
-			State::write( state_stream , ss.str() , m_argv0 ) ;
-			if( !state_stream.good() && !m_installing )
-				throw std::runtime_error( std::string()+"cannot write state to \""+m_state_path.str()+"\"" ) ;
-			state_stream.close() ;
-			if( G::File::exists(m_state_path) )
-				G::File::chmodx( m_state_path ) ;
+			dialog().dumpStateVariables( ss ) ;
+			G::StringMap map = MapFile::read( ss ) ;
+			G::File::mkdirs( m_state_path.dirname() , G::File::NoThrow() , 10U ) ;
+			MapFile::edit( m_state_path , map , "gui-" , true , G::StringMap() , false , true , true ) ;
 		}
 
-		// dump page state into a stringstream
+		// dump install variables into a stringstream
 		std::stringstream ss ;
-		dialog().dump( ss ) ;
+		dialog().dumpInstallVariables( ss ) ;
+		if( testMode() )
+		{
+			std::ofstream f( "installer.txt" ) ;
+			f << ss.str() ;
+		}
 
 		// start running the installer
 		m_installer.start( ss ) ; // reads from istream
-		//std::istream iss(ss.rdbuf()) ; m_installer.start( iss ) ; // for gcc 2.95
 		dialog().wait( true ) ; // disable buttons
 
 		// run a continuous zero-length timer that calls poke()
@@ -1304,7 +1399,7 @@ void ProgressPage::poke()
 void ProgressPage::addLine( const std::string & line )
 {
 	G_DEBUG( "ProcessPage::addLine: [" << G::Str::printable(line) << "]" ) ;
-	m_text.append( line.c_str() ) ;
+	m_text.append( qstr(line) ) ;
 	m_text_edit->setFontFamily("courier") ;
 	m_text_edit->setPlainText( m_text ) ;
 }
@@ -1314,9 +1409,9 @@ std::string ProgressPage::nextPage()
 	return next1() ;
 }
 
-void ProgressPage::dump( std::ostream & s , const std::string & prefix , const std::string & eol , bool p ) const
+void ProgressPage::dump( std::ostream & s , bool for_install ) const
 {
-	GPage::dump( s , prefix , eol , p ) ;
+	GPage::dump( s , for_install ) ;
 }
 
 bool ProgressPage::closeButton() const
@@ -1332,6 +1427,11 @@ bool ProgressPage::closeButton() const
 bool ProgressPage::isComplete()
 {
 	return m_installer.done() && !m_installer.failed() ;
+}
+
+std::string ProgressPage::helpName() const
+{
+	return name() ;
 }
 
 // ==
@@ -1350,9 +1450,9 @@ std::string EndPage_::nextPage()
 	return std::string() ;
 }
 
-void EndPage_::dump( std::ostream & s , const std::string & prefix , const std::string & eol , bool p ) const
+void EndPage_::dump( std::ostream & s , bool for_install ) const
 {
-	GPage::dump( s , prefix , eol , p ) ;
+	GPage::dump( s , for_install ) ;
 }
 
 /// \file pages.cpp

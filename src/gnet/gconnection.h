@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -46,6 +46,10 @@ public:
 	virtual std::pair<bool,Address> peerAddress() const = 0 ;
 		///< Returns the connection's peer address.
 		///< Pair.first is false if none.
+
+	virtual std::string peerCertificate() const = 0 ;
+		///< Returns the connection peer's TLS certificate.
+		///< Returns the empty string if none.
 
 	virtual ~Connection() ;
 		///< Destructor.

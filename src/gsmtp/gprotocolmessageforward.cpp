@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@
 GSmtp::ProtocolMessageForward::ProtocolMessageForward( MessageStore & store ,
 	std::auto_ptr<ProtocolMessage> pm ,
 	const GSmtp::Client::Config & client_config ,
-	const Secrets & client_secrets , const std::string & server ,
+	const GAuth::Secrets & client_secrets , const std::string & server ,
 	unsigned int connection_timeout ) :
 		m_store(store) ,
 		m_client_resolver_info(server) ,
@@ -104,10 +104,11 @@ std::string GSmtp::ProtocolMessageForward::from() const
 	return m_pm->from() ;
 }
 
-void GSmtp::ProtocolMessageForward::process( const std::string & auth_id , const std::string & client_ip )
+void GSmtp::ProtocolMessageForward::process( const std::string & auth_id , const std::string & peer_socket_address ,
+	const std::string & peer_socket_name , const std::string & peer_certificate )
 {
 	m_done_signal.reset() ; // one-shot reset
-	m_pm->process( auth_id , client_ip ) ;
+	m_pm->process( auth_id , peer_socket_address , peer_socket_name , peer_certificate ) ;
 }
 
 void GSmtp::ProtocolMessageForward::processDone( bool success , unsigned long id , std::string reason )

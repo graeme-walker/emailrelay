@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -174,7 +174,7 @@ bool G::Str::isUShort( const std::string & s )
 {
 	try
 	{
-		G_IGNORE toUShort(s) ;
+		G_IGNORE_RETURN(unsigned short) toUShort(s) ;
 	}
 	catch( Overflow & )
 	{
@@ -191,7 +191,7 @@ bool G::Str::isUInt( const std::string & s )
 {
 	try
 	{
-		G_IGNORE toUInt(s) ;
+		G_IGNORE_RETURN(unsigned int) toUInt(s) ;
 	}
 	catch( Overflow & )
 	{
@@ -208,7 +208,7 @@ bool G::Str::isULong( const std::string & s )
 {
 	try
 	{
-		G_IGNORE toULong(s) ;
+		G_IGNORE_RETURN(unsigned long) toULong(s) ;
 	}
 	catch( Overflow & )
 	{
@@ -362,7 +362,7 @@ unsigned int G::Str::toUInt( const std::string &s , bool limited )
 unsigned long G::Str::toULong( const std::string &s , bool limited )
 {
 	char * end = NULL ;
-	unsigned long result = ::strtoul( s.c_str(), &end, 10 ) ;
+	unsigned long result = ::strtoul( s.c_str() , &end , 10 ) ;
 
 	if( end == 0 || end[0] != '\0' )
 		throw InvalidFormat( s ) ;
@@ -432,55 +432,73 @@ std::string G::Str::upper( const std::string & in )
 
 namespace
 {
-	struct PrintableAppender : std::unary_function<char,void>
+	template <typename Tchar = char , typename Tuchar = unsigned char>
+	struct PrintableAppender : std::unary_function<Tchar,void>
 	{
 		std::string & s ;
-		char escape ;
+		Tchar escape_in ;
+		char escape_out ;
 		bool eight_bit ;
-		PrintableAppender( std::string & s_ , char escape_ , bool eight_bit_ ) :
+		PrintableAppender( std::string & s_ , Tchar escape_ , bool eight_bit_ ) :
 			s(s_) ,
-			escape(escape_) ,
+			escape_in(escape_) ,
+			escape_out(static_cast<char>(escape_)) ,
 			eight_bit(eight_bit_)
 		{
 		}
-		void operator()( char c )
+		void operator()( Tchar c )
 		{
-			const unsigned char uc = static_cast<unsigned char>(c) ;
-			if( c == escape )
+			const Tuchar uc = static_cast<Tuchar>(c) ;
+			if( c == escape_in )
 			{
-				s.append( 2U , c ) ;
+				s.append( 2U , escape_out ) ;
 			}
-			else if( uc >= 0x20U && ( eight_bit || uc < 0x7fU ) && uc != 0xffU )
+			else if( !eight_bit && uc >= 0x20U && uc < 0x7FU && uc != 0xFFU )
 			{
-				s.append( 1U , c ) ;
+				s.append( 1U , static_cast<char>(c) ) ;
+			}
+			else if( eight_bit && ( ( uc >= 0x20U && uc < 0x7FU ) || uc >= 0xA0 ) && uc != 0xFFU )
+			{
+				s.append( 1U , static_cast<char>(c) ) ;
 			}
 			else
 			{
-				s.append( 1U , escape ) ;
-				if( c == '\n' )
+				s.append( 1U , escape_out ) ;
+				if( static_cast<char>(c) == '\n' )
 				{
 					s.append( 1U , 'n' ) ;
 				}
-				else if( c == '\r' )
+				else if( static_cast<char>(c) == '\r' )
 				{
 					s.append( 1U , 'r' ) ;
 				}
-				else if( c == '\t' )
+				else if( static_cast<char>(c) == '\t' )
 				{
 					s.append( 1U , 't' ) ;
 				}
-				else if( c == '\0' )
+				else if( c == 0 )
 				{
 					s.append( 1U , '0' ) ;
 				}
 				else
 				{
-					unsigned int n = uc ;
-					n = n & 0xffU ;
-					const char * const map = "0123456789abcdef" ;
 					s.append( 1U , 'x' ) ;
-					s.append( 1U , map[(n/16U)%16U] ) ;
-					s.append( 1U , map[n%16U] ) ;
+					const char * const map = "0123456789abcdef" ;
+					unsigned long n = uc ;
+					if( sizeof(Tchar) == 1 )
+					{
+						n &= 0xFFUL ;
+						s.append( 1U , map[(n/16UL)%16UL] ) ;
+						s.append( 1U , map[n%16UL] ) ;
+					}
+					else
+					{
+						n &= 0xFFFFUL ;
+						s.append( 1U , map[(n/4096UL)%16UL] ) ;
+						s.append( 1U , map[(n/256UL)%16UL] ) ;
+						s.append( 1U , map[(n/16UL)%16UL] ) ;
+						s.append( 1U , map[n%16UL] ) ;
+					}
 				}
 			}
 		}
@@ -490,21 +508,28 @@ std::string G::Str::printable( const std::string & in , char escape )
 {
 	std::string result ;
 	result.reserve( in.length() + 1U ) ;
-	std::for_each( in.begin() , in.end() , PrintableAppender(result,escape,true) ) ;
+	std::for_each( in.begin() , in.end() , PrintableAppender<char,unsigned char>(result,escape,true) ) ;
 	return result ;
 }
 std::string G::Str::toPrintableAscii( const std::string & in , char escape )
 {
 	std::string result ;
 	result.reserve( in.length() + 1U ) ;
-	std::for_each( in.begin() , in.end() , PrintableAppender(result,escape,false) ) ;
+	std::for_each( in.begin() , in.end() , PrintableAppender<char,unsigned char>(result,escape,false) ) ;
 	return result ;
 }
 std::string G::Str::toPrintableAscii( char c , char escape )
 {
 	std::string result ;
-	PrintableAppender append_printable( result , escape , false ) ;
+	PrintableAppender<char,unsigned char> append_printable( result , escape , false ) ;
 	append_printable( c ) ;
+	return result ;
+}
+std::string G::Str::toPrintableAscii( const std::wstring & in , wchar_t escape )
+{
+	std::string result ;
+	result.reserve( in.length() * 3U ) ;
+	std::for_each( in.begin() , in.end() , PrintableAppender<wchar_t,unsigned long>(result,escape,false) ) ;
 	return result ;
 }
 
@@ -522,7 +547,7 @@ void G::Str::readLineFrom( std::istream & stream , const std::string & eol , std
 	if( pre_erase )
 		line.erase() ;
 
-	// this is a special optimisation for a two-character terminator with a one-character initial string ;-)
+	// this is a special speed optimisation for a two-character terminator with a one-character initial string ;-)
 	if( eol.length() == 2U && eol[0] != eol[1] && line.length() == 1U )
 	{
 		// Save the initial character, use std::getline() for speed (terminating
@@ -690,7 +715,7 @@ void G::Str::splitIntoTokens( const std::string & in , Strings & out , const std
 {
 	splitIntoTokens_( in , out , ws ) ;
 }
-void G::Str::splitIntoTokens( const std::string &in , StringArray &out , const std::string & ws )
+void G::Str::splitIntoTokens( const std::string & in , StringArray & out , const std::string & ws )
 {
 	splitIntoTokens_( in , out , ws ) ;
 }
@@ -811,7 +836,7 @@ std::string G::Str::head( const std::string & in , std::string::size_type pos , 
 	return
 		pos == std::string::npos ?
 			default_ :
-			( pos == 0U ? std::string() : in.substr(0U,pos) ) ;
+			( pos == 0U ? std::string() : ( (pos+1U) >= in.length() ? in : in.substr(0U,pos) ) ) ;
 }
 
 std::string G::Str::tail( const std::string & in , std::string::size_type pos , const std::string & default_ )
@@ -819,7 +844,7 @@ std::string G::Str::tail( const std::string & in , std::string::size_type pos , 
 	return
 		pos == std::string::npos ?
 			default_ :
-			( (pos+1U) == in.length() ? std::string() : in.substr(pos+1U) ) ;
+			( (pos+1U) >= in.length() ? std::string() : in.substr(pos+1U) ) ;
 }
 
 bool G::Str::tailMatch( const std::string & in , const std::string & ending )

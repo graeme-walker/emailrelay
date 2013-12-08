@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 # 
 # This program is distributed in the hope that it will be useful,
@@ -15,35 +15,41 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ===
+#!/usr/bin/perl -w
 #
 # emailrelay-test.pl
 #
 # Tests the E-MailRelay system.
 #
-# This script should be run as root. It will not work on Windows, 
-# and some tests will probably only work on Linux. Also, some 
-# parameters may need tweaking depending on the performance of 
-# the machine. In other words, don't expect too much.
+# This script is best run as root. Some parameters might need tweaking 
+# depending on the speed of the machine.
 #
-# usage: emailrelay-test.pl [-d <bin-dir>] [-k]
+# usage: emailrelay-test.pl [-d <bin-dir>] [-k] [-v] [<test-name> ...]
+#      -d  - directory containing emailrelay binary
+#      -k  - keep going after a failed test
+#      -v  - verbose logging from this script
 #
 # Ubuntu package required: libnet-telnet-perl
 #
 # See also: man Net::Telnet
 #
 
+
 use strict ;
+die "emailrelay-test.pl: dont use msys perl" if $^O eq "msys" ;
 use Carp ;
 use FileHandle ;
 use Server ;
 use TestServer ;
 use Port ;
+use Helper ;
 use AdminClient ;
 use SmtpClient ;
 use PopClient ;
 use Check ;
 use System ;
 use Scanner ;
+use Verifier ;
 use Filter ;
 use Getopt::Std ;
 
@@ -51,18 +57,29 @@ $| = 1 ;
 
 # parse the command line
 my %opts = () ;
-getopts( 'd:k' , \%opts ) ;
+getopts( 'd:kv' , \%opts ) ;
 sub opt_bin_dir { return defined($opts{'d'}) ? $opts{'d'} : $_[0] }
 sub opt_keep_going { return exists $opts{'k'} }
-
 my $bin_dir = opt_bin_dir("../src/main") ;
 $Server::bin_dir = $bin_dir ;
 $System::bin_dir = $bin_dir ;
+$Helper::bin_dir = "." ;
+$TestServer::bin_dir = "." ;
+$System::verbose = 1 if exists $opts{'v'} ;
 
 my $run_all_ok = 1 ;
 
+sub requireUnix
+{
+	if( ! System::unix() )
+	{
+		die "skipped: not unix" ;
+	}
+}
+
 sub requireRoot
 {
+	# (typically called after requireUnix())
 	my $id = `id -u` ;
 	if( $id != 0 )
 	{
@@ -79,16 +96,47 @@ sub requireDebug
 	}
 }
 
+sub requirePop
+{
+	my ( $server ) = @_ ;
+	if( ! $server->canDo( "pop" , 1 ) )
+	{
+		die "skipped: not a pop build" ;
+	}
+}
+
+sub requireTestAccount
+{
+	die "skipped: no non-root test account" if( getTestAccount() eq "root" ) ;
+}
+
+sub getTestAccount
+{
+	if( System::mac() )
+	{
+		my $user = $ENV{LOGNAME} ;
+		$user = $ENV{SUDO_USER} if( $user eq "root" ) ;
+		return $user ;
+	}
+	else
+	{
+		return "bin" ;
+	}
+}
+
+# ===
+
 sub testServerShowsHelp
 {
 	# setup
 	my %args = (
 		Help => 1 ,
 	) ;
+	requireUnix() ; # could do better
 	my $server = new Server() ;
 
-	# test
-	Check::ok( $server->run(\%args) , "failed to run" , $server->message() , $server->command() ) ;
+	# test help output
+	Check::ok( $server->run(\%args,undef,undef,0) , "failed to run" , $server->message() , $server->command() ) ;
 	Check::that( $server->rc() == 0 , "non-zero exit" ) ;
 	Check::fileNotEmpty( $server->stdout() ) ;
 	Check::fileEmpty( $server->stderr() ) ;
@@ -106,6 +154,7 @@ sub testServerStartsAndStops
 		PidFile => 1 ,
 		SpoolDir => 1 ,
 	) ;
+	requireUnix() ;
 	my $server = new Server() ;
 	Check::that( $server->canRun() , "cannot run: port(s) already open" ) ;
 
@@ -123,7 +172,7 @@ sub testServerStartsAndStops
 	Check::ok( $c->open(0) , "cannot connect for smtp" , $server->smtpPort() ) ;
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	Check::fileEmpty( $server->stdout() , "stdout" ) ;
 	Check::fileEmpty( $server->stderr() , "stderr" ) ;
 	
@@ -155,7 +204,7 @@ sub testServerAdminTerminate
 	$c->doTerminate() ;
 	$server->wait( 100 ) ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	Check::fileEmpty( $server->stderr() , "stderr" ) ;
 
 	# tear down
@@ -169,7 +218,9 @@ sub testSubmit
 	my $path = System::createSmallMessageFile() ;
 
 	# test that the submit utility works
-	my $rc = system( "$bin_dir/emailrelay-submit --from me\@here.local --spool-dir $spool_dir me\@there.local < $path" ) ;
+	my $exe = System::weirdpath( System::exe( $bin_dir , "emailrelay-submit" ) ) ;
+	my $cmd = System::commandline( "$exe --from me\@here.local --spool-dir $spool_dir me\@there.local < $path" , {background=>0} ) ;
+	my $rc = system( $cmd ) ;
 	Check::that( $rc == 0 , "failed to submit" ) ;
 	Check::fileMatchCount( $spool_dir."/emailrelay.*.content" , 1 ) ;
 	Check::fileMatchCount( $spool_dir."/emailrelay.*.envelope" , 1 ) ;
@@ -184,7 +235,9 @@ sub testSubmit
 sub testPasswd
 {
 	# test that the password utility works (could do better)
-	my $result = `echo foobar | $bin_dir/emailrelay-passwd` ;
+	my $exe = System::weirdpath( System::exe( $bin_dir , "emailrelay-passwd" ) ) ;
+	my $fh = new FileHandle( "echo foobar | $exe |" ) ;
+	my $result = <$fh> ;
 	chomp $result ;
 	my $ok = ( $result eq "3507327710.2524437411.674156941.3275202688.3577739107.3692417735.1542828932.27631078" ) ;
 	Check::that( $ok , "password digest generation failed" ) ;
@@ -193,10 +246,12 @@ sub testPasswd
 sub testSubmitPermissions
 {
 	# setup -- group-suid-daemon exe, group-daemon directory (requires world execute on all directories up to /)
+	requireUnix() ;
 	requireRoot() ;
+	requireTestAccount() ;
 	my $exe = System::tempfile("submit","/tmp") ;
 	my $rc = system( "cp $bin_dir/emailrelay-submit $exe" ) ;
-	$rc += system( "chown daemon.daemon $exe" ) ;
+	$rc += system( "chown daemon:daemon $exe" ) ;
 	$rc += system( "chmod 755 $exe" ) ;
 	$rc += system( "chmod g+s $exe" ) ;
 	Check::that( $rc == 0 , "cannot create suid submit exe" ) ;
@@ -210,14 +265,15 @@ sub testSubmitPermissions
 
 	# test that group-suid-daemon submit executable creates files correctly
 	my $cmd = "$exe --from me\@here.local --spool-dir $spool_dir me\@there.local" ;
-	my $rc = system( "cat $path | su bin -c \"$cmd\"" ) ;
+	my $someuser = getTestAccount() ;
+	$rc = system( "cat $path | su -m $someuser -c \"$cmd\"" ) ;
 	Check::that( $rc == 0 , "failed to submit" ) ;
 	Check::fileMatchCount( $spool_dir."/emailrelay.*.content" , 1 ) ;
 	Check::fileMatchCount( $spool_dir."/emailrelay.*.envelope" , 1 ) ;
 	Check::fileNotEmpty( System::match($spool_dir."/emailrelay.*.content") ) ;
 	Check::fileNotEmpty( System::match($spool_dir."/emailrelay.*.envelope") ) ;
-	Check::fileOwner( System::match($spool_dir."/emailrelay.*.content") , "bin" ) ;
-	Check::fileOwner( System::match($spool_dir."/emailrelay.*.envelope") , "bin" ) ;
+	Check::fileOwner( System::match($spool_dir."/emailrelay.*.content") , $someuser ) ;
+	Check::fileOwner( System::match($spool_dir."/emailrelay.*.envelope") , $someuser ) ;
 	Check::fileGroup( System::match($spool_dir."/emailrelay.*.content") , "daemon" ) ;
 	Check::fileGroup( System::match($spool_dir."/emailrelay.*.envelope") , "daemon" ) ;
 	Check::fileMode( System::match($spool_dir."/emailrelay.*.content") , 0660 ) ;
@@ -238,21 +294,22 @@ sub testServerIdentityRunningAsRoot
 		SpoolDir => 1 ,
 		User => 1 ,
 	) ;
+	requireUnix() ;
 	requireRoot() ;
 	my $server = new Server() ;
 	$server->run( \%args , "sudo " ) ;
 	Check::running( $server->pid() , $server->message() ) ;
 
 	# test that the effective id comes from --user
-	Check::that( System::realUser($server->pid()) == System::uid("root") , "wrong real user" ) ;
-	Check::that( System::realGroup($server->pid()) == System::gid("root") , "wrong real group" );
-	Check::that( System::effectiveUser($server->pid()) == System::uid($server->user()) , "wrong effective user" ) ;
-	Check::that( System::effectiveGroup($server->pid()) == System::gid($server->user()) , "wrong effective group" );
+	Check::processRealUser( $server->pid() , "root" ) ;
+	Check::processRealGroup( $server->pid() , "root" ) ;
+	Check::processEffectiveUser( $server->pid() , $server->user() ) ;
+	Check::processEffectiveGroup( $server->pid() , $server->user() ) ;
 
 	# tear down
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 }
 
@@ -266,6 +323,7 @@ sub testServerIdentityRunningSuidRoot
 		SpoolDir => 1 ,
 		User => 1 ,
 	) ;
+	requireUnix() ;
 	requireRoot() ;
 	my $server = new Server() ;
 	my $exe = System::tempfile("emailrelay") ;
@@ -275,18 +333,19 @@ sub testServerIdentityRunningSuidRoot
 	$rc += system( "sudo chmod u+s $exe" ) ;
 	Check::that( $rc == 0 ) ;
 	$server->set_exe( $exe ) ;
-	$server->run( \%args , "sudo -u bin " ) ;
+	my $someuser = getTestAccount() ;
+	$server->run( \%args , "sudo -u $someuser " ) ;
 	Check::running( $server->pid() , $server->message() ) ;
 
-	# test that the effective id is the real id (bin) and not root or --user
-	Check::that( System::realUser($server->pid()) == System::uid("bin") , "wrong real user" ) ;
-	Check::that( System::effectiveUser($server->pid()) == System::uid("bin") , "wrong effective user" ) ;
-	Check::that( System::savedUser($server->pid()) == System::uid("root") , "wrong saved user" ) ;
+	# test that the effective id is the real id ($someuser) and not root or --user
+	Check::processRealUser( $server->pid() , $someuser ) ;
+	Check::processEffectiveUser( $server->pid() , $someuser ) ;
+	Check::processSavedUser( $server->pid() , "root" ) ;
 
 	# tear down
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 	unlink $exe ;
 }
@@ -324,7 +383,7 @@ sub testServerSmtpSubmit
 	# tear down
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 	System::deleteSpoolDir( $server->spoolDir() ) ;
 }
@@ -341,8 +400,15 @@ sub testServerPermissions
 		Verbose => 1 ,
 		#Debug => 1 ,
 	) ;
+	requireUnix() ;
 	requireRoot() ;
 	my $server = new Server() ;
+	# for bsd/mac the file group is inherited from the directory - also assume the 
+	# group name is the same as the user name
+	my $rc = 0 ;
+	$rc = system( "chgrp ".$server->user()." ".$server->spoolDir() ) if ( System::bsd() || System::mac() ) ;
+	$rc += system( "chmod 770 ".$server->spoolDir() ) if ( System::bsd() || System::mac() ) ;
+	Check::that( $rc == 0 , "chgrp/chmod of spool directory failed" ) ;
 	$server->run( \%args , "sudo " ) ;
 	Check::running( $server->pid() , $server->message() ) ;
 	my $client = new SmtpClient( $server->smtpPort() ) ;
@@ -350,8 +416,8 @@ sub testServerPermissions
 	$client->submit() ;
 
 	# test permissions of created files
-	Check::fileOwner( $server->pidFile() == "root" ) ;
-	Check::fileGroup( $server->pidFile() == $server->user() ) ;
+	Check::fileOwner( $server->pidFile() , "root" ) ;
+	Check::fileGroup( $server->pidFile() , $server->user() ) unless ( System::bsd() || System::mac() ) ;
 	Check::fileOwner( System::match($server->spoolDir()."/emailrelay.*.content") , "root" ) ;
 	Check::fileGroup( System::match($server->spoolDir()."/emailrelay.*.content") , $server->user() ) ;
 	Check::fileMode( System::match($server->spoolDir()."/emailrelay.*.content") , 0660 ) ;
@@ -362,7 +428,7 @@ sub testServerPermissions
 	# tear down
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 	System::deleteSpoolDir( $server->spoolDir() ) ;
 }
@@ -381,13 +447,13 @@ sub testServerPop
 		Verbose => 1 ,
 	) ;
 	my $server = new Server() ;
-	System::createFile( $server->popSecrets() , "login server me secret" ) ;
+	requirePop( $server ) ;
+	System::createFile( $server->popSecrets() , "server login me secret" ) ;
 	$server->run( \%args ) ;
 	Check::running( $server->pid() , $server->message() ) ;
 	my $pop = new PopClient( $server->popPort() ) ;
 	System::submitSmallMessage($server->spoolDir()) ;
-	#system( "chmod 700 ".$server->spoolDir() ) ;
-	#system( "cd ".$server->spoolDir()."; ls -1 | xargs -r chmod 600" ) ;
+	System::chmod_r( $server->spoolDir() , "700" , "600" ) ;
 
 	# test that the pop client can log in and get a message list
 	Check::that( Port::isFree($server->smtpPort()) ) ;
@@ -399,12 +465,12 @@ sub testServerPop
 	# tear down
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 	System::deleteSpoolDir( $server->spoolDir() ) ;
 }
 
-sub testServerPopList
+sub disabled_testServerPopList
 {
 	# setup
 	my %args = (
@@ -418,30 +484,32 @@ sub testServerPopList
 		Verbose => 1 ,
 	) ;
 	requireDebug() ;
-	$main::ENV{'G_TEST'} = 'log-flow-control large-pop-list' ; # 1000 dummy messages for each real one
+	my $bufferbloat = !System::linux() ; # cannot check flow control on bufferbloated systems
+
 	my $server = new Server() ;
-	System::createFile( $server->popSecrets() , "login server me secret" ) ;
-	$server->run( \%args ) ;
+	requirePop( $server ) ;
+	System::createFile( $server->popSecrets() , "server login me secret" ) ;
+	$server->run( \%args , undef , "log-flow-control_large-pop-list" ) ; # G_TEST
 	Check::running( $server->pid() , $server->message() ) ;
 	my $pop = new PopClient( $server->popPort() ) ;
-	my $message_count = 40 ; # enough to trigger flow control (?)
+	my $message_count = 40 ; # enough to trigger flow control? - tweak this
 	for( my $i = 0 ; $i < $message_count ; $i++ ) { System::submitSmallMessage($server->spoolDir()) }
-	system( "chmod 700 ".$server->spoolDir() ) ;
-	system( "cd ".$server->spoolDir()."; ls -1 | xargs -r chmod 600" ) ;
+	System::chmod_r( $server->spoolDir() , "700" , "600" ) ;
 
-	# test that the pop client can log in and get a message list and that flow control was excercised
+	# test that the pop client can log in and get a message list and that flow control was exercised
 	Check::that( Port::isFree($server->smtpPort()) ) ;
 	Check::ok( $pop->open() , "cannot connect to pop port" ) ;
 	Check::ok( $pop->login( "me" , "secret" ) ) ;
 	my @list = $pop->list(1,10) ;
+	# (must be a debug build for this to work)
 	Check::that( scalar(@list) == ($message_count * 1001) , "invalid message list (".scalar(@list).")" ) ;
-	Check::fileContains( $server->stderr() , "flow control asserted" , "edit the test to add more messages" ) ;
+	Check::fileContains( $server->stderr() , "flow control asserted" , "edit the test to add more messages" ) 
+		unless $bufferbloat ;
 
 	# tear down
-	$main::ENV{'G_TEST'} = 'xx' ;
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 	System::deleteSpoolDir( $server->spoolDir() ) ;
 }
@@ -461,7 +529,8 @@ sub testServerPopDisconnect
 		Debug => 1 ,
 	) ;
 	my $server = new Server() ;
-	System::createFile( $server->popSecrets() , "login server me secret" ) ;
+	requirePop( $server ) ;
+	System::createFile( $server->popSecrets() , "server login me secret" ) ;
 	$server->run( \%args ) ;
 	Check::running( $server->pid() , $server->message() ) ;
 	my $pop = new PopClient( $server->popPort() ) ;
@@ -477,7 +546,7 @@ sub testServerPopDisconnect
 	# tear down
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 }
 
@@ -508,7 +577,7 @@ sub testServerFlushNoMessages
 	# tear down
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 	System::deleteSpoolDir( $spool_dir ) ;
 }
@@ -538,13 +607,13 @@ sub testServerFlushNoServer
 	$c->doFlush() ;
 	my $line = $c->getline() ;
 	chomp $line ;
-	Check::match( $line , "^error: dns error: invalid host name:" , "unexpected response" ) ;
+	Check::match( $line , "^error: dns error: no such host" , "unexpected response" ) ;
 	Check::fileMatchCount( $spool_dir ."/emailrelay.*.envelope", 1 ) ;
 
 	# tear down
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 	System::deleteSpoolDir($spool_dir) ;
 }
@@ -611,6 +680,7 @@ sub testServerPolling
 		PidFile => 1 ,
 		Verbose => 1 ,
 		Poll => 1 ,
+		ConnectionTimeout => 1 ,
 	) ;
 	my $spool_dir_1 = System::createSpoolDir(undef,undef,"spool-1") ;
 	my $spool_dir_2 = System::createSpoolDir(undef,undef,"spool-2") ;
@@ -635,8 +705,8 @@ sub testServerPolling
 	$server_2->kill() ;
 	Check::notRunning( $server_1->pid() ) ;
 	Check::notRunning( $server_2->pid() ) ;
-	Check::fileDeleted( $server_1->pidFile() , "pid file" ) ;
-	Check::fileDeleted( $server_2->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server_1->pidFile() , "pid file" ) if System::unix() ;
+	Check::fileDeleted( $server_2->pidFile() , "pid file" ) if System::unix() ;
 	$server_1->cleanup() ;
 	$server_2->cleanup() ;
 	System::deleteSpoolDir($spool_dir_1) ;
@@ -648,6 +718,7 @@ sub testServerPollingOverlap
 	# setup
 	my %args = (
 		Log => 1 ,
+		LogTime => 1 ,
 		Port => 1 ,
 		Admin => 1 ,
 		SpoolDir => 1 ,
@@ -658,29 +729,26 @@ sub testServerPollingOverlap
 	) ;
 	my $spool_dir = System::createSpoolDir() ;
 	my $message_count = 1 ;
-	for( my $i = 0 ; $i < $message_count ; $i++ )
-	{
-		System::submitMessage( $spool_dir , undef , 1000 ) ;
-	}
+	System::submitMessages( $spool_dir , undef , $message_count , 10000 ) ;
 	Check::fileMatchCount( $spool_dir ."/emailrelay.*.content", $message_count ) ;
 	my $emailrelay = new Server(undef,undef,undef,$spool_dir) ;
 	my $test_server = new TestServer(10125) ;
 	$emailrelay->set_dst("localhost:".$test_server->port()) ;
-	$emailrelay->run(\%args) ;
 	$test_server->run("--slow") ;
+	$emailrelay->run(\%args) ;
 	Check::running( $emailrelay->pid() , $emailrelay->message() ) ;
 	Check::running( $test_server->pid() ) ;
 
-	# test that overlapping poll cycles result in an appropriate log message
-	Check::ok( System::drain($emailrelay->spoolDir(),10) , "message not forwarded" ) ;
-	Check::fileContains( $emailrelay->stderr() , "info: polling: still busy from last time" ) ;
+	# test that rapid polling and slow forwarding results in a still-busy log message
+	Check::ok( System::drain($emailrelay->spoolDir(),30) , "message not forwarded" ) ;
+	Check::fileContains( $emailrelay->stderr() , "still busy from last time" ) ;
 
 	# tear down
 	$emailrelay->kill() ;
 	$test_server->kill() ;
 	Check::notRunning( $emailrelay->pid() ) ;
 	Check::notRunning( $test_server->pid() ) ;
-	Check::fileDeleted( $emailrelay->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $emailrelay->pidFile() , "pid file" ) if System::unix() ;
 	$emailrelay->cleanup() ;
 	$test_server->cleanup() ;
 	System::deleteSpoolDir($spool_dir) ;
@@ -701,7 +769,7 @@ sub testServerWithBadClient
 	Check::ok( $server->run(\%args) ) ;
 	Check::running( $server->pid() , $server->message() ) ;
 
-	# test that the server drops the connection if we use the wrong client protocol
+	# test that the server drops the connection if we mess up the client protocol
 	my $c = new SmtpClient( $server->smtpPort() ) ;
 	Check::ok( $c->open() ) ;
 	$c->doBadHelo() ;
@@ -714,13 +782,14 @@ sub testServerWithBadClient
 			( $error =~ m/pattern match read eof/ ) ||
 			( $error =~ m/filehandle isn't open/ ) ;
 		$seen_reset = $seen_reset || $was_reset ;
+		System::sleep_cs( 20 ) ;
 	}
 	Check::that( $seen_reset , "connection not dropped" ) ;
 
 	# tear down
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 	System::deleteSpoolDir( $server->spoolDir() ) ;
 }
@@ -760,7 +829,7 @@ sub testServerSizeLimit
 	# tear down
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 	System::deleteSpoolDir( $server->spoolDir() ) ;
 }
@@ -770,6 +839,7 @@ sub testClientContinuesIfNoSecrets
 	# setup
 	my %server_args = (
 		Log => 1 ,
+		LogTime => 1 ,
 		Port => 1 ,
 		SpoolDir => 1 ,
 		PidFile => 1 ,
@@ -778,34 +848,39 @@ sub testClientContinuesIfNoSecrets
 	) ;
 	my %client_args = (
 		Log => 1 ,
+		Verbose => 1 ,
+		LogTime => 1 ,
 		SpoolDir => 1 ,
 		Verbose => 1 ,
 		Forward => 1 ,
 		ForwardTo => 1 ,
 		DontServe => 1 ,
 		NoDaemon => 1 ,
+		Hidden => 1 ,
 	) ;
 	my $server = new Server() ;
 	my $client = new Server() ;
 	$client->set_dst( "localhost:".$server->smtpPort() ) ;
-	System::createFile( $server->serverSecrets() , "login server me secret" ) ;
+	System::createFile( $server->serverSecrets() , "server login me secret" ) ;
 	System::submitSmallMessage( $client->spoolDir() ) ;
 	Check::ok( $server->run(\%server_args) ) ;
+	System::sleep_cs( 50 ) ; # just in case of slow startup
 
 	# test that the client gets as far as issuing the mail command
 	my $ok = $client->run( \%client_args ) ;
 	Check::ok( $ok ) ;
+	System::sleep_cs( 50 ) ; # let the logs flush
 	Check::fileContains( $client->stderr() , "MAIL FROM:" ) ;
 	Check::fileContains( $client->stderr() , "530 authentication required" ) ;
 
 	# tear down
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 	$client->cleanup() ;
 	System::deleteSpoolDir( $server->spoolDir() ) ;
-	System::deleteSpoolDir( $client->spoolDir() ) ;
+	System::deleteSpoolDir( $client->spoolDir() , 1 ) ;
 }
 
 sub testClientSavesReasonCode
@@ -820,22 +895,23 @@ sub testClientSavesReasonCode
 		DontServe => 1 ,
 		NoDaemon => 1 ,
 	) ;
-	my $server = new TestServer() ;
+	my $test_server = new TestServer() ;
 	my $client = new Server() ;
-	$client->set_dst( "localhost:".$server->port() ) ;
-	$server->run( "--fail-at 1" ) ;
+	$client->set_dst( "localhost:".$test_server->port() ) ;
+	$test_server->run( "--fail-at 1" ) ;
 	System::submitSmallMessage( $client->spoolDir() ) ;
 	System::submitSmallMessage( $client->spoolDir() ) ;
 
 	# test that the client runs but the failed message envelope has a reason code
 	Check::ok( $client->run(\%args) ) ;
-	Check::fileMatchCount( $client->spoolDir()."/emailrelay.*.content" , 1 ) ;
-	Check::fileMatchCount( $client->spoolDir()."/emailrelay.*.envelope*bad" , 1 ) ;
-	my @files = glob( $client->spoolDir()."/emailrelay*bad" ) ;
+	System::sleep_cs( 50 ) ;
+	Check::fileMatchCount( $client->spoolDir()."/emailrelay.*.content" , 1 , "content" ) ;
+	Check::fileMatchCount( $client->spoolDir()."/emailrelay.*.envelope*bad" , 1 , "bad envelope" ) ;
+	my @files = System::glob_( $client->spoolDir()."/emailrelay*bad" ) ;
 	Check::fileContains( $files[0] , "X-MailRelay-ReasonCode: 452" ) ;
 
 	# tear down
-	$server->cleanup() ;
+	$test_server->cleanup() ;
 	System::deleteSpoolDir( $client->spoolDir() , 1 ) ;
 }
 
@@ -850,11 +926,20 @@ sub testFilter
 		Filter => 1 ,
 	) ;
 	my $server = new Server() ;
-	my $outputfile = System::tempfile("output","/tmp") ; # writeable by daemon
-	Filter::create( $server->filter() , 
-		"echo \"\$\@\" | sed 's/^/arg: /' > $outputfile" ,
-		"env | sed 's/^/env: /' >> $outputfile" , 
-		"exit 0" ) ;
+	my $outputfile = System::tempfile("output",System::unix()?"/tmp":undef) ; # /tmp is writeable by daemon
+	Filter::create( $server->filter() , {
+			unix => [
+				"echo \"\$\@\" | sed 's/^/arg: /' > $outputfile" ,
+				"env | sed 's/^/env: /' >> $outputfile" , 
+				"exit 0" ,
+			] ,
+			win32 => [
+				"var fs = WScript.CreateObject(\"Scripting.FileSystemObject\");" ,
+				"var out_ = fs.OpenTextFile( \"$outputfile\" , 8 , true ) ;" ,
+				"out_.WriteLine( \"arg: \" + WScript.Arguments(0) ) ;" ,
+				"WScript.Quit(0);" ,
+			] ,
+		} ) ;
 	Check::ok( $server->run(\%args) ) ;
 	Check::running( $server->pid() , $server->message() ) ;
 	my $c = new SmtpClient( $server->smtpPort() ) ;
@@ -863,8 +948,9 @@ sub testFilter
 	# test that the filter is executed with the correct environment
 	$c->submit() ;
 	Check::that( -f $outputfile , "filter did not create an output file" ) ;
-	Check::fileContains( $outputfile , "arg: /" , "filter not passed an absolute path" ) ;
-	Check::fileLineCount( $outputfile , 4 , "env: " , "wrong number of environment variables" ) ;
+	Check::fileContains( $outputfile , "arg: " , "filter did not generate output" ) ;
+	Check::fileContains( $outputfile , "arg: /" , "filter not passed an absolute path" ) if System::unix() ;
+	Check::fileLineCountLessThan( $outputfile , 7 , "env: " , "wrong number of environment variables" ) if System::unix() ;
 	Check::fileMatchCount( $server->spoolDir()."/emailrelay.*.content" , 1 ) ;
 	Check::fileMatchCount( $server->spoolDir()."/emailrelay.*.envelope" , 1 ) ;
 
@@ -872,7 +958,7 @@ sub testFilter
 	unlink( $outputfile ) ;
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 	System::deleteSpoolDir( $server->spoolDir() ) ;
 }
@@ -886,28 +972,38 @@ sub testFilterIdentity
 		SpoolDir => 1 ,
 		PidFile => 1 ,
 		Filter => 1 ,
+		User => 1 ,
 	) ;
+	requireUnix() ;
 	requireRoot() ;
 	my $server = new Server() ;
 	Check::ok( $server->run(\%args) ) ;
 	Check::running( $server->pid() , $server->message() ) ;
 	my $outputfile = System::tempfile("output","/tmp") ;
-	Filter::create( $server->filter() , 
-		"cat /proc/self/status | fgrep id: | sed 's/^/proc: /' > $outputfile" , 
-		"exit 0" ) ;
+	Filter::create( $server->filter() , {
+			unix => [
+				'ps -p $$'." -o uid,ruid | sed 's/  */ /g' | sed 's/^ *//' > $outputfile" , 
+				"exit 0" ,
+			] ,
+			win32 => [
+				# not used
+			] ,
+		} ) ;
 	my $c = new SmtpClient( $server->smtpPort() ) ;
 	Check::ok( $c->open() ) ;
 
 	# test that the filter is executed with the correct identity
 	$c->submit() ;
 	Check::that( -f $outputfile , "filter did not create an output file" ) ;
-	Check::fileContains( $outputfile , "proc: Uid:\t1\t1" , "filter not run as uid 1" ) ;
+	my $uid1 = System::uid( $server->user() ) ;
+	my $uid2 = $uid1 - 4294967296 ; # negative ids on mac
+	Check::fileContainsEither( $outputfile , "$uid1 $uid1" , "$uid2 $uid2" , "filter not run as uid $uid1" ) ;
 
 	# tear down
 	unlink( $outputfile ) ;
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 	System::deleteSpoolDir( $server->spoolDir() ) ;
 }
@@ -917,6 +1013,7 @@ sub testFilterFailure
 	# setup
 	my %args = (
 		Log => 1 ,
+		LogTime => 1 ,
 		Port => 1 ,
 		SpoolDir => 1 ,
 		PidFile => 1 ,
@@ -925,7 +1022,20 @@ sub testFilterFailure
 	my $server = new Server() ;
 	Check::ok( $server->run(\%args) ) ;
 	Check::running( $server->pid() , $server->message() ) ;
-	Filter::create( $server->filter() , "echo aaa" , "echo '<<foo bar>> yy'" , "echo zzz" , "exit 3" ) ;
+	Filter::create( $server->filter() , {
+			unix => [
+				"echo aaa" , 
+				"echo '<<foo bar>> yy'" , 
+				"echo zzz" , 
+				"exit 3" ,
+			] ,
+			win32 => [
+				"WScript.StdOut.WriteLine(\"aaa\");" ,
+				"WScript.StdOut.WriteLine(\"<<foo bar>> yy\");" ,
+				"WScript.StdOut.WriteLine(\"zzz\");" ,
+				"WScript.Quit(3);" ,
+			] ,
+		} ) ;
 	my $c = new SmtpClient( $server->smtpPort() ) ;
 	Check::ok( $c->open() ) ;
 
@@ -938,7 +1048,7 @@ sub testFilterFailure
 	# tear down
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 	System::deleteSpoolDir( $server->spoolDir() ) ;
 }
@@ -978,7 +1088,19 @@ sub _testFilterWithFileDeletion
 	Check::ok( $server_2->run(\%args) ) ;
 	Check::running( $server_1->pid() , $server_1->message() ) ;
 	Check::running( $server_2->pid() , $server_2->message() ) ;
-	Filter::create( $server_1->filter() , 'rm `dirname $1`/emailrelay.*' , "exit $exit_code" ) ;
+	Filter::create( $server_1->filter() , {
+			unix => [
+				'rm `dirname $1`/emailrelay.*' , 
+				"exit $exit_code" ,
+			] ,
+			win32 => [
+				"var content = WScript.Arguments(0) ;" ,
+				"var spool_dir = content.substr(0,content.lastIndexOf(\"\\\\\")) ;" ,
+				"var fs = WScript.CreateObject(\"Scripting.FileSystemObject\") ;" ,
+				"fs.DeleteFile( spool_dir + \"\\\\emailrelay.*\" ) ;" ,
+				"WScript.Quit($exit_code);" ,
+			] ,
+		} ) ;
 	my $c = new SmtpClient( $server_1->smtpPort() ) ;
 	Check::ok( $c->open() ) ;
 
@@ -990,8 +1112,8 @@ sub _testFilterWithFileDeletion
 	$server_2->kill() ;
 	Check::notRunning( $server_1->pid() ) ;
 	Check::notRunning( $server_2->pid() ) ;
-	Check::fileDeleted( $server_1->pidFile() , "pid file" ) ;
-	Check::fileDeleted( $server_2->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server_1->pidFile() , "pid file" ) if System::unix() ;
+	Check::fileDeleted( $server_2->pidFile() , "pid file" ) if System::unix() ;
 	$server_1->cleanup() ;
 	$server_2->cleanup() ;
 	System::deleteSpoolDir( $server_1->spoolDir() ) ;
@@ -1015,7 +1137,14 @@ sub testFilterPollTimeout
 	$server->set_pollTimeout(999) ;
 	Check::ok( $server->run(\%args) , $server->message() ) ;
 	Check::running( $server->pid() , $server->message() ) ;
-	Filter::create( $server->filter() , "exit 103" ) ;
+	Filter::create( $server->filter() , {
+			unix => [
+				"exit 103" ,
+			] ,
+			win32 => [
+				"WScript.Quit(103) ;" ,
+			] ,
+		} ) ;
 	my $c = new SmtpClient( $server->smtpPort() ) ;
 	Check::ok( $c->open() ) ;
 
@@ -1027,7 +1156,7 @@ sub testFilterPollTimeout
 	# tear down
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	$server->cleanup() ;
 	System::deleteSpoolDir( $server->spoolDir() ) ;
 }
@@ -1044,7 +1173,7 @@ sub testScannerPass
 		Verbose => 1 ,
 	) ;
 	my $server = new Server() ;
-	my $scanner = new Scanner() ;
+	my $scanner = new Scanner( $server->scannerPort() ) ;
 	Check::ok( $server->run(\%args) , $server->message() ) ;
 	Check::running( $server->pid() , $server->message() ) ;
 	$scanner->run() ;
@@ -1055,8 +1184,8 @@ sub testScannerPass
 	$c->submit_start() ;
 	$c->submit_line( "send ok" ) ; # (the test scanner treats the message body as a script)
 	$c->submit_end() ;
-	Check::fileContains( $scanner->log() , "new connection from" ) ;
-	Check::fileContains( $scanner->log() , "send ok" ) ;
+	Check::fileContains( $scanner->logfile() , "new connection from" ) ;
+	Check::fileContains( $scanner->logfile() , "send ok" ) ;
 	Check::fileDoesNotContain( $server->stderr() , "message processing failed:" ) ;
 	Check::fileMatchCount( $server->spoolDir()."/emailrelay.*.envelope" , 1 ) ;
 
@@ -1064,7 +1193,7 @@ sub testScannerPass
 	$server->kill() ;
 	$scanner->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	Check::notRunning( $scanner->pid() ) ;
 	$server->cleanup() ;
 	$scanner->cleanup() ;
@@ -1083,7 +1212,7 @@ sub testScannerBlock
 		Verbose => 1 ,
 	) ;
 	my $server = new Server() ;
-	my $scanner = new Scanner() ;
+	my $scanner = new Scanner( $server->scannerPort() ) ;
 	Check::ok( $server->run(\%args) , $server->message() ) ;
 	Check::running( $server->pid() , $server->message() ) ;
 	$scanner->run() ;
@@ -1101,7 +1230,7 @@ sub testScannerBlock
 	$server->kill() ;
 	$scanner->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	Check::notRunning( $scanner->pid() ) ;
 	$server->cleanup() ;
 	$scanner->cleanup() ;
@@ -1121,7 +1250,7 @@ sub testScannerTimeout
 		FilterTimeout => 1 ,
 	) ;
 	my $server = new Server() ;
-	my $scanner = new Scanner() ;
+	my $scanner = new Scanner( $server->scannerPort() ) ;
 	Check::ok( $server->run(\%args) , $server->message() ) ;
 	Check::running( $server->pid() , $server->message() ) ;
 	$scanner->run() ;
@@ -1140,10 +1269,84 @@ sub testScannerTimeout
 	$server->kill() ;
 	$scanner->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
 	Check::notRunning( $scanner->pid() ) ;
 	$server->cleanup() ;
 	$scanner->cleanup() ;
+	System::deleteSpoolDir( $server->spoolDir() ) ;
+}
+
+sub testNetworkVerifierPass
+{
+	# setup
+	my %args = (
+		Log => 1 ,
+		Port => 1 ,
+		SpoolDir => 1 ,
+		PidFile => 1 ,
+		Verifier => 1 ,
+		Verbose => 1 ,
+	) ;
+	my $server = new Server() ;
+	my $verifier = new Verifier( $server->verifierPort() ) ;
+	Check::ok( $server->run(\%args) , $server->message() ) ;
+	Check::running( $server->pid() , $server->message() ) ;
+	$verifier->run() ;
+	my $c = new SmtpClient( $server->smtpPort() ) ;
+	Check::ok( $c->open() ) ;
+
+	# test that the verifier is used
+	$c->submit_start( "OK\@here" ) ; # the test verifier interprets this string
+	$c->submit_line( "just testing" ) ;
+	$c->submit_end() ;
+	Check::fileContains( $verifier->logfile() , "sending valid" ) ;
+	Check::fileDoesNotContain( $server->stderr() , "message processing failed:" ) ;
+	Check::fileMatchCount( $server->spoolDir()."/emailrelay.*.envelope" , 1 ) ;
+
+	# tear down
+	$server->kill() ;
+	$verifier->kill() ;
+	Check::notRunning( $server->pid() ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
+	Check::notRunning( $verifier->pid() ) ;
+	$server->cleanup() ;
+	$verifier->cleanup() ;
+	System::deleteSpoolDir( $server->spoolDir() ) ;
+}
+
+sub testNetworkVerifierFail
+{
+	# setup
+	my %args = (
+		Log => 1 ,
+		Port => 1 ,
+		SpoolDir => 1 ,
+		PidFile => 1 ,
+		Verifier => 1 ,
+		Verbose => 1 ,
+	) ;
+	my $server = new Server() ;
+	my $verifier = new Verifier( $server->verifierPort() ) ;
+	Check::ok( $server->run(\%args) , $server->message() ) ;
+	Check::running( $server->pid() , $server->message() ) ;
+	$verifier->run() ;
+	my $c = new SmtpClient( $server->smtpPort() ) ;
+	Check::ok( $c->open() ) ;
+
+	# test that the verifier can reject
+	$c->submit_start( "fail\@here" , 1 ) ; # the test verifier interprets this string
+	Check::fileContains( $verifier->logfile() , "sending error" ) ;
+	Check::fileContains( $server->stderr() , "mailbox unavailable" ) ;
+	Check::fileMatchCount( $server->spoolDir()."/emailrelay.*.envelope" , 0 ) ;
+
+	# tear down
+	$server->kill() ;
+	$verifier->kill() ;
+	Check::notRunning( $server->pid() ) ;
+	Check::fileDeleted( $server->pidFile() , "pid file" ) if System::unix() ;
+	Check::notRunning( $verifier->pid() ) ;
+	$server->cleanup() ;
+	$verifier->cleanup() ;
 	System::deleteSpoolDir( $server->spoolDir() ) ;
 }
 
@@ -1232,12 +1435,22 @@ sub testClientFilterPass
 	Check::ok( $server_2->run(\%server_args) ) ;
 	Check::running( $server_2->pid() , $server_2->message() ) ;
 	$server_1->set_dst("localhost:".$server_2->smtpPort()) ;
-	my $outputfile = System::tempfile("output","/tmp") ;
-	Filter::create( $server_1->clientFilter() , 
-		"echo \"\$\@\" | sed 's/^/arg: /' > $outputfile" ,
-		"env | sed 's/^/env: /' >> $outputfile" , 
-		"exit 0" ) ;
+	my $outputfile = System::tempfile("output",System::unix()?"/tmp":undef) ; # /tmp is writeable by daemon
+	Filter::create( $server_1->clientFilter() , {
+			unix => [
+				"echo \"\$\@\" | sed 's/^/arg: /' > $outputfile" ,
+				"env | sed 's/^/env: /' >> $outputfile" , 
+				"exit 0" ,
+			] ,
+			win32 => [
+				"var fs = WScript.CreateObject(\"Scripting.FileSystemObject\");" ,
+				"var out_ = fs.OpenTextFile( \"$outputfile\" , 8 , true ) ;" ,
+				"out_.WriteLine( \"arg: \" + WScript.Arguments(0) ) ;" ,
+				"WScript.Quit(0) ;" ,
+			] ,
+		} ) ;
 	Check::ok( $server_1->run(\%args) ) ;
+	System::sleep_cs( 50 ) ;
 
 	# test that the client filter runs and the messages are forwarded
 	Check::fileExists( $outputfile , "no output file generated by the client filter" ) ;
@@ -1266,6 +1479,7 @@ sub testClientFilterBlock
 		ClientFilter => 1 ,
 		DontServe => 1 ,
 		NoDaemon => 1 ,
+		Hidden => 1 ,
 	) ;
 	my $spool_dir_1 = System::createSpoolDir(undef,undef,"spool-1") ;
 	my $spool_dir_2 = System::createSpoolDir(undef,undef,"spool-2") ;
@@ -1280,14 +1494,29 @@ sub testClientFilterBlock
 	delete $server_args{ClientFilter} ;
 	delete $server_args{DontServe} ;
 	delete $server_args{NoDaemon} ;
+	delete $server_args{Hidden} ;
 	$server_args{PidFile} = 1 ;
 	$server_args{Port} = 1 ;
 	Check::ok( $server_2->run(\%server_args) ) ;
 	Check::running( $server_2->pid() , $server_2->message() ) ;
 	$server_1->set_dst("localhost:".$server_2->smtpPort()) ;
-	my $outputfile = System::tempfile("output","/tmp") ;
-	Filter::create( $server_1->clientFilter() , "echo '<<foo bar>>sldkfj'" , "echo a > $outputfile" , "exit 13" ) ;
+	my $outputfile = System::tempfile("output",System::unix()?"/tmp":undef) ; # /tmp is writeable by daemon
+	Filter::create( $server_1->clientFilter() , {
+			unix => [
+				"echo '<<foo bar>>sldkfj'" , 
+				"echo a > $outputfile" , 
+				"exit 13" ,
+			] ,
+			win32 => [
+				"WScript.StdOut.WriteLine(\"<<foo bar>>sldkfj\") ;" , 
+				"var fs = WScript.CreateObject(\"Scripting.FileSystemObject\");" ,
+				"var out_ = fs.OpenTextFile( \"$outputfile\" , 8 , true ) ;" ,
+				"out_.WriteLine(\"a\") ;" ,
+				"WScript.Quit(13) ;" ,
+			] ,
+		} ) ;
 	Check::ok( $server_1->run(\%args) ) ;
+	System::sleep_cs( 50 ) ;
 
 	# test that the client filter runs and the messages are failed
 	Check::fileExists( $outputfile , "no output file generated by the client filter" ) ;
@@ -1316,6 +1545,7 @@ sub testClientGivenUnknownMechanisms
 		DontServe => 1 ,
 		NoDaemon => 1 ,
 		ClientAuth => 1 ,
+		Hidden => 1 ,
 	) ;
 	my $spool_dir = System::createSpoolDir() ;
 	my $test_server = new TestServer() ;
@@ -1324,18 +1554,20 @@ sub testClientGivenUnknownMechanisms
 	System::submitSmallMessage($spool_dir) ;
 	Check::fileMatchCount( $spool_dir ."/emailrelay.*.envelope", 2 ) ;
 	my $emailrelay = new Server( undef , undef , undef , $spool_dir ) ;
-	System::createFile( $emailrelay->clientSecrets() , "login client me secret" ) ;
+	System::createFile( $emailrelay->clientSecrets() , "client login me secret" ) ;
 	$emailrelay->set_dst( "localhost:".$test_server->port() ) ;
 
-	# test that protocol fails and the messages remain spooled
-	$emailrelay->run( \%args ) ;
-	Check::fileMatchCount( $spool_dir ."/emailrelay.*.envelope", 2 ) ;
-	Check::fileContains( $emailrelay->stderr() , "cannot do authentication mandated by the remote smtp server" ) ;
+	# test that protocol fails and one message fails (change for 1.9)
+	Check::ok( $emailrelay->run( \%args ) ) ;
+	System::sleep_cs( 50 ) ;
+	Check::fileContains( $emailrelay->stderr() , "cannot do authentication mandated by " ) ;
+	Check::fileMatchCount( $spool_dir ."/emailrelay.*.envelope", 1 ) ;
+	Check::fileMatchCount( $spool_dir ."/emailrelay.*.envelope.bad", 1 ) ;
 
 	# tear down
 	$emailrelay->cleanup() ;
 	$test_server->cleanup() ;
-	System::deleteSpoolDir( $spool_dir ) ;
+	System::deleteSpoolDir( $spool_dir , 1 ) ;
 }
 
 sub testClientAuthenticationFailure
@@ -1349,6 +1581,7 @@ sub testClientAuthenticationFailure
 		DontServe => 1 ,
 		NoDaemon => 1 ,
 		ClientAuth => 1 ,
+		Hidden => 1 ,
 	) ;
 	my $spool_dir = System::createSpoolDir() ;
 	my $test_server = new TestServer() ;
@@ -1357,18 +1590,20 @@ sub testClientAuthenticationFailure
 	System::submitSmallMessage($spool_dir) ;
 	Check::fileMatchCount( $spool_dir ."/emailrelay.*.envelope", 2 ) ;
 	my $emailrelay = new Server( undef , undef , undef , $spool_dir ) ;
-	System::createFile( $emailrelay->clientSecrets() , "login client me secret" ) ;
+	System::createFile( $emailrelay->clientSecrets() , "client login me secret" ) ;
 	$emailrelay->set_dst( "localhost:".$test_server->port() ) ;
 
-	# test that protocol fails and the messages remain spooled
-	$emailrelay->run( \%args ) ;
-	Check::fileMatchCount( $spool_dir ."/emailrelay.*.envelope", 2 ) ;
+	# test that protocol fails and one message fails (1.9)
+	Check::ok( $emailrelay->run( \%args ) ) ;
+	System::sleep_cs( 50 ) ;
 	Check::fileContains( $emailrelay->stderr() , "authentication error" ) ;
+	Check::fileMatchCount( $spool_dir ."/emailrelay.*.envelope", 1 ) ;
+	Check::fileMatchCount( $spool_dir ."/emailrelay.*.envelope.bad", 1 ) ;
 
 	# tear down
 	$emailrelay->cleanup() ;
 	$test_server->cleanup() ;
-	System::deleteSpoolDir( $spool_dir ) ;
+	System::deleteSpoolDir( $spool_dir , 1 ) ;
 }
 
 sub testClientMessageFailure
@@ -1381,6 +1616,7 @@ sub testClientMessageFailure
 		ForwardTo => 1 ,
 		DontServe => 1 ,
 		NoDaemon => 1 ,
+		Hidden => 1 ,
 	) ;
 	my $spool_dir = System::createSpoolDir() ;
 	my $test_server = new TestServer() ;
@@ -1394,10 +1630,49 @@ sub testClientMessageFailure
 	$emailrelay->set_dst( "localhost:".$test_server->port() ) ;
 
 	# test that two of the four messages are left as ".bad"
-	$emailrelay->run( \%args ) ;
+	Check::ok( $emailrelay->run( \%args ) ) ;
+	System::sleep_cs( 50 ) ;
 	Check::fileMatchCount( $spool_dir ."/emailrelay.*.content", 2 ) ;
 	Check::fileMatchCount( $spool_dir ."/emailrelay.*.envelope.bad", 2 ) ;
 	Check::fileMatchCount( $spool_dir ."/emailrelay.*.envelope", 0 ) ;
+
+	# tear down
+	$emailrelay->cleanup() ;
+	$test_server->cleanup() ;
+	System::deleteSpoolDir( $spool_dir , 1 ) ;
+}
+
+sub testClientInvalidRecipients
+{
+	# setup
+	my %args = (
+		Log => 1 ,
+		SpoolDir => 1 ,
+		Forward => 1 ,
+		ForwardTo => 1 ,
+		DontServe => 1 ,
+		NoDaemon => 1 ,
+		Hidden => 1 ,
+	) ;
+	my $spool_dir = System::createSpoolDir() ;
+	my $test_server = new TestServer() ;
+	$test_server->run() ;
+	System::submitSmallMessage( $spool_dir , undef , "acceptme\@there.com" ) ;
+	System::submitSmallMessage( $spool_dir , undef , "acceptme1\@there.com" , "acceptme2\@there.com" ) ;
+	System::submitSmallMessage( $spool_dir , undef , "acceptme\@there.com" , "rejectme\@there.com" ) ;
+	System::submitSmallMessage( $spool_dir , undef , "rejectme\@there.com" ) ;
+	System::submitSmallMessage( $spool_dir , undef , "rejectme1\@there.com" , "rejectme2\@there.com" ) ;
+	Check::fileMatchCount( $spool_dir ."/emailrelay.*.envelope", 5 ) ;
+	my $emailrelay = new Server( undef , undef , undef , $spool_dir ) ;
+	$emailrelay->set_dst( "localhost:".$test_server->port() ) ;
+
+	# test that the three "rejectme" messages out of five are left as ".bad"
+	Check::ok( $emailrelay->run( \%args ) ) ;
+	System::sleep_cs( 50 ) ;
+	Check::fileMatchCount( $spool_dir ."/emailrelay.*.content", 3 ) ;
+	Check::fileMatchCount( $spool_dir ."/emailrelay.*.envelope.bad", 3 ) ;
+	Check::fileMatchCount( $spool_dir ."/emailrelay.*.envelope", 0 ) ;
+	Check::allFilesContain( $spool_dir ."/emailrelay.*.envelope.bad" , "one or more recipients rejected" ) ;
 
 	# tear down
 	$emailrelay->cleanup() ;
@@ -1410,13 +1685,6 @@ sub testClientMessageFailure
 sub run
 {
 	my ( $name ) = @_ ;
-	my %map = () ;
-	for my $arg ( @ARGV ) { $map{$arg} = 1 }
-	if( scalar(@ARGV) && !exists $map{$name} )
-	{
-		print "(skipping $name)\n" ;
-		return ;
-	}
 	print "running $name ... " ;
 	eval $name."()";
 	my $error = $@ ;
@@ -1433,7 +1701,7 @@ sub run
 			$run_all_ok = 0 ;
 			if( ! opt_keep_going )
 			{
-				last ;
+				return 0 ;
 			}
 		}
 	}
@@ -1441,6 +1709,7 @@ sub run
 	{
 		print "ok\n" ;
 	}
+	return 1 ;
 }
 
 # introspection
@@ -1452,13 +1721,42 @@ while( <$f> )
 	if( $line =~ m/^sub test/ )
 	{
 		my @line_part = split( /\s+/ , $line ) ;
-		push @tests , @line_part[1] ;
+		push @tests , $line_part[1] ;
 	}
 }
 
+# start from a clean state
+if( !System::unix() )
+{
+	System::killall( "emailrelay-*" ) ;
+}
+
+my %run_tests = () ;
+my %skip_tests = () ;
+my $run_tests = 0 ;
+for my $arg ( @ARGV ) 
+{ 
+	if( $arg =~ m/^-/ )
+	{
+		$skip_tests{substr($arg,1)} = 1 ;
+	}
+	else
+	{
+		$arg =~ s/^\+// ;
+		$run_tests{$arg} = 1 ;
+		$run_tests++ ;
+	}
+}
 for my $test ( @tests )
 {
-	run( $test ) ;
+	if( ( $run_tests && !exists $run_tests{$test} ) || $skip_tests{$test} )
+	{
+		print "(skipping $test)\n" ;
+	}
+	else
+	{
+		last if !run( $test ) ;
+	}
 }
 
 if( !$run_all_ok )
@@ -1470,7 +1768,7 @@ if( !$run_all_ok )
 
 sub cleanup
 {
-	for my $pid ( @Server::pid_list , @Scanner::pid_list , @TestServer::pid_list )
+	for my $pid ( @Server::pid_list , @Helper::pid_list , @TestServer::pid_list )
 	{
 		if( defined($pid) && $pid > 0 )
 		{

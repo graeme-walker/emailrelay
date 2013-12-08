@@ -1,8 +1,8 @@
-.\" Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+.\" Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 .\" 
 .\" This program is free software: you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
-.\" the Free Software Foundation, either version 3 of the License, or 
+.\" the Free Software Foundation, either version 3 of the License, or
 .\" (at your option) any later version.
 .\" 
 .\" This program is distributed in the hope that it will be useful,
@@ -19,34 +19,34 @@ emailrelay \- e-mail transfer agent and proxy
 .B emailrelay
 [OPTIONS]
 .LP
-.B emailrelay 
+.B emailrelay
 --as-server
 .LP
 .B emailrelay
---as-client 
+--as-client
 .I server-address
 .LP
 .B emailrelay
---as-proxy 
+--as-proxy
 .I server-address
 .SH DESCRIPTION
 .I emailrelay
 is a simple SMTP proxy and store-and-forward message transfer agent.
-It does store-and-forward mail relay to a fixed next-hop server, without 
-any routing. 
+It does store-and-forward mail relay to a fixed next-hop server, without
+any routing.
 .LP
-It runs in two main modes: a storage daemon 
-.RI ( --as-server ) 
-and a forwarding 
-agent 
-.RI ( --as-client ). 
-The storage daemon is an SMTP server which stores e-mail 
+It runs in two main modes: a storage daemon
+.RI ( --as-server )
+and a forwarding
+agent
+.RI ( --as-client ).
+The storage daemon is an SMTP server which stores e-mail
 messages in a local spool directory. The forwarding agent acts as an
 SMTP client sending the spooled e-mail messages on to the next
 SMTP server in the chain.
 .LP
 It can also run in a third mode, as a proxy server
-.RI ( --as-proxy ). 
+.RI ( --as-proxy ).
 In this mode all messages are forwarded immediately to the next-hop
 server. Messages are only fully accepted from the sender once they
 have been successfully delivered to the next-hop server.
@@ -62,13 +62,13 @@ Enables the terminate command on the admin interface.
 Disables the smtp vrfy command and sends less verbose smtp responses.
 .TP
 .B \-q, --as-client \fI<host:port>\fR
-Runs as a client, forwarding spooled mail to <host>: equivalent to \fI--log\fR \fI--no-syslog\fR \fI--no-daemon\fR \fI--dont-serve\fR \fI--forward\fR \fI--forward-to\fR.
+Runs as a client, forwarding all spooled mail to <host>: equivalent to \fI--log\fR \fI--no-syslog\fR \fI--no-daemon\fR \fI--dont-serve\fR \fI--forward\fR \fI--forward-to\fR.
 .TP
 .B \-y, --as-proxy \fI<host:port>\fR
-Runs as a proxy: equivalent to \fI--log\fR \fI--close-stderr\fR \fI--poll\fR=0 \fI--forward-to\fR.
+Runs as a proxy server, forwarding each mail immediately to <host>: equivalent to \fI--log\fR \fI--close-stderr\fR \fI--poll\fR=0 \fI--forward-to\fR.
 .TP
 .B \-d, --as-server 
-Runs as a server: equivalent to \fI--log\fR \fI--close-stderr\fR.
+Runs as a server, storing mail in the spool directory: equivalent to \fI--log\fR \fI--close-stderr\fR.
 .TP
 .B \-C, --client-auth \fI<file>\fR
 Enables smtp authentication with the remote server, using the given secrets file.
@@ -77,7 +77,10 @@ Enables smtp authentication with the remote server, using the given secrets file
 Specifies an external program to process messages when they are forwarded.
 .TP
 .B \-j, --client-tls 
-Enables tls/ssl layer for smtp client (if openssl built in).
+Enables negotiated tls/ssl for smtp client (if openssl built in).
+.TP
+.B \-b, --client-tls-connection 
+Enables smtp over tls/ssl for smtp client (if openssl built in).
 .TP
 .B \-e, --close-stderr 
 Closes the standard error stream soon after start-up.
@@ -86,7 +89,7 @@ Closes the standard error stream soon after start-up.
 Sets the timeout (in seconds) when connecting to a remote server (default is 40).
 .TP
 .B \-g, --debug 
-Generates debug-level logging if compiled-in.
+Generates debug-level logging if built in.
 .TP
 .B \-D, --domain \fI<fqdn>\fR
 Sets an override for the host's fully qualified domain name.
@@ -112,11 +115,11 @@ Displays help text and exits.
 .B \-m, --immediate 
 Enables immediate forwarding of messages as soon as they are received (requires \fI--forward-to\fR).
 .TP
-.B \-I, --interface \fI<ip-address>\fR
-Defines the listening interface for incoming connections.
+.B \-I, --interface \fI<ip-list>\fR
+Defines the listening interface(s) for incoming connections (comma-separated list with optional smtp=,pop=,admin= qualifiers).
 .TP
 .B \-l, --log 
-Writes log information on standard error and syslog.
+Writes log information on standard error and syslog (but see \fI--close-stderr\fR and \fI--no-syslog\fR).
 .TP
 .B \-L, --log-time 
 Adds a timestamp to the logging output.
@@ -134,7 +137,7 @@ Disables syslog output (always overridden by \fI--syslog\fR).
 Defines a file for storing the daemon process-id.
 .TP
 .B \-O, --poll \fI<period>\fR
-Enables polling of the spool directory for messages to be forwarded with the specified period (requires \fI--forward-to\fR).
+Enables polling of the spool directory for messages to be forwarded with the specified period (zero means on client disconnection) (requires \fI--forward-to\fR).
 .TP
 .B \-B, --pop 
 Enables the pop server.
@@ -143,19 +146,19 @@ Enables the pop server.
 Defines the pop server secrets file (default is \fI/etc/emailrelay.auth\fR).
 .TP
 .B \-J, --pop-by-name 
-Modifies the pop spool directory according to the user name (requires \fI--pop\fR).
+Modifies the pop spool directory according to the pop user name (requires \fI--pop\fR).
 .TP
 .B \-G, --pop-no-delete 
 Disables message deletion via pop (requires \fI--pop\fR).
 .TP
 .B \-E, --pop-port \fI<port>\fR
-Specifies the pop listening port number (requires \fI--pop\fR).
+Specifies the pop listening port number (default is 110) (requires \fI--pop\fR).
 .TP
 .B \-p, --port \fI<port>\fR
-Specifies the smtp listening port number.
+Specifies the smtp listening port number (default is 25).
 .TP
 .B \-w, --prompt-timeout \fI<time>\fR
-Sets the timeout (in seconds) for getting an initial prompt from the server.
+Sets the timeout (in seconds) for getting an initial prompt from the server (default is 20).
 .TP
 .B \-r, --remote-clients 
 Allows remote clients to connect.
@@ -167,7 +170,7 @@ Sets the response timeout (in seconds) when talking to a remote server (default 
 Enables authentication of remote clients, using the given secrets file.
 .TP
 .B \-K, --server-tls \fI<pem-file>\fR
-Enables tls/ssl layer for smtp server using the given openssl certificate file (if openssl built in).
+Enables negotiated tls/ssl for smtp server using the given openssl certificate file (which must be in the directory trusted by openssl).
 .TP
 .B \-M, --size \fI<bytes>\fR
 Limits the size of submitted messages.
@@ -177,6 +180,9 @@ Specifies the spool directory (default is \fI/var/spool/emailrelay\fR).
 .TP
 .B \-k, --syslog 
 Forces syslog output if logging is enabled (overrides \fI--no-syslog\fR).
+.TP
+.B \-0, --tls-config \fI<flags>\fR
+Sets tls configuration flags (eg. 2 for SSLv2 support).
 .TP
 .B \-u, --user \fI<username>\fR
 Names the effective user to switch to if started as root (default is \fIdaemon\fR).
@@ -195,6 +201,8 @@ GNU style...
 /usr/local/etc/emailrelay.conf
 .br
 /usr/local/etc/emailrelay.conf.template
+.br
+/usr/local/etc/pam.d/emailrelay
 .br
 /usr/local/libexec/emailrelay/emailrelay-filter-copy
 .br
@@ -226,9 +234,9 @@ FHS style...
 .br
 /etc/emailrelay.conf
 .br
-/etc/emailrelay.conf.template
-.br
 /etc/init.d/emailrelay
+.br
+/etc/pam.d/emailrelay
 .br
 /usr/lib/emailrelay/emailrelay-filter-copy
 .br

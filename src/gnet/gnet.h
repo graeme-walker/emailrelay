@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,11 +33,9 @@
 	#include <arpa/inet.h> // for inet_ntoa()
 	typedef int SOCKET ; // used in gdescriptor.h
 #else
-	///<#include <winsock.h> // winsock.h comes via windows.h
 	typedef int socklen_t ;
 #endif
-
-typedef unsigned short g_port_t ; // ('in_port_t' is not defined on many systems)
+typedef g_uint16_t g_port_t ; // 'in_port_t' not always available
 
 #ifndef INADDR_NONE
 #define INADDR_NONE 0xffffffff // (should be in netinet/in.h)

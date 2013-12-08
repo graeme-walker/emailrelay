@@ -1,9 +1,9 @@
 #
-## Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or 
+## the Free Software Foundation, either version 3 of the License, or
 ## (at your option) any later version.
 ## 
 ## This program is distributed in the hope that it will be useful,
@@ -31,21 +31,15 @@ CONFIG_EXTRA_DIST = commandline_simple.cpp
 CONFIG_SOURCES = commandline_full.cpp
 endif
 
-if SMALL_FRAGMENTS
-FRAGMENTS_LDADD = $(top_builddir)/src/fragments/libfragments.a
-else
-FRAGMENTS_LDADD = 
-endif
-
 BUNDLE=E-MailRelay-Start
 if MAC
-MAC_PROGS = emailrelay-start
-MAC_EXTRA_DIST =
-MAC_NOINST = $(BUNDLE).app
+ MAC_PROGS = emailrelay-start
+ MAC_EXTRA_DIST =
+ MAC_NOINST = $(BUNDLE).app
 else
-MAC_PROGS =
-MAC_EXTRA_DIST = start.cpp
-MAC_NOINST =
+ MAC_PROGS =
+ MAC_EXTRA_DIST = start.cpp
+ MAC_NOINST =
 endif
 
 # force symbol stripping on 'make install' -- see also make 'install-strip'
@@ -55,11 +49,7 @@ EXTRA_DIST=\
 	$(ADMIN_EXTRA_DIST) \
 	$(CONFIG_EXTRA_DIST) \
 	$(MAC_EXTRA_DIST) \
-	common.dsp \
-	doxygen.cfg \
 	doxygen.h \
-	emailrelay.dsp \
-	filter.dsp \
 	emailrelay.rc \
 	icon1.ico \
 	icon2.ico \
@@ -68,16 +58,12 @@ EXTRA_DIST=\
 	messages.mc \
 	news.cpp \
 	news.h \
-	passwd.dsp \
-	poke.dsp \
 	resource.h \
-	service.dsp \
 	service_install.cpp \
 	service_install.h \
 	service_remove.cpp \
 	service_remove.h \
 	service_wrapper.cpp \
-	submit.dsp \
 	winapp.cpp \
 	winapp.h \
 	winform.cpp \
@@ -85,10 +71,10 @@ EXTRA_DIST=\
 	winmain.cpp \
 	winmenu.cpp \
 	winmenu.h \
-	mingw.c \
+	fakemc.c \
 	mingw.mak
 
-INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gssl -I$(top_srcdir)/src/gnet -I$(top_srcdir)/src/gsmtp -I$(top_srcdir)/src/gpop -DG_SPOOLDIR=\"$(e_spooldir)\"
+INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gssl -I$(top_srcdir)/src/gnet -I$(top_srcdir)/src/gauth -I$(top_srcdir)/src/gsmtp -I$(top_srcdir)/src/gpop -DG_SPOOLDIR=\"$(e_spooldir)\" -DG_CAPABILITIES=\"$(G_CAPABILITIES)\"
 
 sbin_PROGRAMS = emailrelay emailrelay-submit emailrelay-passwd $(MAC_PROGS)
 e_libexec_PROGRAMS = emailrelay-poke emailrelay-filter-copy
@@ -111,17 +97,16 @@ emailrelay_SOURCES = \
 	run.h
 
 COMMON_LDADD = \
-	$(FRAGMENTS_LDADD) \
-	$(top_builddir)/src/glib/libglib.a \
-	$(FRAGMENTS_LDADD)
+	$(top_builddir)/src/glib/libglib.a
 
 emailrelay_LDADD = \
 	$(top_builddir)/src/gpop/libgpop.a \
 	$(top_builddir)/src/gsmtp/libgsmtp.a \
+	$(top_builddir)/src/gauth/libgauth.a \
 	$(top_builddir)/src/gnet/libgnet.a \
 	$(top_builddir)/src/gssl/libgssl.a \
 	$(COMMON_LDADD) \
-	$(STATIC_START) $(SSL_LIBS) $(STATIC_END)
+	$(STATIC_START) $(PAM_LIBS) $(SSL_LIBS) $(STATIC_END)
 
 emailrelay_poke_SOURCES = poke.c
 emailrelay_poke_LDADD =
@@ -133,6 +118,7 @@ emailrelay_passwd_LDADD = \
 emailrelay_submit_SOURCES = submit.cpp legal.cpp legal.h
 emailrelay_submit_LDADD = \
 	$(top_builddir)/src/gsmtp/libgsmtp.a \
+	$(top_builddir)/src/gauth/libgauth.a \
 	$(top_builddir)/src/gnet/libgnet.a \
 	$(COMMON_LDADD)
 
@@ -143,7 +129,8 @@ emailrelay_filter_copy_LDADD = \
 emailrelay_start_SOURCES = start.cpp
 emailrelay_start_LDADD =
 
-install-data-local: install-sbinPROGRAMS install-e_spoolDATA install-e_libexecPROGRAMS
+install-data-local: install-sbinPROGRAMS install-e_spoolDATA install-e_libexecPROGRAMS 
+	-mkdir -p "$(DESTDIR)$(e_spooldir)"
 	-chgrp daemon "$(DESTDIR)$(e_spooldir)"
 	-chmod 775 "$(DESTDIR)$(e_spooldir)"
 	-chgrp daemon "$(DESTDIR)$(sbindir)/emailrelay-submit"

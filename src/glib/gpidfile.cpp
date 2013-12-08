@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -60,7 +60,7 @@ void G::PidFile::create( const Path & pid_file )
 		file << pid.str() << std::endl ;
 		if( !file.good() )
 			throw Error(std::string("cannot create file: ")+pid_file.str()) ;
-		Cleanup::add( cleanup , (new std::string(pid_file.str()))->c_str() ) ; // (leaks)
+		Cleanup::add( cleanup , (new std::string(pid_file.str()))->c_str() ) ; // (leak)
 	}
 }
 

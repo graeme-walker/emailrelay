@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ namespace GPop
 /// Instances are created on the heap by Server (only).
 /// \see GPop::Server
 ///
-class GPop::ServerPeer : public GNet::BufferedServerPeer , private GPop::ServerProtocol::Sender
+class GPop::ServerPeer : public GNet::BufferedServerPeer , private GPop::ServerProtocol::Sender , private GPop::ServerProtocol::Security
 {
 public:
 	G_EXCEPTION( SendError , "network send error" ) ;
@@ -66,11 +66,17 @@ protected:
 	virtual bool onReceive( const std::string & ) ;
 		///< Final override from GNet::BufferedServerPeer.
 
-	virtual void onSecure() ;
+	virtual void onSecure( const std::string & ) ;
 		///< Final override from GNet::SocketProtocolSink.
 
 	virtual void onSendComplete() ;
 		///< Final override from GNet::BufferedServerPeer.
+
+	virtual bool securityEnabled() const ;
+		///< Final override from GPop::ServerProtocol::Security.
+
+	virtual void securityStart() ;
+		///< Final override from GPop::ServerProtocol::Security.
 
 private:
 	ServerPeer( const ServerPeer & ) ;

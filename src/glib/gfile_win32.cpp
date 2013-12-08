@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -37,8 +37,8 @@ bool G::File::executable( const Path & path )
 
 std::string G::File::sizeString( const Path & path )
 {
-	WIN32_FIND_DATA info ;
-	HANDLE h = ::FindFirstFile( path.str().c_str() , &info ) ;
+	WIN32_FIND_DATAA info ;
+	HANDLE h = ::FindFirstFileA( path.str().c_str() , &info ) ;
 	if( h == INVALID_HANDLE_VALUE )
 		return std::string() ;
 

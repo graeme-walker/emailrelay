@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 # 
 # This program is distributed in the hope that it will be useful,
@@ -18,6 +18,8 @@
 #
 # Port.pm
 #
+# A module for checking open ports.
+#
 
 use strict ;
 use FileHandle ;
@@ -26,7 +28,8 @@ package Port ;
 
 sub list
 {
-	my $f = new FileHandle( "netstat -ant |" ) ;
+	my $netstat = ( System::mac() || System::bsd() ) ? "netstat -an -f inet" : "netstat -ant" ;
+	my $f = new FileHandle( "$netstat |" ) ;
 	my $nr = 1 ;
 	my @ports = () ;
 	for( ; <$f> ; $nr++ )
@@ -36,8 +39,8 @@ sub list
 		{
 			my @line_part = split( /\s+/ , $line ) ;
 			my $address = $line_part[3] ;
-			( my $port = $address ) =~ s/.*:// ;
-			if( $line_part[5] eq "LISTEN" )
+			my ( $port ) = ( $address =~ m/([0-9]+)$/ ) ;
+			if( defined($line_part[5]) && $line_part[5] eq "LISTEN" )
 			{
 				push @ports , $port ;
 			}

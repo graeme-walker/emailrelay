@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,9 +23,10 @@
 #include "gclient.h"
 
 GNet::Client::Client( const ResolverInfo & remote_info , unsigned int connection_timeout ,
-	unsigned int response_timeout , const std::string & eol , const Address & local_interface ,
+	unsigned int response_timeout , unsigned int secure_connection_timeout ,
+	const std::string & eol , const Address & local_interface ,
 	bool privileged , bool sync_dns ) :
-		HeapClient(remote_info,local_interface,privileged,sync_dns) ,
+		HeapClient(remote_info,local_interface,privileged,sync_dns,secure_connection_timeout) ,
 		m_done_signal(true) ,
 		m_connected_signal(true) ,
 		m_connection_timeout(connection_timeout) ,
@@ -96,10 +97,16 @@ G::Signal0 & GNet::Client::connectedSignal()
 	return m_connected_signal ;
 }
 
+G::Signal0 & GNet::Client::secureSignal()
+{
+	return m_secure_signal ;
+}
+
 void GNet::Client::onData( const char * p , SimpleClient::size_type n )
 {
-	bool first = true ;
 	m_line_buffer.add(p,n) ;
+
+	bool first = true ;
 	while( m_line_buffer.more() )
 	{
 		if( first && m_response_timeout != 0U )

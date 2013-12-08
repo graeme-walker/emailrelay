@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include "gdef.h"
 #include "gnet.h"
 #include "gserver.h"
+#include "gconnectionlookup.h"
 #include <list>
 #include <utility> // std::pair<>
 
@@ -42,7 +43,7 @@ namespace GNet
 class GNet::MultiServerImp : public GNet::Server
 {
 public:
-	MultiServerImp( MultiServer & ms , const Address & ) ;
+	MultiServerImp( MultiServer & ms , const Address & , ConnectionLookup * ) ;
 		///< Constructor.
 
 	void cleanup() ;
@@ -60,9 +61,9 @@ private:
 /// \class GNet::MultiServerPtr
 /// A private implementation class used by
 /// GNet::MultiServer. The implementation is unusual
-/// in that only has proper value semantics if the
+/// in that it only has proper value semantics if the
 /// contained pointer is null; it is used in a way
-/// that makes allowances for that restriction.
+/// that makes allowances for that.
 ///
 class GNet::MultiServerPtr
 {
@@ -125,9 +126,13 @@ public:
 		///< interfaces is empty then a single 'any' address
 		///< is returned.
 
-	explicit MultiServer( const AddressList & address_list ) ;
+	MultiServer( const AddressList & address_list , bool use_connection_lookup ) ;
 		///< Constructor. The server listens on on the
 		///< specific (local) interfaces.
+		///<
+		///< If use_connection_lookup is true then there
+		///< may be extra information available in the
+		///< Server::PeerInfo structures.
 		///<
 		///< Precondition: ! address_list.empty()
 
@@ -163,10 +168,11 @@ protected:
 private:
 	MultiServer( const MultiServer & ) ; // not implemented
 	void operator=( const MultiServer & ) ; // not implemented
-	void init( const Address & ) ;
+	void init( const Address & , ConnectionLookup * ) ;
 
 private:
 	typedef std::list<MultiServerPtr> List ;
+	std::auto_ptr<GNet::ConnectionLookup> m_connection_lookup ;
 	List m_server_list ;
 } ;
 

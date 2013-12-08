@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -58,13 +58,13 @@ public:
 	explicit Time( const LocalTime & ) ;
 		///< Localtime constructor for now.
 
-	unsigned int hours() const ;
+	int hours() const ;
 		///< Returns the hours (0 <= h < 24).
 
-	unsigned int minutes() const ;
+	int minutes() const ;
 		///< Returns the minutes (0 <= m < 60).
 
-	unsigned int seconds() const ;
+	int seconds() const ;
 		///< Returns the seconds (0 <= s <= 61 [sic]).
 
 	std::string hhmmss( const char * sep = NULL ) const ;
@@ -77,9 +77,9 @@ public:
 		///< Returns the seconds as a two-digit decimal seconds.
 
 private:
-	unsigned int m_hh ;
-	unsigned int m_mm ;
-	unsigned int m_ss ;
+	int m_hh ;
+	int m_mm ;
+	int m_ss ;
 } ;
 
 #endif

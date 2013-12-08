@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 #include "gnet.h"
 #include "gsmtp.h"
 #include "gmessagestore.h"
-#include "gsasl.h"
+#include "gsaslclient.h"
 #include "gsecrets.h"
 #include "gslot.h"
 #include "gstrings.h"
@@ -68,6 +68,7 @@ public:
 	{
 		Internal_2xx = 222 ,
 		Internal_2yy = 223 ,
+		Internal_2zz = 224 ,
 		ServiceReady_220 = 220 ,
 		Ok_250 = 250 ,
 		Authenticated_235 = 235 ,
@@ -111,7 +112,7 @@ public:
 	bool is( Value v ) const ;
 		///< Returns true if the reply value is 'v'.
 
-	unsigned int value() const ;
+	int value() const ;
 		///< Returns the numeric value of the reply.
 
 	std::string text() const ;
@@ -144,7 +145,7 @@ private:
 private:
 	bool m_complete ;
 	bool m_valid ;
-	unsigned int m_value ;
+	int m_value ;
 	std::string m_text ;
 } ;
 
@@ -161,7 +162,7 @@ class GSmtp::ClientProtocol : private GNet::AbstractTimer
 public:
 	G_EXCEPTION( NotReady , "not ready" ) ;
 	G_EXCEPTION( ResponseError , "protocol error: unexpected response" ) ;
-	G_EXCEPTION( NoMechanism , "cannot do authentication mandated by the remote smtp server" ) ;
+	G_EXCEPTION( NoMechanism , "cannot do authentication mandated by remote server" ) ;
 	G_EXCEPTION( AuthenticationRequired , "authentication required by the remote smtp server" ) ;
 	G_EXCEPTION( AuthenticationNotSupported , "authentication not supported by the remote smtp server" ) ;
 	G_EXCEPTION( AuthenticationError , "authentication error" ) ;
@@ -196,11 +197,12 @@ public:
 		unsigned int ready_timeout ;
 		unsigned int preprocessor_timeout ;
 		bool must_authenticate ;
+		bool must_accept_all_recipients ;
 		bool eight_bit_strict ;
-		Config( const std::string & , unsigned int , unsigned int , unsigned int , bool , bool ) ;
+		Config( const std::string & , unsigned int , unsigned int , unsigned int , bool , bool , bool ) ;
 	} ;
 
-	ClientProtocol( Sender & sender , const Secrets & secrets , Config config ) ;
+	ClientProtocol( Sender & sender , const GAuth::Secrets & secrets , Config config ) ;
 		///< Constructor. The 'sender' and 'secrets' references are kept.
 		///<
 		///< The Sender interface is used to send protocol messages to
@@ -215,7 +217,9 @@ public:
 	G::Signal2<std::string,int> & doneSignal() ;
 		///< Returns a signal that is raised once the protocol has
 		///< finished with a given message. The first signal parameter
-		///< is the empty string, or a non-empty reason on error.
+		///< is the empty string on success or a non-empty reason
+		///< string. The second parameter is a reason code, typically
+		///< the SMTP error value (but see preprocessorDone()).
 
 	G::Signal0 & preprocessorSignal() ;
 		///< Returns a signal that is raised when the protocol
@@ -238,10 +242,12 @@ public:
 		///< To be called when a blocked connection becomes unblocked.
 		///< See ClientProtocol::Sender::protocolSend().
 
-	void preprocessorDone( const std::string & reason ) ;
+	void preprocessorDone( bool ok , const std::string & reason ) ;
 		///< To be called when the Preprocessor interface has done
-		///< its thing. The reason string should be empty
-		///< on success.
+		///< its thing. If not ok with an empty reason then the
+		///< current message is just abandoned, resulting in a
+		///< done signal with an empty reason string and a
+		///< reason code of 1.
 
 	void secure() ;
 		///< To be called when the secure socket protocol
@@ -260,7 +266,10 @@ protected:
 		///< Final override from GNet::AbstractTimer.
 
 private:
-	bool send( const std::string & , bool eot = false , bool sensitive = false ) ;
+	void send( const char * ) ;
+	void send( const char * , const std::string & ) ;
+	void send( const char * , const std::string & , const char * ) ;
+	bool send( const std::string & , bool eot , bool sensitive = false ) ;
 	bool sendLine( std::string & ) ;
 	size_t sendLines() ;
 	void sendEhlo() ;
@@ -280,11 +289,12 @@ private:
 	enum State { sInit , sStarted , sServiceReady , sSentEhlo , sSentHelo , sAuth1 , sAuth2 , sSentMail ,
 		sPreprocessing , sSentRcpt , sSentData , sSentDataStub , sData , sSentDot , sStartTls , sSentTlsEhlo , sDone } ;
 	Sender & m_sender ;
-	const Secrets & m_secrets ;
+	const GAuth::Secrets & m_secrets ;
 	std::string m_thishost ;
 	State m_state ;
 	std::string m_from ;
 	G::Strings m_to ;
+	size_t m_to_size ;
 	size_t m_to_accepted ;
 	std::auto_ptr<std::istream> m_content ;
 	bool m_server_has_auth ;
@@ -295,8 +305,9 @@ private:
 	Reply m_reply ;
 	bool m_authenticated_with_server ;
 	std::string m_auth_mechanism ;
-	std::auto_ptr<SaslClient> m_sasl ;
+	std::auto_ptr<GAuth::SaslClient> m_sasl ;
 	bool m_must_authenticate ;
+	bool m_must_accept_all_recipients ;
 	bool m_strict ;
 	bool m_warned ;
 	unsigned int m_response_timeout ;

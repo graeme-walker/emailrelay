@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 # 
 # This program is distributed in the hope that it will be useful,
@@ -17,6 +17,9 @@
 # ===
 #
 # Check.pm
+#
+# Various assertion functions that all resolve
+# down to Check::that(ok,text).
 #
 
 use strict ;
@@ -42,8 +45,11 @@ sub ok
 sub fileEmpty
 {
 	my ( $path , $more ) = @_ ;
-	my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,$atime,$mtime,$ctime,$blksize,$blocks) = stat($path);
-	Check::that( -f $path && $size == 0 , "file not empty" , $path , $more ) ;
+	if( -f $path )
+	{
+		my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,$atime,$mtime,$ctime,$blksize,$blocks) = stat($path);
+		Check::that( $size == 0 , "file not empty" , $path , $more ) ;
+	}
 }
 
 sub fileExists
@@ -62,14 +68,14 @@ sub fileNotEmpty
 sub running
 {
 	my ( $pid , $more ) = @_ ;
-	my $n = defined($pid) ? kill(0,$pid) : -1 ;
+	my $n = defined($pid) ? System::processIsRunning($pid) : -1 ;
 	Check::that( $n == 1 , "process not running" , $pid , $more ) ;
 }
 
 sub notRunning
 {
 	my ( $pid , $more ) = @_ ;
-	my $n = kill 0 , $pid ;
+	my $n = System::processIsRunning($pid) ;
 	Check::that( $n == 0 , "process still running" , $pid , $more ) ;
 }
 
@@ -88,10 +94,9 @@ sub fileDeleted
 sub fileMatchCount
 {
 	my ( $expr , $count , $more ) = @_ ;
-	my $output = `ls $expr 2>/dev/null` ;
-	chomp $output ;
-	my @lines = split("\n",$output) ;
-	Check::that( scalar(@lines) == $count , "unexpected number of matching files" , $more ) ;
+	my @files = System::glob_( $expr ) ;
+	my $n = scalar(@files) ;
+	Check::that( $n == $count , "unexpected number of matching files ($n != $count)" , $more ) ;
 }
 
 sub fileOwner
@@ -99,7 +104,7 @@ sub fileOwner
 	my ( $path , $name , $more ) = @_ ;
 	my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,$atime,$mtime,$ctime,$blksize,$blocks) = stat($path);
 	my $expected = System::uid($name) ;
-	Check::that( $uid == $expected , "unexpected file owner" , $path , $uid."!=".$expected , $more ) ;
+	Check::that( $uid == $expected , "unexpected file owner" , $path , "$uid!=$expected($name)" , $more ) ;
 }
 
 sub fileGroup
@@ -107,7 +112,7 @@ sub fileGroup
 	my ( $path , $name , $more ) = @_ ;
 	my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,$atime,$mtime,$ctime,$blksize,$blocks) = stat($path);
 	my $expected = System::gid($name) ;
-	Check::that( $gid == $expected , "unexpected file group" , $path , $gid."!=".$expected , $more ) ;
+	Check::that( $gid == $expected , "unexpected file group" , $path , "$gid!=$expected($name)" , $more ) ;
 }
 
 sub fileMode
@@ -118,9 +123,49 @@ sub fileMode
 	Check::that( $mode == $mode_ , "unexpected file permissions" , $path , $mode."!=".$mode_ , $more ) ;
 }
 
-sub fileLineCount
+sub processRealUser
 {
-	my ( $path , $count , $string , $more ) = @_ ;
+	my ( $pid , $name ) = @_ ;
+	my $actual = System::realUser($pid) ;
+	my $expected = System::uid($name) ;
+	Check::that( $actual == $expected , "wrong real user: [$actual]!=[$expected]" ) ;
+}
+
+sub processEffectiveUser
+{
+	my ( $pid , $name ) = @_ ;
+	my $actual = System::effectiveUser($pid) ;
+	my $expected = System::uid($name) ;
+	Check::that( $actual == $expected , "wrong real user: [$actual]!=[$expected]" ) ;
+}
+
+sub processSavedUser
+{
+	my ( $pid , $name ) = @_ ;
+	my $actual = System::savedUser($pid) ;
+	my $expected = System::uid($name) ;
+	Check::that( $actual == $expected , "wrong real user: [$actual]!=[$expected]" ) ;
+}
+
+sub processRealGroup
+{
+	my ( $pid , $name ) = @_ ;
+	my $actual = System::realGroup($pid) ;
+	my $expected = System::gid($name) ;
+	Check::that( $actual == $expected , "wrong real group: [$actual]!=[$expected]" ) ;
+}
+
+sub processEffectiveGroup
+{
+	my ( $pid , $name ) = @_ ;
+	my $actual = System::effectiveGroup($pid) ;
+	my $expected = System::gid($name) ;
+	Check::that( $actual == $expected , "wrong real group: [$actual]!=[$expected]" ) ;
+}
+
+sub _fileLineCount
+{
+	my ( $path , $string ) = @_ ;
 	my $f = new FileHandle( $path ) ;
 	my $n = 0 ;
 	while( <$f> )
@@ -129,7 +174,31 @@ sub fileLineCount
 		chomp $line ;
 		if( !defined($string) || $line =~ m/$string/ ) { $n++ }
 	}
+	return $n ;
+}
+
+sub fileLineCount
+{
+	my ( $path , $count , $string , $more ) = @_ ;
+	my $n = _fileLineCount( $path , $string ) ;
 	Check::that( $n == $count , "invalid matching line count" , $path , $n."!=".$count , $more ) ;
+}
+
+sub fileLineCountLessThan
+{
+	my ( $path , $count , $string , $more ) = @_ ;
+	my $n = _fileLineCount( $path , $string ) ;
+	Check::that( $n < $count , "invalid matching line count" , $path , $n."!<".$count , $more ) ;
+}
+
+sub allFilesContain
+{
+	my ( $glob , $string , $more ) = @_ ;
+	my @files = System::glob_( $glob ) ;
+	for my $file ( @files )
+	{
+		fileContains( $file , $string , $more ) ;
+	}
 }
 
 sub fileContains
@@ -144,6 +213,21 @@ sub fileContains
 		if( !defined($string) || $line =~ m/$string/ ) { $n++ }
 	}
 	Check::that( $n > 0 , "file does not contain expected string" , $path , "[$string]" , $more ) ;
+}
+
+sub fileContainsEither
+{
+	my ( $path , $string1 , $string2 , $more ) = @_ ;
+	my $f = new FileHandle( $path ) ;
+	my $n = 0 ;
+	while( <$f> )
+	{
+		my $line = $_ ;
+		chomp $line ;
+		if( $line =~ m/$string1/ ) { $n++ }
+		if( $line =~ m/$string2/ ) { $n++ }
+	}
+	Check::that( $n > 0 , "file does not contain one of strings" , $path , "[$string1] [$string2]" , $more ) ;
 }
 
 sub fileDoesNotContain

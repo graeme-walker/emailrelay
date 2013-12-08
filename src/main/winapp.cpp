@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include "glog.h"
 #include "gstr.h"
 #include "gmemory.h"
+#include "gtest.h"
 #include "gcontrol.h"
 #include "gdialog.h"
 #include "gassert.h"
@@ -73,10 +74,10 @@ bool Main::Box::run()
 
 Main::WinApp::WinApp( HINSTANCE h , HINSTANCE p , const char * name ) :
 	GGui::ApplicationBase( h , p , name ) ,
-	m_use_tray(false) ,
 	m_quit(false) ,
-	m_icon(0U) ,
-	m_hidden(false)
+	m_use_tray(false) ,
+	m_hidden(false) ,
+	m_exit_code(0)
 {
 }
 
@@ -93,8 +94,12 @@ void Main::WinApp::init( const Configuration & cfg )
 {
 	m_use_tray = cfg.daemon() ;
 	m_cfg <<= new Configuration(cfg) ;
-	m_icon = m_cfg->icon() % 4U ;
 	m_hidden = m_hidden || m_cfg->hidden() ;
+}
+
+int Main::WinApp::exitCode() const
+{
+	return G::Test::enabled("special-exit-code") ? 23 : m_exit_code ;
 }
 
 void Main::WinApp::onDimension( int & dx , int & dy )
@@ -127,10 +132,7 @@ DWORD Main::WinApp::windowStyle() const
 UINT Main::WinApp::resource() const
 {
 	// (resource() provides the combined menu and icon id, but we have no menus)
-	if( m_icon == 0U ) return IDI_ICON1 ;
-	if( m_icon == 1U ) return IDI_ICON2 ;
-	if( m_icon == 2U ) return IDI_ICON3 ;
-	G_ASSERT( m_icon == 3U ) ; return IDI_ICON4 ;
+	return IDI_ICON1 ;
 }
 
 bool Main::WinApp::onCreate()
@@ -213,7 +215,8 @@ bool Main::WinApp::confirm()
 {
 	// (also called from winform)
 	G_ASSERT( ! m_hidden ) ;
-	return messageBoxQuery("Really quit?") ;
+	const bool nanny = false ;
+	return nanny ? messageBoxQuery("Really quit?") : true ;
 }
 
 void Main::WinApp::doClose()
@@ -254,7 +257,7 @@ void Main::WinApp::setStatus( const std::string & s1 , const std::string & s2 )
 	std::string message( title() ) ;
 	if( !s1.empty() ) message.append( std::string(": ")+s1 ) ;
 	if( !s2.empty() ) message.append( std::string(": ")+s2 ) ;
-	::SetWindowText( handle() , message.c_str() ) ;
+	::SetWindowTextA( handle() , message.c_str() ) ;
 }
 
 void Main::WinApp::output( const std::string & text , bool )
@@ -280,6 +283,7 @@ void Main::WinApp::onError( const std::string & text )
 {
 	// called from WinMain(), possibly before init()
 	output( text , true ) ;
+	m_exit_code = 1 ;
 }
 
 /// \file winapp.cpp

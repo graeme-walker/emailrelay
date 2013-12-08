@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,8 +24,9 @@
 #include "gdebug.h"
 
 GNet::HeapClient::HeapClient( const ResolverInfo & remote_info ,
-	const Address & local_interface , bool privileged , bool sync_dns ) :
-		SimpleClient(remote_info,local_interface,privileged,sync_dns) ,
+	const Address & local_interface , bool privileged , bool sync_dns ,
+	unsigned int secure_connection_timeout ) :
+		SimpleClient(remote_info,local_interface,privileged,sync_dns,secure_connection_timeout) ,
 		m_connect_timer(*this,&HeapClient::onConnectionTimeout,*this) ,
 		m_delete_timer(*this,&HeapClient::onDeletionTimeout,*this)
 {
@@ -52,6 +53,11 @@ void GNet::HeapClient::onDeletionTimeout()
 	{
 		G_ERROR( "HeapClientTimer::onTimeout: exception: " << e.what() ) ;
 	}
+}
+
+void GNet::HeapClient::doDeleteForExit()
+{
+	delete this ;
 }
 
 void GNet::HeapClient::doDelete( const std::string & reason )

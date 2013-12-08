@@ -5,9 +5,9 @@ Command line usage
 ------------------
 The "emailrelay" program supports the following command-line usage:
 
-	emailrelay [<switch> [<switch> ...]]
+	emailrelay [<option> [<option> ...]]
 
-where <switch> is:
+where <option> is:
 # --admin (-a)
   Enables the administration interface and specifies its listening port number.
 
@@ -18,13 +18,13 @@ where <switch> is:
   Disables the smtp vrfy command and sends less verbose smtp responses.
 
 # --as-client (-q)
-  Runs as a client, forwarding spooled mail to <host>: equivalent to "--log --no-syslog --no-daemon --dont-serve --forward --forward-to".
+  Runs as a client, forwarding all spooled mail to <host>: equivalent to "--log --no-syslog --no-daemon --dont-serve --forward --forward-to".
 
 # --as-proxy (-y)
-  Runs as a proxy: equivalent to "--log --close-stderr --poll=0 --forward-to".
+  Runs as a proxy server, forwarding each mail immediately to <host>: equivalent to "--log --close-stderr --poll=0 --forward-to".
 
 # --as-server (-d)
-  Runs as a server: equivalent to "--log --close-stderr".
+  Runs as a server, storing mail in the spool directory: equivalent to "--log --close-stderr".
 
 # --client-auth (-C)
   Enables smtp authentication with the remote server, using the given secrets file.
@@ -33,7 +33,10 @@ where <switch> is:
   Specifies an external program to process messages when they are forwarded.
 
 # --client-tls (-j)
-  Enables tls/ssl layer for smtp client (if openssl built in).
+  Enables negotiated tls/ssl for smtp client (if openssl built in).
+
+# --client-tls-connection (-b)
+  Enables smtp over tls/ssl for smtp client (if openssl built in).
 
 # --close-stderr (-e)
   Closes the standard error stream soon after start-up.
@@ -42,7 +45,7 @@ where <switch> is:
   Sets the timeout (in seconds) when connecting to a remote server (default is 40).
 
 # --debug (-g)
-  Generates debug-level logging if compiled-in.
+  Generates debug-level logging if built in.
 
 # --domain (-D)
   Sets an override for the host's fully qualified domain name.
@@ -69,10 +72,10 @@ where <switch> is:
   Enables immediate forwarding of messages as soon as they are received (requires --forward-to).
 
 # --interface (-I)
-  Defines the listening interface for incoming connections.
+  Defines the listening interface(s) for incoming connections (comma-separated list with optional smtp=,pop=,admin= qualifiers).
 
 # --log (-l)
-  Writes log information on standard error and syslog.
+  Writes log information on standard error and syslog (but see --close-stderr and --no-syslog).
 
 # --log-time (-L)
   Adds a timestamp to the logging output.
@@ -90,7 +93,7 @@ where <switch> is:
   Defines a file for storing the daemon process-id.
 
 # --poll (-O)
-  Enables polling of the spool directory for messages to be forwarded with the specified period (requires --forward-to).
+  Enables polling of the spool directory for messages to be forwarded with the specified period (zero means on client disconnection) (requires --forward-to).
 
 # --pop (-B)
   Enables the pop server.
@@ -99,19 +102,19 @@ where <switch> is:
   Defines the pop server secrets file (default is "/etc/emailrelay.auth").
 
 # --pop-by-name (-J)
-  Modifies the pop spool directory according to the user name (requires --pop).
+  Modifies the pop spool directory according to the pop user name (requires --pop).
 
 # --pop-no-delete (-G)
   Disables message deletion via pop (requires --pop).
 
 # --pop-port (-E)
-  Specifies the pop listening port number (requires --pop).
+  Specifies the pop listening port number (default is 110) (requires --pop).
 
 # --port (-p)
-  Specifies the smtp listening port number.
+  Specifies the smtp listening port number (default is 25).
 
 # --prompt-timeout (-w)
-  Sets the timeout (in seconds) for getting an initial prompt from the server.
+  Sets the timeout (in seconds) for getting an initial prompt from the server (default is 20).
 
 # --remote-clients (-r)
   Allows remote clients to connect.
@@ -123,7 +126,7 @@ where <switch> is:
   Enables authentication of remote clients, using the given secrets file.
 
 # --server-tls (-K)
-  Enables tls/ssl layer for smtp server using the given openssl certificate file (if openssl built in).
+  Enables negotiated tls/ssl for smtp server using the given openssl certificate file (which must be in the directory trusted by openssl).
 
 # --size (-M)
   Limits the size of submitted messages.
@@ -133,6 +136,9 @@ where <switch> is:
 
 # --syslog (-k)
   Forces syslog output if logging is enabled (overrides --no-syslog).
+
+# --tls-config (-0)
+  Sets tls configuration flags (eg. 2 for SSLv2 support).
 
 # --user (-u)
   Names the effective user to switch to if started as root (default is "daemon").
@@ -157,37 +163,59 @@ file contains parameters relevant to the SMTP dialogue, and the content file
 contains the RFC822 headers and body text.
 
 The filenames used in the message store have a prefix of "emailrelay", followed
-by a process-id, timestamp and sequence number, followed by "envelope" or
+by a process-id, timestamp and sequence number, and then "envelope" or
 "content". The envelope files then have an additional suffix to implement a
 simple locking scheme.
 
 The envelope file suffixes are:
+
 * ".new" -- while the envelope is first being written
 * <none> -- while the message is spooled
 * ".busy" -- while the message is being forwarded
 * ".bad" -- if the message cannot be forwarded
 * ".local" -- for copies of the envelope file for delivery to local recipients
 
-Copies of the content file for delivery to local recipients will also have
-a "local" suffix.
-
-If a message cannot be forwarded the envelope file is given a "bad" suffix,
+If a message cannot be forwarded the envelope file is given a ".bad" suffix,
 and the failure reason is written into the file.
+
+Forwarding
+----------
+Spooled messages can be forwarded at various times, depending on the
+command-line options:
+
+* when E-MailRelay first starts up ("--as-client" or "--forward")
+* as each message is submitted, just before receipt is acknowledged ("--immediate")
+* as soon as the submitting client connection disconnects ("--poll=0")
+* periodically ("--poll=<seconds>")
+* on demand using the administration interface's "flush" command ("--admin=<port>")
+
+These modes of operation can be mixed, although more than one "--poll" option is
+not allowed.
+
+When using "--as-client" the spooled messages begin to be forwarded as soon as
+the program starts up, and the program terminates once they have all been sent.
+
+A pending "--poll" timer can be forced to expire immediately if a "--filter"
+script exits with a special value of 103, as described below.
+
+All receipent addresses must be accepted by the remote server when E-MailRelay
+forwards a message. If any one recipient is rejected then the message will be
+left in the spool directory with a ".bad" suffix on the envelope file.
 
 Mail processing
 ---------------
-The "--filter" command-line switch allows you to specify a mail pre-processor
+The "--filter" command-line option allows you to specify a mail pre-processor
 program which operates on mail messages as they pass through the E-MailRelay
 system. The mail pre-processor program is run as soon as the mail message has
 been stored in the spool directory, with the full path of the content file
-added onto the end of the given command line.
+added onto the end of the given command-line.
 
 For example, the following command will start a proxy server on port 10025
 which processes mail using the specified filter program, and then forwards the
 mail on to the system's default MTA (on port 25):
 
-	emailrelay --as-proxy localhost:smtp --port 10025 --no-syslog \
-	  --filter $HOME/myfilter --spool-dir $HOME/spool
+	emailrelay --as-proxy=localhost:smtp --port=10025 --no-syslog \
+	  --filter=$HOME/myfilter --spool-dir=$HOME/spool
 
 The pre-processor program should terminate with an exit code of zero to
 indicate success, or a value between 1 and 99 to indicate failure. Exit codes
@@ -202,14 +230,14 @@ in between is taken as a failure reason, and passed back to the SMTP client.
 
 The pre-processor program can edit any part of the message's envelope file or
 content file: E-MailRelay remembers nothing about the message while the
-pre-processor is running, except the filename. But if the message is deleted
+pre-processor is running except the filename. But if the message is deleted
 by the pre-processor then E-MailRelay may be upset, so to avoid the error
 message use an exit code of 100.
 
 If the pre-processor program creates completely new messages in the spool
 directory then they may not be processed immediately, or they may be completely
 ignored. To get E-MailRelay to pick up any new messages you create in the spool
-directory use the "--poll" switch, or run "emailrelay --as-client" from within
+directory use the "--poll" option, or run "emailrelay --as-client" from within
 the pre-processor program.
 
 As an example of a simple pre-processor this shell script examines the sending
@@ -258,171 +286,41 @@ For Windows this example can be rewritten in JavaScript:
 	WScript.Quit( 0 ) ;
 
 Windows pre-processor programs written in JavaScript can be run using
-"cscript", with an E-MailRelay "--filter" switch something like this:
+"cscript", with an E-MailRelay "--filter" option something like this:
 
-	--filter "c:/windows/system32/cscript.exe //nologo c:/program\ files/emailrelay/filter.js"
+	--filter="c:/program\ files/emailrelay/filter.js"
 
-Note how the space character in the path is escaped with a backslash.
+Note how the space character in "program files" is escaped with a backslash.
 
-As an example of more complex processing there is a "--filter" script included
-in the distribution ("emailrelay-process.sh") that does rot-13 masking of
-messages.  This script also does some simple MIME encoding, so that the masked
-message appears as an attachment within a plaintext bearer message.
+Example "--filter" scripts are included in the distribution, including
+"emailrelay-process.sh" which does rot-13 masking of messages. This script also
+does some simple MIME encoding, so that the masked message appears as an
+attachment within a plaintext bearer message.
 
-E-MailRelay also has a "--client-filter" switch that enables pre-processing of
+E-MailRelay also has a "--client-filter" option that enables pre-processing of
 messages just before they are forwarded, rather then after they are stored. The
-disadvantage is that by then it is too late to notify the SMTP client of any
-processing failures, so in many applications using "--filter" is more useful.
+disadvantage is that by then it is too late to notify the submitting SMTP client
+of any processing failures, so in many applications using "--filter" is more
+useful. The special exit code of 100 can be used to ignore the current message,
+and 102 to stop looking for spooled messages after processing the current one.
 
 Bear in mind the following points when writing "--filter" programs:
-* The standard input and output are not used; the content filename is passed on the command line.
+
+* The standard input and output are not used; the content filename is passed on the command-line.
 * Programs run with a reduced set of environment variables.
-* The E-MailRelay process is completely blocked while the "--filter" program runs.
+* The E-MailRelay process is completely blocked while the "--filter" program runs so it should be fast.
 * E-MailRelay files use CR-LF line terminators, as required by the RFCs.
 * Envelope files will have a file extension of ".new" or ".busy" when the program runs.
 * Windows scripts may need to be run via "cscript" or a batch file wrapper.
 
-It is also possible to do message pre-processing in a separate server process by
-using "net:<address>:<port>" as the "--filter" or "--client-filter" switch
-parameter. E-MailRelay connects to this address and then uses a simple
-line-based dialog as each e-mail message is processed where it sends the
-full path of the message content file in one line and expects the remote process
-to respond with an "ok" line if the message is to be accepted or an error
-message. One advantage of using a network pre-processor compared to running a
-program is that the E-MailRelay server is not blocked while the messages are
-being pre-processed.
-
-Address verification
---------------------
-By default the E-MailRelay server will accept all addresses for incoming e-mails
-as valid. However, this default behaviour can be modified by using an external
-verifier program, specified with the "--verifier" command-line switch, so that
-you get to choose which recipient addresses are accepted as valid and which are
-rejected.
-
-The external verifier program is passed a command-line containing: (1) the full
-e-mail address as supplied by the remote client, (2) the user-name part of the
-address in upper-case, (3) the host-name part in upper-case, (4) the local
-host's fully qualified domain name in upper-case, (5) the "MAIL" command's
-"FROM:" address as supplied by the client or the empty string in the case of the
-"VRFY" command, (6) the IP address of the client connection, (7) the
-authentication mechanism used by the client ("NONE" if trusted), and (8) either
-the authentication name or the fourth field from authentication secrets file if
-a trusted IP address.
-
-So, for example, a verifier script called "myverifier" might be run with the
-following command-line:
-
-	myverifier me@myhost.mydomain ME MYHOST.MYDOMAIN MYHOST.MYDOMAIN bob@other.net 192.168.0.1 LOGIN bob
-
-The verifier program is expected to generate two lines of output on the standard
-output stream and then terminate with a specific exit code.
-
-For valid non-local addresses the first line of output is ignored, the second
-line should be copied from the first command-line argument, and the exit
-value should be one.
-
-	#!/bin/sh
-	# address verifier -- accept all (252)
-	echo ""
-	echo $1
-	exit 1
-
-For valid local addresses, where messages are to be delivered to a local
-mailbox, the verifier is expected to write two lines to the standard output --
-the full name associated with the mailbox, and the canonical mailbox name -- and
-then exit with a value of zero.
-
-	#!/bin/sh
-	# address verifier -- accept as local (250)
-	echo Local Postmaster '<postmaster@localhost>'
-	echo postmaster
-	exit 0
-
-(In practice local delivery just means that the message files in the spool
-directory are copied and given a ".local" filename suffix.)
-
-For invalid addresses the exit value should be greater than one, and anything
-written to the standard output is taken as the failure reason. (Only the few
-few thousand characters are read from the verifier's standard output stream; any
-more is thrown away.)
-
-	#!/bin/sh
-	# address verifier -- reject as invalid (550)
-	echo invalid address: $1
-	exit 2
-
-To indicate a temporary failure this can be changed to an exit code of 3.
-
-	#!/bin/sh
-	# address verifier -- reject as temporarily invalid (450)
-	echo address unavailable: $1
-	exit 3
-
-If the exit code is 100 then the connection is aborted immediately.
-
-	#!/bin/sh
-	# address verifier -- abort
-	exit 100
-
-In this more complete example all addresses are accepted as long as they contain
-an "at" character:
-
-	#!/bin/sh
-	# address verifier -- accept only if containing an at sign
-	address="$1"
-	expr "${address}" : ".*@" > /dev/null || exit 2
-	echo ""
-	echo "${address}"
-	exit 1 # accept
-
-As another example, this verifier script accepts all recipient addresses by
-default, but rejects remote addresses if the client has bypassed authentication
-by connecting on a trusted IP address:
-
-	#!/bin/sh
-	# address verifier
-	address="$1"
-	host="$3"
-	local_domain="$4"
-	auth_mechanism="$7"
-	if test -z "${auth_mechanism}" ; then auth_mechanism="NONE" ; fi
-	if test "${auth_mechanism}" = "NONE" -a "${host}" != "${local_domain}"
-	then
-		echo "cannot relay without authentication"
-		exit 2 # reject the recipient address
-	fi
-	echo ""
-	echo "${address}"
-	exit 1 # accept the recipient address
-
-or in JavaScript for Windows:
-
-	// verifier.js
-	var address = WScript.Arguments(0) ;
-	var host = WScript.Arguments(2) ;
-	var local_domain = WScript.Arguments(3) ;
-	var auth_mechanism = WScript.Arguments(6) ;
-	if( ( auth_mechanism == "NONE" || auth_mechanism == "" ) && host != local_domain )
-	{
-		WScript.Echo( "cannot relay without authentication" ) ;
-		WScript.Quit( 2 ) ;
-	}
-	WScript.Echo( "" ) ;
-	WScript.Echo( address ) ;
-	WScript.Quit( 1 ) ;
-
-If this verifier script is used with a suitable "--server-auth" file then it can
-be used to prevent open relay without restricting authenticated clients.
-
-If the "--verifier" switch parameter is of the form "net:<address>:<port>" then
-the E-MailRelay server connects to the specified verifier daemon over the
-network and sends verifier requests as lines with pipe-delimited fields. The
-expected response is another pipe-delimited line containing the same information
-as returned by verifier scripts but in reverse, such as "3|address unavailable"
-or "0|postmaster|Local Postmaster <postmaster@localhost>". The "inetd"
-super-server daemon would be a convenient way to connect up the pieces in this
-case.
+It is also possible to do message pre-processing in a separate process by using
+"net:<address>:<port>" as the "--filter" or "--client-filter" option parameter.
+E-MailRelay connects to this address and then uses a simple line-based dialog as
+each e-mail message is processed where it sends the full path of the message
+content file in one line and expects the remote process to respond with an "ok"
+line if the message is to be accepted or an error message. One advantage of
+using a network pre-processor compared to running a program is that the
+E-MailRelay server is not blocked while the messages are being pre-processed.
 
 Authentication
 --------------
@@ -430,6 +328,7 @@ E-MailRelay supports the SMTP "AUTH" extension, as defined in RFC2554, on both
 the server-side and client-side.
 
 The authentication mechanisms currently supported are:
+
 # "PLAIN"
 
   Passwords are stored in clear-text, sent over the network in clear-text, and
@@ -439,47 +338,49 @@ The authentication mechanisms currently supported are:
 
   Similar to "PLAIN". Officially obsolete although widely used.
 
-# "CRAM-MD5" mechanism
+# "CRAM-MD5"
 
   Passwords are not stored in clear-text, not sent over the network, and are
   not replayable. Defined in RFC2195.
 
 Authentication is enabled with the "--client-auth" and "--server-auth"
-command-line switches. The switch parameter is the name of a secrets file,
+command-line options and the option's parameter is the name of a secrets file,
 containing usernames and passwords:
 
-	emailrelay --as-server --server-auth /etc/emailrelay-clients.auth
-	emailrelay --as-client myisp.net:smtp --client-auth /etc/emailrelay-myisp.auth
+	emailrelay --as-server --server-auth=/etc/emailrelay-clients.auth
+	emailrelay --as-client=myisp.net:smtp --client-auth=/etc/emailrelay-myisp.auth
 
 The secrets file has a line-based format: blank lines are ignored and the hash
 character (#) is used for comments.
 
 Lines have four white-space delimited fields:
-* "mechanism"
+
 * "client-or-server"
+* "mechanism"
 * "userid"
 * "secret"
 
 The "mechanism" field must be "LOGIN", "APOP" or "CRAM-MD5" (case-insensitive);
-the "client-or-server" field must be "client" or "server"; the "userid" field is
-xtext-encoded user identifier; and the "secret" field is the xtext-encoded
-"LOGIN" password, or the "CRAM-MD5" digest key.
+the "client-or-server" field must be "client" or "server" (also
+case-insensitive); the "userid" field is xtext-encoded user identifier; and the
+"secret" field is the xtext-encoded "LOGIN" password, or the "CRAM-MD5" digest
+key.
 
 The "xtext" encoding scheme is defined properly in RFC1891, but basically it
-says that non alphanumeric characters should be represented in hexadecimal as
-"+XX".
+says that non alphanumeric characters, space, "+" and "=" should be represented
+in hexadecimal ascii as "+XX".
 
 The client-side secrets file specified with "--client-auth" is used when
 E-MailRelay acts as a client to talk to a remove server. The file should contain
-at least one "LOGIN client" or "CRAM-MD5 client" entry.
+at least one "client LOGIN" or "client CRAM-MD5" entry.
 
 A server-side secrets file specified with "--server-auth" is used when a remote
 client tries to authenticate with the E-MailRelay server. The file should
-normally contain several "LOGIN server" or "CRAM-MD5 server" entries, one for
+normally contain several "server LOGIN" or "server CRAM-MD5" entries, one for
 each client.
 
 The same secrets file may be specified for both "--client-auth" and
-"--server-auth" switches.
+"--server-auth" options.
 
 The "CRAM-MD5" keys can be generated using the "emailrelay-passwd" utility.
 
@@ -491,26 +392,25 @@ authenticate with the E-MailRelay server:
 	#
 	# emailrelay secrets file
 	#
-	LOGIN client jsmith my+20password
-	LOGIN server user1 secret
-	LOGIN server user2 e+3Dmc2
+	client LOGIN jsmith my+20password
+	server LOGIN user1 secret
+	server LOGIN user2 e+3Dmc2
 
 A "CRAM-MD5" version would look like this:
 
 	#
 	# emailrelay secrets file
 	#
-	CRAM-MD5 client jsmith 688498119.2977922305.1278051807.3015243256.2216875978.2833592318.2902375592.3156808220
-	CRAM-MD5 server user1 4059553961.2316091643.3282746241.1444639637.3735501773.3404060330.2760590371.1201092398
-	CRAM-MD5 server user2 2798539199.3144534242.3784876256.2879973305.2327113479.216533878.2436460291.2361831919
+	client CRAM-MD5 jsmith 688498119.2977922305.1278051807.3015243256.2216875978.2833592318.2902375592.3156808220
+	server CRAM-MD5 user1 4059553961.2316091643.3282746241.1444639637.3735501773.3404060330.2760590371.1201092398
+	server CRAM-MD5 user2 2798539199.3144534242.3784876256.2879973305.2327113479.216533878.2436460291.2361831919
 
-When using the "LOGIN" mechanism you have to store plaintext passwords in a
-file. This is a bad thing. You should at least make sure that the secrets file
-has tight permissions, and that the passwords in it are not also used for
-anything important.
+When using the "LOGIN" mechanism you have to store plaintext passwords in the
+secrets file, so you should make sure that the secrets file has tight
+permissions and the passwords in it are not also used for anything important.
 
 On the server side authentication is advertised by E-MailRealy in the response
-to the SMTP "EHLO" command if the "--server-auth" command-line switch is used.
+to the SMTP "EHLO" command if the "--server-auth" command-line option is used.
 Authentication by the client is then mandatory unless the client's IP address is
 configured as a trusted address.
 
@@ -518,23 +418,26 @@ Trusted IP addresses are configured with lines in the secrets file having "NONE"
 in the first field, "server" in the second field, a wildcarded IP address in
 the third field, and an arbitrary keyword in the fourth field. The keyword field
 is passed to any external address verifier program specified by the "--verifier"
-command-line switch; it is not used for any other purpose.
+command-line option; it is not used for any other purpose. Wildcarded IPv4
+addresses can use a format like 192.168.0.0/24 or 192.168.0.*; wildcarded IPv6
+addresses must have the full set of 32 lowercase hex digits followed by the CIDR
+netmask.
 
 For example, this secrets file allows any client connecting from the
 192.168.0.0/24 domain to connect without authentication desipte the
-"--server-auth" switch:
+"--server-auth" option:
 
 	#
 	# emailrelay secrets file
 	#
-	NONE server 192.168.0.* localdomain
-	LOGIN server user1 secret
-	LOGIN server user2 e+3Dmc2
+	server NONE 192.168.0.* localdomain
+	server LOGIN user1 secret
+	server LOGIN user2 e+3Dmc2
 
 On the client side authentication is performed when E-MailRelay has connected to
 a server which implements the AUTH extension with one of the supported
 mechanisms. If client authentication is enabled (with the "--client-auth"
-switch) but the remote server does not support the AUTH extension, or does not
+option) but the remote server does not support the AUTH extension, or does not
 support the LOGIN or CRAM-MD5 mechanism, then E-MailRelay will log an error
 and not forward any messages.
 
@@ -552,22 +455,101 @@ from a particular IP address is allowed. This type of POP-before-SMTP
 authentication can be done outside the E-MailRelay system by POP/IMAP utilities
 such as "fetchmail".
 
+TLS/SSL
+-------
+E-MailRelay can use negotiated TLS/SSL to encrypt SMTP and POP3 sessions: to
+enable TLS/SSL encryption when E-MailRelay is acting as an SMTP client use the
+"--client-tls" command-line option, and to enable TLS/SSL when E-MailRelay is
+acting as an SMTP or POP3 server use "--server-tls". The connections start off
+as unencrypted and use the STARTTLS command to negotiate TSL/SSL encryption
+before any plaintext passwords are exchanged.
+
+The "--server-tls" option requires the name of an X.509 certificate in the "PEM"
+format. This file must be in a directory that the OpenSSL library considers to
+be secure. On some systems this is "/etc/ssl/certs".
+
+Certificate files can be created with the "openssl" utility using the
+"req -x509" sub-command. Refer to the OpenSSL documentation for the full details
+but something like this might work for testing purposes:
+
+	$ cd /etc/ssl/certs
+	$ openssl req -x509 -nodes -days 365 -subj "/O=`uname -n`/CN=$USER" -newkey rsa:1024 -keyout emailrelay.pem  -out emailrelay.pem
+	$ ln -s emailrelay.pem `openssl x509 -noout -hash -in emailrelay.pem`.0
+
+E-MailRelay can also make outgoing SMTP connections using TLS/SSL encryption
+where the whole SMTP dialog is encrypted from the start, without a negotiation
+step ("--client-tls-connection"). This is sometimes called SMTP-over-TLS or
+secure SMTP (ssmtp) and it is normally used with port number 465.
+
+The behaviour of the TLS/SSL layer can be tweaked by using "--tls-config" option
+with a special number that is made up of the following:
+* 2 - allow SSL v2 or later
+* 3 - allow SSL v3 or later
+* 4 - ask for peer certificates but just log them
+* 8 - ask for peer certificates and verify them
+
+PAM Authentication
+------------------
+E-MailRelay supports the use of PAM (Pluggable Authentication Modules) for
+authentication if it has been built with the "--with-pam" configure option.
+
+PAM authentication can be used by E-MailRelay to authenticate SMTP and POP3
+sessions coming in from remote clients; it cannot be used by E-MailRelay to
+supply passwords when acting as an SMTP client.
+
+Use "--server-auth=/pam" and/or "--pop-auth=/pam" on the command-line to enable
+PAM authentication at run-time. The E-MailRelay server will then advertise an
+SMTP authentication mechanism of PLAIN and do the actual authentication via PAM.
+
+The PAM system itself must be configured with a service of "emailrelay". This
+normally involves creating a file "/etc/pam.d/emailrelay" containing somthing
+like the following:
+
+	auth requisite pam_unix.so nullok_secure
+	session required pam_permit.so
+	account required pam_permit.so
+	password required pam_deny.so
+
+With this configuration the E-MailRelay server will use normal unix system
+account names and passwords to authenticate remote clients, but note that on
+some systems this will require special permissioning to allow the E-MailRelay
+server to read the shadow password database.
+
+The passwords for system accounts are usually very sensitive so E-MailRelay
+requires the "--server-tls" command-line option when using PAM authentication,
+and clients are required to establish a TLS/SSL session before authenticating.
+
+SOCKS
+-----
+E-MailRelay can use a SOCKS 4a proxy for establishing outgoing SMTP connections
+if the SOCKS proxy address is appended to the SMTP server's address separated by
+"@".
+
+For example, this could be used to send e-mails via the Tor network, assuming
+there is a local Tor server listening on port 9050:
+
+	emailrelay --forward-to myisp.net:smtp@localhost:9050 ...
+
+In this example the target SMTP server will receive a connection from the Tor
+exit node rather than from E-MailRelay directly.
+
 Pop server
 ----------
 E-MailRelay can be used as a POP3 server so that POP clients have access to
 spooled messages.
 
-The following command-line switches are used:
+The following command-line options are used:
 
 # --pop
 
-  Enables the POP3 server.
+  Enables the POP3 server. Negotiated TLS/SSL (using "STLS") will be enabled if
+  the "--client-tls" or "--server-tls" options are also given.
 
-# --pop-port <port>
+# --pop-port=<port>
 
   Changes the POP3 listening port from its default of 110.
 
-# --pop-auth <path>
+# --pop-auth=<path>
 
   Changes the authentication secrets file. The default is typically
   "/etc/emailrelay.auth".
@@ -576,13 +558,22 @@ The following command-line switches are used:
   "--server-auth" and the same file can be used for both SMTP and POP3
   authentication.
 
-  "APOP server" entries are used for "APOP" authentication, "LOGIN server"
-  entries are used for "USER/PASS" authentication, and "CRAM-MD5" entries are
-  used for "AUTH" authentication.
+  "server APOP" entries are used for "APOP" authentication, "server LOGIN"
+  entries are used for "USER/PASS" authentication, and "server CRAM-MD5" entries
+  are used for "AUTH" authentication.
 
   Note that the basic POP3 protocol defines only "APOP" and "USER/PASS"
   authentication, so some POP client programs may not be able to cope with
   CRAM-MD5 authentication using the POP3 "AUTH" extension.
+
+  The CRAM-MD5 authentication mechanism will only be advertised to clients
+  if there are "server CRAM-MD5" entries in the secrets file.
+
+  If E-MailRelay was built with PAM support then a special value of "/pam" can
+  be used to enable authentication using the PAM infrastructure rather than a
+  secrets file. In this case only the PLAIN authentication mechanism will be
+  advertised to the client but transport level encryption using TLS/SSL will be
+  mandatory.
 
 # --pop-by-name
 
@@ -602,13 +593,142 @@ The following command-line switches are used:
   Disables message deletion: the POP3 DELE command will appear to succeed, but
   no files will be deleted from the spool directory.
 
+Address verification
+--------------------
+By default the E-MailRelay server will accept all recipient addresses for
+incoming e-mails as valid. This default behaviour can be modified by using an
+external verifier program, specified with the "--verifier" command-line option,
+so that you get to choose which recipient addresses are accepted as valid and
+which are rejected.
+
+Your verifier script is passed a command-line containing: (1) the full e-mail
+address as supplied by the remote client, (2) the user-name part of the address
+in upper-case, (3) the host-name part in upper-case, (4) the local host's fully
+qualified domain name in upper-case, (5) the "MAIL" command's "FROM:" address as
+supplied by the client or the empty string in the case of the "VRFY" command,
+(6) the IP address of the client connection, (7) the authentication mechanism
+used by the client ("NONE" if trusted), and (8) either the authentication name
+or the fourth field from authentication secrets file if a trusted IP address.
+
+So, for example, a verifier script called "myverifier" might be run with the
+following command-line:
+
+	myverifier me@myhost.mydomain ME MYHOST.MYDOMAIN MYHOST.MYDOMAIN bob@other.net 192.168.0.1 LOGIN bob
+
+The verifier script is expected to generate two lines of output on the standard
+output stream and then terminate with a specific exit code.
+
+For valid addresses the first line of output is ignored, the second line should
+be copied from the first command-line argument, and the exit value should be
+one.
+
+	#!/bin/sh
+	# address verifier -- accept all (252)
+	echo ""
+	echo $1
+	exit 1
+
+If the address is valid but it should be delivered to a local mailbox rather
+than forwarded then the verifier script should write two lines to the standard
+output -- the full name associated with the mailbox, and the canonical mailbox
+name -- and then exit with a value of zero.
+
+	#!/bin/sh
+	# address verifier -- accept as local (250)
+	echo Local Postmaster '<postmaster@localhost>'
+	echo postmaster
+	exit 0
+
+For E-MailRelay local delivery just means that the message file in the spool
+directory is given a ".local" filename suffix. This can be used to create a
+separate channel for adminstrative messages such as delivery reports.
+
+For invalid addresses the exit value should be non-zero and anything written to
+the standard output is taken as the reason for the failure.
+
+	#!/bin/sh
+	# address verifier -- reject as invalid (550)
+	echo invalid address: $1
+	exit 2
+
+To indicate a temporary failure this can be changed to an exit code of 3.
+
+	#!/bin/sh
+	# address verifier -- reject as temporarily invalid (450)
+	echo address unavailable: $1
+	exit 3
+
+If the verifier exit code is 100 then the connection is aborted immediately,
+which may be useful in limiting the impact of denial of service attacks:
+
+	#!/bin/sh
+	# address verifier -- abort
+	exit 100
+
+In this more complete example the verifier script accepts all addresses as valid
+as long as they contain an "at" character:
+
+	#!/bin/sh
+	# address verifier -- accept only if containing an at sign
+	address="$1"
+	expr "${address}" : ".*@" > /dev/null || exit 2
+	echo ""
+	echo "${address}"
+	exit 1 # accept
+
+As another example, this verifier script accepts all recipient addresses by
+default but rejects remote addresses if the client has bypassed authentication
+by connecting on a trusted IP address:
+
+	#!/bin/sh
+	# address verifier
+	address="$1"
+	host="$3"
+	local_domain="$4"
+	auth_mechanism="$7"
+	if test -z "${auth_mechanism}" ; then auth_mechanism="NONE" ; fi
+	if test "${auth_mechanism}" = "NONE" -a "${host}" != "${local_domain}"
+	then
+		echo "cannot relay without authentication"
+		exit 2 # reject the recipient address
+	fi
+	echo ""
+	echo "${address}"
+	exit 1 # accept the recipient address
+
+or written in JavaScript for Windows:
+
+	// verifier.js
+	var address = WScript.Arguments(0) ;
+	var host = WScript.Arguments(2) ;
+	var local_domain = WScript.Arguments(3) ;
+	var auth_mechanism = WScript.Arguments(6) ;
+	if( ( auth_mechanism == "NONE" || auth_mechanism == "" ) && host != local_domain )
+	{
+		WScript.Stdout.WriteLine( "cannot relay without authentication" ) ;
+		WScript.Quit( 2 ) ;
+	}
+	WScript.Stdout.WriteLine( "" ) ;
+	WScript.Stdout.WriteLine( address ) ;
+	WScript.Quit( 1 ) ;
+
+If this verifier script is used with a suitable "--server-auth" file then it can
+be used to prevent open relay without restricting authenticated clients.
+
+It is also possible to verify addresses in a separate daemon process by using a
+"--verifier" option of the form "net:<address>:<port>". In this case E-MailRelay
+will connect to the specified verifier daemon over the network and send address
+verification requests as lines with pipe-delimited fields. The expected response
+is another pipe-delimited line containing the same information as returned by
+verifier scripts but in reverse, such as "3|address unavailable" or
+"0|postmaster|Local Postmaster <postmaster@localhost>". The "inetd" super-server
+daemon would be a convenient way to connect up the pieces in this case.
+
 Security issues
 ---------------
-A significant security concern is the use of external mail pre-processors and
-address verifiers (using the "--filter" and "--verifier" switches), and so the
-following precautions are taken:
+The following are some security issues that have been taken into consideration:
 
-# effective userid
+# Effective userid
 
   Suid privileges are revoked at start-up, switching the effective
   userid/groupid to be the real userid/groupid values. If started as "root"
@@ -620,45 +740,44 @@ following precautions are taken:
   groupid, so that new files have group ownership corresponding to the
   "daemon" user.
 
-# execution environment
+# Execution environment
 
-  The mail pre-processor runs with an almost empty set of environment variables
-  ("PATH" and "IFS"), and with no open file descriptors other than "stdin" and
-  "stderr" open onto "/dev/null", and "stdout" open onto a pipe.
+  The external pre-processor programs are run with an almost empty set of
+  environment variables ("PATH" and "IFS"), and with no open file descriptors
+  other than "stdin" and "stderr" open onto "/dev/null", and "stdout" open onto a
+  pipe.
 
-# configuration
+# Configuration
 
-  The mail pre-processor filename has to be configured using a full path, so
+  The mail pre-processor filenames have to be configured using a full path, so
   there is no dependence on the current working directory or the PATH
   environment variable.
 
-Some other points to note are:
-
-# umask
+# Umask
 
   The program runs for most of the time with a "umask" of 177, switching to 117
   when creating spool files.
 
-# buffer overflow
+# Buffer overflow
 
-  Strings are dynamically allocated, so buffer overflow/truncation issues are
-  avoided.
+  Strings are dynamically allocated in c++, so buffer overflow/truncation issues
+  are avoided.
 
-# remote clients
+# Remote clients
 
   By default connections will be rejected if they come from remote machines.
 
-# remote configuration
+# Remote configuration
 
   No configuration parameters can be changed through the administrative
   interface.
 
-# use of exec() and system()
+# Use of exec() and system()
 
   No exec(), system() or popen() calls are used other than execve() to spawn the
   mail pre-processor and/or address verifier.
 
-# file permissions
+# File permissions
 
   After a normal installation the spool directory is has ownership of
   "root.daemon" with permissions of "-rwxrwxr-x" and messages files are created
@@ -670,18 +789,23 @@ Some other points to note are:
   spool directory, and the files created end up owned by the submitter but with
   group ownership of "daemon".
 
-# logging
+# Logging
 
   Logging output is conditioned so that ANSI escape sequences cannot appear
   in the log.
 
   Passwords and message content are not logged (except if using the "--debug"
-  switch with debug logging support enabled at build time).
+  option at run time with debug logging enabled at build time).
 
-# information leakage
+# Information leakage
 
-  The "--anonymous" switch can be used to slightly reduce the amount of information
-  released to remote clients.
+  The "--anonymous" option can be used to reduce the amount of information
+  released to remote clients, especially with an empty "--domain".
+
+# Mandatory encryption
+
+  When using Linux PAM for authentication all clients are required to use
+  TLS/SSL encryption.
 
 Security issues which relate to the SMTP protocol itself are beyond the scope of
 this document, but RFC2821 makes the following observation: "SMTP mail is
@@ -690,15 +814,15 @@ create messages that will trick a [..] recipient into believing that they came
 from somewhere else. [..] Real [..] security lies [..] in end-to-end methods
 [..] such as those which use digital signatures."
 
-The "Authentication" section below also relates to security.
+The "Authentication" and "Linux PAM" sections above also relate to security.
 
 Administration interface
 ------------------------
-If enabled with the "--admin" command line switch, the E-MailRelay server will
+If enabled with the "--admin" command-line option, the E-MailRelay server will
 provide a network interface for performing administration tasks. This is a
 simple command-line interface which is compatible with "telnet":
 
-	$ emailrelay --as-server --port 125 --forward-to localhost:25 --admin 10026
+	$ emailrelay --as-server --port=125 --forward-to=localhost:25 --admin=10026
 	$ telnet localhost 10026
 	E-MailRelay> help
 	E-MailRelay> quit
@@ -718,6 +842,7 @@ Following a normal build from source, a "make install" puts files in the
 following locations:
 * /usr/local/etc/emailrelay.conf
 * /usr/local/etc/emailrelay.conf.template
+* /usr/local/etc/pam.d/emailrelay
 * /usr/local/libexec/emailrelay/emailrelay-filter-copy
 * /usr/local/libexec/emailrelay/emailrelay-poke
 * /usr/local/libexec/emailrelay/examples/*
@@ -732,63 +857,37 @@ following locations:
 * /usr/local/var/spool/emailrelay/emailrelay.*.content
 * /usr/local/var/spool/emailrelay/emailrelay.*.envelope
 
-This directory structure is constrained by the GNU/"autoconf" conventions rather
-than the Filesystem Hierarchy Standard (FHS).
-
-To force FHS compliance you can use the "--enable-fhs" switch when running
-"configure". This results in the following file locations:
-* /etc/emailrelay.conf
-* /etc/emailrelay.conf.template
-* /etc/init.d/emailrelay
-* /usr/lib/emailrelay/emailrelay-filter-copy
-* /usr/lib/emailrelay/emailrelay-poke
-* /usr/lib/emailrelay/examples/*
-* /usr/sbin/emailrelay
-* /usr/sbin/emailrelay-passwd
-* /usr/sbin/emailrelay-submit
-* /usr/share/doc/emailrelay/*
-* /usr/share/doc/emailrelay/index.html
-* /usr/share/doc/emailrelay/README
-* /usr/share/man/man1/emailrelay*.1.gz
-* /var/spool/emailrelay/emailrelay.*.content
-* /var/spool/emailrelay/emailrelay.*.envelope
-
 For finer control of the directory structure the following can be specified on
 the "configure" command-line:
 * --mandir=<dir>
 * --sbindir=<dir>
+* --datadir=<dir>
 * e_libexecdir=<dir>
 * e_sysconfdir=<dir>
 * e_docdir=<dir>
 * e_examplesdir=<dir>
 * e_initdir=<dir>
 * e_spooldir=<dir>
+* e_pamdir=<dir>
+* e_icondir=<dir>
 
 For example, running "./configure --prefix=/usr e_spooldir=/tmp/spool" will
-create the GNU-style directory structure under "/usr" rather than "/usr/local",
+install to a directory structure under "/usr" rather than "/usr/local",
 and create the E-MailRelay spool directory as "/tmp/spool" rather than
 "/usr/local/var/spool/emailrelay".
 
-The default spool directory path which is built into the executables and scripts
-comes from "configure" via the makefiles.
+For a directory structure conforming more closely to the FHS use this configure
+command:
 
-Even though the "--enable-fhs" switch overrides all other directory specifiers
-during the build process, it is still possible to change the installation root
-directory using "make install DESTDIR=<root>" or "DESTDIR=<root> make -e install".
-But note that this will not affect the default spool directory path built into
-the scripts and executables so the correct spool directory will have to be
-specified at run-time with the "--spool-dir" switch.
+	./configure --prefix=/usr --localstatedir=/var --libexecdir=/usr/lib --sysconfdir=/etc e_init_dir=/etc/init.d
 
-If building the configuration GUI then you may need to set the "PKG_CONFIG_PATH"
-environment variable to point to the ".pc" files in the Qt "lib" directory and
-set the "e_qtmoc" configure variable to point to the Qt "moc" utility. You
-may also need to set the correct library directory for Qt if it is wrong in
-the ".pc" file by setting "LDFLAGS":
-
-	export QT=/usr/local/qt4
-	LDFLAGS=-L$QT/lib PKG_CONFIG_PATH=$QT/lib ./configure --enable-gui e_qtmoc="$QT/bin/moc"
+As usual, it is possible to change the installation root directory after
+building by using "make DESTDIR=<root> install" or
+"DESTDIR=<root> make -e install". However, this will not affect the default
+spool directory path built into the scripts and executables so the correct spool
+directory will have to be specified at run-time with the "--spool-dir" option.
 
 
 
 
-Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
+Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.

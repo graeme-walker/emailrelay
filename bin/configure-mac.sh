@@ -1,10 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 # 
 # This program is distributed in the hope that it will be useful,
@@ -24,10 +24,10 @@
 #   $ cd src/emailrelay-1.99
 #   $ mkdir build
 #   $ cd build
-#   $ sh ../bin/configure-mac.sh_
+#   $ sh ../bin/configure-mac.sh
 #   $ make
 #
-# After configuring with these switches the installation can be done
+# After configuring with this script the installation can be done
 # with "make install" for a system-wide installation, or with 
 # "make install DESTDIR=~" for a private installation.
 #
@@ -40,16 +40,20 @@ lib="/Library"
 
 configure="./configure"
 if test ! -f "${configure}" ; then configure="../configure" ; fi
+if test ! -f "${configure}" ; then configure="../../configure" ; fi
 chmod +x "${configure}" 2> /dev/null
 
 ${configure} \
 	--enable-mac \
 	--sbindir="${app}" \
+	e_qtmoc=/usr/bin/moc \
 	e_libexecdir="${app}" \
 	e_examplesdir="${app}/Documentation/examples" \
 	e_sysconfdir="${app}" \
 	--mandir="${app}/Documentation/man" \
+	e_icondir="${app}" \
 	e_docdir="${app}/Documentation" \
 	e_spooldir="${lib}/Mail/Spool" \
-	e_initdir="${lib}/StartupItems/E-MailRelay"
+	e_pamdir="/etc/pam.d" \
+	e_initdir="${lib}/StartupItems/E-MailRelay" "$@"
 

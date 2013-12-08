@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -75,8 +75,10 @@ public:
 		///< processor failed.
 
 	virtual bool cancelled() const = 0 ;
-		///< Returns true if the processor failed and
-		///< further message processesing is to be cancelled.
+		///< Returns true if the processor indicated that
+		///< further processesing of the message should
+		///< be cancelled. This allows the processor to
+		///< delete the message if it wants to.
 
 	virtual bool repoll() const = 0 ;
 		///< Returns true if the processor indicated that

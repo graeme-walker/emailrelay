@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,19 +21,15 @@
 #include "gdef.h"
 #include "gtest.h"
 #include "gdebug.h"
+#include "genvironment.h"
 #include <string>
-#include <cstdlib> // getenv
 #include <set>
 
-bool G::Test::enabled( const std::string & name )
+#if defined(_DEBUG)
+bool G::Test::enabled( const char * name )
 {
-	bool result = false ;
-
- #ifdef _DEBUG
-	static const char * p = std::getenv("G_TEST") ;
-	result = p ? ( std::string(p).find(name) != std::string::npos ) : false ; // (could do better)
- #endif
-
+	static std::string p = G::Environment::get("G_TEST",std::string()) ;
+	bool result = p.empty() ? false : ( p.find(name) != std::string::npos ) ; // (could do better)
 	if( result )
 	{
 		static std::set<std::string> warned ;
@@ -45,5 +41,14 @@ bool G::Test::enabled( const std::string & name )
 	}
 	return result ;
 }
+#endif
 
+bool G::Test::enabled()
+{
+#if defined(_DEBUG)
+	return true ;
+#else
+	return false ;
+#endif
+}
 /// \file gtest.cpp

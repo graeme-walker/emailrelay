@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,7 +31,27 @@ namespace
 	}
 	inline unsigned int unhex( char c )
 	{
-		return (c >= '0' && c <= '9') ? (c-'0') : (10U+(c-'A')) ;
+		unsigned int rc = 0U ;
+		switch( c )
+		{
+			case '0': rc = 0U ; break ;
+			case '1': rc = 1U ; break ;
+			case '2': rc = 2U ; break ;
+			case '3': rc = 3U ; break ;
+			case '4': rc = 4U ; break ;
+			case '5': rc = 5U ; break ;
+			case '6': rc = 6U ; break ;
+			case '7': rc = 7U ; break ;
+			case '8': rc = 8U ; break ;
+			case '9': rc = 9U ; break ;
+			case 'A': rc = 10U ; break ;
+			case 'B': rc = 11U ; break ;
+			case 'C': rc = 12U ; break ;
+			case 'D': rc = 13U ; break ;
+			case 'E': rc = 14U ; break ;
+			case 'F': rc = 15U ; break ;
+		}
+		return rc ;
 	}
 }
 

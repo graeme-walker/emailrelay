@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -53,8 +53,9 @@ std::string Main::CommandLine::switchSpec( bool )
 	return std::string() ;
 }
 
-Main::CommandLine::CommandLine( Main::Output & , const G::Arg & arg , const std::string & , const std::string & ) :
-	m_imp(NULL)
+Main::CommandLine::CommandLine( Main::Output & , const G::Arg & arg , const std::string & ,
+	const std::string & , const std::string & ) :
+		m_imp(NULL)
 {
 	bool ok = false ;
 	if( arg.c() == 2U )
@@ -135,7 +136,7 @@ G::Strings Main::CommandLine::value( const std::string & s , const std::string &
 	return result ;
 }
 
-unsigned int Main::CommandLine::argc() const
+G::Arg::size_type Main::CommandLine::argc() const
 {
 	return 1U ;
 }
@@ -171,6 +172,10 @@ void Main::CommandLine::showArgcError( bool ) const
 }
 
 void Main::CommandLine::showNoop( bool ) const
+{
+}
+
+void Main::CommandLine::showError( const std::string & , bool ) const
 {
 }
 

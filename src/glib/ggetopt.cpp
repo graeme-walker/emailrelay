@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,11 +25,11 @@
 #include "ggetopt.h"
 #include "gassert.h"
 #include "gdebug.h"
+#include "genvironment.h"
 #include <sstream>
 #include <algorithm>
 #include <functional>
 #include <utility>
-#include <cstdlib> // getenv
 
 namespace
 {
@@ -64,28 +64,28 @@ void G::GetOpt::parseSpec( const std::string & spec , char sep_major , char sep_
 		StringArray inner ;
 		std::string ws_minor( 1U , sep_minor ) ;
 		G::Str::splitIntoFields( *p , inner , ws_minor , escape ) ;
-		if( inner.size() != 6U )
+		if( inner.size() != 7U )
 		{
 			std::ostringstream ss ;
 			ss << "\"" << *p << "\" (" << ws_minor << ")" ;
 			throw InvalidSpecification( ss.str() ) ;
 		}
-		bool is_valued = G::Str::toUInt( inner[3U] ) != 0U ;
-		unsigned int level = G::Str::toUInt( inner[5U] ) ;
-		addSpec( inner[1U] , inner[0U].at(0U) , inner[1U] , inner[2U] , is_valued , inner[4U] , level ) ;
+		bool is_valued = G::Str::toUInt( inner[4U] ) != 0U ;
+		unsigned int level = G::Str::toUInt( inner[6U] ) ;
+		addSpec( inner[1U] , inner[0U].at(0U) , inner[1U] , inner[2U] , inner[3U] , is_valued , inner[5U] , level ) ;
 	}
 }
 
 void G::GetOpt::addSpec( const std::string & sort_key , char c , const std::string & name ,
-	const std::string & description , bool is_valued , const std::string & value_description ,
-	unsigned int level )
+	const std::string & description , const std::string & description_extra ,
+	bool is_valued , const std::string & value_description , unsigned int level )
 {
 	if( c == '\0' )
 		throw InvalidSpecification() ;
 
 	std::pair<SwitchSpecMap::iterator,bool> rc =
 		m_spec_map.insert( std::make_pair( sort_key ,
-			SwitchSpec(c,name,description,is_valued,value_description,level) ) ) ;
+			SwitchSpec(c,name,description,description_extra,is_valued,value_description,level) ) ) ;
 
 	if( ! rc.second )
 		throw InvalidSpecification("duplication") ;
@@ -113,8 +113,8 @@ char G::GetOpt::key( const std::string & name ) const
 G::GetOpt::size_type G::GetOpt::wrapDefault()
 {
 	unsigned int result = 79U ;
-	const char * p = std::getenv("COLUMNS") ;
-	if( p != NULL )
+	std::string p = G::Environment::get("COLUMNS",std::string()) ;
+	if( !p.empty() )
 	{
 		try { result = G::Str::toUInt(p) ; } catch(std::exception&) {}
 	}
@@ -143,15 +143,16 @@ G::GetOpt::size_type G::GetOpt::widthLimit( size_type w )
 
 void G::GetOpt::showUsage( std::ostream & stream , const std::string & args , bool verbose ) const
 {
-	showUsage( stream , m_args.prefix() , args , introducerDefault() , verbose ? levelDefault() : Level(1U) ) ;
+	showUsage( stream , m_args.prefix() , args , introducerDefault() ,
+		verbose ? levelDefault() : Level(1U) , tabDefault() , wrapDefault() , verbose ) ;
 }
 
 void G::GetOpt::showUsage( std::ostream & stream , const std::string & exe , const std::string & args ,
-	const std::string & introducer , Level level , size_type tab_stop , size_type width ) const
+	const std::string & introducer , Level level , size_type tab_stop , size_type width , bool extra ) const
 {
 	stream
 		<< usageSummary(exe,args,introducer,level,width) << std::endl
-		<< usageHelp(level,tab_stop,width,false) ;
+		<< usageHelp(level,tab_stop,width,false,extra) ;
 }
 
 std::string G::GetOpt::usageSummary( const std::string & exe , const std::string & args ,
@@ -232,13 +233,14 @@ std::string G::GetOpt::usageSummaryPartTwo( Level level ) const
 	return ss.str() ;
 }
 
-std::string G::GetOpt::usageHelp( Level level , size_type tab_stop , size_type width , bool exact ) const
+std::string G::GetOpt::usageHelp( Level level , size_type tab_stop , size_type width ,
+	bool exact , bool extra ) const
 {
-	return usageHelpCore( "  " , level , tab_stop , widthLimit(width) , exact ) ;
+	return usageHelpCore( "  " , level , tab_stop , widthLimit(width) , exact , extra ) ;
 }
 
 std::string G::GetOpt::usageHelpCore( const std::string & prefix , Level level ,
-	size_type tab_stop , size_type width , bool exact ) const
+	size_type tab_stop , size_type width , bool exact , bool extra ) const
 {
 	std::string result ;
 	for( SwitchSpecMap::const_iterator p = m_spec_map.begin() ; p != m_spec_map.end() ; ++p )
@@ -269,6 +271,8 @@ std::string G::GetOpt::usageHelpCore( const std::string & prefix , Level level ,
 				line.append( tab_stop-line.length() , ' ' ) ;
 
 			line.append( (*p).second.description ) ;
+			if( extra )
+				line.append( (*p).second.description_extra ) ;
 
 			if( width )
 			{
@@ -288,7 +292,7 @@ std::string G::GetOpt::usageHelpCore( const std::string & prefix , Level level ,
 
 G::GetOpt::size_type G::GetOpt::parseArgs( const Arg & args_in )
 {
-	size_type i = 1U ;
+	G::Arg::size_type i = 1U ;
 	for( ; i < args_in.c() ; i++ )
 	{
 		const std::string & arg = args_in.v(i) ;
@@ -384,14 +388,14 @@ void G::GetOpt::errorNoValue( const std::string & name )
 
 void G::GetOpt::errorUnknownSwitch( char c )
 {
-	std::string e("invalid switch: -") ;
+	std::string e("invalid option: -") ;
 	e.append( 1U , c ) ;
 	m_errors.push_back( e ) ;
 }
 
 void G::GetOpt::errorUnknownSwitch( const std::string & name )
 {
-	std::string e("invalid switch: --") ;
+	std::string e("invalid option: --") ;
 	e.append( name ) ;
 	m_errors.push_back( e ) ;
 }

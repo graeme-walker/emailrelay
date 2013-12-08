@@ -1,9 +1,9 @@
 /*
-   Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+   Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
    
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or 
+   the Free Software Foundation, either version 3 of the License, or
    (at your option) any later version.
    
    This program is distributed in the hope that it will be useful,
@@ -20,7 +20,7 @@
 
 	A utility that unpacks the given packed file.
 	If no file is specified then it tries argv[0]
-	and then "payload".
+	(ie. unpacking from itself) and then "payload".
 
 */
 

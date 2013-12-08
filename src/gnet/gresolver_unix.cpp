@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -50,15 +50,22 @@ class GNet::ResolverImp : public GNet::SimpleClient
 {
 public:
 	ResolverImp( EventHandler & event_handler , Resolver & resolver , unsigned int port ) ;
+		// Constructor.
+
 	virtual ~ResolverImp() ;
+		// Destructor.
+
 	bool resolveReq( std::string host_part, std::string service_part , bool udp ) ;
+		// Issues a resolve request for the given host and service names.
+
 	bool busy() const ;
+		// Returns true if resolving is currently in progress.
 
 protected:
 	virtual void onConnect() ;
 	virtual void onSendComplete() ;
 	virtual void onData( const char * , std::string::size_type ) ;
-	virtual void onSecure() ;
+	virtual void onSecure( const std::string & ) ;
 	virtual void onException( std::exception & ) ;
 
 private:
@@ -117,7 +124,7 @@ void GNet::ResolverImp::onSendComplete()
 {
 }
 
-void GNet::ResolverImp::onSecure()
+void GNet::ResolverImp::onSecure( const std::string & )
 {
 }
 

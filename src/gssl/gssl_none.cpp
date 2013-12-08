@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include "gdef.h"
 #include "gssl.h"
+#include <utility>
 
 GSsl::Library * GSsl::Library::m_this = NULL ;
 
@@ -29,7 +30,7 @@ GSsl::Library::Library()
 		m_this = this ;
 }
 
-GSsl::Library::Library( bool , const std::string & )
+GSsl::Library::Library( bool , const std::string & , unsigned int , LogFn )
 {
 	if( m_this == NULL )
 		m_this = this ;
@@ -67,7 +68,7 @@ GSsl::Protocol::Protocol( const Library & )
 {
 }
 
-GSsl::Protocol::Protocol( const Library & , LogFn , bool )
+GSsl::Protocol::Protocol( const Library & , LogFn )
 {
 }
 
@@ -100,10 +101,9 @@ GSsl::Protocol::Result GSsl::Protocol::write( const char * , size_type , ssize_t
 	return Result_error ;
 }
 
-bool GSsl::Protocol::defaultHexdump()
+std::pair<std::string,bool> GSsl::Protocol::peerCertificate( int format )
 {
-	return false ;
+	return std::make_pair( std::string() , false ) ;
 }
-
 
 /// \file gssl_none.cpp

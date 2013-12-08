@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -41,6 +41,11 @@ public:
 	NullProcessor() ;
 		///< Constructor.
 
+	explicit NullProcessor( unsigned int exit_code ) ;
+		///< Constructor for a processor that behaves like an
+		///< executable that always exits with the given
+		///< exit code.
+
 	virtual ~NullProcessor() ;
 		///< Destructor.
 
@@ -68,6 +73,9 @@ private:
 
 private:
 	G::Signal1<bool> m_done_signal ;
+	bool m_cancelled ;
+	bool m_repoll ;
+	bool m_ok ;
 } ;
 
 #endif

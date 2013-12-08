@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 # 
 # This program is distributed in the hope that it will be useful,
@@ -18,6 +18,8 @@
 #
 # Filter.pm
 #
+# Filter->create() creates a filter script.
+#
 
 use strict ;
 use FileHandle ;
@@ -26,14 +28,24 @@ package Filter ;
 
 sub create
 {
-	my ( $path , @lines ) = @_ ;
+	my ( $path , $lines_spec ) = @_ ;
 	my $file = new FileHandle( "> $path" ) ;
-	print $file "#!/bin/sh\n" ;
-	for my $line ( @lines )
+	if( System::unix() )
 	{
-		print $file $line , "\n" ;
+		print $file "#!/bin/sh\n" ;
+		for my $line ( @{$lines_spec->{unix}} )
+		{
+			print $file $line , "\n" ;
+		}
+		system( "chmod +x $path" ) ;
 	}
-	system( "chmod +x $path" ) ;
+	else
+	{
+		for my $line ( @{$lines_spec->{win32}} )
+		{
+			print $file $line , "\n" ;
+		}
+	}
 }
 
 1 ;

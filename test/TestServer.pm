@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 # 
 # This program is distributed in the hope that it will be useful,
@@ -17,6 +17,8 @@
 # ===
 #
 # TestServer.pm
+#
+# A wrapper for running the "emailrelay-test-server" program.
 #
 
 use strict ;
@@ -38,7 +40,7 @@ sub new
 
 	my %me = (
 		m_port => $port ,
-		m_exe => "$bin_dir/emailrelay-test-server" ,
+		m_exe => System::exe( $bin_dir , "emailrelay-test-server" ) ,
 		m_logfile => "$bin_dir/.tmp.emailrelay-test-server.out" ,
 		m_pidfile => "$bin_dir/.emailrelay-test-server.pid" ,
 		m_pid => undef ,
@@ -63,20 +65,30 @@ sub _check
 	{
 		die "port " . $this->port() . " not free" ;
 	}
+	unlink( $this->{m_pidfile} ) if -f $this->{m_pidfile} ;
+	if( -f $this->{m_pidfile} )
+	{
+		die "cannot remove old pidfile [".$this->{m_pidfile}."]" ;
+	}
 }
 
 sub run
 {
-	my ( $this , $sw ) = @_ ;
+	my ( $this , $sw , $wait_cs ) = @_ ;
+	$sw = "" if !defined($sw) ;
+	$wait_cs ||= 50 ;
 	my $log = $this->{'m_logfile'} ;
 
-	system( $this->exe() . " --port " . $this->port() . " $sw > $log 2>&1 &" ) ;
+	my $cmd = System::weirdpath($this->exe()) . " --port " . $this->port() . " $sw" ;
+	my $full_cmd = System::commandline( $cmd , { stdout => $log , stderr => $log , background => 1 } ) ;
+	system( $full_cmd ) ;
 
 	# wait for the pid file to be written
-	for( my $i = 0 ; $i < 50 ; $i++ )
+	for( my $i = 0 ; $i < $wait_cs ; $i++ )
 	{
 		select( undef , undef , undef , 0.01 ) ;
 		my $fh = new FileHandle( $this->{'m_pidfile'} ) ;
+		next if !$fh ;
 		my $line = <$fh> ;
 		chomp $line ;
 		if( $line > 0 )
@@ -88,7 +100,7 @@ sub run
 		}
 	}
 
-	return kill( 0 , $this->{'m_pid'} ) != 0 ;
+	return System::processIsRunning( $this->{'m_pid'} ) ;
 }
 
 sub kill
@@ -96,8 +108,8 @@ sub kill
 	my ( $this ) = @_ ;
 	if( defined($this->pid()) )
 	{
-		kill( 15 , $this->pid() ) ;
-		select( undef , undef , undef , 0.1 ) ;
+		System::kill_( $this->pid() ) ;
+		System::sleep_cs( 10 ) ;
 	}
 }
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -114,17 +114,18 @@ std::string GSmtp::ProtocolMessageStore::from() const
 	return m_msg.get() ? m_from : std::string() ;
 }
 
-void GSmtp::ProtocolMessageStore::process( const std::string & auth_id , const std::string & client_ip )
+void GSmtp::ProtocolMessageStore::process( const std::string & auth_id , const std::string & peer_socket_address ,
+	const std::string & peer_socket_name , const std::string & peer_certificate )
 {
 	try
 	{
-		G_DEBUG( "ProtocolMessageStore::process: \"" << auth_id << "\", \"" << client_ip << "\"" ) ;
+		G_DEBUG( "ProtocolMessageStore::process: \"" << auth_id << "\", \"" << peer_socket_address << "\"" ) ;
 		G_ASSERT( m_msg.get() != NULL ) ;
 		if( m_msg.get() == NULL )
 			throw G::Exception( "internal error" ) ; // never gets here
 
 		// write ".new" envelope
-		std::string message_location = m_msg->prepare( auth_id , client_ip ) ;
+		std::string message_location = m_msg->prepare( auth_id , peer_socket_address , peer_socket_name , peer_certificate ) ;
 
 		// start preprocessing
 		m_processor->start( message_location ) ;

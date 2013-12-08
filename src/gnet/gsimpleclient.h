@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -63,9 +63,12 @@ private:
 } ;
 
 /// \class GNet::SimpleClient
-/// A class for making an outgoing connection to a remote server.
-/// The class handles name-to-address resolution and connection issues, it reads
-/// incoming data and it manages flow-control when sending.
+/// A class for making an outgoing connection to a remote server, with
+/// support for socket-level protocols such as TLS/SSL and SOCKS 4a.
+///
+/// The class handles name-to-address resolution, deals with connection issues,
+/// reads incoming data, and manages flow-control when sending. The implementation
+/// uses the SocketProtocol class in order to do TLS/SSL; see sslConnect().
 ///
 /// Name-to-address lookup is performed if the supplied ResolverInfo object
 /// does not contain an address. This can be done synchronously or asynchronously.
@@ -75,37 +78,42 @@ private:
 /// However, most operating systems implement their own name lookup cacheing,
 /// so this is not terribly useful in practice.
 ///
-/// The implementation uses the SocketProtocol class in order to support
-/// socket-level protocols, including TLS/SSL. See sslConnect().
-///
 class GNet::SimpleClient : public GNet::EventHandler , public GNet::Connection , public GNet::SocketProtocolSink
 {
 public:
 	enum ConnectStatus { Success , Failure , Retry , ImmediateSuccess } ;
-    enum State { Idle , Resolving , Connecting , Connected } ;
+    enum State { Idle , Resolving , Connecting , Connected , Socksing } ;
 	G_EXCEPTION( DnsError , "dns error" ) ;
 	G_EXCEPTION( ConnectError , "connect failure" ) ;
+	G_EXCEPTION( SocksError , "socks error" ) ;
 	G_EXCEPTION( NotConnected , "socket not connected" ) ;
 	typedef std::string::size_type size_type ;
 
 	SimpleClient( const ResolverInfo & remote_info ,
-		const Address & local_interface = Address(0U) , bool privileged = false ,
-		bool sync_dns = synchronousDnsDefault() ) ;
+		const Address & local_address = Address(0U) ,
+		bool privileged = false ,
+		bool sync_dns = synchronousDnsDefault() ,
+		unsigned int secure_connection_timeout = 0U ) ;
 			///< Constructor.
 			///<
-			///< The socket is bound with the given local address, but with an
-			///< arbitrary port number -- the supplied port number is ignored.
-			///< The local address defaults to the INADDR_ANY address.
+			///< If the 'privileged' parameter is true then the
+			///< given 'local_address' is used to bind the local
+			///< socket once its port number has been overwritten
+			///< with a privileged port number (ie. < 1024)
+			///< selected at random.
 			///<
-			///< If the 'privileged' parameter is true then the local socket
-			///< is bound with a privileged port number (ie. < 1024), selected
-			///< at random.
+			///< Otherwise, if the given 'local_address' is
+			///< not the default value then it is used to bind
+			///< the local socket.
 
 	void connect() ;
 		///< Initates a connection to the remote server.
 		///<
-		///< This default implementation throws on error, and may call
-		///< onConnect() before returning.
+		///< This default implementation throws on error, and may
+		///< call onConnect() synchronously before returning. To
+		///< ensure onConnect() is always called asynchronously
+		///< it can be a good idea to call connect() from a
+		///< zero-length timer (as HeapClient does).
 
 	bool connected() const ;
 		///< Returns true if connected to the peer.
@@ -118,6 +126,10 @@ public:
 	virtual std::pair<bool,Address> peerAddress() const ;
 		///< Override from Connection. Returns the peer
 		///< address. Pair.first is false on error.
+		///< Final override from GNet::Connection.
+
+	virtual std::string peerCertificate() const ;
+		///< Returns the peer's TLS certificate.
 		///< Final override from GNet::Connection.
 
 	ResolverInfo resolverInfo() const ;
@@ -192,12 +204,14 @@ private:
 	SimpleClient( const SimpleClient& ) ; // not implemented
 	void operator=( const SimpleClient& ) ; // not implemented
 	void close() ;
-	static int getRandomPort() ;
+	static unsigned int getRandomPort() ;
 	bool startConnecting() ;
 	bool localBind( Address ) ;
 	ConnectStatus connectCore( Address remote_address , std::string *error_p ) ;
 	void setState( State ) ;
 	void immediateConnection() ;
+	void sendSocksRequest() ;
+	bool readSocksResponse() ;
 	void logFlowControlAsserted() const ;
 	void logFlowControlReleased() const ;
 
@@ -210,6 +224,7 @@ private:
 	bool m_privileged ;
 	State m_state ;
 	bool m_sync_dns ;
+	unsigned int m_secure_connection_timeout ;
 } ;
 
 #endif

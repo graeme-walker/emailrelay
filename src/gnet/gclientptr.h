@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -99,6 +99,18 @@ public:
 	ResolverInfo resolverInfo() const ;
 		///< Returns the current or last client's ResolverInfo.
 
+	void releaseForExit() ;
+		///< Can be called on program termination when there may
+		///< be no TimerList or EventLoop instances.
+		///< The client object leaks.
+
+	void cleanupForExit() ;
+		///< Can be called on program termination when there may
+		///< be no TimerList or EventLoop instances. The client
+		///< is destructed so all relevant destructors should
+		///< avoid doing anything with timers or the network
+		///< (possibly even just closing sockets).
+
 private:
 	ClientPtr( const ClientPtr & ) ; // not implemented
 	void operator=( const ClientPtr & ) ; // not implemented
@@ -145,6 +157,28 @@ ClientPtr<TClient>::~ClientPtr()
 	{
 		disconnectSignals() ;
 		m_p->doDelete(std::string()) ;
+	}
+}
+
+template <typename TClient>
+void ClientPtr<TClient>::releaseForExit()
+{
+	if( m_p != NULL )
+	{
+		disconnectSignals() ;
+		m_p = NULL ;
+	}
+}
+
+template <typename TClient>
+void ClientPtr<TClient>::cleanupForExit()
+{
+	if( m_p != NULL )
+	{
+		disconnectSignals() ;
+		TClient * p = m_p ;
+		m_p = NULL ;
+		p->doDeleteForExit() ;
 	}
 }
 

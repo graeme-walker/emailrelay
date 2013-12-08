@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 GSmtp::RequestClient::RequestClient( const std::string & key , const std::string & ok , const std::string & eol ,
 	const GNet::ResolverInfo & resolver_info ,
 	unsigned int connect_timeout , unsigned int response_timeout ) :
-		GNet::Client(resolver_info,connect_timeout,response_timeout,eol) ,
+		GNet::Client(resolver_info,connect_timeout,response_timeout,0U,eol) ,
 		m_key(key) ,
 		m_ok(ok) ,
 		m_eol(eol) ,
@@ -89,7 +89,7 @@ void GSmtp::RequestClient::onDeleteImp( const std::string & reason , bool b )
 	Base::onDeleteImp( reason , b ) ; // use typedef because of ms compiler bug
 }
 
-void GSmtp::RequestClient::onSecure()
+void GSmtp::RequestClient::onSecure( const std::string & )
 {
 }
 

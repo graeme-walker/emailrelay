@@ -16,6 +16,9 @@
 /* Define to 1 if getipnodebyname() is available */
 #undef HAVE_GETIPNODEBYNAME
 
+/* Define to 1 if getpwnam_r in pwd.h */
+#undef HAVE_GETPWNAM_R
+
 /* Define to 1 if you have the `glob' function. */
 #undef HAVE_GLOB
 
@@ -78,8 +81,8 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* Define to 1 if you have the <zlib.h> header file. */
-#undef HAVE_ZLIB_H
+/* Define to enable use of zlib */
+#undef HAVE_ZLIB
 
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT
@@ -92,6 +95,9 @@
 
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION

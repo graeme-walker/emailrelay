@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -52,7 +52,7 @@ private:
 	Tray( const Tray & ) ; // not implemented
 
 private:
-	NOTIFYICONDATA m_info ;
+	NOTIFYICONDATAA m_info ;
 } ;
 
 #endif

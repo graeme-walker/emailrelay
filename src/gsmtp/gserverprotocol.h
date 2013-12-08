@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,13 +27,14 @@
 #include "gaddress.h"
 #include "gverifier.h"
 #include "gverifierstatus.h"
-#include "gsasl.h"
+#include "gsaslserver.h"
 #include "gsecrets.h"
 #include "gstatemachine.h"
 #include "gtimer.h"
 #include "gexception.h"
 #include <map>
 #include <utility>
+#include <memory>
 
 /// \namespace GSmtp
 namespace GSmtp
@@ -69,8 +70,8 @@ public:
 	class Text
 	{
 		public: virtual std::string greeting() const = 0 ;
-		public: virtual std::string hello( const std::string & peer_name ) const = 0 ;
-		public: virtual std::string received( const std::string & peer_name ) const = 0 ;
+		public: virtual std::string hello( const std::string & smtp_peer_name ) const = 0 ;
+		public: virtual std::string received( const std::string & smtp_peer_name ) const = 0 ;
 		public: virtual ~Text() ;
 		private: void operator=( const Text & ) ; // not implemented
 	} ;
@@ -84,7 +85,8 @@ public:
 	} ;
 
 	ServerProtocol( Sender & sender , Verifier & verifier , ProtocolMessage & pmessage ,
-		const Secrets & secrets , Text & text , GNet::Address peer_address , Config config ) ;
+		const GAuth::Secrets & secrets , Text & text , GNet::Address peer_address ,
+		const std::string & peer_socket_name , Config config ) ;
 			///< Constructor.
 			///<
 			///< The Verifier interface is used to verify recipient
@@ -112,7 +114,7 @@ public:
 		///< The string is expected to be CR-LF terminated.
 		///< Throws ProtocolDone at the end of the protocol.
 
-	void secure() ;
+	void secure( const std::string & certificate ) ;
 		///< To be called when the transport protocol goes
 		///< into secure mode.
 
@@ -179,6 +181,7 @@ private:
 	std::string commandWord( const std::string & line ) const ;
 	std::string commandLine( const std::string & line ) const ;
 	static const std::string & crlf() ;
+	bool sensitive() const ;
 	void reset() ;
 	void badClientEvent() ;
 	void processDone( bool , unsigned long , std::string ) ; // ProtocolMessage::doneSignal()
@@ -248,11 +251,13 @@ private:
 	ProtocolMessage & m_pmessage ;
 	Text & m_text ;
 	GNet::Address m_peer_address ;
+	std::string m_peer_socket_name ;
 	Fsm m_fsm ;
-	std::string m_peer_name ;
+	std::string m_smtp_peer_name ;
 	bool m_authenticated ;
 	bool m_secure ;
-	SaslServer m_sasl ;
+	std::string m_certificate ;
+	std::auto_ptr<GAuth::SaslServer> m_sasl ;
 	bool m_with_vrfy ;
 	bool m_with_ssl ;
 	std::string m_buffer ;
@@ -270,26 +275,31 @@ class GSmtp::ServerProtocolText : public GSmtp::ServerProtocol::Text
 {
 public:
 	ServerProtocolText( const std::string & ident , const std::string & thishost ,
-		const GNet::Address & peer_address ) ;
+		const GNet::Address & peer_address , const std::string & peer_socket_name ) ;
 			///< Constructor.
 
 	virtual std::string greeting() const ;
 		///< Final override from GSmtp::ServerProtocol::Text.
 
-	virtual std::string hello( const std::string & peer_name_from_helo ) const ;
+	virtual std::string hello( const std::string & smtp_peer_name_from_helo ) const ;
 		///< Final override from GSmtp::ServerProtocol::Text.
 
-	virtual std::string received( const std::string & peer_name_from_helo ) const ;
+	virtual std::string received( const std::string & smtp_peer_name_from_helo ) const ;
 		///< Final override from GSmtp::ServerProtocol::Text.
 
-	static std::string receivedLine( const std::string & peer_name_from_helo , const std::string & peer_address ,
+	static std::string receivedLine( const std::string & smtp_peer_name_from_helo ,
+		const std::string & peer_address , const std::string & peer_socket_name ,
 		const std::string & thishost ) ;
 			///< Returns a standard "Received:" line.
+
+private:
+	static std::string shortened( std::string , std::string ) ;
 
 private:
 	std::string m_ident ;
 	std::string m_thishost ;
 	GNet::Address m_peer_address ;
+	std::string m_peer_socket_name ;
 } ;
 
 #endif

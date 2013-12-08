@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -73,7 +73,7 @@ public:
 		///< window, etc. Should be called from WinMain().
 
 	void run( bool with_idle = true ) ;
-		///< GetMessage()/DispatchMessage() message pump.
+		///< Runs the GetMessage()/DispatchMessage() message pump.
 		///< This should be called from WinMain().
 
 	void close() const ;

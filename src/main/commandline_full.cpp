@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include "gmessagestore.h"
 #include "gpopsecrets.h"
 #include "ggetopt.h"
+#include "gtest.h"
 #include "gstr.h"
 #include "gdebug.h"
 
@@ -41,10 +42,11 @@ namespace Main
 class Main::CommandLineImp
 {
 public:
-	CommandLineImp( Main::Output & , const G::Arg & arg , const std::string & spec , const std::string & version ) ;
+	CommandLineImp( Main::Output & , const G::Arg & arg , const std::string & spec ,
+		const std::string & version , const std::string & capabilities ) ;
 	bool contains( const std::string & switch_ ) const ;
 	std::string value( const std::string & switch_ ) const ;
-	unsigned int argc() const ;
+	G::Arg::size_type argc() const ;
 	bool hasUsageErrors() const ;
 	bool hasSemanticError( const Configuration & ) const ;
 	void showHelp( bool error_stream ) const ;
@@ -53,14 +55,17 @@ public:
 	void logSemanticWarnings( const Configuration & cfg ) const ;
 	void showArgcError( bool error_stream ) const ;
 	void showNoop( bool error_stream = false ) const ;
+	void showError( std::string reason , bool error_stream = true ) const ;
 	void showVersion( bool error_stream = false ) const ;
 	void showBanner( bool error_stream = false , const std::string & = std::string() ) const ;
 	void showCopyright( bool error_stream = false , const std::string & = std::string() ) const ;
+	void showCapabilities( bool error_stream = false , const std::string & = std::string() ) const ;
 	static std::string switchSpec( bool is_windows ) ;
 
 public:
 	void showWarranty( bool error_stream = false , const std::string & = std::string() ) const ;
 	void showCredit( bool error_stream = false , const std::string & = std::string() ) const ;
+	void showTestFeatures( bool error_stream = false , const std::string & = std::string() ) const ;
 	void showShortHelp( bool error_stream ) const ;
 	std::string semanticError( const Configuration & , bool & ) const ;
 	void showUsage( bool e ) const ;
@@ -71,6 +76,7 @@ public:
 private:
 	Output & m_output ;
 	std::string m_version ;
+	std::string m_capabilities ;
 	G::Arg m_arg ;
 	G::GetOpt m_getopt ;
 } ;
@@ -98,61 +104,66 @@ private:
 
 std::string Main::CommandLineImp::switchSpec( bool is_windows )
 {
+	// single-character options unused: 012345678
 	std::string dir = GSmtp::MessageStore::defaultDirectory().str() ;
 	std::string pop_auth = GPop::Secrets::defaultPath() ;
 	std::ostringstream ss ;
 	ss <<
 		(is_windows?switchSpec_windows():switchSpec_unix()) << "|"
-		"q!as-client!runs as a client, forwarding spooled mail to <host>: "
+		"q!as-client!runs as a client, forwarding all spooled mail to <host>!: "
 			"equivalent to \"--log --no-syslog --no-daemon --dont-serve --forward --forward-to\"!"
 			"1!host:port!1|"
-		"d!as-server!runs as a server: equivalent to \"--log --close-stderr\"!0!!1|"
-		"y!as-proxy!runs as a proxy: equivalent to \"--log --close-stderr --poll=0 --forward-to\"!"
+		"d!as-server!runs as a server, storing mail in the spool directory!: equivalent to \"--log --close-stderr\"!0!!1|"
+		"y!as-proxy!runs as a proxy server, forwarding each mail immediately to <host>!"
+			": equivalent to \"--log --close-stderr --poll=0 --forward-to\"!"
 			"1!host:port!1|"
-		"v!verbose!generates more verbose output (works with --help and --log)!0!!1|"
-		"h!help!displays help text and exits!0!!1|"
+		"v!verbose!generates more verbose output! (works with --help and --log)!0!!1|"
+		"h!help!displays help text and exits!!0!!1|"
 		""
-		"p!port!specifies the smtp listening port number (default is 25)!1!port!2|"
-		"r!remote-clients!allows remote clients to connect!0!!2|"
-		"s!spool-dir!specifies the spool directory (default is \"" << dir << "\")!1!dir!2|"
-		"V!version!displays version information and exits!0!!2|"
+		"p!port!specifies the smtp listening port number (default is 25)!!1!port!2|"
+		"r!remote-clients!allows remote clients to connect!!0!!2|"
+		"s!spool-dir!specifies the spool directory (default is \"" << dir << "\")!!1!dir!2|"
+		"V!version!displays version information and exits!!0!!2|"
 		""
-		"j!client-tls!enables tls/ssl layer for smtp client (if openssl built in)!0!!3|"
-		"K!server-tls!enables tls/ssl layer for smtp server using the given openssl certificate file (which must be in the directory trusted by openssl)!1!pem-file!3|"
-		"g!debug!generates debug-level logging if compiled-in!0!!3|"
-		"C!client-auth!enables smtp authentication with the remote server, using the given secrets file!1!file!3|"
-		"L!log-time!adds a timestamp to the logging output!0!!3|"
-		"S!server-auth!enables authentication of remote clients, using the given secrets file!1!file!3|"
-		"e!close-stderr!closes the standard error stream soon after start-up!0!!3|"
-		"a!admin!enables the administration interface and specifies its listening port number!"
+		"j!client-tls!enables negotiated tls/ssl for smtp client! (if openssl built in)!0!!3|"
+		"b!client-tls-connection!enables smtp over tls/ssl for smtp client! (if openssl built in)!0!!3|"
+		"K!server-tls!enables negotiated tls/ssl for smtp server using the given openssl certificate file! (which must be in the directory trusted by openssl)!1!pem-file!3|"
+		"9!tls-config!sets tls configuration flags! (eg. 2 for SSLv2/3 support)!1!flags!3|"
+		"g!debug!generates debug-level logging if built in!!0!!3|"
+		"C!client-auth!enables smtp authentication with the remote server, using the given secrets file!!1!file!3|"
+		"L!log-time!adds a timestamp to the logging output!!0!!3|"
+		"N!log-file!log to file instead of stderr! (%d replaced by the date)!1!file!3|"
+		"S!server-auth!enables authentication of remote clients, using the given secrets file!!1!file!3|"
+		"e!close-stderr!closes the standard error stream soon after start-up!!0!!3|"
+		"a!admin!enables the administration interface and specifies its listening port number!!"
 			"1!admin-port!3|"
-		"x!dont-serve!disables acting as a server on any port (part of --as-client and usually used with --forward)!0!!3|"
-		"X!no-smtp!disables listening for smtp connections (usually used with --admin or --pop)!0!!3|"
-		"z!filter!specifies an external program to process messages as they are stored!1!program!3|"
-		"W!filter-timeout!sets the timeout (in seconds) for running the --filter processor (default is 300)!1!time!3|"
-		"w!prompt-timeout!sets the timeout (in seconds) for getting an initial prompt from the server (default is 20)!1!time!3|"
-		"D!domain!sets an override for the host's fully qualified domain name!1!fqdn!3|"
-		"f!forward!forwards stored mail on startup (requires --forward-to)!0!!3|"
-		"o!forward-to!specifies the remote smtp server (required by --forward, --poll, --immediate and --admin)!1!host:port!3|"
+		"x!dont-serve!disables acting as a server on any port! (part of --as-client and usually used with --forward)!0!!3|"
+		"X!no-smtp!disables listening for smtp connections! (usually used with --admin or --pop)!0!!3|"
+		"z!filter!specifies an external program to process messages as they are stored!!1!program!3|"
+		"W!filter-timeout!sets the timeout (in seconds) for running the --filter processor (default is 300)!!1!time!3|"
+		"w!prompt-timeout!sets the timeout (in seconds) for getting an initial prompt from the server (default is 20)!!1!time!3|"
+		"D!domain!sets an override for the host's fully qualified domain name!!1!fqdn!3|"
+		"f!forward!forwards stored mail on startup! (requires --forward-to)!0!!3|"
+		"o!forward-to!specifies the remote smtp server! (required by --forward, --poll, --immediate and --admin)!1!host:port!3|"
 		"T!response-timeout!sets the response timeout (in seconds) when talking to a remote server "
-			"(default is 1800)!1!time!3|"
+			"(default is 1800)!!1!time!3|"
 		"U!connection-timeout!sets the timeout (in seconds) when connecting to a remote server "
-			"(default is 40)!1!time!3|"
-		"m!immediate!enables immediate forwarding of messages as soon as they are received (requires --forward-to)!0!!3|"
-		"I!interface!defines the listening interface for incoming connections!1!ip-address!3|"
-		"i!pid-file!defines a file for storing the daemon process-id!1!pid-file!3|"
-		"O!poll!enables polling of the spool directory for messages to be forwarded with the specified period (requires --forward-to)!1!period!3|"
-		"P!postmaster!!0!!0|"
-		"Z!verifier!specifies an external program for address verification!1!program!3|"
-		"Y!client-filter!specifies an external program to process messages when they are forwarded!1!program!3|"
-		"Q!admin-terminate!enables the terminate command on the admin interface!0!!3|"
-		"A!anonymous!disables the smtp vrfy command and sends less verbose smtp responses!0!!3|"
-		"B!pop!enables the pop server!0!!3|"
-		"E!pop-port!specifies the pop listening port number (requires --pop) (default is 110)!1!port!3|"
-		"F!pop-auth!defines the pop server secrets file (default is \"" << pop_auth << "\")!1!file!3|"
-		"G!pop-no-delete!disables message deletion via pop (requires --pop)!0!!3|"
-		"J!pop-by-name!modifies the pop spool directory according to the user name (requires --pop)!0!!3|"
-		"M!size!limits the size of submitted messages!1!bytes!3|"
+			"(default is 40)!!1!time!3|"
+		"m!immediate!enables immediate forwarding of messages as soon as they are received! (requires --forward-to)!0!!3|"
+		"I!interface!defines the listening interface(s) for incoming connections! (comma-separated list with optional smtp=,pop=,admin= qualifiers)!1!ip-list!3|"
+		"i!pid-file!defines a file for storing the daemon process-id!!1!pid-file!3|"
+		"O!poll!enables polling of the spool directory for messages to be forwarded with the specified period (zero means on client disconnection)! (requires --forward-to)!1!period!3|"
+		"P!postmaster!!!0!!0|"
+		"Z!verifier!specifies an external program for address verification!!1!program!3|"
+		"Y!client-filter!specifies an external program to process messages when they are forwarded!!1!program!3|"
+		"Q!admin-terminate!enables the terminate command on the admin interface!!0!!3|"
+		"A!anonymous!disables the smtp vrfy command and sends less verbose smtp responses!!0!!3|"
+		"B!pop!enables the pop server!!0!!3|"
+		"E!pop-port!specifies the pop listening port number (default is 110)! (requires --pop)!1!port!3|"
+		"F!pop-auth!defines the pop server secrets file (default is \"" << pop_auth << "\")!!1!file!3|"
+		"G!pop-no-delete!disables message deletion via pop! (requires --pop)!0!!3|"
+		"J!pop-by-name!modifies the pop spool directory according to the pop user name! (requires --pop)!0!!3|"
+		"M!size!limits the size of submitted messages!!1!bytes!3|"
 		;
 	return ss.str() ;
 }
@@ -160,35 +171,37 @@ std::string Main::CommandLineImp::switchSpec( bool is_windows )
 std::string Main::CommandLineImp::switchSpec_unix()
 {
 	return
-		"l!log!writes log information on standard error and syslog!0!!2|"
-		"t!no-daemon!does not detach from the terminal!0!!3|"
+		"l!log!writes log information on standard error and syslog! (but see --close-stderr and --no-syslog)!0!!2|"
+		"t!no-daemon!does not detach from the terminal!!0!!3|"
 		"u!user!names the effective user to switch to if started as root "
-			"(default is \"daemon\")!1!username!3|"
-		"k!syslog!forces syslog output if logging is enabled (overrides --no-syslog)!0!!3|"
-		"n!no-syslog!disables syslog output (always overridden by --syslog)!0!!3" ;
+			"(default is \"daemon\")!!1!username!3|"
+		"k!syslog!forces syslog output if logging is enabled (overrides --no-syslog)!!0!!3|"
+		"n!no-syslog!disables syslog output (always overridden by --syslog)!!0!!3" ;
 }
 
 std::string Main::CommandLineImp::switchSpec_windows()
 {
 	return
-		"l!log!writes log information on standard error and event log!0!!2|"
-		"t!no-daemon!uses an ordinary window, not the system tray!0!!3|"
-		"k!syslog!forces system event log output if logging is enabled (overrides --no-syslog)!0!!3|"
-		"n!no-syslog!disables use of the system event log!0!!3|"
-		"c!icon!selects the application icon!1!0^|1^|2^|3!3|"
-		"H!hidden!hides the application window and suppresses message boxes (requires --no-daemon)!0!!3" ;
+		"l!log!writes log information on stderr and to the event log! (but see --close-stderr and --no-syslog)!0!!2|"
+		"t!no-daemon!uses an ordinary window, not the system tray!!0!!3|"
+		"k!syslog!forces system event log output if logging is enabled (overrides --no-syslog)!!0!!3|"
+		"n!no-syslog!disables use of the system event log!!0!!3|"
+		"c!icon!does nothing!!1!0^|1^|2^|3!0|"
+		"H!hidden!hides the application window and suppresses message boxes (requires --no-daemon)!!0!!3|"
+		"R!peer-lookup!lookup the account names of local peers! to put in the envelope files!0!!3" ;
 }
 
 Main::CommandLineImp::CommandLineImp( Output & output , const G::Arg & arg , const std::string & spec ,
-	const std::string & version ) :
+	const std::string & version , const std::string & capabilities ) :
 		m_output(output) ,
 		m_version(version) ,
+		m_capabilities(capabilities) ,
 		m_arg(arg) ,
 		m_getopt(m_arg,spec,'|','!','^')
 {
 }
 
-unsigned int Main::CommandLineImp::argc() const
+G::Arg::size_type Main::CommandLineImp::argc() const
 {
 	return m_getopt.args().c() ;
 }
@@ -210,7 +223,9 @@ void Main::CommandLineImp::showUsage( bool e ) const
 		introducer = std::string("abbreviated ") + introducer ;
 
 	std::string::size_type tab_stop = 34U ;
-	m_getopt.showUsage( show.s() , m_arg.prefix() , "" , introducer , level , tab_stop ) ;
+	bool extra = m_getopt.contains("verbose") ;
+	m_getopt.showUsage( show.s() , m_arg.prefix() , "" , introducer , level , tab_stop ,
+		G::GetOpt::wrapDefault() , extra ) ;
 }
 
 bool Main::CommandLineImp::contains( const std::string & name ) const
@@ -226,7 +241,6 @@ std::string Main::CommandLineImp::value( const std::string & name ) const
 std::string Main::CommandLineImp::semanticError( const Configuration & cfg , bool & fatal ) const
 {
 	fatal = true ;
-	std::string warning ;
 
 	if(
 		( cfg.doAdmin() && cfg.adminPort() == cfg.port() ) ||
@@ -242,12 +256,12 @@ std::string Main::CommandLineImp::semanticError( const Configuration & cfg , boo
 		m_getopt.contains("pop-by-name") ||
 		m_getopt.contains("pop-no-delete") ) )
 	{
-		return "pop switches require --pop" ;
+		return "pop options require --pop" ;
 	}
 
 	if( cfg.withTerminate() && !cfg.doAdmin() )
 	{
-		return "the --admin-terminate switch requires --admin" ;
+		return "the --admin-terminate option requires --admin" ;
 	}
 
 	if( cfg.daemon() && cfg.spoolDir().isRelative() )
@@ -273,7 +287,7 @@ std::string Main::CommandLineImp::semanticError( const Configuration & cfg , boo
 		m_getopt.contains("poll") ||
 		m_getopt.contains("immediate") ) )
 	{
-		return "the --forward, --immediate and --poll switches require --forward-to" ;
+		return "the --forward, --immediate and --poll options require --forward-to" ;
 	}
 
 	const bool forwarding =
@@ -285,7 +299,7 @@ std::string Main::CommandLineImp::semanticError( const Configuration & cfg , boo
 
 	if( m_getopt.contains("client-filter") && ! forwarding )
 	{
-		return "the --client-filter switch requires --as-proxy, --as-client, --poll, --immediate or --forward" ;
+		return "the --client-filter option requires --as-proxy, --as-client, --poll, --immediate or --forward" ;
 	}
 
 	const bool not_serving = m_getopt.contains("dont-serve") || m_getopt.contains("as-client") ;
@@ -293,34 +307,34 @@ std::string Main::CommandLineImp::semanticError( const Configuration & cfg , boo
 	if( not_serving ) // ie. if not serving admin, smtp or pop
 	{
 		if( m_getopt.contains("filter") )
-			return "the --filter switch cannot be used with --as-client or --dont-serve" ;
+			return "the --filter option cannot be used with --as-client or --dont-serve" ;
 
 		if( m_getopt.contains("port") )
-			return "the --port switch cannot be used with --as-client or --dont-serve" ;
+			return "the --port option cannot be used with --as-client or --dont-serve" ;
 
 		if( m_getopt.contains("server-auth") )
-			return "the --server-auth switch cannot be used with --as-client or --dont-serve" ;
+			return "the --server-auth option cannot be used with --as-client or --dont-serve" ;
 
 		if( m_getopt.contains("pop") )
-			return "the --pop switch cannot be used with --as-client or --dont-serve" ;
+			return "the --pop option cannot be used with --as-client or --dont-serve" ;
 
 		if( m_getopt.contains("admin") )
-			return "the --admin switch cannot be used with --as-client or --dont-serve" ;
+			return "the --admin option cannot be used with --as-client or --dont-serve" ;
 
 		if( m_getopt.contains("poll") )
-			return "the --poll switch cannot be used with --as-client or --dont-serve" ;
+			return "the --poll option cannot be used with --as-client or --dont-serve" ;
 	}
 
 	if( m_getopt.contains("no-smtp") ) // ie. if not serving smtp
 	{
 		if( m_getopt.contains("filter") )
-			return "the --filter switch cannot be used with --no-smtp" ;
+			return "the --filter option cannot be used with --no-smtp" ;
 
 		if( m_getopt.contains("port") )
-			return "the --port switch cannot be used with --no-smtp" ;
+			return "the --port option cannot be used with --no-smtp" ;
 
 		if( m_getopt.contains("server-auth") )
-			return "the --server-auth switch cannot be used with --no-smtp" ;
+			return "the --server-auth option cannot be used with --no-smtp" ;
 	}
 
 	const bool log =
@@ -331,12 +345,12 @@ std::string Main::CommandLineImp::semanticError( const Configuration & cfg , boo
 
 	if( m_getopt.contains("verbose") && ! ( m_getopt.contains("help") || log ) )
 	{
-		return "the --verbose switch must be used with --log, --help, --as-client, --as-server or --as-proxy" ;
+		return "the --verbose option must be used with --log, --help, --as-client, --as-server or --as-proxy" ;
 	}
 
 	if( m_getopt.contains("debug") && !log )
 	{
-		return "the --debug switch requires --log, --as-client, --as-server or --as-proxy" ;
+		return "the --debug option requires --log, --as-client, --as-server or --as-proxy" ;
 	}
 
 	const bool no_daemon =
@@ -345,8 +359,27 @@ std::string Main::CommandLineImp::semanticError( const Configuration & cfg , boo
 
 	if( m_getopt.contains("hidden") && ! no_daemon ) // (win32)
 	{
-		return "the --hidden switch requires --no-daemon or --as-client" ;
+		return "the --hidden option requires --no-daemon or --as-client" ;
 	}
+
+	if( m_getopt.contains("client-tls") && m_getopt.contains("client-tls-connection") )
+	{
+		return "the --client-tls and --client-tls-connection options cannot be used together" ;
+	}
+
+	if( m_getopt.contains("server-auth") && m_getopt.value("server-auth") == "/pam" &&
+		!m_getopt.contains("server-tls" ) )
+	{
+		return "--server-auth using pam requires --server-tls" ;
+	}
+
+	if( m_getopt.contains("pop-auth") && m_getopt.value("pop-auth") == "/pam" &&
+		!m_getopt.contains("server-tls" ) )
+	{
+		return "--pop-auth using pam requires --server-tls" ;
+	}
+
+	// warnings...
 
 	const bool no_syslog =
 		m_getopt.contains("no-syslog") ||
@@ -367,7 +400,7 @@ std::string Main::CommandLineImp::semanticError( const Configuration & cfg , boo
 			( m_getopt.contains("as-server") ? "--as-server" :
 			"--as-proxy" ) ) ;
 
-		warning = "logging is enabled but it has nowhere to go because " +
+		std::string warning = "logging is enabled but it has nowhere to go because " +
 			close_stderr_switch + " closes the standard error stream soon after startup and " +
 			"output to the system log is disabled" ;
 
@@ -377,10 +410,13 @@ std::string Main::CommandLineImp::semanticError( const Configuration & cfg , boo
 			warning = warning + ": remove --as-server" ;
 		else if( m_getopt.contains("as-proxy" ) )
 			warning = warning + ": replace --as-proxy with --log --poll 0 --forward-to" ;
+
+		fatal = false ;
+		return warning ;
 	}
 
 	fatal = false ;
-	return warning ;
+	return std::string() ;
 }
 
 bool Main::CommandLineImp::hasSemanticError( const Configuration & cfg ) const
@@ -477,6 +513,12 @@ void Main::CommandLineImp::showNoop( bool e ) const
 	show.s() << m_arg.prefix() << ": no messages to send" << std::endl ;
 }
 
+void Main::CommandLineImp::showError( std::string reason , bool e ) const
+{
+	Show show( m_output , e ) ;
+	show.s() << m_arg.prefix() << ": " << reason << std::endl ;
+}
+
 void Main::CommandLineImp::showBanner( bool e , const std::string & final ) const
 {
 	Show show( m_output , e ) ;
@@ -488,6 +530,15 @@ void Main::CommandLineImp::showCopyright( bool e , const std::string & final ) c
 {
 	Show show( m_output , e ) ;
 	show.s() << Legal::copyright() << std::endl << final ;
+}
+
+void Main::CommandLineImp::showCapabilities( bool e , const std::string & final ) const
+{
+	if( !m_capabilities.empty() )
+	{
+		Show show( m_output , e ) ;
+		show.s() << "Build configuration [" << m_capabilities << "]" << std::endl << final ;
+	}
 }
 
 void Main::CommandLineImp::showWarranty( bool e , const std::string & final ) const
@@ -502,11 +553,22 @@ void Main::CommandLineImp::showCredit( bool e , const std::string & final ) cons
 	show.s() << GSsl::Library::credit("","\n",final) ;
 }
 
+void Main::CommandLineImp::showTestFeatures( bool e , const std::string & final ) const
+{
+	Show show( m_output , e ) ;
+	show.s() << "Test features " << (G::Test::enabled()?"enabled":"disabled") << std::endl << final ;
+}
+
 void Main::CommandLineImp::showVersion( bool e ) const
 {
 	Show show( m_output , e ) ;
 	showBanner( e , "\n" ) ;
 	showCopyright( e , "\n" ) ;
+	if( contains("verbose") )
+	{
+		showCapabilities( e , "\n" ) ;
+		showTestFeatures( e , "\n" ) ;
+	}
 	showCredit( e , "\n" ) ;
 	showWarranty( e ) ;
 }
@@ -545,8 +607,8 @@ std::string Main::CommandLine::switchSpec( bool is_windows )
 }
 
 Main::CommandLine::CommandLine( Main::Output & output , const G::Arg & arg , const std::string & spec ,
-	const std::string & version ) :
-		m_imp(new CommandLineImp(output,arg,spec,version))
+	const std::string & version , const std::string & capabilities ) :
+		m_imp(new CommandLineImp(output,arg,spec,version,capabilities))
 {
 }
 
@@ -570,7 +632,7 @@ std::string Main::CommandLine::value( const std::string & switch_ ) const
 	return m_imp->value( switch_ ) ;
 }
 
-unsigned int Main::CommandLine::argc() const
+G::Arg::size_type Main::CommandLine::argc() const
 {
 	return m_imp->argc() ;
 }
@@ -615,6 +677,11 @@ void Main::CommandLine::showNoop( bool error_stream ) const
 	m_imp->showNoop( error_stream ) ;
 }
 
+void Main::CommandLine::showError( const std::string & reason , bool error_stream ) const
+{
+	m_imp->showError( reason , error_stream ) ;
+}
+
 void Main::CommandLine::showVersion( bool error_stream ) const
 {
 	m_imp->showVersion( error_stream ) ;
@@ -628,6 +695,11 @@ void Main::CommandLine::showBanner( bool error_stream , const std::string & s ) 
 void Main::CommandLine::showCopyright( bool error_stream , const std::string & s ) const
 {
 	m_imp->showCopyright( error_stream , s ) ;
+}
+
+void Main::CommandLine::showCapabilities( bool error_stream , const std::string & s ) const
+{
+	m_imp->showCapabilities( error_stream , s ) ;
 }
 
 unsigned int Main::CommandLine::value( const std::string & switch_ , unsigned int default_ ) const

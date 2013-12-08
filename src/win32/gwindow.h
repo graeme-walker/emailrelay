@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -116,7 +116,7 @@ public:
 		///< Maps from a window handle to a Window object. The handle
 		///< must be that of a Window window.
 
-	static LRESULT sendUserString( HWND hwnd , const char *string ) ;
+	static LRESULT sendUserString( HWND hwnd , const char * string ) ;
 		///< Sends a string to a specified window. The other window
 		///< will receive a onUserString() message.
 
@@ -161,6 +161,19 @@ public:
 	static HCURSOR classCursor() ;
 		///< Returns a default for registerWindowClass(hcursor).
 
+	static LRESULT wndProc( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam ) ;
+		///< Called directly from the global, exported
+		///< window procedure. The implementation locates
+		///< the particular Window object and calls its
+		///< non-static wndProc() method.
+
+	bool wndProcException() const ;
+		///< Returns true if an exception was thrown and caught just before
+		///< the wndproc returned.
+
+	std::string wndProcExceptionString() ;
+		///< Returns and clears the exception string.
+
 protected:		
 	virtual LRESULT onUserString( const char *string ) ;
 		///< Overridable. Called when the window receives a message
@@ -173,22 +186,16 @@ protected:
 	virtual void onException( std::exception & e ) ;
 		///< Called if an exception is being thrown out of the
 		///< window procedure. The default implementation
-		///< does "throw;" to continue throwing the exception.
-
-public:
-	static LRESULT wndProc( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam ) ;
-		///< Called directly from the global, exported
-		///< window procedure. The implementation locates
-		///< the particular Window object and calls its
-		///< non-static wndProc() method.
+		///< posts a quit message.
 
 private:
-	LRESULT wndProc( UINT message , WPARAM wparam , LPARAM lparam ) ;
-	LRESULT wndProcCore( UINT , WPARAM , LPARAM , bool & ) ;
-	bool onCreateCore() ;
+	static LRESULT wndProcCore( Window * , HWND , UINT , WPARAM , LPARAM ) ;
 	virtual LRESULT onUserOther( WPARAM , LPARAM ) ;
 	Window( const Window & other ) ; // not implemented
-	Window & operator=( const Window & other ) ; // not implemented
+	void operator=( const Window & other ) ; // not implemented
+
+private:
+	std::string m_reason ;
 } ;
 
 #endif

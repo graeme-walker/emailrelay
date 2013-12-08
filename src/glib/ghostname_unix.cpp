@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@
 #include "gdef.h"
 #include "ghostname.h"
 #include "gstr.h"
+#include "genvironment.h"
 #include <sys/utsname.h>
-#include <cstdlib> // getenv
 
 std::string G::hostname()
 {
@@ -42,8 +42,8 @@ std::string G::hostname()
 	//
 	if( name.empty() )
 	{
-		const char * p = std::getenv( "HOSTNAME" ) ;
-		name = G::Str::toPrintableAscii( std::string(p?p:"") , '_' ) ;
+		name = G::Str::toPrintableAscii(
+			G::Environment::get("HOSTNAME",std::string()) , '_' ) ;
 	}
 
 	return name ;

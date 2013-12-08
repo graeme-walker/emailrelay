@@ -1,9 +1,9 @@
 /*
-   Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+   Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
    
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or 
+   the Free Software Foundation, either version 3 of the License, or
    (at your option) any later version.
    
    This program is distributed in the hope that it will be useful,
@@ -18,22 +18,17 @@
 /*
    poke.c
  
-   This is a small program that connects to the
-   specified port on the local machine, sends
-   a fixed string, and prints out the first
-   bit of what it gets sent back.
+   This is a small program that connects to the specified port on the local 
+   machine, sends a fixed string, and prints out the first bit of what it 
+   gets sent back.
 
-   In daemon mode it detaches from the terminal,
-   writes a pid-file, and then sends the fixed string 
-   periodically, discarding any responses.
+   In daemon mode it detaches from the terminal, writes a pid-file, and then 
+   sends the fixed string periodically, discarding any responses.
    
-   Its purpose is to provide a low-overhead
-   mechanism for stimulating the E-MailRelay
-   daemon to send its queued-up messages to
-   the remote smtp server.
+   Its purpose is to provide a low-overhead mechanism for stimulating the 
+   E-MailRelay daemon to send its queued-up messages to the remote smtp server.
 
-   If there is an error no output is generated,
-   but the exit code is non-zero.
+   If there is an error no output is generated, but the exit code is non-zero.
 
    usage: poke [-d] [<port> [<send-string>]]
 
@@ -47,7 +42,15 @@
  #include <io.h>
  #include <stdlib.h>
  #include <string.h>
+ #ifndef G_MINGW
+  typedef int ssize_t ;
+ #endif
+ #if defined(_MSC_VER) && _MSC_VER > 1200
+  #define strncat(a,b,c) strncat_s(a,c,b,_TRUNCATE)
+  #define strcat(a,b) strncat_s(a,sizeof(a),b,_TRUNCATE)
+ #endif
  #define write _write
+ #define close _close
  #define STDOUT_FILENO 1
  void sleep( unsigned int s ) { Sleep( s * 1000UL ) ; }
 #else
@@ -88,7 +91,7 @@ static void detach( void )
 {
   #ifndef G_WIN32
 	if( fork() ) exit( EXIT_SUCCESS ) ;
-	chdir( "/" ) ;
+	{ int rc = chdir( "/" ) ; (void) rc ; }
 	setsid() ;
 	if( fork() ) exit( EXIT_SUCCESS ) ;
 	close( STDIN_FILENO ) ;
@@ -104,12 +107,13 @@ static void pidfile( void )
 	if( fd >= 0 )
 	{
 		char buffer[30] ;
+		ssize_t rc ;
 		char * p = buffer + sizeof(buffer) - 1 ;
 		pid_t pid = getpid() ;
 		for( *p = '\0' ; pid != 0 ; pid /= 10 )
 			*--p = '0' + (pid%10) ;
-		write( fd , p , strlen(p) ) ;
-		write( fd , "\n" , 1 ) ;
+		rc = write( fd , p , strlen(p) ) ;
+		rc += write( fd , "\n" , 1 ) ;
 		close( fd ) ;
 	}
   #endif
@@ -120,13 +124,17 @@ static BOOL poke( int argc , char * argv [] )
 	const char * const host = "127.0.0.1" ;
 	unsigned short port = 10025U ; /* --admin port */
 	char buffer[160U] = "FLUSH" ;
-	struct sockaddr_in address ;
+	union {
+		struct sockaddr_in specific ;
+		struct sockaddr generic ;
+	} address ;
 	int fd , rc ;
+	ssize_t n ;
 
 	/* parse the command line -- port number */
 	if( argc > 1 ) 
 	{
-		port = atoi(argv[1]) ;
+		port = (unsigned short)atoi(argv[1]) ;
 	}
 
 	/* parse the command line -- send string */
@@ -145,13 +153,13 @@ static BOOL poke( int argc , char * argv [] )
 	}
 
 	/* prepare the address */
-	memset( &address , 0 , sizeof(address) ) ;
-	address.sin_family = AF_INET ;
-	address.sin_port = htons( port ) ;
-	address.sin_addr.s_addr = inet_addr( host ) ;
+	memset( &address , 0 , sizeof(address.specific) ) ;
+	address.specific.sin_family = AF_INET ;
+	address.specific.sin_port = htons( port ) ;
+	address.specific.sin_addr.s_addr = inet_addr( host ) ;
 
 	/* connect */
-	rc = connect( fd , (const struct sockaddr*)&address , sizeof(address) ) ;
+	rc = connect( fd , &address.generic , sizeof(address.generic) ) ;
 	if( rc < 0 ) 
 	{
 		close( fd ) ;
@@ -159,16 +167,16 @@ static BOOL poke( int argc , char * argv [] )
 	}
 
 	/* send the string */
-	rc = send( fd , buffer , strlen(buffer) , 0 ) ;
-	if( rc != (int)strlen(buffer) ) 
+	n = send( fd , buffer , strlen(buffer) , 0 ) ;
+	if( n < 0 || (size_t)n != strlen(buffer) ) 
 	{
 		close( fd ) ;
 		return FALSE ;
 	}
 
 	/* read the reply */
-	rc = recv( fd , buffer , sizeof(buffer)-1U , 0 ) ;
-	if( rc <= 0 ) 
+	n = recv( fd , buffer , sizeof(buffer)-1U , 0 ) ;
+	if( n <= 0 ) 
 	{
 		close( fd ) ;
 		return FALSE ;
@@ -176,10 +184,10 @@ static BOOL poke( int argc , char * argv [] )
 	close( fd ) ;
 
 	/* print the reply */
-	write( STDOUT_FILENO , buffer , rc ) ;
+	n = write( STDOUT_FILENO , buffer , (size_t)n ) ;
 	buffer[0U] = '\n' ;
 	buffer[1U] = '\0' ;
-	write( STDOUT_FILENO , buffer , strlen(buffer) ) ;
+	n += write( STDOUT_FILENO , buffer , strlen(buffer) ) ;
 
 	return TRUE ;
 }

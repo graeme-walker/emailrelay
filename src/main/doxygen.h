@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+   Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -93,6 +93,21 @@ Key classes are:
 - MessageStore
 - Server
 - ServerProtocol
+
+ */
+
+/*! \namespace GAuth
+\short
+SASL authentication classes.
+
+The GAuth namespace contains classes relating to SASL
+and PAM authentication.
+
+Key classes are:
+- SaslClient
+- SaslServer
+- SaslServerFactory
+- Secrets
 
  */
 

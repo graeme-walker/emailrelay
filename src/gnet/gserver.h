@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include "gsocketprotocol.h"
 #include "gtimer.h"
 #include "gconnection.h"
+#include "gconnectionlookup.h"
 #include "gevent.h"
 #include <utility>
 #include <list>
@@ -91,6 +92,7 @@ public:
 	{
 		std::auto_ptr<StreamSocket> m_socket ;
 		Address m_address ;
+		std::string m_name ; // for local peers - not always available
 		ServerPeerHandle * m_handle ;
 		PeerInfo() ;
 	} ;
@@ -100,11 +102,11 @@ public:
 		///< bound. Throws CannotBind if the address cannot
 		///< be bound and 'do_throw' is true.
 
-	explicit Server( unsigned int listening_port ) ;
+	explicit Server( unsigned int listening_port , ConnectionLookup * = NULL ) ;
 		///< Constructor taking a port number. The server
 		///< listens on all local interfaces.
 
-	explicit Server( const Address & listening_address ) ;
+	explicit Server( const Address & listening_address , ConnectionLookup * = NULL ) ;
 		///< Constructor. The server listens only on the
 		///< specific (local) interface.
 
@@ -174,6 +176,7 @@ private:
 private:
 	typedef std::list<ServerPeerHandle> PeerList ;
 	std::auto_ptr<StreamSocket> m_socket ;
+	ConnectionLookup * m_connection_lookup ;
 	PeerList m_peer_list ;
 	bool m_cleaned_up ;
 } ;
@@ -211,6 +214,10 @@ public:
 
 	virtual std::pair<bool,Address> peerAddress() const ;
 		///< Returns the peer address.
+		///< Final override from GNet::Connection.
+
+	virtual std::string peerCertificate() const ;
+		///< Returns the peer's TLS certificate.
 		///< Final override from GNet::Connection.
 
 	virtual void readEvent() ;

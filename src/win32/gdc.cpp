@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,8 +29,8 @@ GGui::DeviceContext::DeviceContext( HWND hwnd ) :
 }
 
 GGui::DeviceContext::DeviceContext( HDC hdc ) :
-	m_hwnd(0) ,
 	m_hdc(hdc) ,
+	m_hwnd(0) ,
 	m_do_release(false) // ignored
 {
 }
@@ -66,7 +66,7 @@ void GGui::DeviceContext::swapBuffers()
 
 GGui::ScreenDeviceContext::ScreenDeviceContext()
 {
-	m_dc = ::CreateDC( "DISPLAY" , 0 , 0 , 0 ) ;
+	m_dc = ::CreateDCA( "DISPLAY" , 0 , 0 , 0 ) ;
 }
 
 GGui::ScreenDeviceContext::~ScreenDeviceContext()

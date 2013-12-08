@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -36,10 +36,20 @@ namespace GNet
 }
 
 /// \class GNet::SocketProtocol
-/// A class for doing read() and write() on
-/// a connected socket and installing and removing event
-/// handlers as appropriate. This abstraction allows
-/// for using SSL.
+/// An interface for implementing a low-level protocol layer
+/// by means of calling read() and write() on a connected non-blocking
+/// socket and installing and removing event handlers as appropriate.
+///
+/// In practice the only supported protocol is TLS/SSL and the implementation
+/// delegates to GSsl::Protocol.
+///
+/// Provides send() to send data and onData() in a sink callback interface
+/// to receive data.
+///
+/// A TLS/SSL session can be established with sslConnect() or sslAccept() as
+/// long as the underlying GSsl::Protocol is sslCapable(). If no TLS/SSL
+/// session is in effect then the protocol layer is transparent down
+/// to the socket.
 ///
 class GNet::SocketProtocol
 {
@@ -47,8 +57,9 @@ public:
 	typedef SocketProtocolSink Sink ;
 	G_EXCEPTION_CLASS( ReadError , "read error: disconnected" ) ;
 	G_EXCEPTION( SendError , "peer disconnected" ) ;
+	G_EXCEPTION( SecureConnectionTimeout , "secure connection timeout" ) ;
 
-	SocketProtocol( EventHandler & , Sink & , StreamSocket & ) ;
+	SocketProtocol( EventHandler & , Sink & , StreamSocket & , unsigned int secure_connection_timeout ) ;
 		///< Constructor. The references are kept.
 
 	~SocketProtocol() ;
@@ -67,19 +78,24 @@ public:
 
 	bool send( const std::string & data , std::string::size_type offset = 0U ) ;
 		///< Sends data. Returns false if flow control asserted.
-		///< Throws SendError on error.
+		///< Returns true if the data passed in (taking the offset
+		///< into account) is empty. Throws SendError on error.
 
 	static bool sslCapable() ;
-		///< Returns true if the implementation supports SSL.
+		///< Returns true if the implementation supports TLS/SSL.
 
 	void sslConnect() ;
-		///< Initiates the SSL protocol.
+		///< Initiates the TLS/SSL protocol.
 
 	void sslAccept() ;
-		///< Accepts the SSL protocol.
+		///< Accepts the TLS/SSL protocol.
 
 	bool sslEnabled() const ;
-		///< Returns true if SSL is active.
+		///< Returns true if TLS/SSL is active.
+
+	std::string peerCertificate() const ;
+		///< Returns the peer's TLS/SSL certificate
+		///< or the empty string.
 
 private:
 	SocketProtocol( const SocketProtocol & ) ;
@@ -105,7 +121,7 @@ protected:
 	virtual void onData( const char * , std::string::size_type ) = 0 ;
 		///< Called when data is read from the socket.
 
-	virtual void onSecure() = 0 ;
+	virtual void onSecure( const std::string & peer_certificate ) = 0 ;
 		///< Called once the secure socket protocol has
 		///< been successfully negotiated.
 } ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include "gdef.h"
 #include "gnet.h"
+#include "gprocess.h"
 #include "geventloop.h"
 #include "gsmtp.h"
 #include "gadminserver.h"
@@ -81,7 +82,7 @@ void GSmtp::AdminServerPeer::onDelete( const std::string & reason )
 		<< peerAddress().second.displayString() ) ;
 }
 
-void GSmtp::AdminServerPeer::onSecure()
+void GSmtp::AdminServerPeer::onSecure( const std::string & )
 {
 }
 
@@ -109,7 +110,22 @@ bool GSmtp::AdminServerPeer::onReceive( const std::string & line )
 	}
 	else if( is(line,"list") )
 	{
-		list() ;
+		list(spooled()) ;
+		prompt() ;
+	}
+	else if( is(line,"failures") )
+	{
+		list(failures()) ;
+		prompt() ;
+	}
+	else if( is(line,"unfail-all") )
+	{
+		unfailAll() ;
+		prompt() ;
+	}
+	else if( is(line,"pid") )
+	{
+		pid() ;
 		prompt() ;
 	}
 	else if( is(line,"quit") )
@@ -120,7 +136,7 @@ bool GSmtp::AdminServerPeer::onReceive( const std::string & line )
 	else if( is(line,"terminate") && m_with_terminate )
 	{
 		if( GNet::EventLoop::exists() )
-			GNet::EventLoop::instance().quit() ;
+			GNet::EventLoop::instance().quit("admin terminate request") ;
 	}
 	else if( find(line,m_extra_commands).first )
 	{
@@ -170,7 +186,10 @@ void GSmtp::AdminServerPeer::help()
 	commands.push_back( "help" ) ;
 	commands.push_back( "info" ) ;
 	commands.push_back( "list" ) ;
+	commands.push_back( "failures" ) ;
+	commands.push_back( "unfail-all" ) ;
 	commands.push_back( "notify" ) ;
+	commands.push_back( "pid" ) ;
 	commands.push_back( "quit" ) ;
 	if( m_with_terminate ) commands.push_back( "terminate" ) ;
 	G::Strings extras = G::Str::keys( m_extra_commands ) ;
@@ -201,7 +220,7 @@ bool GSmtp::AdminServerPeer::flush()
 	else
 	{
 		m_client.reset( new Client(GNet::ResolverInfo(m_remote_address),m_server.secrets(),m_server.clientConfig()) ) ;
-		m_client->sendMessages( m_server.store() ) ;
+		m_client->sendMessagesFrom( m_server.store() ) ; // once connected
 	}
 	return do_prompt ;
 }
@@ -238,10 +257,24 @@ void GSmtp::AdminServerPeer::info()
 	}
 }
 
-void GSmtp::AdminServerPeer::list()
+void GSmtp::AdminServerPeer::pid()
+{
+	sendLine( G::Process::Id().str() ) ;
+}
+
+GSmtp::MessageStore::Iterator GSmtp::AdminServerPeer::spooled()
+{
+	return m_server.store().iterator(false) ;
+}
+
+GSmtp::MessageStore::Iterator GSmtp::AdminServerPeer::failures()
+{
+	return m_server.store().failures() ;
+}
+
+void GSmtp::AdminServerPeer::list( MessageStore::Iterator iter )
 {
 	std::ostringstream ss ;
-	MessageStore::Iterator iter( m_server.store().iterator(false) ) ;
 	for(;;)
 	{
 		std::auto_ptr<StoredMessage> message( iter.next() ) ;
@@ -256,13 +289,18 @@ void GSmtp::AdminServerPeer::list()
 		send( ss.str() ) ;
 }
 
+void GSmtp::AdminServerPeer::unfailAll()
+{
+	return m_server.store().unfailAll() ;
+}
+
 // ===
 
 GSmtp::AdminServer::AdminServer( MessageStore & store , const GSmtp::Client::Config & client_config ,
-	const Secrets & secrets , const GNet::Address & listening_address , bool allow_remote ,
-	const GNet::Address & local_address , const std::string & remote_address ,
+	const GAuth::Secrets & secrets , const GNet::MultiServer::AddressList & listening_addresses ,
+	bool allow_remote , const GNet::Address & local_address , const std::string & remote_address ,
 	unsigned int connection_timeout , const G::StringMap & extra_commands , bool with_terminate ) :
-		GNet::MultiServer( GNet::MultiServer::addressList(listening_address) ) ,
+		GNet::MultiServer( listening_addresses , false ) ,
 		m_store(store) ,
 		m_client_config(client_config) ,
 		m_secrets(secrets) ,
@@ -273,7 +311,6 @@ GSmtp::AdminServer::AdminServer( MessageStore & store , const GSmtp::Client::Con
 		m_extra_commands(extra_commands) ,
 		m_with_terminate(with_terminate)
 {
-	G_DEBUG( "GSmtp::AdminServer: administrative interface listening on " << listening_address.displayString() ) ;
 }
 
 GSmtp::AdminServer::~AdminServer()
@@ -332,7 +369,7 @@ GSmtp::MessageStore & GSmtp::AdminServer::store()
 	return m_store ;
 }
 
-const GSmtp::Secrets & GSmtp::AdminServer::secrets() const
+const GAuth::Secrets & GSmtp::AdminServer::secrets() const
 {
 	return m_secrets ;
 }

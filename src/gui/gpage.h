@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #ifndef G_PAGE_H
 #define G_PAGE_H
 
+#include "gdef.h"
 #include "qt.h"
 #include "gstrings.h"
 #include "gpath.h"
@@ -54,9 +55,14 @@ public:
 	bool useFinishButton() const ;
 		///< Returns the ctor's finish_button parameter.
 
+	virtual std::string helpName() const ;
+		///< Returns this page's help-page name. Returns the
+		///< empty string if the help button should be disabled.
+		///< This default implementation returns the empty string.
+
 	virtual bool closeButton() const ;
 		///< Returns true if the page should have _only_ a close
-		///< button, typically if the last page.
+		///< (and maybe help) button, typically if the last page.
 		///<
 		///< This default implementation returns the constructor
 		///< parameter.
@@ -75,13 +81,16 @@ public:
 		///< Returns true if the page is complete
 		///< and the 'next' button can be enabled.
 
-	virtual void dump( std::ostream & , const std::string & prefix , const std::string & eol , bool ) const ;
+	virtual void dump( std::ostream & , bool for_install ) const ;
 		///< Dumps the page's state to the given
 		///< stream. Overrides should start by
 		///< calling this base-class implementation.
 
-	static void setTestMode() ;
-		///< Sets a test-mode.
+	static void setTestMode( int ) ;
+		///< Sets a test-mode. Typically this causes widgets
+		///< to be initialised in a way that helps with testing,
+		///< such as avoiding unnecessary clicks and visiting
+		///< every page.
 
 signals:
 	void pageUpdateSignal() ;
@@ -95,7 +104,14 @@ private slots:
 		///< selection is changed.
 
 protected:
+	struct NameTip {} ;
+	struct PasswordTip {} ;
 	static QLabel * newTitle( QString ) ;
+	static void tip( QWidget * , const char * ) ;
+	static void tip( QWidget * , NameTip ) ;
+	static void tip( QWidget * , PasswordTip ) ;
+	static QString tip( const char * ) ;
+	static QString tip() ;
 	std::string next1() const ;
 	std::string next2() const ;
 	static std::string value( bool ) ;
@@ -103,10 +119,13 @@ protected:
 	static std::string value( const QLineEdit * ) ;
 	static std::string value( const QComboBox * ) ;
 	bool testMode() const ;
-	void dumpItem( std::ostream & , const std::string & prefix , const std::string & key ,
-		const std::string & value , const std::string & eol ) const ;
-	void dumpItem( std::ostream & , const std::string & prefix , const std::string & key ,
-		const G::Path & value , const std::string & eol ) const ;
+	int testModeValue() const ;
+	void dumpItem( std::ostream & , bool , const std::string & , const std::string & ) const ;
+	void dumpItem( std::ostream & , bool , const std::string & , const G::Path & value ) const ;
+	static QString qstr( const std::string & ansi ) ;
+
+private:
+	static std::string stdstr( const QString & ) ;
 
 private:
 	GDialog & m_dialog ;
@@ -115,7 +134,7 @@ private:
 	std::string m_next_2 ;
 	bool m_finish_button ;
 	bool m_close_button ;
-	static bool m_test_mode ;
+	static int m_test_mode ;
 } ;
 
 #endif

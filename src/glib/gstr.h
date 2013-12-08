@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include "gexception.h"
 #include "gstrings.h"
 #include <string>
+#include <sstream>
 #include <iostream>
 #include <list>
 #include <vector>
@@ -201,6 +202,9 @@ public:
 	static std::string toPrintableAscii( const std::string & in , char escape = '\\' ) ;
 		///< Returns a 7-bit printable representation of the given input string.
 
+	static std::string toPrintableAscii( const std::wstring & in , wchar_t escape = L'\\' ) ;
+		///< Returns a 7-bit printable representation of the given wide input string.
+
 	static std::string printable( const std::string & in , char escape = '\\' ) ;
 		///< Returns a printable represention of the given input string.
 		///< Typically used to prevent escape sequences getting into log files.
@@ -220,8 +224,8 @@ public:
 		///<
 		///< Note that alternatives in the standard library such as
 		///< std::istream::getline() or std::getline(stream,string)
-		///< in <string> are limited to a single character as the
-		///< terminator.
+		///< in the standard "string" header are limited to a single
+		///< character as the terminator.
 		///<
 		///< The stream's fail bit is set if (1) an empty string was
 		///< returned because the stream was already at eof or (2)
@@ -250,7 +254,7 @@ public:
 
 	static void splitIntoTokens( const std::string & in , Strings & out , const std::string & ws ) ;
 		///< Splits the string into 'ws'-delimited tokens. The
-		///< behaviour is like ::strtok() in that adjacent delimiters
+		///< behaviour is like strtok() in that adjacent delimiters
 		///< count as one and leading and trailing delimiters are ignored.
 		///< Ths output array is cleared first.
 
@@ -309,4 +313,3 @@ private:
 } ;
 
 #endif
-

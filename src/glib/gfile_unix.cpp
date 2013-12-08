@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -123,10 +123,11 @@ bool G::File::link( const Path & target , const Path & new_link , const NoThrow 
 {
 	// optimisation
 	char buffer[limits::path] ;
-	int rc = ::readlink( new_link.str().c_str() , buffer , sizeof(buffer) ) ;
-	if( rc > 0 && rc != sizeof(buffer) )
+	ssize_t rc = ::readlink( new_link.str().c_str() , buffer , sizeof(buffer) ) ;
+	size_t n = rc < 0 ? size_t(0U) : static_cast<size_t>(rc) ;
+	if( rc > 0 && n != sizeof(buffer) )
 	{
-		std::string old_target( buffer , rc ) ;
+		std::string old_target( buffer , n ) ;
 		if( target.str() == old_target )
 			return true ;
 	}
@@ -135,7 +136,7 @@ bool G::File::link( const Path & target , const Path & new_link , const NoThrow 
 		remove( new_link , NoThrow() ) ;
 
 	rc = ::symlink( target.str().c_str() , new_link.str().c_str() ) ;
-	// dont put anything here
+	// dont put anything here (preserve errno)
 	return rc == 0 ;
 }
 

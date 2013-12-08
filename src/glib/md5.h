@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -40,10 +40,11 @@
 namespace md5
 {
 	typedef std::string string_type ; ///< A string type.
-	typedef unsigned long big_t ; ///< To hold at least 32 bits, maybe more.
-	typedef unsigned int small_t ; ///< To hold at least a size_t.
+	typedef std::string::size_type size_type ; ///< A std::size_t type.
+	typedef size_type big_t ; ///< To hold at least 32 bits, maybe more. Try unsigned long on small systems.
+	typedef size_type small_t ; ///< To hold at least a size_t. Must fit in a big_t.
 	typedef char assert_big_t_is_big_enough[sizeof(big_t)>=4U?1:-1] ; ///< A static assertion check.
-	typedef char assert_small_t_is_big_enough[sizeof(big_t)>=sizeof(std::size_t)?1:-1] ; ///< A static assertion check.
+	typedef char assert_small_t_is_big_enough[sizeof(small_t)>=sizeof(size_type)?1:-1]; ///< A static assertion check.
 	class digest ;
 	class digest_stream ;
 	class format ;

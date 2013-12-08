@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -62,7 +62,7 @@ private:
 
 /// \class GNet::Select
 /// A concrete implementation of GNet::EventLoop using
-///  ::select() in the implementation.
+///  select() in the implementation.
 ///
 class GNet::Select : public GNet::EventLoop , public G::noncopyable
 {
@@ -71,9 +71,9 @@ public:
 	Select() ;
 	virtual ~Select() ;
 	virtual bool init() ;
-	virtual void run() ;
+	virtual std::string run() ;
 	virtual bool running() const ;
-	virtual bool quit() ;
+	virtual void quit( std::string ) ;
 	virtual void addRead( Descriptor fd , EventHandler &handler ) ;
 	virtual void addWrite( Descriptor fd , EventHandler &handler ) ;
 	virtual void addException( Descriptor fd , EventHandler &handler ) ;
@@ -87,6 +87,7 @@ private:
 
 private:
 	bool m_quit ;
+	std::string m_quit_reason ;
 	bool m_running ;
 	EventHandlerList m_read_list ;
 	FdSet m_read_set ;
@@ -154,9 +155,9 @@ void GNet::FdSet::init( const EventHandlerList & list )
 		for( EventHandlerList::Iterator p = list.begin() ; p != end ; ++p )
 		{
 			Descriptor fd = EventHandlerList::fd( p ) ;
-			FD_SET( fd , &m_set_internal ) ;
-			if( (fd+1) > m_fdmax )
-				m_fdmax = (fd+1) ;
+			FD_SET( fd.fd() , &m_set_internal ) ;
+			if( (fd.fd()+1) > m_fdmax )
+				m_fdmax = (fd.fd()+1) ;
 		}
 		m_valid = true ;
 	}
@@ -177,7 +178,7 @@ void GNet::FdSet::raiseEvents( EventHandlerList & list , void (EventHandler::*me
 	for( EventHandlerList::Iterator p = list.begin() ; p != end ; ++p )
 	{
 		Descriptor fd = EventHandlerList::fd( p ) ;
-		if( FD_ISSET( fd , &m_set_external ) )
+		if( FD_ISSET( fd.fd() , &m_set_external ) )
 		{
 			EventHandler * h = EventHandlerList::handler( p ) ;
 			if( h != NULL )
@@ -192,7 +193,7 @@ void GNet::FdSet::raiseEvent( EventHandler * h , void (EventHandler::*method)() 
 	{
 		(h->*method)() ;
 	}
-	catch( std::exception & e ) // strategy
+	catch( std::exception & e )
 	{
 		h->onException( e ) ;
 	}
@@ -226,14 +227,17 @@ bool GNet::Select::init()
 	return true ;
 }
 
-void GNet::Select::run()
+std::string GNet::Select::run()
 {
 	G::Setter setter( m_running ) ;
 	do
 	{
 		runOnce() ;
 	} while( !m_quit ) ;
+	std::string quit_reason = m_quit_reason ;
+	m_quit_reason.clear() ;
 	m_quit = false ;
+	return quit_reason ;
 }
 
 bool GNet::Select::running() const
@@ -241,11 +245,10 @@ bool GNet::Select::running() const
 	return m_running ;
 }
 
-bool GNet::Select::quit()
+void GNet::Select::quit( std::string reason )
 {
-	bool q = m_quit ;
 	m_quit = true ;
-	return q ;
+	m_quit_reason = reason ;
 }
 
 void GNet::Select::runOnce()

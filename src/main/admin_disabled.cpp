@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ bool Main::Admin::enabled()
 
 std::auto_ptr<GSmtp::AdminServer> Main::Admin::newServer( const Configuration & ,
 	GSmtp::MessageStore & , const GSmtp::Client::Config & ,
-	const GSmtp::Secrets & , const std::string & )
+	const GAuth::Secrets & , const std::string & )
 {
 	throw std::runtime_error( "admin interface not supported: not enabled at build time" ) ;
 }

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -128,7 +128,7 @@ static std::string process( const G::Path & spool_dir , std::istream & stream ,
 	//
 	GNet::Address ip = GNet::Local::localhostAddress() ;
 	std::string auth_id = std::string() ;
-	std::string new_path = msg->prepare( auth_id , ip.hostString() ) ;
+	std::string new_path = msg->prepare( auth_id , ip.hostString() , std::string() , std::string() ) ;
 	msg->commit() ;
 	return new_path ;
 }
@@ -136,10 +136,10 @@ static std::string process( const G::Path & spool_dir , std::istream & stream ,
 static void run( const G::Arg & arg )
 {
 	G::GetOpt opt( arg ,
-		"v/verbose/prints the path of the created envelope file/0//1|"
-		"s/spool-dir/specifies the spool directory/1/dir/1|"
-		"f/from/sets the envelope sender/1/name/1|"
-		"h/help/shows this help/0//1" ) ;
+		"v/verbose/prints the path of the created content file//0//1|"
+		"s/spool-dir/specifies the spool directory//1/dir/1|"
+		"f/from/sets the envelope sender//1/name/1|"
+		"h/help/shows this help//0//1" ) ;
 
 	if( opt.hasErrors() )
 	{
@@ -158,14 +158,10 @@ static void run( const G::Arg & arg )
 	}
 	else if( opt.args().c() == 1U )
 	{
-		//opt.showUsage( std::cerr , arg.prefix() , std::string() + " <to-address> [<to-address> ...]" ) ;
 		std::cerr << opt.usageSummary( arg.prefix() , " <to-address> [<to-address> ...]" ) ;
 	}
 	else
 	{
-		std::auto_ptr<GNet::EventLoop> event_loop( GNet::EventLoop::create() ) ;
-		event_loop->init() ;
-
 		G::Path spool_dir = GSmtp::MessageStore::defaultDirectory() ;
 		if( opt.contains("spool-dir") )
 			spool_dir = opt.value("spool-dir") ;

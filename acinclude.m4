@@ -1,8 +1,23 @@
-dnl Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+dnl Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 dnl 
 dnl This program is free software: you can redistribute it and/or modify
 dnl it under the terms of the GNU General Public License as published by
-dnl the Free Software Foundation, either version 3 of the License, or 
+dnl the Free Software Foundation, either version 3 of the License, or
+dnl (at your option) any later version.
+dnl 
+dnl This program is distributed in the hope that it will be useful,
+dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
+dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+dnl GNU General Public License for more details.
+dnl 
+dnl You should have received a copy of the GNU General Public License
+dnl along with this program.  If not, see <http://www.gnu.org/licenses/>.
+dnl ===
+dnl Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+dnl 
+dnl This program is free software: you can redistribute it and/or modify
+dnl it under the terms of the GNU General Public License as published by
+dnl the Free Software Foundation, either version 3 of the License, or
 dnl (at your option) any later version.
 dnl 
 dnl This program is distributed in the hope that it will be useful,
@@ -19,16 +34,16 @@ dnl
 dnl Defines HAVE_SOCKLEN_T.
 dnl
 AC_DEFUN([ACLOCAL_TYPE_SOCKLEN_T],
-[AC_CACHE_CHECK([for socklen_t],[aclocal_type_socklen_t],
+[AC_CACHE_CHECK([for socklen_t],[aclocal_cv_type_socklen_t],
 [
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
 		[[#include <sys/types.h>
 #include <sys/socket.h>]],
 		[[socklen_t len = 42; return len;]])],
-		aclocal_type_socklen_t=yes,
-		aclocal_type_socklen_t=no )
+		aclocal_cv_type_socklen_t=yes,
+		aclocal_cv_type_socklen_t=no )
 ])
-	if test $aclocal_type_socklen_t = yes; then
+	if test $aclocal_cv_type_socklen_t = yes; then
 		AC_DEFINE(HAVE_SOCKLEN_T,1,[Define to 1 if socklen_t type definition in sys/socket.h])
 	else
 		AC_DEFINE(HAVE_SOCKLEN_T,0,[Define to 1 if socklen_t type definition in sys/socket.h])
@@ -40,7 +55,7 @@ dnl
 dnl Defines HAVE_IPV6.
 dnl
 AC_DEFUN([ACLOCAL_CHECK_IPV6],
-[AC_CACHE_CHECK([for ipv6],[aclocal_ipv6],
+[AC_CACHE_CHECK([for ipv6],[aclocal_cv_ipv6],
 [
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
 		[[#include <sys/types.h>
@@ -48,10 +63,10 @@ AC_DEFUN([ACLOCAL_CHECK_IPV6],
 #include <netinet/in.h>
 #include <arpa/inet.h>]],
 		[[sockaddr_in6 * p = 0;]])],
-		aclocal_ipv6=yes ,
-		aclocal_ipv6=no )
+		aclocal_cv_ipv6=yes ,
+		aclocal_cv_ipv6=no )
 ])
-	if test $aclocal_ipv6 = yes; then
+	if test $aclocal_cv_ipv6 = yes; then
 		AC_DEFINE(HAVE_IPV6,1,[Define to 1 if ipv6 is available])
 	else
 		AC_DEFINE(HAVE_IPV6,0,[Define to 1 if ipv6 is available])
@@ -64,7 +79,7 @@ dnl Defines HAVE_GETIPNODEBYNAME if the ipv6 function
 dnl getipnodebyname() as per rfc2553 is available.
 dnl
 AC_DEFUN([ACLOCAL_CHECK_GETIPNODEBYNAME],
-[AC_CACHE_CHECK([for getipnodebyname],[aclocal_getipnodebyname],
+[AC_CACHE_CHECK([for getipnodebyname],[aclocal_cv_getipnodebyname],
 [
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
 		[[#include <sys/types.h>
@@ -73,10 +88,10 @@ AC_DEFUN([ACLOCAL_CHECK_GETIPNODEBYNAME],
 #include <arpa/inet.h>
 #include <netdb.h>]],
 		[[int i=0; getipnodebyname("",AF_INET6,AI_DEFAULT,&i);]])],
-		aclocal_getipnodebyname=yes ,
-		aclocal_getipnodebyname=no )
+		aclocal_cv_getipnodebyname=yes ,
+		aclocal_cv_getipnodebyname=no )
 ])
-	if test $aclocal_getipnodebyname = yes; then
+	if test $aclocal_cv_getipnodebyname = yes; then
 		AC_DEFINE(HAVE_GETIPNODEBYNAME,1,[Define to 1 if getipnodebyname() is available])
 	else
 		AC_DEFINE(HAVE_GETIPNODEBYNAME,0,[Define to 1 if getipnodebyname() is available])
@@ -88,17 +103,17 @@ dnl
 dnl Defines HAVE_SIN6_LEN if sin6_len is in sockaddr_in6.
 dnl
 AC_DEFUN([ACLOCAL_CHECK_SIN6_LEN],
-[AC_CACHE_CHECK([for sin6_len],[aclocal_sin6_len],
+[AC_CACHE_CHECK([for sin6_len],[aclocal_cv_sin6_len],
 [
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
 		[[#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>]],
 		[[struct sockaddr_in6 s; s.sin6_len = 1;]])],
-		aclocal_sin6_len=yes ,
-		aclocal_sin6_len=no )
+		aclocal_cv_sin6_len=yes ,
+		aclocal_cv_sin6_len=no )
 ])
-	if test $aclocal_sin6_len = yes; then
+	if test $aclocal_cv_sin6_len = yes; then
 		AC_DEFINE(HAVE_SIN6_LEN,1,[Define to 1 if sockaddr_in6 has a sin6_len member])
 	else
 		AC_DEFINE(HAVE_SIN6_LEN,0,[Define to 1 if sockaddr_in6 has a sin6_len member])
@@ -110,37 +125,60 @@ dnl
 dnl Defines HAVE_SETGROUPS.
 dnl
 AC_DEFUN([ACLOCAL_CHECK_SETGROUPS],
-[AC_CACHE_CHECK([for setgroups],[aclocal_setgroups],
+[AC_CACHE_CHECK([for setgroups],[aclocal_cv_setgroups],
 [
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
 		[[#include <sys/types.h>
 #include <unistd.h>
 #include <grp.h>]],
 		[[setgroups(0,0) ;]])],
-		aclocal_setgroups=yes ,
-		aclocal_setgroups=no )
+		aclocal_cv_setgroups=yes ,
+		aclocal_cv_setgroups=no )
 ])
-	if test $aclocal_setgroups = yes; then
+	if test $aclocal_cv_setgroups = yes; then
 		AC_DEFINE(HAVE_SETGROUPS,1,[Define to 1 if setgroups is available])
 	else
 		AC_DEFINE(HAVE_SETGROUPS,0,[Define to 1 if setgroups is available])
 	fi
 ])
 
-dnl gmtime_r
+dnl aclocal-check-getpwnam-r
+dnl
+dnl Defines HAVE_GETPWNAM_R.
+dnl
+AC_DEFUN([ACLOCAL_CHECK_GETPWNAM_R],
+[AC_CACHE_CHECK([for getpwnam_r],[aclocal_cv_getpwnam_r],
+[
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[[#include <sys/types.h>
+		#include <pwd.h>]],
+		[[char c;
+		struct passwd *r;
+		getpwnam_r("",r,&c,0,&r) ;]])],
+		aclocal_cv_getpwnam_r=yes ,
+		aclocal_cv_getpwnam_r=no )
+])
+	if test $aclocal_cv_getpwnam_r = yes; then
+		AC_DEFINE(HAVE_GETPWNAM_R,1,[Define to 1 if getpwnam_r in pwd.h])
+	else
+		AC_DEFINE(HAVE_GETPWNAM_R,0,[Define to 1 if getpwnam_r in pwd.h])
+	fi
+])
+
+dnl aclocal-check-gmtime-r
 dnl
 dnl Defines HAVE_GMTIME_R.
 dnl
 AC_DEFUN([ACLOCAL_CHECK_GMTIME_R],
-[AC_CACHE_CHECK([for gmtime_r],[aclocal_gmtime_r],
+[AC_CACHE_CHECK([for gmtime_r],[aclocal_cv_gmtime_r],
 [
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
 		[[#include <time.h>]],
 		[[gmtime_r((time_t*)0,(struct tm*)0) ;]])],
-		aclocal_gmtime_r=yes ,
-		aclocal_gmtime_r=no )
+		aclocal_cv_gmtime_r=yes ,
+		aclocal_cv_gmtime_r=no )
 ])
-	if test $aclocal_gmtime_r = yes; then
+	if test $aclocal_cv_gmtime_r = yes; then
 		AC_DEFINE(HAVE_GMTIME_R,1,[Define to 1 if gmtime_r in time.h])
 	else
 		AC_DEFINE(HAVE_GMTIME_R,0,[Define to 1 if gmtime_r in time.h])
@@ -152,15 +190,15 @@ dnl
 dnl Defines HAVE_LOCALTIME_R.
 dnl
 AC_DEFUN([ACLOCAL_CHECK_LOCALTIME_R],
-[AC_CACHE_CHECK([for localtime_r],[aclocal_localtime_r],
+[AC_CACHE_CHECK([for localtime_r],[aclocal_cv_localtime_r],
 [
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
 		[[#include <time.h>]],
 		[[localtime_r((time_t*)0,(struct tm*)0) ;]])],
-		aclocal_localtime_r=yes ,
-		aclocal_localtime_r=no )
+		aclocal_cv_localtime_r=yes ,
+		aclocal_cv_localtime_r=no )
 ])
-	if test $aclocal_localtime_r = yes; then
+	if test $aclocal_cv_localtime_r = yes; then
 		AC_DEFINE(HAVE_LOCALTIME_R,1,[Define to 1 if localtime_r in time.h])
 	else
 		AC_DEFINE(HAVE_LOCALTIME_R,0,[Define to 1 if localtime_r in time.h])
@@ -173,20 +211,32 @@ dnl Defines HAVE_BUGGY_CTIME if ctime + unistd.h doesnt compile.
 dnl Needed for old versions of sunpro. Remove soon.
 dnl
 AC_DEFUN([ACLOCAL_CHECK_BUGGY_CTIME],
-[AC_CACHE_CHECK([for buggy ctime],[aclocal_buggy_ctime],
+[AC_CACHE_CHECK([for buggy ctime],[aclocal_cv_buggy_ctime],
 [
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
 		[[#include <ctime>
 #include <unistd.h>]],
 		[[ ]])] ,
-		aclocal_buggy_ctime=no ,
-		aclocal_buggy_ctime=yes )
+		aclocal_cv_buggy_ctime=no ,
+		aclocal_cv_buggy_ctime=yes )
 ])
-	if test $aclocal_buggy_ctime = yes; then
+	if test $aclocal_cv_buggy_ctime = yes; then
 		AC_DEFINE(HAVE_BUGGY_CTIME,1,[Define to 1 if <ctime> requires <time.h>])
 	else
 		AC_DEFINE(HAVE_BUGGY_CTIME,0,[Define to 1 if <ctime> requires <time.h>])
 	fi
+])
+
+dnl aclocal-capabilities
+dnl
+dnl Sets G_CAPABILITIES to represent the configure options.
+dnl
+AC_DEFUN([ACLOCAL_CAPABILITIES],
+[
+changequote(<<,>>)
+	G_CAPABILITIES="@@`echo \"$ac_configure_args\" | sed 's/ /:/g' | sed 's/[^_A-Za-z0-9/=:]//g'`@@"
+changequote([,])
+	AC_SUBST(G_CAPABILITIES)
 ])
 
 dnl aclocal-compiler-version
@@ -207,6 +257,38 @@ changequote([,])
 	AC_SUBST(COMPILER_VERSION)
 ])
 
+dnl aclocal-check-zlib
+dnl
+dnl Defines HAVE_ZLIB in code and ZLIB_LIBS in makefiles
+dnl if zlib is available and enabled.
+dnl
+AC_DEFUN([WITH_ZLIB],
+if test "$with_zlib" != "no"
+then
+[AC_CACHE_CHECK([for zlib],[aclocal_cv_zlib],
+[
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[[#include <zlib.h>]])],
+		aclocal_cv_zlib=yes,
+		aclocal_cv_zlib=no )
+])
+    if test "$aclocal_cv_zlib" = "yes"
+	then
+		ZLIB_LIBS="-lz"
+		AC_DEFINE(HAVE_ZLIB,1,[Define to enable use of zlib])
+	else
+		if test "$with_zlib" = "yes"
+		then
+			AC_MSG_WARN([ignoring --with-zlib: check config.log and try setting CFLAGS])
+		fi
+		ZLIB_LIBS=""
+	fi
+else
+	ZLIB_LIBS=""
+fi
+AC_SUBST(ZLIB_LIBS)
+])
+
 dnl aclocal-check-qt4
 dnl
 dnl Sets the $MOC variable and MOC in makefiles to the moc
@@ -217,11 +299,12 @@ dnl In the implementation remember that AC_PATH_PROG does
 dnl nothing if the variable is already defined, and that
 dnl it does an internal AC_SUBST.
 dnl
-dnl The PKG_CHECK_MODULES macro is used to modify CFLAGS etc.
+dnl The PKG_CHECK_MODULES macro is used to set QT_LIBS
+dnl and QT_CFLAGS according to pkg-config.
 dnl
 AC_DEFUN([ACLOCAL_CHECK_QT4],
 [
-	PKG_CHECK_MODULES(QT,QtGui >= 4.0.1,[qt4=yes],[AC_MSG_RESULT([no])])
+	PKG_CHECK_MODULES(QT,QtGui >= 4.0.1,[qt4=yes],[qt4=no])
 
 	MOC="${e_qtmoc}"
 	AC_PATH_PROG(MOC,moc)
@@ -237,6 +320,11 @@ AC_DEFUN([ACLOCAL_CHECK_QT4],
 			AC_MSG_RESULT([no])
 			aclocal_moc=""
 		fi
+	fi
+
+	if test "$qt4" = no -a "$e_qtmoc" = ""
+	then
+		aclocal_moc=""
 	fi
 ])
 
@@ -254,7 +342,7 @@ AC_DEFUN([ENABLE_GUI],
 	else
 		if test "$enable_gui" = "yes" -a "$aclocal_moc" = ""
 		then
-			AC_MSG_WARN([ignoring --enable-gui, set e_qtmoc to a Qt4 moc program to override])
+			AC_MSG_WARN([ignoring --enable-gui: set e_qtmoc, QT_LIBS and QT_CFLAGS to override])
 		fi
 		MOC="$aclocal_moc"
 	fi
@@ -392,29 +480,6 @@ AC_DEFUN([ENABLE_IDENTITY],
 	AM_CONDITIONAL(IDENTITY,test x$enable_identity != xno)
 ])
 
-dnl enable-small-fragments
-dnl
-dnl The "--enable-small-fragments" sewitch compiles certain source files in 
-dnl lots of little pieces so the linker can throw away fragments that 
-dnl are not needed in the final executable.
-dnl
-dnl This requires perl on the path and probably messes up a lot of 
-dnl autoconf/automake features, so only use if really necessary.
-dnl
-AC_DEFUN([ENABLE_SMALL_FRAGMENTS],
-[
-	AM_CONDITIONAL(SMALL_FRAGMENTS,test x$enable_small_fragments = xyes)
-	if test x$enable_small_fragments = xyes
-	then
-		AC_MSG_NOTICE([creating source file fragments])
-		FRAGMENTS_LIST="`perl $srcdir/bin/fragment.pl_ -r $srcdir/src $srcdir/src/fragments`"
-		for fragment in $FRAGMENTS_LIST "" ; do if test "$fragment" != "" ; then
-			AC_MSG_NOTICE([creating source file fragment for $fragment])
-		fi ; done
-	fi
-	AC_SUBST(FRAGMENTS_LIST)
-])
-
 dnl enable-small-config
 dnl
 dnl The "--enable-small-config" switch replaces the complex command-line 
@@ -457,7 +522,7 @@ AC_DEFUN([ENABLE_IPV6],
 [
 	if test "$enable_ipv6" = "yes"
 	then
-		if test "$aclocal_ipv6" != "yes"
+		if test "$aclocal_cv_ipv6" != "yes"
 		then
 			AC_MSG_WARN([ignoring --enable-ipv6])
 			aclocal_use_ipv6="no"
@@ -499,6 +564,16 @@ AC_DEFUN([ENABLE_MAC],
 	AM_CONDITIONAL(MAC,test x$enable_mac = xyes -o "`uname`" = "Darwin")
 ])
 
+dnl enable-testing
+dnl
+dnl The "--disable-testing" switch turns off make-check tests.
+dnl Eg. "make distcheck DISTCHECK_CONFIGURE_FLAGS=--disable-testing".
+dnl
+AC_DEFUN([ENABLE_TESTING],
+[
+	AM_CONDITIONAL(TESTING,test x$enable_testing != xno)
+])
+
 dnl with-openssl
 dnl
 dnl Sets SSL_LIBS and "if OPENSSL" in makefiles.
@@ -506,22 +581,22 @@ dnl
 AC_DEFUN([WITH_OPENSSL],
 if test "$with_openssl" != "no"
 then
-[AC_CACHE_CHECK([for openssl],[aclocal_openssl],
+[AC_CACHE_CHECK([for openssl],[aclocal_cv_openssl],
 [
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
 		[[#include <openssl/ssl.h>]],
 		[[SSL_CTX * p = 0 ; return 1;]])],
-		aclocal_openssl=yes,
-		aclocal_openssl=no )
+		aclocal_cv_openssl=yes,
+		aclocal_cv_openssl=no )
 ])
-    if test "$aclocal_openssl" = "yes"
+    if test "$aclocal_cv_openssl" = "yes"
 	then
 		SSL_LIBS="-lssl -lcrypto"
 		aclocal_ssl="openssl"
 	else
 		if test "$with_openssl" = "yes"
 		then
-			AC_MSG_WARN([ignoring --with-openssl, check config.log and try setting CFLAGS])
+			AC_MSG_WARN([ignoring --with-openssl: check config.log and try setting CFLAGS])
 		fi
 		SSL_LIBS=""
 		aclocal_ssl="none"
@@ -541,15 +616,15 @@ dnl
 AC_DEFUN([WITH_GLOB],
 if test "$with_glob" != "no"
 then
-[AC_CACHE_CHECK([for glob],[aclocal_have_glob],
+[AC_CACHE_CHECK([for glob],[aclocal_cv_have_glob],
 [
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
 		[[#include <glob.h>]],
 		[[glob_t * p = 0 ; globfree(p) ; return 1;]])],
-		aclocal_have_glob=yes,
-		aclocal_have_glob=no )
+		aclocal_cv_have_glob=yes,
+		aclocal_cv_have_glob=no )
 ])
-    if test "$aclocal_have_glob" = "yes"
+    if test "$aclocal_cv_have_glob" = "yes"
 	then
 		aclocal_use_glob="yes"
 	else
@@ -560,7 +635,7 @@ then
 		aclocal_use_glob="no"
 	fi
 else
-    if test "$aclocal_have_glob" = "yes"
+    if test "$aclocal_cv_have_glob" = "yes"
 	then
 		AC_MSG_WARN([not using available glob()])
 	fi
@@ -571,15 +646,17 @@ AM_CONDITIONAL(GLOB,test x$aclocal_use_glob = xyes)
 
 dnl enable-static-linking
 dnl
-dnl The "--enable-static-linking" makes a half-hearted
-dnl attempt at static linking. Only applicable to gcc.
+dnl The "--enable-static-linking" makes a half-hearted attempt
+dnl at static linking. Only applicable to gcc. Note that statically 
+dnl linked openssl may require a statically linked zlib so try 
+dnl using "SSL_LIBS=-lssl -lcrypto -lz".
 dnl
 AC_DEFUN([ENABLE_STATIC_LINKING],
 [
 	if test "$enable_static_linking" = "yes"
 	then
 		STATIC_START="-Xlinker -Bstatic"
-		STATIC_END="-Xlinker -Bdynamic -ldl"
+		STATIC_END="${ZLIB_LIBS} -Xlinker -Bdynamic -ldl"
 	else
 		STATIC_START=""
 		STATIC_END=""
@@ -592,7 +669,7 @@ dnl enable-install-hook
 dnl
 dnl The "--enable-install-hook" switch enables the editing
 dnl of "emailrelay.conf" with the correct install directories.
-dnl This should be disabled when building an rpm package.
+dnl This should be disabled when building a package.
 dnl
 AC_DEFUN([ENABLE_INSTALL_HOOK],
 [
@@ -639,9 +716,78 @@ AC_DEFUN([WITH_MAN2HTML],
 	AC_SUBST(HAVE_MAN2HTML)
 ])
 
+dnl aclocal-check-pam-headers
+dnl
+dnl Defines aclocal_cv_pam_headers_in_pam if PAM headers are in /usr/include/pam.
+dnl
+AC_DEFUN([ACLOCAL_CHECK_PAM_HEADERS],
+[AC_CACHE_CHECK([for pam headers in /usr/include/pam],[aclocal_cv_pam_headers_in_pam],
+[
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[[#include <pam/pam_appl.h>]],
+		[[ ]])] ,
+		aclocal_cv_pam_headers_in_pam=yes ,
+		aclocal_cv_pam_headers_in_pam=no )
+])
+])
+
+dnl aclocal-check-pam
+dnl
+dnl Check for pam availability.
+dnl
+AC_DEFUN([ACLOCAL_CHECK_PAM],
+[AC_CACHE_CHECK([for linux pam],[aclocal_cv_pam_compiles],
+[
+	if test "$aclocal_cv_pam_headers_in_pam" = "yes"
+	then
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+			[[#include <pam/pam_appl.h>]],
+			[[int rc = pam_start("","",(const struct pam_conv*)0,(pam_handle_t**)0)]])] ,
+		aclocal_cv_pam_compiles=yes ,
+		aclocal_cv_pam_compiles=no )
+	else
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+			[[#include <security/pam_appl.h>]],
+			[[int rc = pam_start("","",(const struct pam_conv*)0,(pam_handle_t**)0)]])] ,
+		aclocal_cv_pam_compiles=yes ,
+		aclocal_cv_pam_compiles=no )
+	fi
+])
+])
+
+dnl with-pam
+dnl
+AC_DEFUN([WITH_PAM],
+[
+	aclocal_cv_use_pam="$with_pam"
+	if test "$aclocal_cv_use_pam" = ""
+	then
+		aclocal_cv_use_pam="$aclocal_cv_pam_compiles"
+	fi
+
+	if test "$aclocal_cv_use_pam" = "yes"
+	then
+		if test "$aclocal_cv_pam_compiles" = "no"
+		then
+			AC_MSG_WARN([forcing use of pam even though it does not seem to compile])
+		fi
+
+		PAM_LIBS="-lpam"
+		if test "$aclocal_cv_pam_headers_in_pam" = "yes"
+		then
+			PAM_INCLUDE="-I/usr/include/pam"
+		else
+			PAM_INCLUDE="-I/usr/include/security"
+		fi
+	fi
+	AC_SUBST(PAM_LIBS)
+	AC_SUBST(PAM_INCLUDE)
+	AM_CONDITIONAL(PAM,test x$aclocal_cv_use_pam = xyes)
+])
+
 dnl set-directories
 dnl
-dnl Sets directory paths taking account of "--enable-fhs".
+dnl Sets directory paths.
 dnl
 AC_DEFUN([SET_DIRECTORIES],
 [
@@ -650,79 +796,48 @@ AC_DEFUN([SET_DIRECTORIES],
 	# * e_libexecdir
 	# * e_examplesdir
 	# * e_sysconfdir
+	# * e_pamdir
 	# * mandir
 	# * e_docdir
 	# * e_spooldir
 	# * e_initdir
+	# * e_icondir
 
-	if test "$enable_fhs" = "yes"
-	then
-		prefix='/usr'
-		exec_prefix='/usr'
-		sbindir="/usr/sbin"
-		libexecdir="/usr/lib"
-		localstatedir="/var"
-		mandir="/usr/share/man"
-		datadir="/usr/share"
-		sysconfdir="/etc"
-	fi
 	if test "$e_libexecdir" = "" 
 	then 
-		if test "$enable_fhs" = "yes" 
-		then 
-			e_libexecdir="$libexecdir/$PACKAGE" 
-		else 
-			e_libexecdir="$libexecdir/$PACKAGE" 
-		fi
+		e_libexecdir="$libexecdir/$PACKAGE" 
 	fi
 	if test "$e_examplesdir" = "" 
 	then 
-		if test "$enable_fhs" = "yes" 
-		then
-			e_examplesdir="$libexecdir/$PACKAGE/examples"
-		else 
-			e_examplesdir="$libexecdir/$PACKAGE/examples" 
-		fi
+		e_examplesdir="$libexecdir/$PACKAGE/examples" 
 	fi
 	if test "$e_sysconfdir" = "" 
 	then 
-		if test "$enable_fhs" = "yes" 
-		then 
-			e_sysconfdir="$sysconfdir"
-		else 
-			e_sysconfdir="$sysconfdir" 
-		fi
+		e_sysconfdir="$sysconfdir" 
 	fi
 	if test "$e_docdir" = "" 
 	then 
-		if test "$enable_fhs" = "yes" 
-		then 
-			e_docdir="$datadir/doc/$PACKAGE" 
-		else 
-			e_docdir="$docdir"
-			if test "$e_docdir" = ""
-			then
-				e_docdir="$datadir/$PACKAGE/doc" 
-			fi
+		e_docdir="$docdir"
+		if test "$e_docdir" = ""
+		then
+			e_docdir="$datadir/$PACKAGE/doc" 
 		fi
 	fi
 	if test "$e_spooldir" = "" 
 	then 
-		if test "$enable_fhs" = "yes" 
-		then 
-			e_spooldir="$localstatedir/spool/$PACKAGE"
-		else 
-			e_spooldir="$localstatedir/spool/$PACKAGE" 
-		fi
+		e_spooldir="$localstatedir/spool/$PACKAGE" 
+	fi
+	if test "$e_pamdir" = "" 
+	then 
+		e_pamdir="$sysconfdir/pam.d" 
 	fi
 	if test "$e_initdir" = "" 
 	then 
-		if test "$enable_fhs" = "yes" 
-		then 
-			e_initdir="/etc/init.d" 
-		else 
-			e_initdir="$libexecdir/$PACKAGE/init" 
-		fi
+		e_initdir="$libexecdir/$PACKAGE/init" 
+	fi
+	if test "$e_icondir" = "" 
+	then 
+		e_icondir="$datadir/$PACKAGE"
 	fi
 ])
 

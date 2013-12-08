@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ void G::Daemon::detach()
 		::_exit( 0 ) ;
 
 	setsid() ;
-	G_IGNORE Process::cd( "/" , Process::NoThrow() ) ;
+	G_IGNORE_RETURN(bool) Process::cd( "/" , Process::NoThrow() ) ;
 
 	if( NewProcess::fork() == NewProcess::Parent )
 		::_exit( 0 ) ;
@@ -45,9 +45,7 @@ void G::Daemon::detach()
 
 void G::Daemon::setsid()
 {
-	pid_t session_id = ::setsid() ;
-	if( session_id == -1 )
-		; // no-op
+	G_IGNORE_RETURN(pid_t) ::setsid() ;
 }
 
 /// \file gdaemon_unix.cpp

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,8 +21,12 @@
 #include "gdef.h"
 #include "gssl.h"
 #include "gtest.h"
-#include <openssl/err.h>
+#include "gstr.h"
+#include "gpath.h"
+#include "gexception.h"
+#include "glog.h"
 #include <openssl/ssl.h>
+#include <openssl/err.h>
 #include <openssl/rand.h>
 #include <exception>
 #include <vector>
@@ -30,6 +34,7 @@
 #include <iomanip>
 #include <fstream>
 #include <sstream>
+#include <utility>
 
 // debugging...
 //  * network logging
@@ -41,7 +46,7 @@
 //  * certificate
 //     $ openssl req -x509 -nodes -days 365 -subj "/C=US/ST=Oregon/L=Portland/CN=eight.local"
 //           -newkey rsa:1024 -keyout test.cert  -out test.cert
-//     $ cp $name /etc/ssl/certs/
+//     $ cp test.cert /etc/ssl/certs/
 //     $ cd /etc/ssl/certs && ln -s `openssl x509 -noout -hash -in test.cert`.0
 //  * openssl server (without smtp)
 //     $ openssl s_server -accept 10025 -cert /etc/ssl/certs/test.pem -debug -msg -tls1
@@ -51,6 +56,7 @@ namespace GSsl
 {
 	class Context ;
 	class Error ;
+	class Certificate ;
 }
 
 /// \class GSsl::Context
@@ -59,7 +65,7 @@ namespace GSsl
 class GSsl::Context
 {
 public:
-	explicit Context( const std::string & pem_file = std::string() ) ;
+	explicit Context( const std::string & pem_file = std::string() , unsigned int flags = 0U ) ;
 	~Context() ;
 	SSL_CTX * p() const ;
 
@@ -73,16 +79,37 @@ private:
 	SSL_CTX * m_ssl_ctx ;
 } ;
 
+/// \class GSsl::Certificate
+/// An openssl X509 RAII class.
+///
+class GSsl::Certificate
+{
+public:
+	explicit Certificate( X509* ) ;
+	~Certificate() ;
+	std::string str() const ;
+
+private:
+	Certificate( const Certificate & ) ;
+	void operator=( const Certificate & ) ;
+
+private:
+	X509 * m_p ;
+} ;
+
 /// \class GSsl::LibraryImp
 /// A private pimple class used by GSsl::Library.
 ///
 class GSsl::LibraryImp
 {
 public:
-	explicit LibraryImp( const std::string & pem_file = std::string() ) ;
+	typedef Library::LogFn LogFn ;
+	explicit LibraryImp( const std::string & pem_file = std::string(), unsigned int flags = 0U, LogFn log_fn = NULL ) ;
 	~LibraryImp() ;
-	Context & ctx() ;
+	Context & ctx() const ;
 	std::string pem() const ;
+	LogFn logFn() const ;
+	unsigned int flags() const ;
 
 private:
 	LibraryImp( const LibraryImp & ) ;
@@ -91,6 +118,8 @@ private:
 private:
 	Context * m_context ;
 	std::string m_pem_file ;
+	unsigned int m_flags ;
+	LogFn m_log_fn ;
 } ;
 
 /// \class GSsl::ProtocolImp
@@ -104,14 +133,15 @@ public:
 	typedef Protocol::size_type size_type ;
 	typedef Protocol::ssize_type ssize_type ;
 
-	ProtocolImp( const Context & c ) ;
-	ProtocolImp( const Context & c , LogFn log , bool hexdump ) ;
+	explicit ProtocolImp( const Context & c , unsigned int flags ) ;
+	ProtocolImp( const Context & c , unsigned int flags , LogFn log ) ;
 	~ProtocolImp() ;
 	Result connect( int ) ;
 	Result accept( int ) ;
 	Result stop() ;
 	Result read( char * buffer , size_type buffer_size , ssize_type & read_size ) ;
 	Result write( const char * buffer , size_type size_in , ssize_type & size_out ) ;
+	std::pair<std::string,bool> peerCertificate() ;
 
 private:
 	ProtocolImp( const ProtocolImp & ) ;
@@ -121,13 +151,11 @@ private:
 	Result connect() ;
 	Result accept() ;
 	static Result convert( int ) ;
-	static unsigned long getError() ;
-	static void loghex( void (*fn)(int,const std::string&) , int , const char * , const std::string & ) ;
-	static void callback( int , int , int , const void * , size_t , SSL * , void * p ) ;
 	static void clearErrors() ;
 
 private:
 	SSL * m_ssl ;
+	unsigned int m_flags ;
 	LogFn m_log_fn ;
 	bool m_fd_set ;
 } ;
@@ -149,21 +177,23 @@ private:
 
 //
 
-GSsl::LibraryImp::LibraryImp( const std::string & pem_file ) :
+GSsl::LibraryImp::LibraryImp( const std::string & pem_file , unsigned int flags , LogFn log_fn ) :
 	m_context(NULL) ,
-	m_pem_file(pem_file)
+	m_pem_file(pem_file) ,
+	m_flags(flags) ,
+	m_log_fn(log_fn)
 {
 	SSL_load_error_strings() ;
 	SSL_library_init() ;
 
-	// we probably don't need entropy but make a token effort to find
-	// some: "openssl automatically queries EGD when [...] the
-	// status is checked via RAND_status() for the first time if [a]
+	// we probably don't need extra entropy but make a token effort to
+	// find some - quote: "openssl automatically queries EGD when [...]
+	// the status is checked via RAND_status() for the first time if [a]
 	// socket is located at /var/run/edg-pool ..."
 	//
-	G_IGNORE RAND_status() ;
+	G_IGNORE_RETURN(int) RAND_status() ;
 
-	m_context = new Context( pem_file ) ;
+	m_context = new Context( pem_file , flags ) ;
 }
 
 GSsl::LibraryImp::~LibraryImp()
@@ -173,7 +203,17 @@ GSsl::LibraryImp::~LibraryImp()
 	RAND_cleanup() ;
 }
 
-GSsl::Context & GSsl::LibraryImp::ctx()
+unsigned int GSsl::LibraryImp::flags() const
+{
+	return m_flags ;
+}
+
+GSsl::Library::LogFn GSsl::LibraryImp::logFn() const
+{
+	return m_log_fn ;
+}
+
+GSsl::Context & GSsl::LibraryImp::ctx() const
 {
 	return *m_context ;
 }
@@ -195,13 +235,13 @@ GSsl::Library::Library() :
 	m_imp = new LibraryImp ;
 }
 
-GSsl::Library::Library( bool active , const std::string & pem_file ) :
+GSsl::Library::Library( bool active , const std::string & pem_file , unsigned int flags , LogFn log_fn ) :
 	m_imp(NULL)
 {
 	if( m_this == NULL )
 		m_this = this ;
 	if( active )
-		m_imp = new LibraryImp( pem_file ) ;
+		m_imp = new LibraryImp( pem_file , flags , log_fn ) ;
 }
 
 GSsl::Library::~Library()
@@ -221,6 +261,13 @@ bool GSsl::Library::enabled( bool for_server ) const
 	return m_imp != NULL && ( !for_server || !m_imp->pem().empty() ) ;
 }
 
+const GSsl::LibraryImp & GSsl::Library::imp() const
+{
+	if( m_imp == NULL )
+		throw G::Exception( "internal error: no ssl library instance" ) ;
+	return *m_imp ;
+}
+
 std::string GSsl::Library::credit( const std::string & prefix , const std::string & eol , const std::string & final )
 {
 	std::ostringstream ss ;
@@ -233,11 +280,38 @@ std::string GSsl::Library::credit( const std::string & prefix , const std::strin
 
 //
 
-GSsl::Context::Context( const std::string & pem_file )
+namespace
 {
-	m_ssl_ctx = SSL_CTX_new(TLSv1_method()) ;
+	int verify_callback_always_pass( int , X509_STORE_CTX * )
+	{
+		return 1 ;
+	}
+}
+
+GSsl::Context::Context( const std::string & pem_file , unsigned int flags )
+{
+	if( (flags&3U) == 2U )
+		m_ssl_ctx = SSL_CTX_new(SSLv23_method()) ;
+	else if( (flags&3U) == 3U )
+		m_ssl_ctx = SSL_CTX_new(SSLv3_method()) ;
+	else
+		m_ssl_ctx = SSL_CTX_new(TLSv1_method()) ;
+
 	if( m_ssl_ctx == NULL )
 		throw Error( "SSL_CTX_new" , ERR_get_error() ) ;
+
+	if( flags&4U )
+	{
+		// ask for certificates but dont actually verify them
+		SSL_CTX_set_verify( m_ssl_ctx , SSL_VERIFY_PEER , verify_callback_always_pass ) ;
+	}
+	if( (flags&8U) && !pem_file.empty() )
+	{
+		// ask for certificates and make sure they verify
+		SSL_CTX_set_verify( m_ssl_ctx , SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT , NULL ) ;
+		check( SSL_CTX_load_verify_locations( m_ssl_ctx , NULL ,
+			G::Path(pem_file).dirname().str().c_str() ) , "load_verify_locations" ) ;
+	}
 
 	init( pem_file ) ;
 }
@@ -254,6 +328,7 @@ SSL_CTX * GSsl::Context::p() const
 
 void GSsl::Context::init( const std::string & pem_file )
 {
+	G_DEBUG( "GSsl::Context::init: [" << pem_file << "]" ) ;
 	SSL_CTX_set_quiet_shutdown( m_ssl_ctx , 1 ) ;
 	if( !pem_file.empty() )
 	{
@@ -282,7 +357,7 @@ GSsl::Error::Error( const std::string & s , unsigned long e ) :
 	std::vector<char> v( 300 ) ;
 	ERR_error_string_n( e , &v[0] , v.size() ) ;
 	std::string reason( &v[0] , v.size() ) ;
-	reason = std::string( reason.c_str() ) ; // (lazy)
+	reason = std::string( reason.c_str() ) ; // no nuls
 	m_what.append( std::string() + ": [" + reason + "]" ) ;
 }
 
@@ -298,19 +373,23 @@ const char * GSsl::Error::what() const throw ()
 //
 
 GSsl::Protocol::Protocol( const Library & library ) :
-	m_imp( new ProtocolImp(library.m_imp->ctx()) )
+	m_imp( new ProtocolImp(library.imp().ctx(),library.imp().flags(),library.imp().logFn()) )
 {
 }
 
-
-GSsl::Protocol::Protocol( const Library & library , LogFn log , bool hexdump ) :
-	m_imp( new ProtocolImp(library.m_imp->ctx(),log,hexdump) )
+GSsl::Protocol::Protocol( const Library & library , LogFn log_fn ) :
+	m_imp( new ProtocolImp(library.imp().ctx(),library.imp().flags(),log_fn) )
 {
 }
 
 GSsl::Protocol::~Protocol()
 {
 	delete m_imp ;
+}
+
+std::pair<std::string,bool> GSsl::Protocol::peerCertificate( int )
+{
+	return m_imp->peerCertificate() ;
 }
 
 std::string GSsl::Protocol::str( Protocol::Result result )
@@ -350,8 +429,9 @@ GSsl::Protocol::Result GSsl::Protocol::write( const char * buffer , size_type da
 
 //
 
-GSsl::ProtocolImp::ProtocolImp( const Context & c ) :
+GSsl::ProtocolImp::ProtocolImp( const Context & c , unsigned int flags ) :
 	m_ssl(NULL) ,
+	m_flags(flags) ,
 	m_log_fn(NULL) ,
 	m_fd_set(false)
 {
@@ -360,77 +440,20 @@ GSsl::ProtocolImp::ProtocolImp( const Context & c ) :
 		throw Error( "SSL_new" , ERR_get_error() ) ;
 }
 
-GSsl::ProtocolImp::ProtocolImp( const Context & c , LogFn log_fn , bool hexdump ) :
+GSsl::ProtocolImp::ProtocolImp( const Context & c , unsigned int flags , LogFn log_fn ) :
 	m_ssl(NULL) ,
+	m_flags(flags) ,
 	m_log_fn(log_fn) ,
 	m_fd_set(false)
 {
 	m_ssl = SSL_new( c.p() ) ;
 	if( m_ssl == NULL )
 		throw Error( "SSL_new" , ERR_get_error() ) ;
-
-	if( hexdump )
-	{
-		SSL_set_msg_callback( m_ssl , callback ) ;
-		SSL_set_msg_callback_arg( m_ssl , this ) ;
-	}
 }
 
 GSsl::ProtocolImp::~ProtocolImp()
 {
 	SSL_free( m_ssl ) ;
-}
-
-void GSsl::ProtocolImp::loghex( void (*log_fn)(int,const std::string&) , int arg ,
-	const char * prefix , const std::string & in )
-{
-	std::string line ;
-	unsigned int i = 0 ;
-	for( std::string::const_iterator p = in.begin() ; p != in.end() ; ++p , i++ )
-	{
-		std::ostringstream ss ;
-		if( line.empty() )
-		{
-			ss.width(6) ;
-			ss.fill('0') ;
-			ss << std::hex << i << ": " ;
-		}
-		ss.width(2) ;
-		ss.fill('0') ;
-		ss << std::hex << (static_cast<unsigned int>(*p) & 0xff) << " " ;
-		line.append( ss.str() ) ;
-
-		if( i > 0 && ((i+1)%16) == 0 )
-		{
-			(*log_fn)( arg , std::string(prefix) + line ) ;
-			line.erase() ;
-		}
-	}
-	if( !line.empty() )
-		(*log_fn)( arg , std::string(prefix) + line ) ;
-}
-
-void GSsl::ProtocolImp::callback( int write , int v , int type , const void * buffer , size_t n , SSL * , void * p )
-{
-	ProtocolImp * This = reinterpret_cast<ProtocolImp*>(p) ;
-	if( This->m_log_fn != NULL )
-	{
-		// build the whole pdu, including the header
-		unsigned int version_ = static_cast<unsigned int>(v) ;
-		unsigned int version_lo = version_ & 0xff ;
-		unsigned int version_hi = ( version_ >> 8 ) & 0xff ;
-		unsigned int n_ = static_cast<unsigned int>(n) ;
-		unsigned int length_lo = n_ & 0xff ;
-		unsigned int length_hi = ( n_ >> 8 ) & 0xff ;
-		std::string data( 1U , static_cast<char>(type) ) ;
-		data.append( 1U , static_cast<char>(version_hi) ) ;
-		data.append( 1U , static_cast<char>(version_lo) ) ;
-		data.append( 1U , static_cast<char>(length_hi) ) ;
-		data.append( 1U , static_cast<char>(length_lo) ) ;
-		data.append( std::string(reinterpret_cast<const char*>(buffer),n) ) ;
-
-		loghex( This->m_log_fn , 0 , write?"ssl-tx>>: ":"ssl-rx<<: " , data ) ;
-	}
 }
 
 void GSsl::ProtocolImp::clearErrors()
@@ -540,11 +563,12 @@ GSsl::Protocol::Result GSsl::ProtocolImp::stop()
 	return rc == 1 ? Protocol::Result_ok : Protocol::Result_error ; // since quiet shutdown
 }
 
-GSsl::Protocol::Result GSsl::ProtocolImp::read( char * buffer , size_type buffer_size , ssize_type & read_size )
+GSsl::Protocol::Result GSsl::ProtocolImp::read( char * buffer , size_type buffer_size_in , ssize_type & read_size )
 {
 	read_size = 0 ;
 
 	clearErrors() ;
+	int buffer_size = static_cast<int>(buffer_size_in) ;
 	int rc = SSL_read( m_ssl , buffer , buffer_size ) ;
 	if( rc > 0 )
 	{
@@ -566,7 +590,8 @@ GSsl::Protocol::Result GSsl::ProtocolImp::write( const char * buffer , size_type
 	size_out = 0 ;
 
 	clearErrors() ;
-	int rc = SSL_write( m_ssl , buffer , size_in ) ;
+	int size = static_cast<int>(size_in) ;
+	int rc = SSL_write( m_ssl , buffer , size ) ;
 	if( rc > 0 )
 	{
 		size_out = static_cast<ssize_type>(rc) ;
@@ -582,8 +607,44 @@ GSsl::Protocol::Result GSsl::ProtocolImp::write( const char * buffer , size_type
 	}
 }
 
-bool GSsl::Protocol::defaultHexdump()
+std::pair<std::string,bool> GSsl::ProtocolImp::peerCertificate()
 {
-	return G::Test::enabled( "log-ssl-data" ) ;
+	std::pair<std::string,bool> result ;
+	result.first = Certificate(SSL_get_peer_certificate(m_ssl)).str() ;
+	result.second = false ; // since we return a bogus result from our callback
+	return result ;
+}
+
+// ==
+
+GSsl::Certificate::Certificate( X509 * p ) :
+	m_p(p)
+{
+}
+
+GSsl::Certificate::~Certificate()
+{
+	if( m_p != NULL )
+		X509_free( m_p ) ;
+}
+
+std::string GSsl::Certificate::str() const
+{
+	if( m_p == NULL ) return std::string() ;
+	BIO * bio = BIO_new( BIO_s_mem() ) ;
+	int rc = PEM_write_bio_X509( bio , m_p ) ;
+	if( !rc ) return std::string() ;
+	BUF_MEM * mem = NULL ;
+	BIO_get_mem_ptr( bio , &mem ) ;
+	size_t n = mem ? static_cast<size_t>(mem->length) : 0U ;
+	const char * p = mem ? mem->data : NULL ;
+	std::string data = p&&n ? std::string(p,n) : std::string() ;
+	BIO_free( bio ) ;
+
+	// sanitise to be strictly printable with embedded newlines
+	std::string result = G::Str::printable( data , '\0' ) ;
+	G::Str::replaceAll( result , std::string(1U,'\0')+"n" , "\n" ) ;
+	G::Str::replaceAll( result , std::string(1U,'\0') , "\\" ) ;
+	return result ;
 }
 

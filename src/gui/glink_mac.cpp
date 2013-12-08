@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,13 +25,13 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <stdlib.h> // system()
 
 class GLinkImp
 {
 public:
 	GLinkImp( const G::Path & target_path , const std::string & name , const std::string & description ,
-		const G::Path & working_dir , const G::Strings & args , const G::Path & icon_source ,
-		GLink::Show show ) ;
+		const G::Path & working_dir , const G::Strings & args , const G::Path & icon_source , GLink::Show show ) ;
 	static std::string filename( const std::string & ) ;
 	void saveAs( const G::Path & ) ;
 
@@ -58,11 +58,12 @@ std::string GLinkImp::filename( const std::string & )
 
 void GLinkImp::saveAs( const G::Path & )
 {
-	// TODO -- fix this is a nasty hack -- on a mac was have both
-	// a start/stop script and a startup application bundle and here
-	// we need to convert one to the other -- maybe expose the
-	// installer's LinkInfo structure at this interface and add
-	// a third section to it
+	// TODO -- hardcoded Start.app name
+	//
+	// we have both a start/stop script and a startup application bundle
+	// and here we need to convert one to the other -- should maybe expose
+	// the installer's LinkInfo structure at this interface and add a
+	// third section to it
 	//
 	G::Path start_app_path( m_target_path.dirname() , "E-MailRelay-Start.app" ) ;
 	if( !G::File::exists(start_app_path) )
@@ -77,13 +78,15 @@ void GLinkImp::saveAs( const G::Path & )
 				<< "hidden:true}\" "
 			<< "-e \"end tell\"" ;
 
-	system( ss.str().c_str() ) ;
+	int rc = system( ss.str().c_str() ) ;
+	G_IGNORE_VARIABLE( rc ) ;
 }
 
 // ==
 
 GLink::GLink( const G::Path & target_path , const std::string & name , const std::string & description ,
-	const G::Path & working_dir , const G::Strings & args , const G::Path & icon_source , Show show ) :
+	const G::Path & working_dir , const G::Strings & args , const G::Path & icon_source , Show show ,
+	const std::string & , const std::string & , const std::string & ) :
 		m_imp( new GLinkImp(target_path,name,description,working_dir,args,icon_source,show) )
 {
 }
@@ -123,7 +126,8 @@ bool GLink::remove( const G::Path & )
 				<< "-e \"delete login item __\" "
 				<< "-e \"end tell\"" ;
 
-	system( ss.str().c_str() ) ;
+	int rc = system( ss.str().c_str() ) ;
+	G_IGNORE_VARIABLE( rc ) ;
 	return true ;
 }
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include "gstrings.h"
 #include "groot.h"
 #include "gfile.h"
+#include "gstr.h"
 #include "gxtext.h"
 #include "gassert.h"
 #include "glog.h"
@@ -79,7 +80,8 @@ void GSmtp::NewFile::cleanup()
 	}
 }
 
-std::string GSmtp::NewFile::prepare( const std::string & auth_id , const std::string & client_ip )
+std::string GSmtp::NewFile::prepare( const std::string & auth_id , const std::string & peer_socket_address ,
+	const std::string & peer_socket_name , const std::string & peer_certificate )
 {
 	// flush and close the content file
 	//
@@ -89,7 +91,7 @@ std::string GSmtp::NewFile::prepare( const std::string & auth_id , const std::st
 	//
 	m_envelope_path_0 = m_store.envelopeWorkingPath( m_seq ) ;
 	m_envelope_path_1 = m_store.envelopePath( m_seq ) ;
-	if( ! saveEnvelope( auth_id , client_ip ) )
+	if( ! saveEnvelope( auth_id , peer_socket_address , peer_socket_name , peer_certificate ) )
 		throw GSmtp::MessageStore::StorageError( std::string() + "cannot write " + m_envelope_path_0.str() ) ;
 
 	// deliver to local mailboxes
@@ -161,7 +163,7 @@ namespace
 {
 	struct EightBit : std::unary_function<char,bool>
 	{
-		bool operator()( char c ) { return static_cast<unsigned char>(c) & 0x80U ; }
+		bool operator()( char c ) { return !! ( static_cast<unsigned char>(c) & 0x80U ) ; }
 	} ;
 }
 
@@ -170,10 +172,12 @@ bool GSmtp::NewFile::isEightBit( const std::string & line )
 	return std::find_if( line.begin() , line.end() , EightBit() ) != line.end() ;
 }
 
-bool GSmtp::NewFile::saveEnvelope( const std::string & auth_id , const std::string & client_ip ) const
+bool GSmtp::NewFile::saveEnvelope( const std::string & auth_id , const std::string & peer_socket_address ,
+	const std::string & peer_socket_name , const std::string & peer_certificate ) const
 {
 	std::auto_ptr<std::ostream> envelope_stream = m_store.stream( m_envelope_path_0 ) ;
-	writeEnvelope( *(envelope_stream.get()) , m_envelope_path_0.str() , auth_id , client_ip ) ;
+	writeEnvelope( *(envelope_stream.get()) , m_envelope_path_0.str() ,
+		auth_id , peer_socket_address , peer_socket_name , peer_certificate ) ;
 	bool ok = envelope_stream->good() ;
 	return ok ;
 }
@@ -201,9 +205,13 @@ void GSmtp::NewFile::deliver( const G::Strings & /*to*/ ,
 }
 
 void GSmtp::NewFile::writeEnvelope( std::ostream & stream , const std::string & where ,
-	const std::string & auth_id , const std::string & client_ip ) const
+	const std::string & auth_id , const std::string & peer_socket_address ,
+	const std::string & peer_socket_name , const std::string & peer_certificate_in ) const
 {
 	G_LOG( "GSmtp::NewMessage: envelope file: " << where ) ;
+
+	std::string peer_certificate = peer_certificate_in ;
+	G::Str::replaceAll( peer_certificate , "\n" , "" ) ;
 
 	const std::string x( m_store.x() ) ;
 
@@ -222,7 +230,9 @@ void GSmtp::NewFile::writeEnvelope( std::ostream & stream , const std::string & 
 			stream << x << "To-Remote: " << *to_p << crlf() ;
 	}
 	stream << x << "Authentication: " << G::Xtext::encode(auth_id) << crlf() ;
-	stream << x << "Client: " << client_ip << crlf() ;
+	stream << x << "Client: " << peer_socket_address << crlf() ;
+	stream << x << "ClientName: " << G::Xtext::encode(peer_socket_name) << crlf() ;
+	stream << x << "ClientCertificate: " << peer_certificate << crlf() ;
 	stream << x << "End: 1" << crlf() ;
 	stream.flush() ;
 }

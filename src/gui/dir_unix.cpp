@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,11 +27,16 @@
 #include <stdexcept>
 #include <unistd.h>
 
+// these directories from the makefile could be used in preference
+// to the installer's runtime base directory on the assumption that
+// on unix we always install using "make install" and only ever
+// run the installer to reconfigure
+//
 #ifndef G_SBINDIR
 	#define G_SBINDIR ""
 #endif
-#ifndef G_LIBEXECDIR
-	#define G_LIBEXECDIR ""
+#ifndef G_ICONDIR
+	#define G_ICONDIR ""
 #endif
 #ifndef G_EXAMPLESDIR
 	#define G_EXAMPLESDIR ""
@@ -56,9 +61,9 @@ namespace
 {
 	G::Path kde( const std::string & key , const G::Path & default_ )
 	{
-		std::string exe = "/usr/bin/kde-config" ; // TODO ?
+		std::string exe = "/usr/bin/kde4-config" ;
 		G::Strings args ;
-		args.push_back( "kde-config" ) ;
+		args.push_back( "kde4-config" ) ;
 		args.push_back( "--userpath" ) ;
 		args.push_back( key ) ;
 
@@ -94,17 +99,17 @@ G::Path Dir::os_install()
 
 G::Path Dir::os_gui( const G::Path & install )
 {
-	return install + "sbin" + "emailrelay-gui.real" ; // should use G_SBINDIR
+	return install + "sbin" + "emailrelay-gui.real" ; // or G_SBINDIR
 }
 
 G::Path Dir::os_icon( const G::Path & install )
 {
-	return install + "lib" + "emailrelay" + "emailrelay-icon.png" ; // should use G_LIBEXECDIR
+	return install + "share" + "emailrelay" + "emailrelay-icon.png" ; // or G_ICONDIR
 }
 
 G::Path Dir::os_server( const G::Path & install )
 {
-	return install + "sbin" + "emailrelay" ; // should use G_SBINDIR
+	return install + "sbin" + "emailrelay" ; // or G_SBINDIR
 }
 
 G::Path Dir::os_bootcopy( const G::Path & , const G::Path & )
@@ -120,7 +125,7 @@ G::Path Dir::os_config()
 	return sysconfdir ;
 }
 
-G::Path Dir::os_spool() const
+G::Path Dir::os_spool()
 {
 	std::string spooldir( G_SPOOLDIR ) ;
 	if( spooldir.empty() )
@@ -137,14 +142,9 @@ G::Path Dir::cwd()
 	return G::Path( s ) ;
 }
 
-G::Path Dir::os_pid()
+G::Path Dir::os_pid( const G::Path & )
 {
 	return oneOf( "/var/run" , "/tmp" ) ;
-}
-
-G::Path Dir::os_pid( const G::Path & pid_dir , const G::Path & )
-{
-	return pid_dir ;
 }
 
 G::Path Dir::special( const std::string & type )
@@ -191,6 +191,11 @@ G::Path Dir::oneOf( std::string d1 , std::string d2 , std::string d3 , std::stri
 	if( ok(d4) ) return G::Path(d4) ;
 	if( ok(d5) ) return G::Path(d5) ;
 	return G::Path() ;
+}
+
+G::Path Dir::home()
+{
+	return envPath( "HOME" , "~" ) ;
 }
 
 /// \file dir_unix.cpp

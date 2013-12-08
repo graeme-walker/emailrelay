@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -52,7 +52,8 @@ class GNet::Client : public GNet::HeapClient
 {
 public:
 	explicit Client( const ResolverInfo & remote_info , unsigned int connection_timeout = 0U ,
-		unsigned int response_timeout = 0U , const std::string & eol = std::string("\n") ,
+		unsigned int response_timeout = 0U , unsigned int secure_connection_timeout = 0U ,
+		const std::string & eol = std::string("\n") ,
 		const Address & local_interface = Address(0U) , bool privileged = false ,
 		bool sync_dns = synchronousDnsDefault() ) ;
 			///< Constructor.
@@ -87,9 +88,10 @@ protected:
 
 	virtual bool onReceive( const std::string & ) = 0 ;
 		///< Called when a complete line is received from the peer.
-		///< The implementation should return false if no more
-		///< lines should be delivered, if for example the
-		///< object has deleted itself.
+		///< The implementation should return false if it needs
+		///< to stop further onReceive() calls being generated
+		///< from data already received and buffered, if for
+		///< example the object has just deleted itself.
 
 	void clearInput() ;
 		///< Clears any pending input from the server.
@@ -107,7 +109,7 @@ protected:
 		///< Final override from GNet::HeapClient.
 
 	virtual void onSendImp() ;
-		///< Final override from GNet::BufferedClient.
+		///< Final override from GNet::SimpleClient.
 
 private:
 	Client( const Client& ) ; // not implemented
@@ -119,6 +121,7 @@ private:
 	G::Signal2<std::string,bool> m_done_signal ;
 	G::Signal2<std::string,std::string> m_event_signal ;
 	G::Signal0 m_connected_signal ;
+	G::Signal0 m_secure_signal ;
 	unsigned int m_connection_timeout ;
 	unsigned int m_response_timeout ;
 	GNet::Timer<Client> m_connection_timer ;

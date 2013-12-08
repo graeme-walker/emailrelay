@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,8 @@ GGui::ApplicationInstance::ApplicationInstance( HINSTANCE h )
 
 void GGui::ApplicationInstance::hinstance( HINSTANCE h )
 {
-	m_hinstance = h ;
+	if( h )
+		m_hinstance = h ;
 }
 
 HINSTANCE GGui::ApplicationInstance::hinstance()
@@ -38,4 +39,8 @@ HINSTANCE GGui::ApplicationInstance::hinstance()
 	return m_hinstance ;
 }
 
+extern "C" void ggui_applicationinstance( HINSTANCE h )
+{
+	GGui::ApplicationInstance::hinstance( h ) ;
+}
 /// \file gappinst.cpp

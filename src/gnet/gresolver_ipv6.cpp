@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -58,7 +58,7 @@ std::string GNet::Resolver::resolveHost( const std::string & host_name , unsigne
 			result.update( Address(*host,port) , std::string(h_name?h_name:"") ) ;
 			::freehostent( host ) ;
 		}
-		return host == NULL ? ( std::string("invalid host name: \"") + host_name + "\"" ) : std::string() ;
+		return host == NULL ? ( std::string("no such host: \"") + host_name + "\"" ) : std::string() ;
 	}
 	catch(...) // rethrown
 	{
@@ -82,7 +82,7 @@ std::string GNet::Resolver::resolveHost( const std::string & host_name , unsigne
 	{
 		result.update( Address(*host,port) , std::string(host->h_name) ) ;
 	}
-	return host == NULL ? ( std::string("invalid host name: \"") + host_name + "\"" ) : std::string() ;
+	return host == NULL ? ( std::string("no such host: \"") + host_name + "\"" ) : std::string() ;
 }
 
 #endif

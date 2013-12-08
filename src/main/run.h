@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -108,8 +108,8 @@ private:
 	Run( const Run & ) ; // not implemented
 	void operator=( const Run & ) ; // not implemented
 	void runCore() ;
-	void doForwardingOnStartup( GSmtp::MessageStore & , const GSmtp::Secrets & , GNet::EventLoop & ) ;
-	void doServing( const GSmtp::Secrets & , GSmtp::MessageStore & , const GSmtp::Secrets & ,
+	void doForwardingOnStartup( GSmtp::MessageStore & , const GAuth::Secrets & , GNet::EventLoop & ) ;
+	void doServing( const GAuth::Secrets & , GSmtp::MessageStore & , const GAuth::Secrets & ,
 		GPop::Store & , const GPop::Secrets & , G::PidFile & , GNet::EventLoop & ) ;
 	void closeFiles() ;
 	void closeMoreFiles() ;
@@ -128,24 +128,27 @@ private:
 	void doForwarding( const std::string & ) ;
 	std::string doForwardingCore() ;
 	void checkPorts() const ;
-	static void checkPort( const std::string & , unsigned int ) ;
+	static void checkPort( bool , const std::string & , unsigned int ) ;
 	GSmtp::Client::Config clientConfig() const ;
 	GSmtp::Server::Config serverConfig() const ;
+	static GNet::Address clientBindAddress( const std::string & ) ;
 	GPop::Server::Config popConfig() const ;
 	void checkScripts() const ;
 	void checkVerifierScript( const std::string & ) const ;
 	void checkProcessorScript( const std::string & ) const ;
+	std::string versionString() const ;
+	static std::string capabilities() ;
 
 private:
 	Output & m_output ;
 	std::string m_switch_spec ;
+	std::auto_ptr<G::LogOutput> m_log_output ;
 	std::auto_ptr<CommandLine> m_cl ;
 	std::auto_ptr<Configuration> m_cfg ;
-	std::auto_ptr<G::LogOutput> m_log_output ;
 	G::Arg m_arg ;
 	G::Signal3<std::string,std::string,std::string> m_signal ;
 	std::auto_ptr<GSmtp::FileStore> m_store ; // order dependency -- early
-	std::auto_ptr<GSmtp::Secrets> m_client_secrets ;
+	std::auto_ptr<GAuth::Secrets> m_client_secrets ;
 	std::auto_ptr<GPop::Secrets> m_pop_secrets ;
 	std::auto_ptr<GSmtp::AdminServer> m_admin_server ;
 	std::auto_ptr<GSmtp::Server> m_smtp_server ;

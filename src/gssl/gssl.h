@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 
 #include "gdef.h"
 #include <string>
+#include <utility>
 
 /// \namespace GSsl
 namespace GSsl
@@ -34,14 +35,25 @@ namespace GSsl
 }
 
 /// \class GSsl::Protocol
-/// An SSL protocol class. The protocol object
-/// is associated with a particular socket file descriptor
-/// by the connect() and accept() calls.
+/// An SSL protocol class. The protocol object is
+/// associated with a particular socket file descriptor by the
+/// connect() and accept() calls.
 ///
-/// All logging is done inderectly through a logging function
-/// pointer; the first parameter is the logging level which
-/// is 0 for hex dump data, 1 for verbose debug messages and
-/// 2 for more important errors and warnings.
+/// The protocol is half-duplex in the sense that it is not
+/// possible to read() data while a write() is incomplete.
+/// (Nor is it allowed to issue a second write() while the
+/// first write() is still incomplete.) Client code will
+/// typically need at least two states: a reading state and
+/// a writing state. In each state the file descriptor read
+/// events and write events will be handled identically; in
+/// the reading state by a call to Protocol::read(), and in
+/// the writing state by a call to Protocol::write().
+///
+/// All logging is done indirectly through a logging function
+/// pointer; the first parameter is the logging level which is
+/// 0 for hex dump data, 1 for verbose debug messages and 2 for
+/// more important errors and warnings. Some implemetations
+/// do not log anything useful.
 ///
 class GSsl::Protocol
 {
@@ -54,7 +66,7 @@ public:
 	explicit Protocol( const Library & ) ;
 		///< Constructor.
 
-	Protocol( const Library & , LogFn , bool hexdump = defaultHexdump() ) ;
+	Protocol( const Library & , LogFn ) ;
 		///< Constructor.
 
 	~Protocol() ;
@@ -70,18 +82,18 @@ public:
 		///< Initiates the protocol shutdown.
 
 	Result read( char * buffer , size_type buffer_size_in , ssize_type & data_size_out ) ;
-		///< Reads data into the supplied buffer.
+		///< Reads user data into the supplied buffer.
 		///<
 		///< Returns Result_read if there is not enough transport data
 		///< to complete the internal SSL data packet. In this case the
 		///< file descriptor should remain in the select() read list and
-		///< the Protocol::read() should be retried with the same parameters
+		///< the Protocol::read() should be retried using the same parameters
 		///< when the file descriptor is ready to be read.
 		///<
 		///< Returns Result_write if the SSL layer tried to write to the
 		///< file descriptor and had flow control asserted. In this case
 		///< the file descriptor should be added to the select() write
-		///< list and the Protocol::read() should be retried with the
+		///< list and the Protocol::read() should be retried using the
 		///< same parameters when the file descriptor is ready to be
 		///< written.
 		///<
@@ -90,18 +102,36 @@ public:
 		///<
 		///< Returns Result_more if the internal SSL data packet is complete
 		///< and the supplied buffer was too small to take it all.
+		///<
+		///< Returns Result_error if the transport connnection was lost
+		///< or if the SSL session was shut down by the peer or on error.
 
 	Result write( const char * buffer , size_type data_size_in , ssize_type & data_size_out ) ;
-		///< Writes data.
+		///< Writes user data.
 		///<
-		///< Note that a retry will need the same buffer pointer value.
+		///< Returns Result_ok if fully sent.
+		///<
+		///< Returns Result_read if the SSL layer needs more transport
+		///< data (eg. for a renegotiation). The write() should be repeated
+		///< using the same parameters on the file descriptor's next
+		///< readable event.
+		///<
+		///< Returns Result_write if the SSL layer was blocked in
+		///< writing transport data. The write() should be repeated
+		///< using the same parameters on the file descriptor's next
+		///< writable event.
+		///<
+		///< Returns Result_error if the transport connnection was lost
+		///< or if the SSL session was shut down by the peer or on error.
 
 	static std::string str( Result result ) ;
 		///< Converts a result enumeration into a printable string.
 		///< Used in logging and diagnostics.
 
-	static bool defaultHexdump() ;
-		///< Returns a default value for the constructor parameter.
+	std::pair<std::string,bool> peerCertificate( int format = 0 ) ;
+		///< Returns the peer certificate and a verified flag.
+		///< The default format of the certificate is printable
+		///< with embedded newlines but otherwise unspecified.
 
 private:
 	Protocol( const Protocol & ) ; // not implemented
@@ -117,13 +147,18 @@ private:
 class GSsl::Library
 {
 public:
-	Library() ;
-		///< Constructor. Initialises the underlying ssl library.
+	typedef Protocol::LogFn LogFn ;
 
-	Library( bool active , const std::string & pem_file ) ;
+	Library() ;
 		///< Constructor. Initialises the underlying ssl library
-		///< or not. The pem file is needed if acting as a
-		///< server.
+		///< for use as a client.
+
+	Library( bool active , const std::string & pem_file , unsigned int flags , LogFn = NULL ) ;
+		///< Constructor. Initialises the underlying ssl library
+		///< or not (if the first parameter is false). The pem
+		///< file is required if acting as a server. The flags
+		///< should default to zero; their meaning are opaque at
+		///< this interface.
 
 	~Library() ;
 		///< Destructor. Cleans up the underlying ssl library.
@@ -141,6 +176,7 @@ public:
 private:
 	Library( const Library & ) ; // not implemented
 	void operator=( const Library & ) ; // not implemented
+	const LibraryImp & imp() const ;
 
 private:
 	friend class GSsl::Protocol ;

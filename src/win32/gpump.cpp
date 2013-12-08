@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,31 +23,36 @@
 #include "gcracker.h"
 #include "gdebug.h"
 
-void GGui::Pump::run()
+static WPARAM run_id = 0U ;
+static std::string quit_reason ;
+
+std::string GGui::Pump::run()
 {
-	runCore( false , 0 , 0 ) ;
+	return runCore( false , 0 , 0 ) ;
 }
 
-void GGui::Pump::run( HWND idle_window , unsigned int idle_message )
+std::string GGui::Pump::run( HWND idle_window , unsigned int idle_message )
 {
 	G_LOG( "GGui::Pump::run: " << idle_window << " " << idle_message ) ;
 	::PostMessage( idle_window , idle_message , 0 , 0 ) ; // pump priming
-	runCore( true , idle_window , idle_message ) ;
+	return runCore( true , idle_window , idle_message ) ;
 }
 
-void GGui::Pump::runCore( bool idle , HWND hwnd_idle , unsigned int wm_idle )
+std::string GGui::Pump::runCore( bool send_idle_messages , HWND hwnd_idle , unsigned int wm_idle )
 {
+	run_id++ ;
 	MSG msg ;
 	while( ::GetMessage( &msg , NULL , 0 , 0 ) )
 	{
 		// we use our own quit message rather than WM_QUIT because
-		// WM_QUIT has some nasty undocumented side-effects such as
+		// WM_QUIT has some strange undocumented side-effects such as
 		// making message boxes invisible -- we need to quit event
 		// loops (sometimes more than once) without side effects
 		//
 		if( msg.message == Cracker::wm_quit() )
 		{
-			break ;
+			if( msg.wParam == run_id )
+				break ;
 		}
 		else if( dialogMessage( msg ) ) // (may be stubbed out as a build option)
 		{
@@ -59,11 +64,14 @@ void GGui::Pump::runCore( bool idle , HWND hwnd_idle , unsigned int wm_idle )
 			::DispatchMessage( &msg ) ;
 		}
 
-		while( idle && empty() && sendIdle(hwnd_idle,wm_idle) )
+		while( send_idle_messages && empty() && sendIdle(hwnd_idle,wm_idle) )
 		{
 			; // no-op
 		}
 	}
+	std::string reason = quit_reason ;
+	quit_reason.resize(0) ;
+	return reason ;
 }
 
 bool GGui::Pump::empty()
@@ -79,9 +87,11 @@ bool GGui::Pump::sendIdle( HWND hwnd_idle , unsigned int wm_idle )
 	return !! ::SendMessage( hwnd_idle , wm_idle , 0 , 0 ) ;
 }
 
-void GGui::Pump::quit()
+void GGui::Pump::quit( std::string reason )
 {
-	::PostMessage( 0 , Cracker::wm_quit() , 0 , 0 ) ; // not PostQuitMessage()
+	G_DEBUG( "GGui::Pump::quit: [" << reason << "]" ) ;
+	quit_reason = reason ;
+	::PostMessage( 0 , Cracker::wm_quit() , run_id , 0 ) ; // not PostQuitMessage()
 }
 
 /// \file gpump.cpp

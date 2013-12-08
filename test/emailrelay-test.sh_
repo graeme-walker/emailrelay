@@ -1,10 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 # 
 # This program is distributed in the hope that it will be useful,
@@ -20,19 +20,25 @@
 #
 # Tests the E-MailRelay system using perl.
 #
-# usage: emailrelay-test.sh
+# usage: emailrelay-test.sh [<perl-script-options>] [<test-name> ...]
 #
 
+# test for perl
+perl -e "use Carp; use FileHandle; use Getopt::Std; use Net::Telnet; exit(99);" 2>/dev/null
+rc=$?
+if test $rc -ne 99
+then
+	echo `basename $0`: no perl or missing perl modules: for ubuntu try installing libnet-telnet-perl or use cpan to install Net::Telnet >&2
+	echo `basename $0`: succeeding trivially >&2
+	exit 0
+fi
+
+# run the test
 if test -z "${srcdir}" ; then srcdir="." ; fi
 perl -I../../test -I"${srcdir}" emailrelay-test.pl "$@"
 rc=$?
 
-# ignore failures for now because of the dependency
-# on perl and because the tests have to be tuned 
-# to the machine ...
-if test "$rc" -ne 0
-then
-	echo `basename $0`: ignoring failures >&2
-fi
+echo `basename $0`: done: $rc
 rm -rf .tmp.*
-exit 0
+rm -f .emailrelay-test-server.pid
+exit $rc

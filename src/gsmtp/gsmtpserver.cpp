@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -38,18 +38,20 @@ namespace
 {
 	struct AnonymousText : public GSmtp::ServerProtocol::Text
 	{
-		AnonymousText( const std::string & thishost , const GNet::Address & peer_address ) ;
+		AnonymousText( const std::string & thishost , const GNet::Address & peer_address , const std::string & peer_socket_name ) ;
 		virtual std::string greeting() const ;
 		virtual std::string hello( const std::string & peer_name ) const ;
-		virtual std::string received( const std::string & peer_name ) const ;
+		virtual std::string received( const std::string & smtp_peer_name ) const ;
 		std::string m_thishost ;
 		GNet::Address m_peer_address ;
+		std::string m_peer_socket_name ;
 	} ;
 }
 
-AnonymousText::AnonymousText( const std::string & thishost , const GNet::Address & peer_address ) :
+AnonymousText::AnonymousText( const std::string & thishost , const GNet::Address & peer_address , const std::string & peer_socket_name ) :
 	m_thishost(thishost) ,
-	m_peer_address(peer_address)
+	m_peer_address(peer_address) ,
+	m_peer_socket_name(peer_socket_name)
 {
 }
 
@@ -63,16 +65,18 @@ std::string AnonymousText::hello( const std::string & ) const
 	return "hello" ;
 }
 
-std::string AnonymousText::received( const std::string & peer_name ) const
+std::string AnonymousText::received( const std::string & smtp_peer_name ) const
 {
-	return GSmtp::ServerProtocolText::receivedLine( peer_name ,
-		m_peer_address.displayString(false) , m_thishost ) ;
+	return
+		m_thishost.length() ?
+			GSmtp::ServerProtocolText::receivedLine( smtp_peer_name , m_peer_address.displayString(false) , m_peer_socket_name , m_thishost ) :
+			std::string() ; // no Received line at all if no hostname
 }
 
 // ===
 
 GSmtp::ServerPeer::ServerPeer( GNet::Server::PeerInfo peer_info ,
-	Server & server , std::auto_ptr<ProtocolMessage> pmessage , const Secrets & server_secrets ,
+	Server & server , std::auto_ptr<ProtocolMessage> pmessage , const GAuth::Secrets & server_secrets ,
 	const std::string & verifier_address , unsigned int verifier_timeout ,
 	std::auto_ptr<ServerProtocol::Text> ptext ,
 	ServerProtocol::Config protocol_config ) :
@@ -82,9 +86,10 @@ GSmtp::ServerPeer::ServerPeer( GNet::Server::PeerInfo peer_info ,
 		m_pmessage( pmessage ) ,
 		m_ptext( ptext ) ,
 		m_protocol( *this , *m_verifier.get() , *m_pmessage.get() , server_secrets , *m_ptext.get() ,
-			peer_info.m_address , protocol_config )
+			peer_info.m_address , peer_info.m_name , protocol_config )
 {
-	G_LOG_S( "GSmtp::ServerPeer: smtp connection from " << peer_info.m_address.displayString() ) ;
+	G_LOG_S( "GSmtp::ServerPeer: smtp connection from " << peer_info.m_address.displayString()
+		<< (peer_info.m_name.empty()?"":" ") << peer_info.m_name ) ;
 	m_protocol.init() ;
 }
 
@@ -114,10 +119,9 @@ bool GSmtp::ServerPeer::onReceive( const std::string & line )
 	return true ;
 }
 
-void GSmtp::ServerPeer::onSecure()
+void GSmtp::ServerPeer::onSecure( const std::string & certificate )
 {
-	G_LOG( "GSmtp::ServerPeer::onSecure: tls/ssl protocol established with " << peerAddress().second.displayString() ) ;
-	m_protocol.secure() ;
+	m_protocol.secure( certificate ) ;
 }
 
 void GSmtp::ServerPeer::protocolSend( const std::string & line , bool go_secure )
@@ -129,10 +133,10 @@ void GSmtp::ServerPeer::protocolSend( const std::string & line , bool go_secure 
 
 // ===
 
-GSmtp::Server::Server( MessageStore & store , const Secrets & client_secrets , const Secrets & server_secrets ,
-	Config config , std::string smtp_server_address , unsigned int smtp_connection_timeout ,
-	GSmtp::Client::Config client_config ) :
-		GNet::MultiServer( GNet::MultiServer::addressList(config.interfaces,config.port) ) ,
+GSmtp::Server::Server( MessageStore & store , const GAuth::Secrets & client_secrets ,
+	const GAuth::Secrets & server_secrets , Config config , std::string smtp_server_address ,
+	unsigned int smtp_connection_timeout , GSmtp::Client::Config client_config ) :
+		GNet::MultiServer( GNet::MultiServer::addressList(config.interfaces,config.port) , config.use_connection_lookup ) ,
 		m_store(store) ,
 		m_processor_address(config.processor_address) ,
 		m_processor_timeout(config.processor_timeout) ,
@@ -176,7 +180,7 @@ GNet::ServerPeer * GSmtp::Server::newPeer( GNet::Server::PeerInfo peer_info )
 			return NULL ;
 		}
 
-		std::auto_ptr<ServerProtocol::Text> ptext( newProtocolText(m_anonymous,peer_info.m_address) ) ;
+		std::auto_ptr<ServerProtocol::Text> ptext( newProtocolText(m_anonymous,peer_info.m_address,peer_info.m_name) ) ;
 		std::auto_ptr<ProtocolMessage> pmessage( newProtocolMessage() ) ;
 		return new ServerPeer( peer_info , *this , pmessage , m_server_secrets ,
 			m_verifier_address , m_verifier_timeout ,
@@ -189,12 +193,12 @@ GNet::ServerPeer * GSmtp::Server::newPeer( GNet::Server::PeerInfo peer_info )
 	}
 }
 
-GSmtp::ServerProtocol::Text * GSmtp::Server::newProtocolText( bool anonymous , GNet::Address peer_address ) const
+GSmtp::ServerProtocol::Text * GSmtp::Server::newProtocolText( bool anonymous , GNet::Address peer_address , const std::string & peer_socket_name ) const
 {
 	if( anonymous )
-		return new AnonymousText( GNet::Local::fqdn() , peer_address ) ;
+		return new AnonymousText( GNet::Local::fqdn() , peer_address , peer_socket_name ) ;
 	else
-		return new ServerProtocolText( m_ident , GNet::Local::fqdn() , peer_address ) ;
+		return new ServerProtocolText( m_ident , GNet::Local::fqdn() , peer_address , peer_socket_name ) ;
 }
 
 GSmtp::ProtocolMessage * GSmtp::Server::newProtocolMessageStore( std::auto_ptr<Processor> processor )
@@ -215,11 +219,8 @@ GSmtp::ProtocolMessage * GSmtp::Server::newProtocolMessageForward( std::auto_ptr
 GSmtp::ProtocolMessage * GSmtp::Server::newProtocolMessage()
 {
 	// dependency injection...
-
 	std::auto_ptr<Processor> store_processor( ProcessorFactory::newProcessor(m_processor_address,m_processor_timeout) );
-
 	std::auto_ptr<ProtocolMessage> pmstore( newProtocolMessageStore(store_processor) ) ;
-
 	const bool do_forward = ! m_smtp_server.empty() ;
 	if( do_forward )
 	{
@@ -239,7 +240,8 @@ GSmtp::Server::Config::Config( bool allow_remote_ , unsigned int port_ , const A
 	const std::string & processor_address_ ,
 	unsigned int processor_timeout_ ,
 	const std::string & verifier_address_ ,
-	unsigned int verifier_timeout_ ) :
+	unsigned int verifier_timeout_ ,
+	bool use_connection_lookup_ ) :
 		allow_remote(allow_remote_) ,
 		port(port_) ,
 		interfaces(interfaces_) ,
@@ -248,7 +250,8 @@ GSmtp::Server::Config::Config( bool allow_remote_ , unsigned int port_ , const A
 		processor_address(processor_address_) ,
 		processor_timeout(processor_timeout_) ,
 		verifier_address(verifier_address_) ,
-		verifier_timeout(verifier_timeout_)
+		verifier_timeout(verifier_timeout_) ,
+		use_connection_lookup(use_connection_lookup_)
 {
 }
 

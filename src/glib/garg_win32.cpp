@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,12 +34,10 @@ void G::Arg::setExe()
 
 std::string G::Arg::moduleName( HINSTANCE hinstance )
 {
-	char buffer[limits::path] ;
-	size_t size = sizeof(buffer) ;
-	*buffer = '\0' ;
-	::GetModuleFileName( hinstance , buffer , size-1U ) ;
-	buffer[size-1U] = '\0' ;
-	return std::string(buffer) ;
+	char buffer[limits::path] = { 0 } ;
+	DWORD size = limits::path ;
+	size = ::GetModuleFileNameA( hinstance , buffer , size-1U ) ;
+	return std::string( buffer , size ) ;
 }
 
 void G::Arg::parse( HINSTANCE hinstance , const std::string & command_line )

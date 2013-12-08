@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -122,10 +122,14 @@ G::DirectoryIterator::~DirectoryIterator()
 
 // ===
 
-extern "C" int gdirectory_unix_on_error_( const char * , int )
+extern "C"
 {
-	const int abort = 1 ;
-	return abort ;
+	int gdirectory_unix_on_error_( const char * , int ) ;
+	int gdirectory_unix_on_error_( const char * , int )
+	{
+		const int abort = 1 ;
+		return abort ;
+	}
 }
 
 G::DirectoryIteratorImp::DirectoryIteratorImp( const Directory & dir , const std::string & wildcard ) :

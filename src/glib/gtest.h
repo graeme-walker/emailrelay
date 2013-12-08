@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -37,8 +37,18 @@ namespace G
 class G::Test
 {
 public:
-	static bool enabled( const std::string & name ) ;
-		///< Returns true if the specified test feature should be enabled.
+	static bool enabled() ;
+		///< Returns true if test features are enabled.
+
+	static bool enabled( const char * name ) ;
+		///< Returns true if the specified test feature is enabled.
 } ;
+
+#if ! defined(_DEBUG)
+inline bool G::Test::enabled( const char * )
+{
+	return false ;
+}
+#endif
 
 #endif

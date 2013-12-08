@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -32,12 +32,6 @@
 #include <process.h>
 #include <io.h>
 #include <fcntl.h>
-
-namespace
-{
-	const int g_stderr_fileno = 2 ;
-	const int g_sc_open_max = 256 ; // 32 in limits.h !?
-}
 
 class G::Process::IdImp
 {
@@ -89,27 +83,12 @@ void G::Process::closeFiles( bool keep_stderr )
 {
 	std::cout << std::flush ;
 	std::cerr << std::flush ;
-
-	const int n = g_sc_open_max ;
-	for( int fd = 0 ; fd < n ; fd++ )
-	{
-		if( !keep_stderr || fd != g_stderr_fileno )
-			::_close( fd ) ;
-	}
-
-	// reopen standard fds to prevent accidental use
-	// of arbitrary files or sockets as standard
-	// streams
-	//
-	int fd0 = ::open( G::FileSystem::nullDevice() , O_RDONLY ) ;
-	int fd1 = ::open( G::FileSystem::nullDevice() , O_WRONLY ) ;
-	int fd2 = keep_stderr ? -1 : ::open( G::FileSystem::nullDevice() , O_WRONLY ) ;
+	// old versions of this code closed files
+	// but it's not really needed
 }
 
 void G::Process::closeStderr()
 {
-	int fd = g_stderr_fileno ;
-	::_close( fd ) ;
 }
 
 void G::Process::cd( const Path & dir )

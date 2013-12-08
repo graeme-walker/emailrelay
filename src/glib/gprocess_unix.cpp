@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,13 +27,8 @@
 #include "glog.h"
 #include <iostream>
 #include <cstring> // std::strerror()
+#include <fcntl.h>
 #include <errno.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <fcntl.h> // open()
-#include <unistd.h> // setuid() etc
-#include <algorithm> // std::swap()
 
 namespace
 {
@@ -132,7 +127,7 @@ void G::Process::revokeExtraGroups()
 	if( Identity::real().isRoot() || Identity::effective() != Identity::real() )
 	{
 		gid_t dummy ;
-		G_IGNORE ::setgroups( 0U , &dummy ) ; // (only works for root, so ignore the return code)
+		G_IGNORE_RETURN(int) ::setgroups( 0U , &dummy ) ; // (only works for root, so ignore the return code)
 	}
 }
 
@@ -252,6 +247,19 @@ bool G::Process::Id::operator==( const Id & other ) const
 
 // ===
 
+namespace
+{
+	mode_t umask_value( G::Process::Umask::Mode mode )
+	{
+		mode_t m = 0 ;
+		if( mode == G::Process::Umask::Tightest ) m = 0177 ; // -rw-------
+		if( mode == G::Process::Umask::Tighter ) m = 0117 ;  // -rw-rw----
+		if( mode == G::Process::Umask::Readable ) m = 0133 ; // -rw-r--r--
+		if( mode == G::Process::Umask::GroupOpen ) m = 0113 ;// -rw-rw-r--
+		return m ;
+	}
+}
+
 	/// A private implementation class used by G::Process::Umask.
 class G::Process::Umask::UmaskImp
 {
@@ -262,25 +270,17 @@ public:
 G::Process::Umask::Umask( Mode mode ) :
 	m_imp(new UmaskImp)
 {
-	mode_t m = 0 ;
-	if( mode == Tightest ) m = 0177 ;
-	if( mode == Tighter ) m = 0117 ;
-	if( mode == Readable ) m = 0133 ;
-	if( mode == GroupOpen ) m = 0113 ;
-	m_imp->m_old_mode = ::umask( m ) ;
+	m_imp->m_old_mode = ::umask( umask_value(mode) ) ;
 }
 
 G::Process::Umask::~Umask()
 {
-	G_IGNORE ::umask( m_imp->m_old_mode ) ;
+	G_IGNORE_RETURN(mode_t) ::umask( m_imp->m_old_mode ) ;
 	delete m_imp ;
 }
 
 void G::Process::Umask::set( Mode mode )
 {
-	// Tightest: -rw-------
-	// Tighter:  -rw-rw----
-	// Readable: -rw-r--r--
-	::umask( mode==Readable?0133:(mode==Tighter?0117:0177) ) ;
+	G_IGNORE_RETURN(mode_t) ::umask( umask_value(mode) ) ;
 }
 

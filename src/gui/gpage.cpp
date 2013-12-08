@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,9 +23,10 @@
 #include "gstr.h"
 #include "gpage.h"
 #include "gdialog.h"
-#include "state.h"
+#include "mapfile.h"
+#include "glog.h"
 
-bool GPage::m_test_mode = false ;
+int GPage::m_test_mode = 0 ;
 
 GPage::GPage( GDialog & dialog , const std::string & name , const std::string & next_1 ,
 	const std::string & next_2 , bool finish_button , bool close_button ) :
@@ -48,6 +49,11 @@ GDialog & GPage::dialog()
 const GDialog & GPage::dialog() const
 {
 	return m_dialog ;
+}
+
+std::string GPage::helpName() const
+{
+	return std::string() ;
 }
 
 bool GPage::useFinishButton() const
@@ -91,21 +97,21 @@ QLabel * GPage::newTitle( QString s )
 	return label ;
 }
 
-void GPage::dump( std::ostream & stream , const std::string & prefix , const std::string & eol , bool ) const
+void GPage::dump( std::ostream & stream , bool ) const
 {
-	stream << prefix << "# page: " << name() << eol ;
+	G_DEBUG( "GPage::dump: page: " << name() ) ;
+	stream << "# page: " << name() << "\n" ;
 }
 
-void GPage::dumpItem( std::ostream & stream , const std::string & prefix , const std::string & key ,
-	const G::Path & value , const std::string & eol ) const
+void GPage::dumpItem( std::ostream & stream , bool for_install , const std::string & key , const G::Path & value ) const
 {
-	dumpItem( stream , prefix , key , value.str() , eol ) ;
+	dumpItem( stream , for_install , key , value.str() ) ;
 }
 
-void GPage::dumpItem( std::ostream & stream , const std::string & prefix , const std::string & key ,
-	const std::string & value , const std::string & eol ) const
+void GPage::dumpItem( std::ostream & stream , bool , const std::string & key , const std::string & value ) const
 {
-	State::write( stream , key , value , prefix , eol ) ;
+	G_DEBUG( "GPage::dumpItem: [" << key << "]=[" << value << "]" ) ;
+	MapFile::writeItem( stream , "gui-" + key , value ) ;
 }
 
 std::string GPage::value( bool b )
@@ -118,22 +124,38 @@ std::string GPage::value( const QAbstractButton * p )
 	return p->isChecked() ? "y" : "n" ;
 }
 
+std::string GPage::stdstr( const QString & s )
+{
+	QByteArray a = s.toLocal8Bit() ;
+	return std::string( a.constData() , a.length() ) ;
+}
+
+QString GPage::qstr( const std::string & s )
+{
+	return QString::fromLocal8Bit( s.data() , s.size() ) ;
+}
+
 std::string GPage::value( const QLineEdit * p )
 {
-	return p->text().toStdString() ;
+	return stdstr(p->text()) ;
 }
 
 std::string GPage::value( const QComboBox * p )
 {
-	return p->currentText().toStdString() ;
+	return stdstr(p->currentText()) ;
 }
 
-void GPage::setTestMode()
+void GPage::setTestMode( int test_mode )
 {
-	m_test_mode = true ;
+	m_test_mode = test_mode ;
 }
 
 bool GPage::testMode() const
+{
+	return m_test_mode != 0 ;
+}
+
+int GPage::testModeValue() const
 {
 	return m_test_mode ;
 }
@@ -152,6 +174,32 @@ void GPage::mechanismUpdateSlot( const QString & m )
 		//QMessageBox::warning( NULL , title , "... ..." , QMessageBox::Ok , QMessageBox::NoButton , QMessageBox::NoButton ) ;
 		first = false ;
 	}
+}
+
+void GPage::tip( QWidget * w , const char * p )
+{
+	// see also QWidget::setWhatsThis()
+	w->setToolTip( tip(p) ) ;
+}
+
+void GPage::tip( QWidget * w , NameTip )
+{
+	w->setToolTip( tip() ) ;
+}
+
+void GPage::tip( QWidget * w , PasswordTip )
+{
+	w->setToolTip( tip() ) ;
+}
+
+QString GPage::tip( const char * p )
+{
+	return QString( p ) ;
+}
+
+QString GPage::tip()
+{
+	return QString( tr("Username or password added to the \"emailrelay.auth\" secrets file") ) ;
 }
 
 /// \file gpage.cpp

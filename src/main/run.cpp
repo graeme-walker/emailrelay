@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,13 +19,13 @@
 //
 
 #include "gdef.h"
+#include "gnet.h"
 #include "gssl.h"
 #include "gsmtp.h"
 #include "run.h"
 #include "admin.h"
 #include "gsmtpserver.h"
 #include "gsmtpclient.h"
-#include "gsasl.h"
 #include "gsecrets.h"
 #include "geventloop.h"
 #include "garg.h"
@@ -33,6 +33,7 @@
 #include "gpidfile.h"
 #include "gfilestore.h"
 #include "gnewfile.h"
+#include "gmultiserver.h"
 #include "gadminserver.h"
 #include "gpopserver.h"
 #include "gprocessorfactory.h"
@@ -54,9 +55,18 @@
 #include <exception>
 #include <utility>
 
+#ifndef G_CAPABILITIES
+	#define G_CAPABILITIES ""
+#endif
+
+std::string Main::Run::capabilities()
+{
+	return G_CAPABILITIES ;
+}
+
 std::string Main::Run::versionNumber()
 {
-	return "1.8.1" ;
+	return "1.9" ;
 }
 
 Main::Run::Run( Main::Output & output , const G::Arg & arg , const std::string & switch_spec ) :
@@ -72,21 +82,33 @@ Main::Run::Run( Main::Output & output , const G::Arg & arg , const std::string &
 
 Main::Run::~Run()
 {
-	if( m_store.get() ) m_store->signal().disconnect() ;
-	if( m_smtp_server.get() ) m_smtp_server->eventSignal().disconnect() ;
-	m_client.doneSignal().disconnect() ;
-	m_client.eventSignal().disconnect() ;
+	try
+	{
+		if( m_store.get() ) m_store->signal().disconnect() ;
+		if( m_smtp_server.get() ) m_smtp_server->eventSignal().disconnect() ;
+		m_client.doneSignal().disconnect() ;
+		m_client.eventSignal().disconnect() ;
 
-	// avoid 'still reachable' in valgrind leak checks
-	m_client.reset() ;
-	m_poll_timer <<= 0 ;
-	m_forwarding_timer <<= 0 ;
-	m_admin_server <<= 0 ;
-	m_pop_secrets <<= 0 ;
-	m_client_secrets <<= 0 ;
-	m_store <<= 0 ;
-	m_log_output <<= 0 ;
-	m_cl <<= 0 ;
+		// there are no EventLoop or TimerList instances when this
+		// destuctor runs so delete the client with ..ForExit()
+		m_client.cleanupForExit() ;
+
+		// call some more destructors early (in the correct order)
+		// within the scope of the catch
+		m_forwarding_timer <<= 0 ;
+		m_poll_timer <<= 0 ;
+		m_smtp_server <<= 0 ;
+		m_admin_server <<= 0 ;
+		m_pop_secrets <<= 0 ;
+		m_client_secrets <<= 0 ;
+		m_store <<= 0 ;
+		m_cfg <<= 0 ;
+		m_cl <<= 0 ;
+		m_log_output <<= 0 ;
+	}
+	catch(...)
+	{
+	}
 }
 
 bool Main::Run::prepareError() const
@@ -172,6 +194,7 @@ bool Main::Run::prepare()
 		cfg.logTimestamp() , // with-timestamp
 		!cfg.debug() , // strip-context
 		cfg.useSyslog() , // use-syslog
+		cfg.logFile() , // stderr-replacement
 		G::LogOutput::Mail // facility
 	) ;
 
@@ -181,6 +204,44 @@ bool Main::Run::prepare()
  #endif
 
 	return true ;
+}
+
+#ifndef USE_SMALL_CONFIG
+void Main::Run::checkPort( bool check , const std::string & interface_ , unsigned int port )
+{
+	if( check )
+	{
+		GNet::Address address =
+			interface_.length() ?
+				GNet::Address(interface_,port) :
+				GNet::Address(port) ;
+		GNet::Server::canBind( address , true ) ;
+	}
+}
+#endif
+
+void Main::Run::checkPorts() const
+{
+ #ifndef USE_SMALL_CONFIG
+	const Configuration & cfg = config() ;
+	if( cfg.doServing() )
+	{
+		G::Strings smtp_interfaces = cfg.listeningInterfaces("smtp") ;
+		checkPort( cfg.doSmtp() && smtp_interfaces.empty() , std::string() , cfg.port() ) ;
+		for( G::Strings::iterator p1 = smtp_interfaces.begin() ; p1 != smtp_interfaces.end() ; ++p1 )
+			checkPort( cfg.doSmtp() , *p1 , cfg.port() ) ;
+
+		G::Strings pop_interfaces = cfg.listeningInterfaces("pop") ;
+		checkPort( cfg.doPop() && pop_interfaces.empty() , std::string() , cfg.popPort() ) ;
+		for( G::Strings::iterator p2 = pop_interfaces.begin() ; p2 != pop_interfaces.end() ; ++p2 )
+				checkPort( cfg.doPop() , *p2 , cfg.popPort() ) ;
+
+		G::Strings admin_interfaces = cfg.listeningInterfaces("admin") ;
+		checkPort( cfg.doAdmin() && admin_interfaces.empty() , std::string() , cfg.adminPort() ) ;
+		for( G::Strings::iterator p3 = admin_interfaces.begin() ; p3 != admin_interfaces.end() ; ++p3 )
+			checkPort( cfg.doAdmin() , *p3 , cfg.adminPort() ) ;
+	}
+ #endif
 }
 
 void Main::Run::run()
@@ -202,43 +263,15 @@ void Main::Run::run()
 	}
 }
 
-#ifndef USE_SMALL_CONFIG
-void Main::Run::checkPort( const std::string & interface_ , unsigned int port )
-{
-	GNet::Address address =
-		interface_.length() ?
-			GNet::Address(interface_,port) :
-			GNet::Address(port) ;
-	GNet::Server::canBind( address , true ) ;
-}
-#endif
-
-void Main::Run::checkPorts() const
-{
- #ifndef USE_SMALL_CONFIG
-	const Configuration & cfg = config() ;
-	G::Strings interfaces = cfg.listeningInterfaces() ;
-	for( G::Strings::iterator p = interfaces.begin() ; p != interfaces.end() ; ++p )
-	{
-		if( cfg.doServing() && cfg.doSmtp() )
-			checkPort( *p , cfg.port() ) ;
-
-		if( cfg.doServing() && cfg.doPop() )
-			checkPort( *p , cfg.popPort() ) ;
-
-		if( cfg.doServing() && cfg.doAdmin() )
-			checkPort( *p , cfg.adminPort() ) ;
-	}
- #endif
-}
-
 void Main::Run::runCore()
 {
 	const Configuration & cfg = config() ;
 
 	// fqdn override option
 	//
-	GNet::Local::fqdn( cfg.fqdn() ) ;
+	std::string nul( 1U , '\0' ) ;
+	if( cfg.fqdn(nul) != nul )
+		GNet::Local::fqdn( cfg.fqdn() ) ;
 
 	// tighten the umask
 	//
@@ -276,10 +309,10 @@ void Main::Run::runCore()
 
 	// ssl library singleton
 	//
-	bool ssl_active = cfg.clientTls() || !cfg.serverTlsFile().empty() ;
-	GSsl::Library ssl( ssl_active , cfg.serverTlsFile() ) ;
+	bool ssl_active = cfg.clientTls() || cfg.clientOverTls() || !cfg.serverTlsFile().empty() ;
+	GSsl::Library ssl( ssl_active , cfg.serverTlsFile() , cfg.tlsConfig() ) ;
 	if( ssl_active && !ssl.enabled() )
-		throw G::Exception( "cannot do tls/ssl: openssl not built in" ) ;
+		throw G::Exception( "cannot do tls/ssl: openssl not built in: remove tls options from the command-line or rebuild the emailrelay executable with openssl" ) ;
 
 	// network monitor singleton
 	//
@@ -294,8 +327,8 @@ void Main::Run::runCore()
 
 	// authentication secrets
 	//
-	m_client_secrets <<= new GSmtp::Secrets( cfg.clientSecretsFile() , "client" ) ;
-	GSmtp::Secrets server_secrets( cfg.serverSecretsFile() , "server" ) ;
+	m_client_secrets <<= new GAuth::Secrets( cfg.clientSecretsFile() , "client" ) ;
+	GAuth::Secrets server_secrets( cfg.serverSecretsFile() , "server" ) ;
 	if( cfg.doPop() )
 		m_pop_secrets <<= new GPop::Secrets( cfg.popSecretsFile() ) ;
 
@@ -324,8 +357,8 @@ void Main::Run::runCore()
 	}
 }
 
-void Main::Run::doServing( const GSmtp::Secrets & client_secrets ,
-	GSmtp::MessageStore & store , const GSmtp::Secrets & server_secrets ,
+void Main::Run::doServing( const GAuth::Secrets & client_secrets ,
+	GSmtp::MessageStore & store , const GAuth::Secrets & server_secrets ,
 	GPop::Store & pop_store , const GPop::Secrets & pop_secrets ,
 	G::PidFile & pid_file , GNet::EventLoop & event_loop )
 {
@@ -396,7 +429,7 @@ void Main::Run::doServing( const GSmtp::Secrets & client_secrets ,
 	m_admin_server <<= 0 ;
 }
 
-void Main::Run::doForwardingOnStartup( GSmtp::MessageStore & store , const GSmtp::Secrets & secrets ,
+void Main::Run::doForwardingOnStartup( GSmtp::MessageStore & store , const GAuth::Secrets & secrets ,
 	GNet::EventLoop & event_loop )
 {
 	const Configuration & cfg = config() ;
@@ -404,47 +437,42 @@ void Main::Run::doForwardingOnStartup( GSmtp::MessageStore & store , const GSmtp
 	GNet::ClientPtr<GSmtp::Client> client_ptr( new GSmtp::Client(
 		GNet::ResolverInfo(cfg.serverAddress()) , secrets , clientConfig() ) ) ;
 
-	client_ptr->sendMessages( store ) ;
+	client_ptr->sendMessagesFrom( store ) ; // once connected
 
+	// quit() the event loop when all done so that run() returns
 	client_ptr.doneSignal().connect( G::slot(*this,&Run::forwardingClientDone) ) ;
+
+	// emit progress events
 	client_ptr.eventSignal().connect( G::slot(*this,&Run::clientEvent) ) ;
 
 	closeMoreFiles() ;
-	event_loop.run() ;
+	std::string quit_reason = event_loop.run() ;
+	if( !quit_reason.empty() )
+		cl().showError( quit_reason ) ;
 }
 
 GSmtp::Server::Config Main::Run::serverConfig() const
 {
 	const Configuration & cfg = config() ;
-
-	GSmtp::Server::AddressList interfaces ;
-	{
-		G::Strings list = cfg.listeningInterfaces() ;
-		for( G::Strings::iterator p = list.begin() ; p != list.end() ; ++p )
-		{
-			if( (*p).length() )
-				interfaces.push_back( GNet::Address(*p,cfg.port()) ) ;
-		}
-	}
-
 	return
 		GSmtp::Server::Config(
 			cfg.allowRemoteClients() ,
 			cfg.port() ,
-			interfaces ,
+			GNet::MultiServer::addressList( cfg.listeningInterfaces("smtp") , cfg.port() ) ,
 			smtpIdent() ,
 			cfg.anonymous() ,
 			cfg.filter() ,
 			cfg.filterTimeout() ,
 			cfg.verifier() ,
-			cfg.filterTimeout() ) ; // verifier timeout
+			cfg.filterTimeout() , // verifier timeout - re-use filter timeout value
+			cfg.peerLookup() ) ; // use connection table to get username of local peers
 }
 
 #ifndef USE_NO_POP
 GPop::Server::Config Main::Run::popConfig() const
 {
 	const Configuration & cfg = config() ;
-	return GPop::Server::Config( cfg.allowRemoteClients() , cfg.popPort() , cfg.listeningInterfaces() ) ;
+	return GPop::Server::Config( cfg.allowRemoteClients() , cfg.popPort() , cfg.listeningInterfaces("pop") ) ;
 }
 #endif
 
@@ -456,17 +484,27 @@ GSmtp::Client::Config Main::Run::clientConfig() const
 		GSmtp::Client::Config(
 			cfg.clientFilter() ,
 			cfg.filterTimeout() ,
-			cfg.clientInterface().length() ?
-				GNet::Address(cfg.clientInterface(),0U) :
-				GNet::Address(0U) ,
+			clientBindAddress(cfg.clientInterface()) ,
 			GSmtp::ClientProtocol::Config(
 				GNet::Local::fqdn() ,
 				cfg.responseTimeout() ,
 				cfg.promptTimeout() , // waiting for "service ready"
 				cfg.filterTimeout() ,
 				true , // (must-authenticate)
+				true , // (must-accept-all-recipients)
 				false ) , // (eight-bit-strict)
-			cfg.connectionTimeout() ) ;
+			cfg.connectionTimeout() ,
+			cfg.secureConnectionTimeout() ,
+			cfg.clientOverTls() ) ;
+}
+
+GNet::Address Main::Run::clientBindAddress( const std::string & s )
+{
+	return s.empty() ?
+			GNet::Address(0U) : (
+				GNet::Address::validString( s ) ?
+					GNet::Address( s ) :
+					GNet::Address( s , 0U ) ) ;
 }
 
 void Main::Run::onException( std::exception & e )
@@ -492,7 +530,7 @@ void Main::Run::doForwarding( const std::string & event_key )
 {
 	if( m_client.busy() )
 	{
-		G_DEBUG( "Main::Run::doForwarding: still busy from last time" ) ;
+		G_LOG( "Main::Run::doForwarding: " << event_key << ": still busy from last time" ) ;
 		emit( event_key , "busy" , "" ) ;
 	}
 	else
@@ -518,7 +556,7 @@ std::string Main::Run::doForwardingCore()
 			m_client.reset( new GSmtp::Client( GNet::ResolverInfo(cfg.serverAddress()) ,
 				*m_client_secrets.get() , clientConfig() ) ) ;
 
-			m_client->sendMessages( *m_store.get() ) ;
+			m_client->sendMessagesFrom( *m_store.get() ) ; // once connected
 		}
 		return std::string() ;
 	}
@@ -534,7 +572,7 @@ const Main::CommandLine & Main::Run::cl() const
 	// lazy evaluation so that the constructor doesnt throw
 	if( m_cl.get() == NULL )
 	{
-		const_cast<Run*>(this)->m_cl <<= new CommandLine( m_output , m_arg , m_switch_spec , versionNumber() ) ;
+		const_cast<Run*>(this)->m_cl <<= new CommandLine( m_output , m_arg , m_switch_spec , versionNumber() , capabilities() ) ;
 		const_cast<Run*>(this)->m_cfg <<= new Configuration( cl().cfg() ) ;
 	}
 	return *m_cl.get() ;
@@ -543,10 +581,7 @@ const Main::CommandLine & Main::Run::cl() const
 void Main::Run::forwardingClientDone( std::string reason , bool )
 {
 	G_DEBUG( "Main::Run::forwardingClientDone: \"" << reason << "\"" ) ;
-	if( ! reason.empty() )
-		throw G::Exception( reason ) ;
-	else
-		GNet::EventLoop::instance().quit() ;
+	GNet::EventLoop::instance().quit( reason ) ;
 }
 
 void Main::Run::pollingClientDone( std::string reason , bool )
@@ -567,7 +602,7 @@ void Main::Run::serverEvent( std::string s1 , std::string )
 {
 	if( s1 == "done" && config().forwardingOnDisconnect() )
 	{
-		G_ASSERT( m_forwarding_timer.get() ) ;
+		G_ASSERT( m_forwarding_timer.get() != NULL ) ;
 		m_forwarding_timer->cancelTimer() ;
 		m_forwarding_timer->startTimer( 0U ) ;
 	}
@@ -580,14 +615,14 @@ void Main::Run::raiseStoreEvent( bool repoll )
 	const bool expiry_forced_by_filter = repoll ;
 	if( config().doPolling() && expiry_forced_by_filter )
 	{
-		G_ASSERT( m_poll_timer.get() ) ;
+		G_ASSERT( m_poll_timer.get() != NULL ) ;
 		m_poll_timer->cancelTimer() ;
 		m_poll_timer->startTimer( 0U ) ;
 	}
 
 	if( config().forwardingOnStore() )
 	{
-		G_ASSERT( m_forwarding_timer.get() ) ;
+		G_ASSERT( m_forwarding_timer.get() != NULL ) ;
 		m_forwarding_timer->cancelTimer() ;
 		m_forwarding_timer->startTimer( 0U ) ;
 	}

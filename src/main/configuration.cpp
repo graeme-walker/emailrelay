@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include "gdef.h"
 #include "gsmtp.h"
+#include "gstr.h"
 #include "configuration.h"
 #include "commandline.h"
 #include "gmessagestore.h"
@@ -63,31 +64,57 @@ bool Main::Configuration::logTimestamp() const
 	return contains( "log-time" ) ;
 }
 
+std::string Main::Configuration::logFile() const
+{
+	return contains("log-file") ? value("log-file") : std::string() ;
+}
+
 unsigned int Main::Configuration::port() const
 {
 	return value( "port" , 25U ) ;
 }
 
-G::Strings Main::Configuration::listeningInterfaces() const
+G::Strings Main::Configuration::listeningInterfaces( const std::string & protocol ) const
 {
-	G::Strings result = m_cl.value( "interface" , ",/" ) ;
-	if( result.empty() )
-	{
-		result.push_back( std::string() ) ;
-	}
-	return result ;
-}
+	// allow eg. "127.0.0.1,smtp=192.168.1.1,admin=10.0.0.1"
 
-std::string Main::Configuration::firstListeningInterface() const
-{
-	G::Strings s = listeningInterfaces() ;
-	return s.size() ? s.front() : std::string() ;
+	// prepare the naive result by splitting the user's string by comma or slash separators
+	G::Strings result = m_cl.value( "interface" , ",/" ) ;
+
+	// then weed out the ones that have an explicit protocol name that doesnt match the
+	// required protocol, removing the "protocol=" prefix at the same time to leave just
+	// the required list of addresses
+	for( G::Strings::iterator p = result.begin() ; p != result.end() ; )
+	{
+		if( protocol.empty() || protocol == G::Str::head( *p , (*p).find('=') , protocol ) )
+			*p++ = G::Str::tail( *p , (*p).find('=') , *p ) ;
+		else
+			p = result.erase( p ) ;
+	}
+
+	return result ;
 }
 
 std::string Main::Configuration::clientInterface() const
 {
-	// TODO -- separate switch ?
-	return firstListeningInterface() ;
+	G::Strings result = m_cl.value( "interface" , ",/" ) ;
+	// look for first "client=" value
+	{
+		for( G::Strings::iterator p = result.begin() ; p != result.end() ; ++p )
+		{
+			if( (*p).find("client=") == 0U )
+				return G::Str::tail( *p , (*p).find('=') , *p ) ;
+		}
+	}
+	// or use the first unqalified value
+	{
+		for( G::Strings::iterator p = result.begin() ; p != result.end() ; ++p )
+		{
+			if( (*p).find('=') == std::string::npos )
+				return *p ;
+		}
+	}
+	return std::string() ;
 }
 
 unsigned int Main::Configuration::adminPort() const
@@ -246,8 +273,7 @@ std::string Main::Configuration::clientFilter() const
 
 unsigned int Main::Configuration::icon() const
 {
-	unsigned int n = value( "icon" , 0U ) ;
-	return n % 4U ;
+	return 0U ; // no longer used
 }
 
 bool Main::Configuration::hidden() const
@@ -263,6 +289,16 @@ std::string Main::Configuration::clientSecretsFile() const
 bool Main::Configuration::clientTls() const
 {
 	return contains( "client-tls" ) ;
+}
+
+bool Main::Configuration::clientOverTls() const
+{
+	return contains( "client-tls-connection" ) ;
+}
+
+unsigned int Main::Configuration::tlsConfig() const
+{
+	return value( "tls-config" , 0U ) ;
 }
 
 std::string Main::Configuration::serverTlsFile() const
@@ -290,9 +326,14 @@ unsigned int Main::Configuration::connectionTimeout() const
 	return value( "connection-timeout" , 40U ) ;
 }
 
-std::string Main::Configuration::fqdn() const
+unsigned int Main::Configuration::secureConnectionTimeout() const
 {
-	return contains("domain") ? value("domain") : std::string() ;
+	return connectionTimeout() ;
+}
+
+std::string Main::Configuration::fqdn( std::string default_ ) const
+{
+	return contains("domain") ? value("domain") : default_ ;
 }
 
 std::string Main::Configuration::nobody() const
@@ -338,6 +379,11 @@ bool Main::Configuration::anonymous() const
 unsigned int Main::Configuration::filterTimeout() const
 {
 	return value( "filter-timeout" , 5U * 60U ) ;
+}
+
+bool Main::Configuration::peerLookup() const
+{
+	return contains( "peer-lookup" ) ;
 }
 
 bool Main::Configuration::contains( const char * s ) const

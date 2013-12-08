@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 #include "gmessagestore.h"
 #include "gserverprotocol.h"
 #include "gprotocolmessage.h"
+#include "gconnectionlookup.h"
 #include "gexception.h"
 #include <string>
 #include <sstream>
@@ -54,7 +55,7 @@ class GSmtp::ServerPeer : public GNet::BufferedServerPeer , private GSmtp::Serve
 {
 public:
 	ServerPeer( GNet::Server::PeerInfo , Server & server , std::auto_ptr<ProtocolMessage> pmessage ,
-		const Secrets & , const std::string & verifier_address , unsigned int verifier_timeout ,
+		const GAuth::Secrets & , const std::string & verifier_address , unsigned int verifier_timeout ,
 		std::auto_ptr<ServerProtocol::Text> ptext , ServerProtocol::Config ) ;
 			///< Constructor.
 
@@ -68,7 +69,7 @@ protected:
 	virtual bool onReceive( const std::string & line ) ;
 		///< Final override from GNet::BufferedServerPeer.
 
-	virtual void onSecure() ;
+	virtual void onSecure( const std::string & ) ;
 		///< Final override from GNet::SocketProtocolSink.
 
 private:
@@ -110,11 +111,13 @@ public:
 		std::string verifier_address ;
 		unsigned int verifier_timeout ;
 		///<
+		bool use_connection_lookup ;
+		///<
 		Config( bool , unsigned int , const AddressList & , const std::string & , bool ,
-			const std::string & , unsigned int , const std::string & , unsigned int ) ;
+			const std::string & , unsigned int , const std::string & , unsigned int , bool ) ;
 	} ;
 
-	Server( MessageStore & store , const Secrets & client_secrets , const Secrets & server_secrets ,
+	Server( MessageStore & store , const GAuth::Secrets & client_secrets , const GAuth::Secrets & server_secrets ,
 		Config server_config , std::string smtp_server_address , unsigned int smtp_connection_timeout ,
 		GSmtp::Client::Config client_config ) ;
 			///< Constructor. Listens on the given port number using
@@ -147,7 +150,7 @@ private:
 	ProtocolMessage * newProtocolMessageStore( std::auto_ptr<Processor> ) ;
 	ProtocolMessage * newProtocolMessageScanner( std::auto_ptr<ProtocolMessage> ) ;
 	ProtocolMessage * newProtocolMessageForward( std::auto_ptr<ProtocolMessage> ) ;
-	ServerProtocol::Text * newProtocolText( bool , GNet::Address ) const ;
+	ServerProtocol::Text * newProtocolText( bool , GNet::Address , const std::string & ) const ;
 
 private:
 	MessageStore & m_store ;
@@ -156,15 +159,16 @@ private:
 	GSmtp::Client::Config m_client_config ;
 	std::string m_ident ;
 	bool m_allow_remote ;
-	const Secrets & m_server_secrets ;
+	const GAuth::Secrets & m_server_secrets ;
 	std::string m_smtp_server ;
 	unsigned int m_smtp_connection_timeout ;
-	const Secrets & m_client_secrets ;
+	const GAuth::Secrets & m_client_secrets ;
 	std::string m_verifier_address ;
 	unsigned int m_verifier_timeout ;
 	bool m_anonymous ;
 	std::auto_ptr<ServerProtocol::Text> m_protocol_text ;
 	G::Signal2<std::string,std::string> m_event_signal ;
+	std::auto_ptr<GNet::ConnectionLookup> m_connection_lookup ;
 } ;
 
 #endif

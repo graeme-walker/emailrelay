@@ -1,9 +1,9 @@
 #
-## Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or 
+## the Free Software Foundation, either version 3 of the License, or
 ## (at your option) any later version.
 ## 
 ## This program is distributed in the hope that it will be useful,
@@ -15,9 +15,17 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION)
+INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) $(PAM_INCLUDE)
 
 noinst_LIBRARIES = libglib.a
+
+if PAM
+PAM_EXTRA_DIST = gpam_none.cpp
+PAM_SOURCES = gpam_linux.cpp
+else
+PAM_EXTRA_DIST = gpam_linux.cpp
+PAM_SOURCES = gpam_none.cpp
+endif
 
 if MAC
 MAC_EXTRA_DIST = garg_unix.cpp
@@ -51,13 +59,6 @@ GLOB_EXTRA_DIST = gdirectory_unix_glob.cpp
 GLOB_SOURCES = gdirectory_unix_noglob.cpp
 endif
 
-if SMALL_FRAGMENTS
-FRAGMENTS_EXTRA_DIST = gstr.cpp gdate.cpp gfile.cpp gpath.cpp gfs_unix.cpp gexception.cpp glogoutput.cpp
-FRAGMENTS_SOURCES =
-else
-FRAGMENTS_EXTRA_DIST =
-FRAGMENTS_SOURCES = gstr.cpp gdate.cpp gfile.cpp gpath.cpp gfs_unix.cpp gexception.cpp glogoutput.cpp
-endif
 
 EXTRA_DIST=\
 	$(EXEC_EXTRA_DIST) \
@@ -65,11 +66,14 @@ EXTRA_DIST=\
 	$(IDENTITY_EXTRA_DIST) \
 	$(GLOB_EXTRA_DIST) \
 	$(MAC_EXTRA_DIST) \
+	$(PAM_EXTRA_DIST) \
 	garg_win32.cpp \
 	gcleanup_win32.cpp \
+	gconvert_win32.cpp \
 	gdaemon_win32.cpp \
 	gdatetime_win32.cpp \
 	gdirectory_win32.cpp \
+	genvironment_win32.cpp \
 	gexecutable_win32.cpp \
 	gfile_win32.cpp \
 	gfs_win32.cpp \
@@ -86,19 +90,25 @@ libglib_a_SOURCES = \
 	$(IDENTITY_SOURCES) \
 	$(GLOB_SOURCES) \
 	$(MAC_SOURCES) \
+	$(PAM_SOURCES) \
 	md5.cpp \
 	md5.h \
 	garg.cpp \
 	garg.h \
 	gassert.h \
-	gconvert.h \
+	gbase64.cpp \
+	gbase64.h \
 	gcleanup.h \
 	gcleanup_unix.cpp \
+	gconvert.h \
+	gconvert.cpp \
+	gconvert_unix.cpp \
 	gcounter.cpp \
 	gcounter.h \
 	gdaemon.h \
 	gdaemon_unix.cpp \
 	gdate.h \
+	gdate.cpp \
 	gdatetime.cpp \
 	gdatetime.h \
 	gdatetime_unix.cpp \
@@ -107,13 +117,18 @@ libglib_a_SOURCES = \
 	gdirectory.cpp \
 	gdirectory.h \
 	gdirectory_unix.cpp \
+	genvironment.h \
+	genvironment_unix.cpp \
 	gexception.h \
+	gexception.cpp \
 	gexecutable_unix.cpp \
 	gexecutable.cpp \
 	gexecutable.h \
 	gfile.h \
+	gfile.cpp \
 	gfile_unix.cpp \
 	gfs.h \
+	gfs_unix.cpp \
 	ggetopt.h \
 	ggetopt.cpp \
 	ghostname_unix.cpp \
@@ -123,13 +138,17 @@ libglib_a_SOURCES = \
 	glog.cpp \
 	glog.h \
 	glogoutput.h \
+	glogoutput.cpp \
 	glogoutput_unix.cpp \
 	gnewprocess.h \
 	gmd5_native.cpp \
 	gmd5.h \
 	gmemory.h \
 	gnoncopyable.h \
+	gpam.h \
+	gpam.cpp \
 	gpath.h \
+	gpath.cpp \
 	gpidfile.cpp \
 	gpidfile.h \
 	gprocess.h \
@@ -142,7 +161,9 @@ libglib_a_SOURCES = \
 	gslot.cpp \
 	gslot.h \
 	gstatemachine.h \
+	gstr.cpp \
 	gstr.h \
+	gstrings.cpp \
 	gstrings.h \
 	gtest.cpp \
 	gtest.h \

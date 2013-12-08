@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -109,7 +109,9 @@ void GPop::Store::checkPath( G::Path dir_path , bool by_name , bool allow_delete
 			{
 				n++ ;
 				if( !valid(iter.filePath(),allow_delete) )
+				{
 					; // no-op -- warning only
+				}
 			}
 		}
 		if( n == 0 )
@@ -204,8 +206,8 @@ void GPop::StoreLock::lock( const std::string & user )
 	if( G::Test::enabled("large-pop-list") )
 	{
 		// create a larger list
-		unsigned int limit = m_initial.size() * 1000U ;
-		for( unsigned int i = 0U ; i < limit ; i++ )
+		size_t limit = m_initial.size() * 1000U ;
+		for( size_t i = 0U ; i < limit ; i++ )
 		{
 			std::ostringstream ss ;
 			ss << "dummy." << i << ".content" ;

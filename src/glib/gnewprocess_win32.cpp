@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,6 +30,8 @@
 #include <process.h>
 #include <io.h>
 #include <fcntl.h>
+#include <algorithm> // std::swap
+#include <utility> // std::swap
 
 namespace
 {
@@ -53,7 +55,7 @@ public:
 private:
 	std::string readSome( BOOL & ok , DWORD & error ) ;
 	static HANDLE create( HANDLE & h_write , bool do_throw ) ;
-	static HANDLE duplicate( HANDLE h , bool do_throw ) ;
+	static void makeUninherited( HANDLE h , bool do_throw ) ;
 private:
 	bool m_active ;
 	bool m_first ;
@@ -179,12 +181,8 @@ G::Pipe::Pipe( bool active , bool do_throw ) :
 	if( m_active )
 	{
 		const bool do_throw = true ;
-		HANDLE h = create( m_write , do_throw ) ;
-		if( h != HNULL )
-		{
-			// dont let child processes inherit the read end
-			m_read = duplicate( h , do_throw ) ;
-		}
+		m_read = create( m_write , do_throw ) ;
+		makeUninherited( m_read , do_throw ) ;
 	}
 }
 
@@ -207,7 +205,8 @@ HANDLE G::Pipe::create( HANDLE & h_write , bool do_throw )
 
 	HANDLE h_read = HNULL ;
 	h_write = HNULL ;
-	BOOL rc = ::CreatePipe( &h_read , &h_write , &attributes , 0 ) ;
+	DWORD buffer_size_hint = 0 ;
+	BOOL rc = ::CreatePipe( &h_read , &h_write , &attributes , buffer_size_hint ) ;
 	if( rc == 0 )
 	{
 		DWORD error = ::GetLastError() ;
@@ -218,21 +217,15 @@ HANDLE G::Pipe::create( HANDLE & h_write , bool do_throw )
 	return h_read ;
 }
 
-HANDLE G::Pipe::duplicate( HANDLE h , bool do_throw )
+void G::Pipe::makeUninherited( HANDLE h , bool do_throw )
 {
-	HANDLE result = HNULL ;
-	BOOL rc = ::DuplicateHandle( GetCurrentProcess() , h , GetCurrentProcess() ,
-		&result , 0 , FALSE , DUPLICATE_SAME_ACCESS ) ;
-	if( rc == 0 || result == HNULL )
+	if( ! SetHandleInformation( h , HANDLE_FLAG_INHERIT , 0 ) && do_throw )
 	{
 		DWORD error = ::GetLastError() ;
 		::CloseHandle( h ) ;
-		G_ERROR( "G::Pipe::duplicate: pipe error: dup: " << error ) ;
-		if( do_throw ) throw Error( "dup" ) ;
-		result = HNULL ;
+		G_ERROR( "G::Pipe::makeUninherited: uninherited error " << error ) ;
+		if( do_throw ) throw Error( "uninherited" ) ;
 	}
-	::CloseHandle( h ) ;
-	return result ;
 }
 
 HANDLE G::Pipe::h() const
@@ -284,8 +277,8 @@ std::string G::Pipe::read( bool do_throw )
 
 HANDLE G::NewProcessImp::createProcess( const std::string & exe , const std::string & command_line , HANDLE hstdout )
 {
-	static STARTUPINFO zero_start ;
-	STARTUPINFO start(zero_start) ;
+	static STARTUPINFOA zero_start ;
+	STARTUPINFOA start(zero_start) ;
 	start.cb = sizeof(start) ;
 	start.dwFlags = STARTF_USESTDHANDLES ;
 	start.hStdInput = HNULL ;
@@ -295,13 +288,13 @@ HANDLE G::NewProcessImp::createProcess( const std::string & exe , const std::str
 	BOOL inherit = TRUE ;
 	DWORD flags = CREATE_NO_WINDOW ;
 	LPVOID env = NULL ;
-	LPCTSTR cwd = NULL ;
+	LPCSTR cwd = NULL ;
 	PROCESS_INFORMATION info ;
 	SECURITY_ATTRIBUTES * process_attributes = NULL ;
 	SECURITY_ATTRIBUTES * thread_attributes = NULL ;
 	char * command_line_p = const_cast<char*>(command_line.c_str()) ;
 
-	BOOL rc = ::CreateProcess( exe.c_str() , command_line_p ,
+	BOOL rc = ::CreateProcessA( exe.c_str() , command_line_p ,
 		process_attributes , thread_attributes , inherit ,
 		flags , env , cwd , &start , &info ) ;
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -65,24 +65,28 @@ public:
 		GNet::Address local_address ;
 		ClientProtocol::Config client_protocol_config ;
 		unsigned int connection_timeout ;
-		Config( std::string , unsigned int , GNet::Address , ClientProtocol::Config , unsigned int ) ;
+		unsigned int secure_connection_timeout ;
+		bool secure_tunnel ;
+		Config( std::string , unsigned int , GNet::Address , ClientProtocol::Config , unsigned int , unsigned int , bool ) ;
 	} ;
 
-	Client( const GNet::ResolverInfo & remote , const Secrets & secrets , Config config ) ;
+	Client( const GNet::ResolverInfo & remote , const GAuth::Secrets & secrets , Config config ) ;
 		///< Constructor. Starts connecting immediately.
 		///<
 		///< All Client instances must be on the heap since they
 		///< delete themselves after raising the done signal.
 
-	void sendMessages( MessageStore & store ) ;
+	void sendMessagesFrom( MessageStore & store ) ;
 		///< Sends all messages from the given message store once
-		///< connected and deletes itself when done. This must be
-		///< used immediately after construction with a non-empty
-		///< message store.
+		///< connected. This must be used immediately after
+		///< construction with a non-empty message store.
+		///<
+		///< Once all messages have been sent the client will delete
+		///< itself (see HeapClient).
 		///<
 		///< The base class doneSignal() can be used as an indication
-		///< that all messages have been sent and the object has
-		///< deleted itself.
+		///< that all messages have been sent and the object is about
+		///< to delete itself.
 
 	void sendMessage( std::auto_ptr<StoredMessage> message ) ;
 		///< Starts sending the given message. Cannot be called
@@ -115,7 +119,7 @@ protected:
 	virtual void onSendComplete() ;
 		///< Final override from GNet::BufferedClient.
 
-	virtual void onSecure() ;
+	virtual void onSecure( const std::string & ) ;
 		///< Final override from GNet::SocketProtocol.
 
 private:
@@ -128,6 +132,8 @@ private:
 	void start( StoredMessage & ) ;
 	void messageFail( const std::string & , int = 0 ) ;
 	void messageDestroy() ;
+	void doOnConnect() ;
+	void logCertificate( const std::string & ) ;
 
 private:
 	MessageStore * m_store ;
@@ -135,6 +141,7 @@ private:
 	std::auto_ptr<StoredMessage> m_message ;
 	MessageStore::Iterator m_iter ;
 	ClientProtocol m_protocol ;
+	bool m_secure_tunnel ;
 	G::Signal1<std::string> m_message_done_signal ;
 } ;
 

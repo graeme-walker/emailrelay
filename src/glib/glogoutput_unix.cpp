@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -48,13 +48,13 @@ namespace
 	}
 }
 
-void G::LogOutput::rawOutput( G::Log::Severity severity , const std::string & message )
+void G::LogOutput::rawOutput( std::ostream & std_err , G::Log::Severity severity , const std::string & message )
 {
 	if( severity != G::Log::s_Debug && m_syslog )
 	{
 		::syslog( mode(m_facility,severity) , "%s" , message.c_str() ) ;
 	}
-	std::cerr << message << std::endl ;
+	std_err << message << std::endl ;
 }
 
 void G::LogOutput::init()
@@ -67,6 +67,11 @@ void G::LogOutput::cleanup()
 {
 	if( m_syslog )
 		::closelog() ;
+}
+
+void G::LogOutput::getLocalTime( time_t epoch_time , struct std::tm * broken_down_time_p )
+{
+	localtime_r( &epoch_time , broken_down_time_p ) ; // see gdef.h
 }
 
 /// \file glogoutput_unix.cpp

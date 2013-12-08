@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 # 
 # This program is distributed in the hope that it will be useful,
@@ -18,6 +18,8 @@
 #
 # AdminClient.pm
 #
+# A network client to drive the admin interface.
+#
 
 use strict ;
 use FileHandle ;
@@ -29,8 +31,8 @@ sub new
 {
 	my ( $classname , $port , $server ) = @_ ;
 
-	my $server = defined($server) ? $server : "localhost" ;
-	my $port = defined($port) ? $port : 10026 ;
+	$server = defined($server) ? $server : "localhost" ;
+	$port = defined($port) ? $port : 10026 ;
 
 	my $t = new Net::Telnet( Timeout=>3 , Prompt=>"/E-MailRelay> /" ) ;
 	$t->max_buffer_length(1000000*10) ;

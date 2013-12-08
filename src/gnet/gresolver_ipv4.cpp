@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ std::string GNet::Resolver::resolveHost( const std::string & host_name , unsigne
 {
 	hostent * host = ::gethostbyname( host_name.c_str() ) ;
 	if( host == NULL )
-		return std::string("invalid host name: \"") + host_name + "\"" ;
+		return std::string("no such host: \"") + host_name + "\"" ;
 
 	const char * h_name = host->h_name ;
 	result.update( Address(*host,port) , std::string(h_name?h_name:"") ) ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include "gdef.h"
 #include "gnet.h"
+#include "glimits.h"
 #include "gserver.h"
 #include "groot.h"
 #include "gmonitor.h"
@@ -32,7 +33,7 @@
 GNet::ServerPeer::ServerPeer( Server::PeerInfo peer_info ) :
 	m_address(peer_info.m_address) ,
 	m_socket(peer_info.m_socket) ,
-	m_sp(*this,*this,*m_socket.get()) ,
+	m_sp(*this,*this,*m_socket.get(),0U) ,
 	m_handle(peer_info.m_handle) ,
 	m_delete_timer(*this,&ServerPeer::onTimeout,*this)
 {
@@ -41,13 +42,13 @@ GNet::ServerPeer::ServerPeer( Server::PeerInfo peer_info ) :
 
 	m_socket->addReadHandler( *this ) ;
 	m_socket->addExceptionHandler( *this ) ;
-	if( Monitor::instance() ) Monitor::instance()->add(*this) ;
+	if( Monitor::instance() ) Monitor::instance()->addServerPeer(*this) ;
 }
 
 GNet::ServerPeer::~ServerPeer()
 {
 	G_DEBUG( "GNet::ServerPeer::dtor: [" << this << "]: fd " << logId() ) ;
-	if( Monitor::instance() ) Monitor::instance()->remove(*this) ;
+	if( Monitor::instance() ) Monitor::instance()->removeServerPeer(*this) ;
 	m_handle->reset() ;
 	m_socket->dropReadHandler() ;
 }
@@ -96,6 +97,11 @@ std::pair<bool,GNet::Address> GNet::ServerPeer::peerAddress() const
 	return std::pair<bool,Address>( true , m_address ) ;
 }
 
+std::string GNet::ServerPeer::peerCertificate() const
+{
+	return m_sp.peerCertificate() ;
+}
+
 void GNet::ServerPeer::onTimeout()
 {
 	doDeleteThis(1) ;
@@ -127,17 +133,20 @@ void GNet::ServerPeer::writeEvent()
 
 // ===
 
-GNet::Server::Server( unsigned int listening_port )
+GNet::Server::Server( unsigned int listening_port , ConnectionLookup * connection_lookup ) :
+	m_connection_lookup(connection_lookup)
 {
 	init( listening_port ) ;
 }
 
-GNet::Server::Server( const Address & listening_address )
+GNet::Server::Server( const Address & listening_address , ConnectionLookup * connection_lookup ) :
+	m_connection_lookup(connection_lookup)
 {
 	init( listening_address ) ;
 }
 
 GNet::Server::Server() :
+	m_connection_lookup(NULL) ,
 	m_cleaned_up(false)
 {
 }
@@ -155,7 +164,7 @@ void GNet::Server::init( const Address & listening_address )
 	G::Root claim_root ;
 	if( ! m_socket->bind( listening_address ) )
 		throw CannotBind( listening_address.displayString() ) ;
-	if( ! m_socket->listen(3) )
+	if( ! m_socket->listen(G::limits::net_listen_queue) )
 		throw CannotListen() ;
 	m_socket->addReadHandler( *this ) ;
 }
@@ -230,7 +239,8 @@ void GNet::Server::readEvent()
 	// accept the connection
 	PeerInfo peer_info ;
 	accept( peer_info ) ;
-	G_DEBUG( "GNet::Server::readEvent: new connection from " << peer_info.m_address.displayString() ) ;
+	G_DEBUG( "GNet::Server::readEvent: new connection from " << peer_info.m_address.displayString()
+		<< " (" << peer_info.m_name << ")" ) ;
 
 	// keep track of peer objects
 	m_peer_list.push_back( ServerPeerHandle() ) ;
@@ -262,8 +272,23 @@ void GNet::Server::accept( PeerInfo & peer_info )
 		peer_info.m_socket = accept_pair.first ; // auto_ptr assignment
 		peer_info.m_address = accept_pair.second ;
 	}
+
+	if( G::Test::enabled("accept-throws") )
+		throw AcceptError() ;
 	if( peer_info.m_socket.get() == NULL )
 		throw AcceptError() ;
+
+	// optionally enrich the peer info
+	if( m_connection_lookup != NULL )
+	{
+		std::pair<bool,Address> local = peer_info.m_socket->getLocalAddress() ;
+		if( local.first )
+		{
+			ConnectionLookup::Connection c = m_connection_lookup->find( local.second , peer_info.m_address ) ;
+			if( c.valid() )
+				peer_info.m_name = c.peerName() ;
+		}
+	}
 }
 
 void GNet::Server::collectGarbage()
@@ -326,6 +351,5 @@ void GNet::ServerPeerHandle::set( ServerPeer * p )
 	m_p = p ;
 	m_old = p ;
 }
-
 
 /// \file gserver.cpp

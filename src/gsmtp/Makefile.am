@@ -1,9 +1,9 @@
 #
-## Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or 
+## the Free Software Foundation, either version 3 of the License, or
 ## (at your option) any later version.
 ## 
 ## This program is distributed in the hope that it will be useful,
@@ -23,14 +23,6 @@ ADMIN_SOURCES = $(ADMIN_SOURCES_)
 else
 ADMIN_EXTRA_DIST = $(ADMIN_SOURCES_)
 ADMIN_SOURCES =
-endif
-
-if AUTH
-AUTH_EXTRA_DIST = gsasl_none.cpp gsecrets_none.cpp
-AUTH_SOURCES = gsasl_native.cpp gsecrets_full.cpp
-else
-AUTH_EXTRA_DIST = gsasl_native.cpp gsecrets_full.cpp
-AUTH_SOURCES = gsasl_none.cpp gsecrets_none.cpp
 endif
 
 EXEC_SOURCES_=\
@@ -63,19 +55,15 @@ EXTRA_DIST=\
 	$(ADMIN_EXTRA_DIST) \
 	$(EXEC_EXTRA_DIST) \
 	gmessagestore_win32.cpp \
-	gsasl_gnu.cpp \
 	mingw.mak
 
-INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gssl -I$(top_srcdir)/src/gnet -DG_SPOOLDIR=\"$(e_spooldir)\"
+INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gssl -I$(top_srcdir)/src/gnet -I$(top_srcdir)/src/gauth -DG_SPOOLDIR=\"$(e_spooldir)\"
 
 noinst_LIBRARIES = libgsmtp.a
 
 libgsmtp_a_SOURCES = \
 	$(ADMIN_SOURCES) \
 	$(EXEC_SOURCES) \
-	$(AUTH_SOURCES) \
-	gbase64.cpp \
-	gbase64.h \
 	gclientprotocol.cpp \
 	gclientprotocol.h \
 	gfactoryparser.cpp \
@@ -102,8 +90,6 @@ libgsmtp_a_SOURCES = \
 	gprotocolmessage.h \
 	gprotocolmessagestore.cpp \
 	gprotocolmessagestore.h \
-	gsasl.h \
-	gsecrets.h \
 	gserverprotocol.cpp \
 	gserverprotocol.h \
 	gsmtpclient.cpp \

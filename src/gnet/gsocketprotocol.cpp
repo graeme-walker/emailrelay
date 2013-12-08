@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,8 +21,11 @@
 #include "gdef.h"
 #include "glimits.h"
 #include "gnet.h"
+#include "gmonitor.h"
+#include "gtimer.h"
 #include "gssl.h"
 #include "gsocketprotocol.h"
+#include "gstr.h"
 #include "gtest.h"
 #include "gassert.h"
 #include "glog.h"
@@ -43,6 +46,7 @@ private:
 	EventHandler & m_handler ;
 	SocketProtocol::Sink & m_sink ;
 	StreamSocket & m_socket ;
+	unsigned int m_secure_connection_timeout ;
 	const Socket::Credentials & m_credentials ;
 	std::string m_raw_residue ;
 	std::string m_ssl_send_data ;
@@ -51,11 +55,14 @@ private:
 	GSsl::Protocol * m_ssl ;
 	State m_state ;
 	char m_read_buffer[c_buffer_size] ;
-	GSsl::Protocol::ssize_type m_read_buffer_size ;
+	GSsl::Protocol::size_type m_read_buffer_size ;
 	GSsl::Protocol::ssize_type m_read_buffer_n ;
+	Timer<SocketProtocolImp> m_secure_connection_timer ;
+	std::string m_peer_certificate ;
 
 public:
-	SocketProtocolImp( EventHandler & , SocketProtocol::Sink & , StreamSocket & , const Socket::Credentials & ) ;
+	SocketProtocolImp( EventHandler & , SocketProtocol::Sink & , StreamSocket & ,
+		unsigned int secure_connection_timeout , const Socket::Credentials & ) ;
 	~SocketProtocolImp() ;
 	void readEvent() ;
 	bool writeEvent() ;
@@ -63,13 +70,13 @@ public:
 	void sslConnect() ;
 	void sslAccept() ;
 	bool sslEnabled() const ;
+	std::string peerCertificate() const ;
 
 private:
 	SocketProtocolImp( const SocketProtocolImp & ) ;
 	void operator=( const SocketProtocolImp & ) ;
 	static GSsl::Protocol * newProtocol() ;
 	static void log( int level , const std::string & line ) ;
-	StreamSocket & socket() ;
 	bool failed() const ;
 	bool rawSendImp( const std::string & , std::string::size_type , std::string & ) ;
 	void rawReadEvent() ;
@@ -79,23 +86,29 @@ private:
 	bool sslSendImp() ;
 	void sslConnectImp() ;
 	void sslAcceptImp() ;
+	void logSecure( const std::string & ) const ;
+	void logCertificate( const std::string & , const std::string & ) const ;
 	void logFlowControlReleased() ;
 	void logFlowControlAsserted() ;
 	void logFlowControlReasserted() ;
+	void onSecureConnectionTimeout() ;
 } ;
 
 GNet::SocketProtocolImp::SocketProtocolImp( EventHandler & handler ,
-	SocketProtocol::Sink & sink , StreamSocket & socket , const Socket::Credentials & credentials ) :
+	SocketProtocol::Sink & sink , StreamSocket & socket ,
+	unsigned int secure_connection_timeout , const Socket::Credentials & credentials ) :
 		m_handler(handler) ,
 		m_sink(sink) ,
 		m_socket(socket) ,
+		m_secure_connection_timeout(secure_connection_timeout) ,
 		m_credentials(credentials) ,
 		m_failed(false) ,
 		m_n(0UL) ,
 		m_ssl(NULL) ,
 		m_state(State_raw) ,
 		m_read_buffer_size(sizeof(m_read_buffer)) ,
-		m_read_buffer_n(0)
+		m_read_buffer_n(0) ,
+		m_secure_connection_timer(*this,&SocketProtocolImp::onSecureConnectionTimeout,handler)
 {
 }
 
@@ -104,9 +117,10 @@ GNet::SocketProtocolImp::~SocketProtocolImp()
 	delete m_ssl ;
 }
 
-GNet::StreamSocket & GNet::SocketProtocolImp::socket()
+void GNet::SocketProtocolImp::onSecureConnectionTimeout()
 {
-	return m_socket ;
+	G_DEBUG( "GNet::SocketProtocolImp::onSecureConnectionTimeout: timed out" ) ;
+	throw SocketProtocol::SecureConnectionTimeout() ;
 }
 
 void GNet::SocketProtocolImp::readEvent()
@@ -134,6 +148,8 @@ bool GNet::SocketProtocolImp::writeEvent()
 		sslConnectImp() ;
 	else if( m_state == State_accepting )
 		sslAcceptImp() ;
+	else if( m_state == State_idle )
+		sslReadImp() ;
 	else
 		sslSendImp() ;
 	return rc ;
@@ -199,6 +215,8 @@ void GNet::SocketProtocolImp::sslConnect()
 
 	m_ssl = newProtocol() ;
 	m_state = State_connecting ;
+	if( m_secure_connection_timeout != 0U )
+		m_secure_connection_timer.startTimer( m_secure_connection_timeout ) ;
 	sslConnectImp() ;
 }
 
@@ -211,24 +229,28 @@ void GNet::SocketProtocolImp::sslConnectImp()
 	G_DEBUG( "SocketProtocolImp::sslConnectImp: result=" << GSsl::Protocol::str(rc) ) ;
 	if( rc == GSsl::Protocol::Result_error )
 	{
-		socket().dropWriteHandler() ;
+		m_socket.dropWriteHandler() ;
 		m_state = State_raw ;
 		throw SocketProtocol::ReadError( "ssl connect" ) ;
 	}
 	else if( rc == GSsl::Protocol::Result_read )
 	{
-		socket().dropWriteHandler() ;
+		m_socket.dropWriteHandler() ;
 	}
 	else if( rc == GSsl::Protocol::Result_write )
 	{
-		socket().addWriteHandler( m_handler ) ;
+		m_socket.addWriteHandler( m_handler ) ;
 	}
 	else
 	{
-		socket().dropWriteHandler() ;
+		m_socket.dropWriteHandler() ;
 		m_state = State_idle ;
-		G_DEBUG( "SocketProtocolImp::sslConnectImp: calling onSecure" ) ;
-		m_sink.onSecure() ;
+		if( m_secure_connection_timeout != 0U )
+			m_secure_connection_timer.cancelTimer() ;
+		m_peer_certificate = m_ssl->peerCertificate().first ;
+		logSecure( m_peer_certificate ) ;
+		G_DEBUG( "SocketProtocolImp::sslConnectImp: calling onSecure: " << G::Str::printable(m_peer_certificate) ) ;
+		m_sink.onSecure( m_peer_certificate ) ;
 	}
 }
 
@@ -250,24 +272,26 @@ void GNet::SocketProtocolImp::sslAcceptImp()
 	G_DEBUG( "SocketProtocolImp::sslAcceptImp: result=" << GSsl::Protocol::str(rc) ) ;
 	if( rc == GSsl::Protocol::Result_error )
 	{
-		socket().dropWriteHandler() ;
+		m_socket.dropWriteHandler() ;
 		m_state = State_raw ;
 		throw SocketProtocol::ReadError( "ssl accept" ) ;
 	}
 	else if( rc == GSsl::Protocol::Result_read )
 	{
-		socket().dropWriteHandler() ;
+		m_socket.dropWriteHandler() ;
 	}
 	else if( rc == GSsl::Protocol::Result_write )
 	{
-		socket().addWriteHandler( m_handler ) ;
+		m_socket.addWriteHandler( m_handler ) ;
 	}
 	else
 	{
-		socket().dropWriteHandler() ;
+		m_socket.dropWriteHandler() ;
 		m_state = State_idle ;
-		G_DEBUG( "SocketProtocolImp::sslAcceptImp: calling onSecure" ) ;
-		m_sink.onSecure() ;
+		m_peer_certificate = m_ssl->peerCertificate().first ;
+		logSecure( m_peer_certificate ) ;
+		G_DEBUG( "SocketProtocolImp::sslAcceptImp: calling onSecure: " << G::Str::printable(m_peer_certificate) ) ;
+		m_sink.onSecure( m_peer_certificate ) ;
 	}
 }
 
@@ -284,23 +308,25 @@ bool GNet::SocketProtocolImp::sslSendImp()
 	GSsl::Protocol::Result result = m_ssl->write( m_ssl_send_data.data() , m_ssl_send_data.size() , n ) ;
 	if( result == GSsl::Protocol::Result_error )
 	{
-		socket().dropWriteHandler() ;
+		m_socket.dropWriteHandler() ;
 		m_state = State_idle ;
 		throw SocketProtocol::SendError( "ssl write" ) ;
 	}
 	else if( result == GSsl::Protocol::Result_read )
 	{
-		socket().dropWriteHandler() ;
+		m_socket.dropWriteHandler() ;
 	}
 	else if( result == GSsl::Protocol::Result_write )
 	{
-		socket().addWriteHandler( m_handler ) ;
+		m_socket.addWriteHandler( m_handler ) ;
 	}
 	else
 	{
-		socket().dropWriteHandler() ;
-		rc = n == static_cast<GSsl::Protocol::ssize_type>(m_ssl_send_data.size()) ;
-		m_ssl_send_data.erase( 0U , n ) ;
+		m_socket.dropWriteHandler() ;
+		if( n < 0 ) throw SocketProtocol::SendError( "ssl arithmetic underflow" ) ;
+		std::string::size_type un = static_cast<std::string::size_type>(n) ;
+		rc = un == m_ssl_send_data.size() ;
+		m_ssl_send_data.erase( 0U , un ) ;
 		m_state = State_idle ;
 	}
 	return rc ;
@@ -317,21 +343,21 @@ void GNet::SocketProtocolImp::sslReadImp()
 		G_DEBUG( "SocketProtocolImp::sslReadImp: result=" << GSsl::Protocol::str(rc) ) ;
 		if( rc == GSsl::Protocol::Result_error )
 		{
-			socket().dropWriteHandler() ;
+			m_socket.dropWriteHandler() ;
 			m_state = State_idle ;
 			throw SocketProtocol::ReadError( "ssl read" ) ;
 		}
 		else if( rc == GSsl::Protocol::Result_read )
 		{
-			socket().dropWriteHandler() ;
+			m_socket.dropWriteHandler() ;
 		}
 		else if( rc == GSsl::Protocol::Result_write )
 		{
-			socket().addWriteHandler( m_handler ) ;
+			m_socket.addWriteHandler( m_handler ) ;
 		}
 		else // Result_ok, Result_more
 		{
-			socket().dropWriteHandler() ;
+			m_socket.dropWriteHandler() ;
 			m_state = State_idle ;
 			GSsl::Protocol::ssize_type n = m_read_buffer_n ;
 			m_read_buffer_n = 0 ;
@@ -347,12 +373,11 @@ void GNet::SocketProtocolImp::sslReadImp()
 
 void GNet::SocketProtocolImp::rawReadEvent()
 {
-	char buffer[c_buffer_size] ;
-	buffer[0] = '\0' ;
+	char buffer[c_buffer_size] = { '\0' } ;
 	const size_t buffer_size = G::Test::enabled("small-client-input-buffer") ? 3 : sizeof(buffer) ;
-	ssize_t rc = socket().read( buffer , buffer_size ) ;
+	const ssize_t rc = m_socket.read( buffer , buffer_size ) ;
 
-	if( rc == 0 || ( rc == -1 && !socket().eWouldBlock() ) )
+	if( rc == 0 || ( rc == -1 && !m_socket.eWouldBlock() ) )
 	{
 		throw SocketProtocol::ReadError() ;
 	}
@@ -374,7 +399,7 @@ bool GNet::SocketProtocolImp::rawSend( const std::string & data , std::string::s
 		throw SocketProtocol::SendError() ;
 	if( !all_sent )
 	{
-		socket().addWriteHandler( m_handler ) ;
+		m_socket.addWriteHandler( m_handler ) ;
 		logFlowControlAsserted() ;
 	}
 	return all_sent ;
@@ -382,14 +407,14 @@ bool GNet::SocketProtocolImp::rawSend( const std::string & data , std::string::s
 
 bool GNet::SocketProtocolImp::rawWriteEvent()
 {
-	socket().dropWriteHandler() ;
+	m_socket.dropWriteHandler() ;
 	logFlowControlReleased() ;
 	bool all_sent = rawSendImp( m_raw_residue , 0 , m_raw_residue ) ;
 	if( !all_sent && failed() )
 		throw SocketProtocol::SendError() ;
 	if( !all_sent )
 	{
-		socket().addWriteHandler( m_handler ) ;
+		m_socket.addWriteHandler( m_handler ) ;
 		logFlowControlReasserted() ;
 	}
 	return all_sent ;
@@ -401,8 +426,8 @@ bool GNet::SocketProtocolImp::rawSendImp( const std::string & data , std::string
 	if( data.length() <= offset )
 		return true ; // nothing to do
 
-	ssize_t rc = socket().write( data.data()+offset , data.length()-offset ) ;
-	if( rc < 0 && ! socket().eWouldBlock() )
+	ssize_t rc = m_socket.write( data.data()+offset , data.length()-offset ) ;
+	if( rc < 0 && ! m_socket.eWouldBlock() )
 	{
 		// fatal error, eg. disconnection
 		m_failed = true ;
@@ -435,31 +460,63 @@ bool GNet::SocketProtocolImp::failed() const
 	return m_failed ;
 }
 
+void GNet::SocketProtocolImp::logSecure( const std::string & certificate ) const
+{
+	std::pair<std::string,bool> rc( std::string() , false ) ;
+	if( GNet::Monitor::instance() )
+		rc = GNet::Monitor::instance()->findCertificate( certificate ) ;
+	if( rc.second ) // is new
+		logCertificate( rc.first , certificate ) ;
+
+	G_LOG( "GNet::SocketProtocolImp: tls/ssl protocol established with "
+		<< m_socket.getPeerAddress().second.displayString()
+		<< (rc.first.empty()?"":" certificate ") << rc.first ) ;
+}
+
+void GNet::SocketProtocolImp::logCertificate( const std::string & certid , const std::string & certificate ) const
+{
+	G::Strings lines ;
+	G::Str::splitIntoFields( certificate , lines , "\n" ) ;
+	for( G::Strings::iterator line_p = lines.begin() ; line_p != lines.end() ; ++line_p )
+	{
+		if( !(*line_p).empty() )
+		{
+			G_LOG( "GNet::SocketProtocolImp: certificate " << certid << ": " << *line_p ) ;
+		}
+	}
+}
+
 void GNet::SocketProtocolImp::logFlowControlAsserted()
 {
 	const bool log = G::Test::enabled("log-flow-control") ;
 	if( log )
-		G_LOG( "GNet::SocketProtocolImp::send: @" << socket().asString() << ": flow control asserted" ) ;
+		G_LOG( "GNet::SocketProtocolImp::send: @" << m_socket.asString() << ": flow control asserted" ) ;
 }
 
 void GNet::SocketProtocolImp::logFlowControlReleased()
 {
 	const bool log = G::Test::enabled("log-flow-control") ;
 	if( log )
-		G_LOG( "GNet::SocketProtocolImp::send: @" << socket().asString() << ": flow control released" ) ;
+		G_LOG( "GNet::SocketProtocolImp::send: @" << m_socket.asString() << ": flow control released" ) ;
 }
 
 void GNet::SocketProtocolImp::logFlowControlReasserted()
 {
 	const bool log = G::Test::enabled("log-flow-control") ;
 	if( log )
-		G_LOG( "GNet::SocketProtocolImp::send: @" << socket().asString() << ": flow control reasserted" ) ;
+		G_LOG( "GNet::SocketProtocolImp::send: @" << m_socket.asString() << ": flow control reasserted" ) ;
+}
+
+std::string GNet::SocketProtocolImp::peerCertificate() const
+{
+	return m_peer_certificate ;
 }
 
 //
 
-GNet::SocketProtocol::SocketProtocol( EventHandler & handler , Sink & sink , StreamSocket & socket ) :
-	m_imp( new SocketProtocolImp(handler,sink,socket,Socket::Credentials("")) )
+GNet::SocketProtocol::SocketProtocol( EventHandler & handler , Sink & sink , StreamSocket & socket ,
+	unsigned int secure_connection_timeout ) :
+		m_imp( new SocketProtocolImp(handler,sink,socket,secure_connection_timeout,Socket::Credentials("")) )
 {
 }
 
@@ -501,6 +558,11 @@ void GNet::SocketProtocol::sslAccept()
 bool GNet::SocketProtocol::sslEnabled() const
 {
 	return m_imp->sslEnabled() ;
+}
+
+std::string GNet::SocketProtocol::peerCertificate() const
+{
+	return m_imp->peerCertificate() ;
 }
 
 //

@@ -1,10 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 # 
 # This program is distributed in the hope that it will be useful,
@@ -27,7 +27,7 @@
 #
 # Silently does nothing on non-Mac systems.
 #
-# See "http://doc.trolltech.com/4.3/deployment-mac.html".
+# See "http://qt-project.org/doc/qt-4.8/deployment-mac.html".
 #
 
 force="0" ; if test "$1" = "-f" ; then force="1" ; shift ; fi

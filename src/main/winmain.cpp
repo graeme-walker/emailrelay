@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,12 +28,11 @@
 #include "run.h"
 #include <clocale>
 
-int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous ,
-	LPSTR command_line , int show )
+int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous , LPSTR command_line , int show )
 {
 	try
 	{
-		::setlocale( LC_ALL , "" ) ;
+		::setlocale( LC_ALL , "" ) ; // set the locale from the environment
 
 		G::Arg arg ;
 		arg.parse( hinstance , command_line ) ;
@@ -59,7 +58,7 @@ int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous ,
 			return 1 ;
 		}
 
-		return 0 ;
+		return app.exitCode() ;
 	}
 	catch(...)
 	{

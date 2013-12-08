@@ -1,10 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 # 
 # This program is distributed in the hope that it will be useful,
@@ -23,14 +23,16 @@
 #
 # It starts two servers, with a proxy fronting onto one
 # of them, then in a loop it creates a large message file
-# and runs a client to forward it to the proxy and the
-# naked server in turn.
+# and runs a client to forward it to both the proxy and 
+# the naked server. The main loop can be stopped by
+# creating a ".stop" file.
 #
-# Use 'ps' to check for large leaks.
+# Run 'ps' manually to check for large leaks.
 #
 # Files are created under a sub-directory of /tmp.
 #
 # usage: emailrelay-soak-test.sh [-v] [<exe>]
+#        -v  - use valgrind
 #
 # (As a side-effect it does "killall emailrelay".)
 #

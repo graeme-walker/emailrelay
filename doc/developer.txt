@@ -3,12 +3,14 @@ E-MailRelay Internals
 
 Module structure
 ----------------
-There are four main C++ libraries in the E-MailRelay code: "glib" provides
-low-level classes for file-system abstraction, date and time representation,
-string utility functions, logging, command line parsing etc., "gnet" provides
-network classes using the Berkley socket and Winsock APIs, "gsmtp" contains SMTP
-and message-store classes, and "gpop" contains POP3 classes. All four libraries
-are portable between POSIX-like systems (eg. Linux) and Windows.
+The main C++ libraries in the E-MailRelay code are: "glib", providing low-level
+classes for file-system abstraction, date and time representation, string
+utility functions, logging, command line parsing etc.; "gssl", which is a thin
+abstraction over OpenSSL; "gnet", which provides network classes using the
+Berkley socket and Winsock APIs; "gauth", which implements various
+authentication mechanisms; "gsmtp", containing SMTP and message-store classes;
+and "gpop", which contains POP3 classes. All of these libraries are portable
+between POSIX-like systems (eg. Linux) and Windows.
 
 Under Windows there is an additional library for event handling. Windows has
 historically built network event processing on top of the GUI event system which
@@ -25,6 +27,11 @@ The E-MailRelay server uses non-blocking socket i/o, with a select() event loop.
 This event model means that the server can handle multiple clients
 simultaneously from a single thread and the only significant blocking occurs
 when external programs are executed (see "--filter" and "--verifier").
+
+In some ways this makes the implementation more complicated than the equivalent
+multi-threaded approach since (for example) it is not possible to wait for a
+complete line of input to be received from a remote SMTP client because there
+might be other connection that need servicing.
 
 See *C10K Problem* [http://www.kegel.com/c10k.html] for a discussion of
 different network event models.
@@ -103,17 +110,17 @@ Windows service
 ---------------
 To get E-MailRelay to run as a Windows service there is a service wrapper
 program called "emailrelay-service.exe". This program registers itself as
-a service when run with the "--install" commandline switch. When the service
+a service when run with the "--install" commandline option. When the service
 runs the wrapper starts the actual E-MailRelay server by looking for a batch
 file called "emailrelay-start.bat" in the same directory as service wrapper
 executable. It reads the contents of this batch file in order to construct the
-E-MailRelay command-line, adding "--no-daemon" and "--hidden" switches if they
+E-MailRelay command-line, adding "--no-daemon" and "--hidden" options if they
 are not there already.
 
 The service name and display name can be added to the wrapper's "--install"
 command-line, and it is the service name that is used to derive the name of the
 "start" batch file. This allows more than one server to be run as services,
-using different server command-line switches on each one.
+using different server command-line options on each one.
 
 Diagrams
 --------
@@ -128,37 +135,15 @@ State transition diagrams:
 Sequence diagrams:
 * *Proxy mode forwarding* [sequence-3.png]
 
-Configuration GUI
------------------
-The optional configuration GUI program "emailrelay-gui" uses TrollTech Qt v4
-for its user interface components. The GUI can run as a stand-alone
-configuration helper or as part of a self-extracting installation program called
-"emailrelay-setup".
-
-The packing scheme used to assemble a self-extracting archive is a simple
-concatenation of the "stub" executable followed by a table of contents for the
-payload files, followed by the payload files themselves (possibly compressed by
-"zlib"), and ending with an twelve-byte ascii representation of the offset of
-the table of contents.
-
-On Windows there are two levels of packing: the "setup" program has a stub
-executable written in "C" that prints an "extracting..." message to the standard
-output, with a payload comprising another packed executable and a small number of
-"C++" runtime library files. The inner packed executable has the emailrelay GUI
-program as its stub and all the other installable files, including the main
-emailrelay executable, as its payload.
-
-When the GUI runs it checks whether it has a payload of packed files. If it
-has then it runs as an installer; if it does not then it runs as a configuration
-helper. Refer to the comments in "src/gui/guimain.cpp" for more details.
-
-The code works exactly the same on Windows, Mac OS X and unix-like operating
-systems. However, on unix-like operating systems "make install", possibly run
-via some package manager, is the preferred way to install files so the "setup"
-program is never normally built or distributed. On Mac OS X the default packing
-scheme works well enough, but there is also provision for having a separate
-payload file within the Mac bundle rather than appending the payload to the stub
-executable.
+E-MailRelay GUI
+---------------
+The optional GUI program "emailrelay-gui" uses TrollTech Qt v4 for its user
+interface components. The GUI can run as a stand-alone configuration helper
+("--as-configure") or as part of a self-extracting installation
+("--as-install"). When it runs it checks whether it has a payload of packed
+files. If it has then it runs as an installer; if it does not then it runs as a
+configuration helper. Refer to the comments in "src/gui/guimain.cpp" for more
+details.
 
 The user interface is structured as a "wizard" having a dialog box with the
 forward and back buttons at the bottom and a single Qt layout object for the
@@ -171,19 +156,169 @@ key-value pairs into a stringstream (see "src/gui/pages.cpp"). These key-value
 pairs are processed by an installer class into a list of action objects (in the
 "Command" design pattern) and then the action objects are run in turn. In order
 to display the progress of the installation each action object is run within a
-timer callback so that the Qt framework get a chance to update the GUI between
+timer callback so that the Qt framework gets a chance to update the GUI between
 each one.
 
 During development the user interface pages and the installer can be tested
 separately since the interface between them is a simple text stream containing
 key-value pairs.
 
+When run in "--as-configure" mode the GUI normally ends up simply editing
+the "emailrelay.conf" file and/or the "emailrelay.auth" secrets file.
+
+When run in "--as-install" mode the GUI expects to unpack all the E-MailRelay
+files from a "payload" archive into target directories.
+
+The packing scheme used for a payload archive is a simple concatenation of the
+"stub" executable followed by a table of contents for the payload files,
+followed by the payload files themselves (possibly compressed by "zlib"), and
+ending with an twelve-byte ascii representation of the offset of the table of
+contents.
+
+The payload may be appended to the GUI executable to make a self-extracting
+installer, usually then called "emailrelay-setup".
+
+However, on Windows two levels of packing are required: the "emailrelay-setup"
+program has a stub executable written in "C" that prints an "extracting..."
+message to the standard output, with a payload comprising another packed
+executable and a small number of "C++" runtime library files. The inner packed
+executable has the emailrelay GUI program as its stub and all the other
+installable files, including the main emailrelay executable, as its payload.
+
+On unix-like operating systems it is more natural to use some sort of package
+derived from the "make install" process rather than an installer program, so
+"emailrelay-setup" ia typically never built.
+
+On Mac OS X the payload is better stored in the installer's application
+bundle rather than simply appended to the binary. This is desribed in the next
+section.
+
+Windows build
+-------------
+On Windows E-MailRelay can be built using MinGW or Visual Studio. Makefiles and
+Visual Studio 2012 project files are provided in the "src" directory.
+
+For a MinGW build of the E-MailRelay server without TLS/SSL support it should
+be sufficient to run make from the "src" directory:
+
+	C:\emailrelay\src> PATH=c:\mingw\bin;%PATH%
+	C:\emailrelay\src> mingw32-make -f mingw.mak
+
+To add TLS/SSL support first install ActiveState perl and make sure that your
+MinGW installation contains the MSYS subsystem. Unpack the OpenSSL tarball and
+build it as follows:
+
+	C:\openssl> PATH=c:\perl\bin;c:\mingw\msys\1.0\bin;c:\mingw\bin;%PATH%
+	C:\openssl> bash -l
+	$ ./config
+	$ mingw32-make
+
+Then edit the E-MailRelay "src/mingw-common.mak" file to enable openssl and run
+"mingw32-make" as above.
+
+If building the E-MailRelay GUI then it is best to use MinGW with Qt 5 static
+libraries. Start by installing zlib source (eg. to c:/zlib) and then build Qt
+using the following "configure" options:
+
+	-prefix /c/qt/qt5-static
+	-I c:/zlib
+	-L c:/zlib
+	-static
+	-release
+	-force-debug-info
+	-separate-debug-info
+	-opensource
+	-confirm-license
+	-no-c++11
+	-fully-process
+	-no-largefile
+	-accessibility
+	-no-sql-sqlite
+	-no-sql-sqlite2
+	-no-javascript-jit
+	-no-qml-debug
+	-platform win32-g++
+	-no-sse2
+	-no-sse3
+	-no-ssse3
+	-no-sse4.1
+	-no-sse4.2
+	-no-avx
+	-no-avx2
+	-no-neon
+	-no-mips_dsp
+	-no-mips_dspr2
+	-no-pkg-config
+	-system-zlib
+	-no-gif
+	-qt-libpng
+	-no-libjpeg
+	-no-openssl
+	-qt-pcre
+	-qt-xcb
+	-qt-xkbcommon
+	-gui
+	-widgets
+	-no-rpath
+	-no-optimized-qmake
+	-no-nis
+	-no-cups
+	-no-iconv
+	-no-icu
+	-strip
+	-no-pch
+	-no-dbus
+	-no-xcb
+	-no-eglfs
+	-no-directfb
+	-no-linuxfb
+	-no-kms
+	-no-opengl
+	-no-system-proxies
+	-no-glib
+
+Start the Qt build by running "mingw32-make" from the "qtbase" directory and
+finish off with "mingw32-make install".
+
+Edit the E-MailRelay GUI makefile "src/gui/mingw.mak" so that the E-MailRelay
+build uses similar compiler options to the Qt examples and then then build with:
+
+	$ mingw32-make -f mingw.mak
+
+Mac OS X packaging
+------------------
+On Mac OS X the standard "configure ; make ; make install" procedure works best
+if the "configure" script is given Mac-like directories on its command-line. The
+script "bin/configure-mac.sh" can be used to do this.
+
+The "make" step in "src/main" on Mac OS X additionally builds a simple wrapper
+program "emailrelay-start" from "start.cpp" that runs the E-MailRelay server
+using a command-line assembled from the "emailrelay.conf" file. This is then
+used from the "E-MailRelay-Start" application bundle to provide a Mac-friendly
+way of running the server.
+
+Similary the "make" in "src/gui" builds a wrapper program "emailrelay-start-gui"
+from "guistart.cpp" that runs "emailrelay-gui.real" and this is used from the
+"E-MailRelay-Configure" application bundle.
+
+The self-extracting installer scheme (described above) does work on Mac OS X,
+but it is more sensible to use a Mac application bundle (E-MailRelay-Install) to
+hold the payload and then wrap the whold thing up in a ".dmg" disk image. The
+GUI code supports this by looking for a separate file called "payload" and using
+that in preference to any payload archive it finds appended to its own executable.
+
+The format of the "payload" file in the application bundle is the same as is used
+in a self-extracting installer.
+
+The makefile in the "src/gui" directory provides the "image" target to create
+the E-MailRelay-Install application bundle and the disk image.
+
 Source control
 --------------
 The source code is stored in the SourceForge "svn" repository. A working
 copy can be checked out as follows:
 
-	$ svn co https://emailrelay.svn.sourceforge.net/svnroot/emailrelay
+	$ svn co https://svn.code.sf.net/p/emailrelay/code/trunk
 
 Directory structure
 -------------------
@@ -200,6 +335,14 @@ Directory structure
 # src/gnet
 
   A network library using Berkley sockets or Winsock.
+
+# src/gssl
+
+  A library for using OpenSSL.
+
+# src/gauth
+
+  A library for SASL and PAM authentication.
 
 # src/gsmtp
 
@@ -223,7 +366,7 @@ Directory structure
 
 # lib
 
-  Parent directory for ISO C++ fixups for various compilers.
+  Parent directory for ISO C++ fixups for various older compilers.
 
 # test
 
@@ -271,16 +414,13 @@ these cases there are three source files per header. For example, "gsocket.cpp",
 
 Compile-time features
 ---------------------
-Compile-time features can be selected with switches passed to the "configure"
+Compile-time features can be selected with options passed to the "configure"
 script. These include the following:
 
 * Debug-level logging ("--enable-debug")
 * IPv6 (Linux only) ("--enable-ipv6")
 * Configuration GUI ("--enable-gui")
-
-The "--enable-fhs" switch alters the compiled-in default directories to conform
-to the Linux File Hierarchy Standard (FHS). This is recommended for most modern
-Linux distributions.
+* PAM support ("--with-pam")
 
 Some functionality can be disabled at compile-time in order to reduce the size
 of the executable, typically when building for embedded systems:
@@ -290,100 +430,15 @@ of the executable, typically when building for embedded systems:
 * Disable administration interface, "--disable-admin"
 * Disable execution of external programs, "--disable-exec"
 
-The "--enable-small-config" switch can be used to change the command-line
+The "--enable-small-config" option can be used to change the command-line
 parsing code to use a configuration file instead, resulting in a smaller
 executable. This also removes a lot of the configuration checking code, so it is
 not recommended unless size is critical. (The format of the configuration file
-is similar to the command-line using the long-form switches without the
-double-dash and using '=' to separate the switch from the switch value.)
+is similar to the command-line using the long-form options without the
+double-dash and using '=' to separate the option from the option value.)
 
 Use "./configure --help" to see a complete list of options and refer to
 "acinclude.m4" for more detailed comments.
-
-Patterns
---------
-Gang-of-four Design Patterns (ISBN 0-201-63361-2):
-
-+ Factory method
-
-  - GNet::EventLoop::create()
-  - GNet::Server::newPeer()
-  - GSmtp::MessageStore::newMessage()
-
-+ Iterator
-
-  - G::DirectoryIterator
-  - GNet::EventHandlerList::begin()/end()
-  - GSmtp::MessageStore::iterator()
-
-+ Singleton
-
-  - G::LogOutput
-  - GGui::ApplicationInstance
-  - GNet::EventLoop
-  - GNet::TimerList
-
-+ Facade
-
-  - G::File
-  - GNet::Address
-
-+ Decorator
-
-  - GSmtp::ProtocolMessage
-
-+ Command
-
-  - Installer
-
-Lakos' Large Scale C++ Software Design patterns (ISBN 0-201-63362-0):
-
-+ Insulation; fully insulating concrete class (Meyer's Effective C++ Item 34, pimple pattern)
-
-  - G::DirectoryIterator
-  - GNet::Address
-  - GNet::Resolver
-  - GSmtp::ProtocolMessage
-
-+ Insulation; protocol class
-
-  - GNet::EventHandler
-  - GSmtp::NewMessage
-  - GSmtp::StoredMessage
-  - GSmtp::ProtocolMessage
-  - GSmtp::ServerProtocol::Sender
-  - GSmtp::ClientProtocol::Sender
-
-Meyer's More Effective C++ patterns (ISBN 0-201-63371-X):
-
-+ Reference counting (Item 29)
-
-  - GSmtp::MessageStore::Iterator
-  - G::Slot0
-
-+ Lazy evaluation (Item 17)
-
-  - GNet::EventHandlerList::list()
-  - G::Date::weekday()
-
-Other patterns:
-
-+ Finite state machine
-
-  - GSmtp::ServerProtocol
-
-+ Slot/signal
-
-  - G::Slot0
-  - G::Signal0
-
-+ Exception-safe assignment using swap
-
-  - G::Slot0
-
-+ Dependency injection
-
-  - GSmtp::Server::newProtocolMessage()
 
 Idioms
 ------
@@ -392,4 +447,4 @@ to reassign a std::auto_ptr<> since reset() is not always available.
 
 
 
-Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.
+Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved.

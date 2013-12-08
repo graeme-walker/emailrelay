@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -55,13 +55,13 @@ public:
 		{ yyyy_mm_dd_slash , yyyy_mm_dd , mm_dd } ;
 
 	static int yearUpperLimit() ;
-		///< Returns the smallest supported year value.
-
-	static int yearLowerLimit() ;
 		///< Returns the largest supported year value.
 
+	static int yearLowerLimit() ;
+		///< Returns the smallest supported year value.
+
 	Date() ;
-		///< Default constructor the current date
+		///< Default constructor for the current date
 		///< in the UTC timezone.
 
 	explicit Date( const LocalTime & ) ;
@@ -105,7 +105,6 @@ public:
 
 	std::string monthName( bool brief = false ) const ;
 		///< Returns the month as a string (in english).
-		///< (Was monthString().)
 
 	std::string mm() const ;
 		///< Returns the month as a two-digit decimal string.
@@ -131,13 +130,13 @@ public:
 
 private:
 	void init( const G::DateTime::BrokenDownTime & ) ;
-	static unsigned int lastDay( unsigned int month , unsigned int year ) ;
-	static bool isLeapYear( unsigned int y ) ;
+	static int lastDay( int month , int year ) ;
+	static bool isLeapYear( int y ) ;
 
 private:
-	unsigned int m_day ;
-	unsigned int m_month ;
-	unsigned int m_year ;
+	int m_day ;
+	int m_month ;
+	int m_year ;
 	bool m_weekday_set ;
 	Weekday m_weekday ;
 } ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,7 +34,9 @@ namespace G
 /// \class G::Root
 /// A class which acquires the process's
 /// special privileges on construction and releases
-/// them on destruction.
+/// them on destruction. Despite the name of the class
+/// the special privileges are not necessarily root
+/// privileges.
 ///
 /// If instances are nested then the inner instances
 /// have no effect.

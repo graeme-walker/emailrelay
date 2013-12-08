@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #ifndef G_LINK_H__
 #define G_LINK_H__
 
+#include "gdef.h"
 #include "gpath.h"
 #include "gexception.h"
 #include "gstrings.h"
@@ -41,7 +42,10 @@ public:
 
 	GLink( const G::Path & target_path , const std::string & name , const std::string & description ,
 		const G::Path & working_dir , const G::Strings & args = G::Strings() ,
-		const G::Path & icon_source = G::Path() , Show show = Show_Default ) ;
+		const G::Path & icon_source = G::Path() , Show show = Show_Default ,
+		const std::string & internal_comment_1 = std::string() ,
+		const std::string & internal_comment_2 = std::string() ,
+		const std::string & internal_comment_3 = std::string() ) ;
 			///< Constructor. Note that the path of the link itself
 			///< is specified in saveAs(), not the constructor.
 			///< The "working_dir" is the current-working-directory

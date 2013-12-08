@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,14 +20,9 @@
 
 #include "gdef.h"
 #include "garg.h"
-#include "gfile.h"
-#include <cstdlib> // std::getenv()
 
 void G::Arg::setExe()
 {
-	const char * p = std::getenv( "_" ) ;
-	if( p != NULL && *p != '\0' && G::File::exists(p) )
-		m_array[0] = p ;
 }
 
 /// \file garg_mac.cpp

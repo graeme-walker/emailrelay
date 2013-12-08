@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,17 +17,17 @@
 //
 // start.cpp
 //
-// A simple wrapper that runs the main emailrelay
-// binary with a command-line assembled from the
-// same configuration file as used by the boot-time
-// startup script. Always adds "--as-server".
+// A simple wrapper that runs the main emailrelay binary with a
+// command-line assembled from the main configuration file (as used
+// by the init.d startup script). Always adds "--as-server".
 //
-// The motivation for this is that a c/c++ program
-// is easier to put into a Mac bundle than a shell
-// script.
+// The motivation for this is that a c/c++ program is easier to put
+// into a Mac bundle than a shell script.
 //
-// Searches for the executable and the configuration
-// file in various likely locations relative to argv0.
+// Searches for the executable and the configuration file in various
+// likely locations relative to argv0.
+//
+// See also: gui/guistart.cpp
 //
 
 #include "gdef.h"
@@ -128,7 +128,7 @@ static std::list<std::string> read( std::string path )
 		std::string line ;
 		std::getline( s , line ) ;
 		ltrim( line ) ;
-		if( !line.empty() && line.at(0U) != '#' )
+		if( !line.empty() && line.at(0U) != '#' && line.find("gui-") != 0U )
 		{
 			// change "--foo bar" to "--foo=bar"
 			std::string::size_type npos = std::string::npos ;

@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 # 
 # This program is distributed in the hope that it will be useful,
@@ -18,34 +18,40 @@
 #
 # Server.pm
 #
+# Runs the emailrelay program as a server.
+#
 
 use strict ;
 use FileHandle ;
 use Scanner ;
+use Verifier ;
 use System ;
 
 package Server ;
 
 our @pid_list = () ;
 our $bin_dir = ".." ;
+my $exe_name = "emailrelay" ;
 
 sub new
 {
 	my ( $classname , $smtp_port , $pop_port , $admin_port , $spool_dir , $tmp_dir ) = @_ ;
 
-	$smtp_port = defined($smtp_port) ? $smtp_port : 10025 ;
-	$pop_port = defined($pop_port) ? $pop_port : 10110 ;
-	$admin_port = defined($admin_port) ? $admin_port : 10026 ;
-	my $scanner_port = Scanner::port() ;
+	$smtp_port = defined($smtp_port) ? $smtp_port : System::nextPort() ;
+	$pop_port = defined($pop_port) ? $pop_port : System::nextPort() ;
+	$admin_port = defined($admin_port) ? $admin_port : System::nextPort() ;
+	my $scanner_port = System::nextPort() ;
+	my $verifier_port = System::nextPort() ;
 
 	my %me = (
-		m_exe => "$bin_dir/emailrelay" ,
+		m_exe => System::exe( $bin_dir , $exe_name ) ,
 		m_smtp_port => $smtp_port ,
 		m_pop_port => $pop_port ,
 		m_admin_port => $admin_port ,
 		m_rc => undef ,
 		m_stdout => System::tempfile("stdout",$tmp_dir) ,
 		m_stderr => System::tempfile("stderr",$tmp_dir) ,
+		m_log_file => undef ,
 		m_pidfile => System::tempfile("pidfile",$tmp_dir) ,
 		m_pid => undef ,
 		m_pop_secrets => System::tempfile("pop.auth",$tmp_dir) ,
@@ -56,11 +62,13 @@ sub new
 		m_spool_dir => (defined($spool_dir)?$spool_dir:System::createSpoolDir(undef,$tmp_dir)) ,
 		m_user => "nobody" ,
 		m_full_command => undef ,
-		m_filter => System::tempfile("filter",$tmp_dir) ,
-		m_client_filter => System::tempfile("client-filter",$tmp_dir) ,
-		m_scanner => "net:localhost:$scanner_port" ,
+		m_filter => System::tempfile("filter",$tmp_dir) . ( System::unix() ? "" : ".js" ) ,
+		m_client_filter => System::tempfile("client-filter",$tmp_dir) . ( System::unix() ? "" : ".js" ) ,
+		m_scanner_port => $scanner_port ,
+		m_verifier_port => $verifier_port ,
 		m_max_size => 1000 ,
 	) ;
+	$me{m_log_file} = $me{m_stderr} if !System::unix() ;
 	my $this = bless \%me , $classname ;
 	$this->_check() ;
 	return $this ;
@@ -70,7 +78,10 @@ sub exe { return shift->{'m_exe'} }
 sub set_exe { $_[0]->{'m_exe'} = $_[1] }
 sub smtpPort { return shift->{'m_smtp_port'} }
 sub adminPort { return shift->{'m_admin_port'} }
-sub scannerAddress { return shift->{'m_scanner'} }
+sub scannerPort { return shift->{'m_scanner_port'} }
+sub scannerAddress { return "net:localhost:" . shift->{'m_scanner_port'} }
+sub verifierPort { return shift->{'m_verifier_port'} }
+sub verifierAddress { return "net:localhost:" . shift->{'m_verifier_port'} }
 sub popPort { return shift->{'m_pop_port'} }
 sub popSecrets { return shift->{'m_pop_secrets'} }
 sub clientSecrets { return shift->{'m_client_secrets'} }
@@ -91,6 +102,7 @@ sub filter { return shift->{'m_filter'} }
 sub clientFilter { return shift->{'m_client_filter'} }
 sub maxSize { return shift->{'m_max_size'} }
 sub rc { return shift->{'m_rc'} }
+sub logFile { return shift->{'m_log_file'} }
 
 sub _check
 {
@@ -104,20 +116,35 @@ sub _check
 sub _pid
 {
 	my ( $this ) = @_ ;
-	my $f = new FileHandle( $this->pidFile() ) ;
-	my $line = <$f> ;
+	my $fh = new FileHandle( $this->pidFile() ) ;
+	return undef if !$fh ;
+	my $line = <$fh> ;
 	chomp $line ;
 	return $line ;
 }
 
 sub canRun
 {
+	# Returns true if all the required ports are free.
 	my ( $this , $port_list_ref ) = @_ ;
 	my @port_list = defined($port_list_ref) ? @$port_list_ref : Port::list() ;
 	return
 		Port::isFree($this->smtpPort(),@port_list) &&
 		Port::isFree($this->adminPort(),@port_list) &&
 		Port::isFree($this->popPort(),@port_list) ;
+}
+
+sub canDo
+{
+	# Returns true if built with the relevant functionality.
+	my ( $this , $type , $default_ ) = @_ ;
+	return 1 if !System::unix() ;
+	local $/ ;
+	my $fh = new FileHandle( $this->exe() . " --version --verbose |" ) ;
+	my $output = <$fh> ;
+	my $has_enable = $output =~ m/\[.*enable_$type.*\]/m ;
+	my $has_disable = $output =~ m/\[.*disable_$type.*\]/m ;
+	return $has_enable ? 1 : ( $has_disable ? 0 : $default_ ) ;
 }
 
 sub _set
@@ -151,14 +178,18 @@ sub _switches
 		( exists($sw{ForwardTo}) ? "--forward-to __FORWARD_TO__ " : "" ) .
 		( exists($sw{User}) ? "--user __USER__ " : "" ) .
 		( exists($sw{Debug}) ? "--debug " : "" ) .
+		( !System::unix() && exists($sw{Log}) ? "--log-file __LOG_FILE__ " : "" ) .
 		( exists($sw{NoDaemon}) ? "--no-daemon " : "" ) .
+		( exists($sw{Hidden}) && !System::unix() ? "--hidden " : "" ) .
 		( exists($sw{NoSmtp}) ? "--no-smtp " : "" ) .
 		( exists($sw{Poll}) ? "--poll __POLL_TIMEOUT__ " : "" ) .
 		( exists($sw{Filter}) ? "--filter __FILTER__ " : "" ) .
 		( exists($sw{FilterTimeout}) ? "--filter-timeout 1 " : "" ) .
+		( exists($sw{ConnectionTimeout}) ? "--connection-timeout 1 " : "" ) .
 		( exists($sw{ClientFilter}) ? "--client-filter __CLIENT_FILTER__ " : "" ) .
 		( exists($sw{Immediate}) ? "--immediate " : "" ) .
 		( exists($sw{Scanner}) ? "--filter __SCANNER__ " : "" ) .
+		( exists($sw{Verifier}) ? "--verifier __VERIFIER__ " : "" ) .
 		( exists($sw{DontServe}) ? "--dont-serve " : "" ) .
 		( exists($sw{ClientAuth}) ? "--client-auth __CLIENT_SECRETS__ " : "" ) .
 		( exists($sw{MaxSize}) ? "--size __MAX_SIZE__ " : "" ) .
@@ -178,12 +209,14 @@ sub _set_all
 	$command_tail = _set( $command_tail , "__POP_SECRETS__" , $this->popSecrets() ) ;
 	$command_tail = _set( $command_tail , "__PID_FILE__" , $this->pidFile() ) ;
 	$command_tail = _set( $command_tail , "__FORWARD_TO__" , $this->dst() ) ;
+	$command_tail = _set( $command_tail , "__LOG_FILE__" , $this->logFile() ) ;
 	$command_tail = _set( $command_tail , "__SPOOL_DIR__" , $this->spoolDir() ) ;
 	$command_tail = _set( $command_tail , "__USER__" , $this->user() ) ;
 	$command_tail = _set( $command_tail , "__POLL_TIMEOUT__" , $this->pollTimeout() ) ;
 	$command_tail = _set( $command_tail , "__FILTER__" , $this->filter() ) ;
 	$command_tail = _set( $command_tail , "__CLIENT_FILTER__" , $this->clientFilter() ) ;
 	$command_tail = _set( $command_tail , "__SCANNER__" , $this->scannerAddress() ) ;
+	$command_tail = _set( $command_tail , "__VERIFIER__" , $this->verifierAddress() ) ;
 	$command_tail = _set( $command_tail , "__CLIENT_SECRETS__" , $this->clientSecrets() ) ;
 	$command_tail = _set( $command_tail , "__MAX_SIZE__" , $this->maxSize() ) ;
 	$command_tail = _set( $command_tail , "__SERVER_SECRETS__" , $this->serverSecrets() ) ;
@@ -194,17 +227,26 @@ sub _set_all
 
 sub run
 {
-	my ( $this , $switches_ref , $command_prefix , $command_suffix ) = @_ ;
+	# Starts the server and waits for a pid file to be created.
+	my ( $this , $switches_ref , $sudo_prefix , $gtest , $background ) = @_ ;
 
-	$command_prefix = defined($command_prefix) ? $command_prefix : "" ;
-	$command_suffix = defined($command_suffix) ? $command_suffix : "" ;
+	if(!defined($background)) { $background = System::unix() ? 0 : 1 }
 
-	my $command_switches = $this->_set_all(_switches(%$switches_ref)) ;
-	my $redirection = " >" . $this->stdout() . " 2>" . $this->stderr() ;
-	my $full = $command_prefix . $command_switches . $redirection . $command_suffix ;
+	my $command_with_switches = $this->_set_all(_switches(%$switches_ref)) ;
+
+	my $full = System::commandline( $command_with_switches , {
+			background => $background ,
+			stdout => $this->stdout() ,
+			stderr => $this->stderr() ,
+			prefix => $sudo_prefix ,
+			gtest => $gtest ,
+		} ) ;
 
 	$this->{'m_full_command'} = $full ;
+	System::log_( "[$full]" ) ;
+	if( defined($gtest) ) { $main::ENV{G_TEST} = $gtest }
 	my $rc = system( $full ) ;
+	if( defined($gtest) ) { $main::ENV{G_TEST} = "xx" }
 
 	my $ok = $rc >= 0 && ($rc & 127) == 0 ;
 	$this->{'m_rc'} = $rc ;
@@ -226,7 +268,7 @@ sub run
 
 sub message
 {
-	# Returns the first warning or error from the server's log file
+	# Returns the first warning or error from the server's log file.
 	my ( $this ) = @_ ;
 	my $err = new FileHandle($this->stderr()) ;
 	while( <$err> )
@@ -243,6 +285,7 @@ sub message
 
 sub sleep_cs
 {
+	# Sleeps for a number of centiseconds.
 	my ( $cs ) = @_ ;
 	$cs = defined($cs) ? $cs : 1 ;
 	select( undef , undef , undef , 0.01 * $cs ) ;
@@ -250,30 +293,22 @@ sub sleep_cs
 
 sub wait
 {
-	# wait to die
+	# Waits to die
 	my ( $this , $timeout_cs ) = @_ ;
-	for( my $i = 0 ; $i < $timeout_cs ; $i++ )
-	{
-		sleep_cs() ;
-		if( kill(0,$this->pid()) == 0 )
-		{
-			next
-		}
-	}
+	System::wait( $this->pid() , $timeout_cs ) ;
 }
 
 sub kill
 {
-	# kill and wait to die
-	my ( $this , $signal , $timeout_cs ) = @_ ;
-	$signal = defined($signal) ? $signal : 15 ;
-	$timeout_cs = defined($timeout_cs) ? $timeout_cs : 100 ;
-	kill( $signal , $this->pid() ) ;
-	$this->wait( $timeout_cs ) ;
+	# Kills the server and waits for it to die.
+	my ( $this , $signal__not_used , $timeout_cs ) = @_ ;
+	System::kill_( $this->pid() , $timeout_cs ) ;
+	System::wait( $this->pid() , $timeout_cs ) ;
 }
 
 sub cleanup
 {
+	# Cleans up some files.
 	my ( $this ) = @_ ;
 	unlink( $this->stdout() ) ;
 	unlink( $this->stderr() ) ;
@@ -286,10 +321,24 @@ sub cleanup
 
 sub hasDebug
 {
+	# Returns true if the executable has debugging code 
+	# and extra test features built in.
+
 	my ( $this ) = @_ ;
 	my $exe = $this->exe() ;
-	my $rc = system( "strings \"$exe\" | fgrep -q 'G_TEST'" ) ;
-	return $rc == 0 ;
+	if( System::unix() )
+	{
+		my $rc = system( "strings \"$exe\" | fgrep -q 'G_TEST'" ) ;
+		return $rc == 0 ;
+	}
+	else
+	{
+		$exe = System::weirdpath( $exe ) ;
+		$main::ENV{G_TEST} = "special-exit-code" ;
+		my $rc = system( "$exe --version --verbose --hidden" ) ;
+		$main::ENV{G_TEST} = "xx" ;
+		return ( ( $rc >> 8 ) & 255 ) == 23 ;
+	}
 }
 
 1 ;

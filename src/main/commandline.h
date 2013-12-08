@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ public:
 		///< Returns an o/s-specific G::GetOpt switch specification string.
 
 	CommandLine( Main::Output & output , const G::Arg & arg , const std::string & spec ,
-		const std::string & version ) ;
+		const std::string & version , const std::string & capabilities ) ;
 			///< Constructor.
 
 	~CommandLine() ;
@@ -81,7 +81,7 @@ public:
 	G::Strings value( const char * switch_ , const char * separators ) const ;
 		///< Returns the given switch's list-of-string value.
 
-	unsigned int argc() const ;
+	G::Arg::size_type argc() const ;
 		///< Returns the number of non-switch arguments on the command line.
 
 	bool hasUsageErrors() const ;
@@ -108,6 +108,9 @@ public:
 	void showNoop( bool error_stream = false ) const ;
 		///< Writes a nothing-to-do message.
 
+	void showError( const std::string & reason , bool error_stream = true ) const ;
+		///< Writes a failed message.
+
 	void showVersion( bool error_stream = false ) const ;
 		///< Writes the version number.
 
@@ -116,6 +119,9 @@ public:
 
 	void showCopyright( bool error_stream = false , const std::string & = std::string() ) const ;
 		///< Writes a copyright message.
+
+	void showCapabilities( bool error_stream = false , const std::string & = std::string() ) const ;
+		///< Writes a capability line.
 
 private:
 	CommandLine( const CommandLine & ) ; // not implemented

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -72,8 +72,12 @@ private:
 	SignalImp() ; // not implemented
 } ;
 
+///
+/// Part of the slot/signal system.
+/// Compensates for having no std::swap in gcc2.95.
+///
 template <typename T>
-void swap_( T & t1 , T & t2 ) // no std::swap in gcc2.95
+void swap_( T & t1 , T & t2 )
 {
 	T temp( t1 ) ;
 	t1 = t2 ;

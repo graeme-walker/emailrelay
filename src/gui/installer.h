@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,23 +21,23 @@
 #ifndef INSTALLER_H__
 #define INSTALLER_H__
 
+#include "gdef.h"
 #include "gpath.h"
 #include <string>
 
 class InstallerImp ;
 
 /// \class Installer
-/// A class that interprets a GPage configuration
-/// dump and then executes a series of installation tasks
-/// using an iteration interface.
+/// A class that interprets a set of install variables
+/// dump()ed out by the GPage class and then executes a series of
+/// installation tasks using an iteration interface.
 ///
 class Installer
 {
 public:
 	Installer( G::Path argv0 , G::Path payload , bool install_mode ) ;
-		///< Constructor. Initialise with start().
-		///< Normally the argv0 and payload paths
-		///< are the same.
+		///< Constructor. Initialise with start(). The argv0 and
+		///< payload paths can be the same.
 
 	~Installer() ;
 		///< Destructor.

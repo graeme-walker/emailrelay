@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,9 +28,9 @@
 
 GNet::Request::Request( bool host ) :
 	m_magic(magic) ,
-	m_host(host) ,
-	m_handle(0) ,
 	m_error(0) ,
+	m_handle(0) ,
+	m_host(host) ,
 	m_done(false) ,
 	m_numeric(false) ,
 	m_address(Address::invalidAddress())

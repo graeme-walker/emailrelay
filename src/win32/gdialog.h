@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -188,9 +188,16 @@ private:
 	DialogList::iterator find( HWND h ) ;
 	BOOL onControlColour_( WPARAM wparam , LPARAM lparam , WORD type ) ;
 	static Dialog * from_lparam( LPARAM lparam ) ;
-	static Dialog * from_long( LONG l ) ;
+	static Dialog * from_long_ptr( LONG_PTR l ) ;
 	static LPARAM to_lparam( Dialog * p ) ;
 	static DLGPROC dlgproc_export_fn() ;
+	bool runStart() ;
+	bool runCore( const char * ) ;
+	bool runCore( const wchar_t * ) ;
+	bool runEnd( int ) ;
+	bool runModelessCore( const char * , bool ) ;
+	bool runModelessCore( const wchar_t * , bool ) ;
+	bool runModelessEnd( HWND , bool ) ;
 	Dialog( const Dialog &other ) ; // not implemented
 	void operator=( const Dialog &other ) ; // not implemented
 

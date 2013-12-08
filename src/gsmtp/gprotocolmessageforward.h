@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@ public:
 	ProtocolMessageForward( MessageStore & store ,
 		std::auto_ptr<ProtocolMessage> pm ,
 		const GSmtp::Client::Config & client_config ,
-		const Secrets & client_secrets ,
+		const GAuth::Secrets & client_secrets ,
 		const std::string & server_address ,
 		unsigned int connection_timeout ) ;
 			///< Constructor. The 'store' and 'client-secrets' references
@@ -92,8 +92,9 @@ public:
 	virtual std::string from() const ;
 		///< Final override from GSmtp::ProtocolMessage.
 
-	virtual void process( const std::string & auth_id , const std::string & client_ip ) ;
-		///< Final override from GSmtp::ProtocolMessage.
+	virtual void process( const std::string & auth_id, const std::string & peer_socket_address ,
+		const std::string & peer_socket_name , const std::string & peer_certificate ) ;
+			///< Final override from GSmtp::ProtocolMessage.
 
 protected:
 	G::Signal3<bool,unsigned long,std::string> & storageDoneSignal() ;
@@ -117,7 +118,7 @@ private:
 	MessageStore & m_store ;
 	GNet::ResolverInfo m_client_resolver_info ;
 	Client::Config m_client_config ;
-	const Secrets & m_client_secrets ;
+	const GAuth::Secrets & m_client_secrets ;
 	std::auto_ptr<ProtocolMessage> m_pm ;
 	GNet::ClientPtr<GSmtp::Client> m_client ;
 	unsigned long m_id ;

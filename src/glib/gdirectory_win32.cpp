@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,10 +33,10 @@ namespace G
 
 bool G::Directory::valid( bool for_creation ) const
 {
-	DWORD attributes = ::GetFileAttributes( m_path.str().c_str() ) ;
+	DWORD attributes = ::GetFileAttributesA( m_path.str().c_str() ) ;
 	if( attributes == 0xFFFFFFFF )
 	{
-		G_IGNORE ::GetLastError() ;
+		G_IGNORE_RETURN(DWORD) ::GetLastError() ;
 		return false ;
 	}
 	return ( attributes & FILE_ATTRIBUTE_DIRECTORY ) != 0 ;
@@ -60,7 +60,7 @@ bool G::Directory::writeable( std::string ) const
 class G::DirectoryIteratorImp
 {
 private:
-	WIN32_FIND_DATA m_context ;
+	WIN32_FIND_DATAA m_context ;
 	HANDLE m_handle ;
 	Directory m_dir ;
 	bool m_error ;
@@ -156,7 +156,7 @@ G::DirectoryIteratorImp::DirectoryIteratorImp( const Directory & dir ,
 
 	G_DEBUG( "G::DirectoryIteratorImp::ctor: FindFirstFile(\"" << wild_path << "\")" ) ;
 
-	m_handle = ::FindFirstFile( wild_path.str().c_str() , &m_context ) ;
+	m_handle = ::FindFirstFileA( wild_path.str().c_str() , &m_context ) ;
 	if( m_handle == INVALID_HANDLE_VALUE )
 	{
 		DWORD err = ::GetLastError() ;
@@ -204,7 +204,7 @@ bool G::DirectoryIteratorImp::more()
 
 	for(;;)
 	{
-		bool rc = ::FindNextFile( m_handle , &m_context ) != 0 ;
+		bool rc = ::FindNextFileA( m_handle , &m_context ) != 0 ;
 		if( !rc )
 		{
 			DWORD err = ::GetLastError() ;

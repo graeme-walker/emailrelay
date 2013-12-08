@@ -1,10 +1,10 @@
 #!/bin/sh
 #
-# Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or 
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 # 
 # This program is distributed in the hope that it will be useful,
@@ -18,11 +18,16 @@
 #
 # emailrelay-deliver.sh
 #
-# Looks for local mail in the E-MailRelay spool directory, and delivers 
-# it using 'procmail'.
+# Looks for local mail in the E-MailRelay spool directory and delivers is using
+# 'procmail'.
 #
 # usage: emailrelay-deliver.sh [<spool-dir>]
 #
+# This illustrates how delivery to local "postmaster" mailboxes could be done,
+# although it is not likely to be a useful feature for a typical mail relay 
+# setup.
+#
+
 
 store="__SPOOL_DIR__"
 postmaster="root"

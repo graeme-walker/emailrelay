@@ -1,9 +1,9 @@
 #
-## Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or 
+## the Free Software Foundation, either version 3 of the License, or
 ## (at your option) any later version.
 ## 
 ## This program is distributed in the hope that it will be useful,
@@ -52,7 +52,7 @@ EXTRA_DIST=\
 	mingw.mak \
 	gpopsecrets_win32.cpp
 
-INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gnet -I$(top_srcdir)/src/gsmtp -DG_SPOOLDIR=\"$(e_spooldir)\" -DG_SYSCONFDIR=\"$(e_sysconfdir)\"
+INCLUDES = -I$(top_srcdir)/lib/$(COMPILER_VERSION) -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gssl -I$(top_srcdir)/src/gnet -I$(top_srcdir)/src/gauth -DG_SPOOLDIR=\"$(e_spooldir)\" -DG_SYSCONFDIR=\"$(e_sysconfdir)\"
 
 noinst_LIBRARIES = libgpop.a
 

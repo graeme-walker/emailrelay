@@ -1,9 +1,9 @@
 #
-## Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or 
+## the Free Software Foundation, either version 3 of the License, or
 ## (at your option) any later version.
 ## 
 ## This program is distributed in the hope that it will be useful,
@@ -26,6 +26,7 @@ endif
 EXTRA_DIST = \
 	emailrelay.sh_ \
 	doxygen.sh_ \
+	doxygen_fixup.pl_ \
 	txt2html.sh_ \
 	txt2mu.sh_ \
 	mu2html.sh_ \
@@ -37,18 +38,21 @@ EXTRA_DIST = \
 	emailrelay-process.sh_ \
 	emailrelay-runperl.js \
 	emailrelay-resubmit.js \
-	emailrelay-change-auth.js \
+	emailrelay-edit-content.js \
+	emailrelay-edit-envelope.js \
 	emailrelay-submit.sh_ \
 	emailrelay-multicast.sh_ \
 	make-setup.sh_ \
 	make-qt-enabled.sh_ \
 	make-bundle.sh_ \
+	configure-dev.sh \
+	configure-fhs.sh \
 	configure-mac.sh \
-	startup-mac.plist \
-	fragment.pl_
+	startup-mac.plist
 
 work_scripts = \
 	doxygen.sh \
+	doxygen_fixup.pl \
 	txt2mu.sh \
 	mu2html.sh \
 	mu2docbook.sh \
@@ -57,13 +61,13 @@ work_scripts = \
 	emailrelay.sh \
 	make-setup.sh \
 	make-qt-enabled.sh \
-	make-bundle.sh \
-	fragment.pl
+	make-bundle.sh
 
 noinst_SCRIPTS = \
 	emailrelay-runperl.js \
 	emailrelay-resubmit.js \
-	emailrelay-change-auth.js \
+	emailrelay-edit-content.js \
+	emailrelay-edit-envelope.js \
 	$(work_scripts)
 
 e_examples_DATA = \
@@ -74,9 +78,9 @@ e_examples_DATA = \
 	emailrelay-submit.sh \
 	emailrelay-multicast.sh
 
-CLEANFILES = $(e_init_SCRIPTS) $(e_examples_DATA) $(work_scripts) $(e_init_SCRIPTS)
+CLEANFILES = $(e_init_SCRIPTS) $(e_examples_DATA) $(work_scripts)
 
-SUFFIXES = .sh_ .sh
+SUFFIXES = .sh_ .sh .pl_ .pl
 
 .sh_.sh:
 	cat "$(top_srcdir)/bin/$*.sh_" | sed "s%__SPOOL_DIR__%${e_spooldir}%g;s%__SBIN_DIR__%${sbindir}%g;s%__SYSCONF_DIR__%${e_sysconfdir}%g;"'s/\[:digit:\]/0-9/g;s/\[:space:\]/ \\t/g' > "$*.tmp" && mv "$*.tmp" "$*.sh"

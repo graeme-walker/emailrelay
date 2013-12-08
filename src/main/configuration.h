@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -51,13 +51,8 @@ public:
 	unsigned int port() const ;
 		///< Returns the main listening port number.
 
-	G::Strings listeningInterfaces() const ;
+	G::Strings listeningInterfaces( const std::string & protocol = std::string() ) const ;
 		///< Returns the listening interface(s).
-		///< Returns a single empty string if no
-		///< special interfaces are defined.
-
-	std::string firstListeningInterface() const ;
-		///< A convenience method returning the first listeningInterface().
 
 	std::string clientInterface() const ;
 		///< Returns the sending interface.
@@ -67,6 +62,9 @@ public:
 
 	bool log() const ;
 		///< Returns true if doing logging.
+
+	std::string logFile() const ;
+		///< Returns the path of a stderr replacement for logging.
 
 	bool verbose() const ;
 		///< Returns true if doing verbose logging.
@@ -151,6 +149,9 @@ public:
 	unsigned int connectionTimeout() const ;
 		///< Returns the client-side connection timeout value.
 
+	unsigned int secureConnectionTimeout() const ;
+		///< Returns the timeout for establishing a secure connection.
+
 	unsigned int promptTimeout() const ;
 		///< Returns the timeout for getting a prompt from the SMTP server.
 
@@ -166,7 +167,7 @@ public:
 		///< Returns the pop-server autentication secrets (password) file.
 		///< Returns the empty string if not defined.
 
-	std::string fqdn() const ;
+	std::string fqdn( std::string default_ = std::string() ) const ;
 		///< Returns the fully-qualified-domain-name override.
 
 	std::string nobody() const ;
@@ -220,12 +221,24 @@ public:
 		///< Returns true if the client protocol should take
 		///< account of the server's tls capability.
 
+	bool clientOverTls() const ;
+		///< Returns true if using the SMTP over TLS (vs. negotiated
+		///< TLS using STARTTLS).
+
+	unsigned int tlsConfig() const ;
+		///< Returns TLS configuration flags.
+
 	std::string serverTlsFile() const ;
 		///< Returns the tls certificate file if the server
 		///< should support tls.
 
 	unsigned int maxSize() const ;
 		///< Returns the maximum size of submitted messages, or zero.
+
+	bool peerLookup() const ;
+		///< Returns true if there should be some attempt to
+		///< look up the userid of SMTP peers connected from the
+		///< the local machine.
 
 private:
 	bool contains( const char * ) const ;

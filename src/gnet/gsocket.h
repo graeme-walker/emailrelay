@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -42,13 +42,18 @@ namespace GNet
 ///
 /// The Socket class encapsulates a non-blocking
 /// Unix socket file descriptor or a Windows 'SOCKET' handle.
-/// The class hides all differences between BSD sockets and
-/// Winsock.
 ///
 /// (Non-blocking network i/o is particularly appropriate for single-
 /// threaded server processes which manage multiple client connections.
 /// The main disagvantage is that flow control has to be managed
 /// explicitly: see Socket::write() and Socket::eWouldBlock().)
+///
+/// Provides bind(), listen(), connect(), write(); derived classes
+/// provide accept() and read(). Also interfaces to the event
+/// loop with addReadHandler() and addWriteHandler().
+///
+/// The raw file descriptor is only exposed to the SocketProtocol
+/// class (using the credentials pattern) and to the event loop.
 ///
 /// Exceptions are not used.
 ///
@@ -61,6 +66,7 @@ public:
 	class Credentials
 	{
 		friend class SocketProtocol ;
+		friend class SocketProtocolTest ;
 		Credentials( const char * ) {}
 	} ;
 
@@ -91,18 +97,15 @@ public:
 		///< sockets.
 
 	bool canBindHint( const Address & address ) ;
-		///< Returns true if the socket can probably be
-		///< bound with the given address. Some
-		///< implementations will always return
-		///< true. This method should be used on a
-		///< temporary socket of the correct dynamic
-		///< type since this socket may become
-		///< unusable.
+		///< Returns true if the socket can probably be bound
+		///< with the given address. Some implementations will
+		///< always return true. This method should be used on
+		///< a temporary socket of the correct dynamic type
+		///< since this socket may become unusable.
 
 	bool connect( const Address & addr , bool *done = NULL ) ;
-		///< Initiates a connection to (or association
-		///< with) the given address. Returns false on
-		///< error.
+		///< Initiates a connection to (or association with)
+		///< the given address. Returns false on error.
 		///<
 		///< If successful, a 'done' flag is returned by
 		///< reference indicating whether the connect completed
@@ -152,34 +155,32 @@ public:
 
 	bool eMsgSize() ;
 		///< Returns true if the previous socket operation
-		///< failed with the EMSGSIZE error status.
-		///< When writing to a datagram socket this
-		///< indicates that the message was too big
-		///< to send atomically.
+		///< failed with the EMSGSIZE error status. When
+		///< writing to a datagram socket this indicates that
+		///< the message was too big to send atomically.
 
 	void addReadHandler( EventHandler & handler ) ;
-		///< Adds this socket to the event source list
-		///< so that the given handler receives read
-		///< events.
+		///< Adds this socket to the event source list so that
+		///< the given handler receives read events.
 
 	void dropReadHandler();
 		///< Reverses addReadHandler().
 
 	void addWriteHandler( EventHandler & handler ) ;
-		///< Adds this socket to the event source list
-		///< so that the given handler receives write
-		///< events when flow control is released.
-		///< (Not used for datagram sockets.)
+		///< Adds this socket to the event source list so that
+		///< the given handler receives write events when flow
+		///< control is released. (Not used for datagram
+		///< sockets.)
 
 	void dropWriteHandler() ;
 		///< Reverses addWriteHandler().
 
 	void addExceptionHandler( EventHandler & handler );
-		///< Adds this socket to the event source list
-		///< so that the given handler receives exception
-		///< events. An exception event should
-		///< be treated as a disconnection event.
-		///< (Not used for datagram sockets.)
+		///< Adds this socket to the event source list so that
+		///< the given handler receives exception events.
+		///< A TCP exception event should be treated as a
+		///< disconnection event. (Not used for datagram
+		///< sockets.)
 
 	void dropExceptionHandler() ;
 		///< Reverses addExceptionHandler().
@@ -201,8 +202,8 @@ public:
 
 protected:
 	Socket( int domain , int type , int protocol ) ;
-		///< Constructor used by derived classes.
-		///< Opens the socket using ::socket().
+		///< Constructor used by derived classes. Opens the
+		///< socket using socket().
 
 	explicit Socket( Descriptor s ) ;
 		///< Constructor which creates a socket object from
@@ -238,13 +239,9 @@ private:
 ///
 
 /// \class GNet::AcceptPair
-/// A class which behaves like std::pair<std::auto_ptr<StreamSocket>,Address>.
-///
-/// (The standard pair<> template cannot be used because gcc's auto_ptr<> has
-/// a non-const copy constructor and assignment operator -- the pair<> op=()
-/// fails to compile because the rhs of the 'first' assignment is const,
-/// not matching any op=() in auto_ptr<>. Note the use of const_cast<>()
-/// in the implementation.)
+/// A class which is used to return a new()ed socket
+/// to calling code, together with associated information, and with
+/// auto_ptr style transfer of ownership.
 ///
 class GNet::AcceptPair
 {

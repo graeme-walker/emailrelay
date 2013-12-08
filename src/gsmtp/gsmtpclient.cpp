@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,11 +39,13 @@ const std::string & GSmtp::Client::crlf()
 	return s ;
 }
 
-GSmtp::Client::Client( const GNet::ResolverInfo & remote , const Secrets & secrets , Config config ) :
-	GNet::Client(remote,config.connection_timeout,0U,crlf(),config.local_address,false) ,
+GSmtp::Client::Client( const GNet::ResolverInfo & remote , const GAuth::Secrets & secrets , Config config ) :
+	GNet::Client(remote,config.connection_timeout,0U, // the protocol does the response timeout-ing
+		config.secure_connection_timeout,crlf(),config.local_address,false) ,
 	m_store(NULL) ,
 	m_processor(ProcessorFactory::newProcessor(config.processor_address,config.processor_timeout)) ,
-	m_protocol(*this,secrets,config.client_protocol_config)
+	m_protocol(*this,secrets,config.client_protocol_config) ,
+	m_secure_tunnel(config.secure_tunnel)
 {
 	m_protocol.doneSignal().connect( G::slot(*this,&Client::protocolDone) ) ;
 	m_protocol.preprocessorSignal().connect( G::slot(*this,&Client::preprocessorStart) ) ;
@@ -62,7 +64,7 @@ G::Signal1<std::string> & GSmtp::Client::messageDoneSignal()
 	return m_message_done_signal ;
 }
 
-void GSmtp::Client::sendMessages( MessageStore & store )
+void GSmtp::Client::sendMessagesFrom( MessageStore & store )
 {
 	G_ASSERT( !store.empty() ) ;
 	G_ASSERT( !connected() ) ; // ie. immediately after construction
@@ -97,28 +99,76 @@ void GSmtp::Client::preprocessorStart()
 void GSmtp::Client::preprocessorDone( bool ok )
 {
 	G_ASSERT( m_message.get() != NULL ) ;
-	if( ok && m_message.get() != NULL )
+
+	// (different cancelled/repoll semantics on the client-side)
+	bool ignore_this = !ok && m_processor->cancelled() && !m_processor->repoll() ;
+	bool break_after = !ok && m_processor->cancelled() && m_processor->repoll() ;
+
+	if( ok || break_after )
+		m_message->sync() ; // re-read it after the preprocessing
+
+	if( break_after )
 	{
-		m_message->sync() ;
+		G_DEBUG( "GSmtp::Client::preprocessorDone: making this the last message" ) ;
+		m_iter.last() ; // so next next() returns nothing
 	}
-	std::string reason = m_processor->text() ;
-	m_protocol.preprocessorDone( ok ? std::string() : reason ) ;
+
+	// pass the event on to the protocol
+	m_protocol.preprocessorDone( ok || break_after ,
+		ok || ignore_this || break_after ? std::string() : m_processor->text() ) ;
 }
 
-void GSmtp::Client::onSecure()
+void GSmtp::Client::onSecure( const std::string & certificate )
 {
-	G_LOG( "GSmtp::Client::onSecure: tls/ssl protocol established with " << peerAddress().second.displayString() ) ;
-	m_protocol.secure() ;
+	if( m_secure_tunnel )
+	{
+		doOnConnect() ;
+	}
+	else
+	{
+		m_protocol.secure() ;
+	}
+}
+
+void GSmtp::Client::logCertificate( const std::string & certificate )
+{
+	if( !certificate.empty() )
+	{
+		static std::string previous ;
+		if( certificate != previous )
+		{
+			previous = certificate ;
+			G::Strings lines ;
+			G::Str::splitIntoFields( certificate , lines , "\n" ) ;
+			for( G::Strings::iterator p = lines.begin() ; p != lines.end() ; ++p )
+			{
+				if( !(*p).empty() )
+					G_LOG( "GSmtp::Client: certificate: " << (*p) ) ;
+			}
+		}
+	}
 }
 
 void GSmtp::Client::onConnect()
+{
+	if( m_secure_tunnel )
+	{
+		sslConnect() ;
+	}
+	else
+	{
+		doOnConnect() ;
+	}
+}
+
+void GSmtp::Client::doOnConnect()
 {
 	if( m_store != NULL )
 	{
 		m_iter = m_store->iterator(true) ;
 		if( !sendNext() )
 		{
-			G_DEBUG( "GSmtp::Client::protocolDone: deleting" ) ;
+			G_DEBUG( "GSmtp::Client::onConnect: deleting" ) ;
 			doDelete( std::string() ) ;
 		}
 	}
@@ -170,7 +220,8 @@ void GSmtp::Client::protocolDone( std::string reason , int reason_code )
 
 	if( reason.empty() )
 	{
-		messageDestroy() ;
+		if( reason_code != 1 ) // TODO magic number
+			messageDestroy() ;
 	}
 	else
 	{
@@ -236,12 +287,15 @@ void GSmtp::Client::onSendComplete()
 // ==
 
 GSmtp::Client::Config::Config( std::string processor_address_ , unsigned int processor_timeout_ ,
-	GNet::Address address , ClientProtocol::Config protocol_config , unsigned int connection_timeout_ ) :
+	GNet::Address address , ClientProtocol::Config protocol_config , unsigned int connection_timeout_ ,
+	unsigned int secure_connection_timeout_ , bool secure_tunnel_ ) :
 		processor_address(processor_address_) ,
 		processor_timeout(processor_timeout_) ,
 		local_address(address) ,
 		client_protocol_config(protocol_config) ,
-		connection_timeout(connection_timeout_)
+		connection_timeout(connection_timeout_) ,
+		secure_connection_timeout(secure_connection_timeout_) ,
+		secure_tunnel(secure_tunnel_)
 {
 }
 

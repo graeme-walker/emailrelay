@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,12 +25,13 @@
 #include <string>
 #include <ctime>
 #include <cstdlib>
+#include <fstream>
 
 // (note that the implementation here has to be reentrant and using only the standard runtime library)
 
 G::LogOutput::LogOutput( const std::string & prefix , bool enabled , bool summary_log ,
 	bool verbose_log , bool debug , bool level , bool timestamp , bool strip ,
-	bool use_syslog , SyslogFacility syslog_facility ) :
+	bool use_syslog , const std::string & stderr_replacement , SyslogFacility syslog_facility ) :
 		m_prefix(prefix) ,
 		m_enabled(enabled) ,
 		m_summary_log(summary_log) ,
@@ -39,6 +40,7 @@ G::LogOutput::LogOutput( const std::string & prefix , bool enabled , bool summar
 		m_level(level) ,
 		m_strip(strip) ,
 		m_syslog(use_syslog) ,
+		m_std_err(err(stderr_replacement)) ,
 		m_facility(syslog_facility) ,
 		m_time(0) ,
 		m_timestamp(timestamp) ,
@@ -50,23 +52,44 @@ G::LogOutput::LogOutput( const std::string & prefix , bool enabled , bool summar
 	init() ;
 }
 
-G::LogOutput::LogOutput( bool enabled_and_summary , bool verbose_and_debug ) :
-	m_enabled(enabled_and_summary) ,
-	m_summary_log(enabled_and_summary) ,
-	m_verbose_log(verbose_and_debug) ,
-	m_debug(verbose_and_debug) ,
-	m_level(false) ,
-	m_strip(false) ,
-	m_syslog(false) ,
-	m_facility(User) ,
-	m_time(0) ,
-	m_timestamp(false) ,
-	m_handle(0) ,
-	m_handle_set(false)
+G::LogOutput::LogOutput( bool enabled_and_summary , bool verbose_and_debug ,
+	const std::string & stderr_replacement ) :
+		m_enabled(enabled_and_summary) ,
+		m_summary_log(enabled_and_summary) ,
+		m_verbose_log(verbose_and_debug) ,
+		m_debug(verbose_and_debug) ,
+		m_level(false) ,
+		m_strip(false) ,
+		m_syslog(false) ,
+		m_std_err(err(stderr_replacement)) ,
+		m_facility(User) ,
+		m_time(0) ,
+		m_timestamp(false) ,
+		m_handle(0) ,
+		m_handle_set(false)
 {
 	if( pthis() == NULL )
 		pthis() = this ;
 	init() ;
+}
+
+std::ostream & G::LogOutput::err( const std::string & path_in )
+{
+	if( !path_in.empty() )
+	{
+		std::string path = path_in ;
+		std::string::size_type pos = path.find("%d") ;
+		if( pos != std::string::npos )
+			path.replace( pos , 2U , dateString() ) ;
+
+		static std::ofstream file( path.c_str() , std::ios_base::out | std::ios_base::app ) ;
+		// ignore errors
+		return file ;
+	}
+	else
+	{
+		return std::cerr ;
+	}
 }
 
 G::LogOutput::~LogOutput()
@@ -100,7 +123,7 @@ void G::LogOutput::output( Log::Severity severity , const char * file , int line
 		instance()->doOutput( severity , file , line , text ) ;
 }
 
-void G::LogOutput::doOutput( Log::Severity severity , const char * file , int line , const std::string & text )
+void G::LogOutput::doOutput( Log::Severity severity , const char * /* file */ , int /* line */ , const std::string & text )
 {
 	// decide what to do
 	bool do_output = m_enabled ;
@@ -120,32 +143,22 @@ void G::LogOutput::doOutput( Log::Severity severity , const char * file , int li
 
 		// add the preamble to tbe buffer
 		std::string::size_type text_pos = 0U ;
-		if( severity == Log::s_Debug )
+		if( m_prefix.length() )
 		{
-			buffer.append( fileAndLine(file,line) ) ;
+			buffer.append( m_prefix ) ;
+			buffer.append( ": " ) ;
 		}
-		else
+		if( m_timestamp )
+			buffer.append( timestampString() ) ;
+		if( m_level )
+			buffer.append( levelString(severity) ) ;
+		if( m_strip )
 		{
-			if( m_prefix.length() )
-			{
-				buffer.append( m_prefix ) ;
-				buffer.append( ": " ) ;
-			}
-
-			if( m_timestamp )
-				buffer.append( timestampString() ) ;
-
-			if( m_level )
-				buffer.append( levelString(severity) ) ;
-
-			if( m_strip )
-			{
-				text_pos = text.find(' ') ;
-				if( text_pos == std::string::npos || (text_pos+1U) == text.length() )
-					text_pos = 0U ;
-				else
-					text_pos++ ;
-			}
+			text_pos = text.find(' ') ;
+			if( text_pos == std::string::npos || (text_pos+1U) == text.length() )
+				text_pos = 0U ;
+			else
+				text_pos++ ;
 		}
 
 		// add the text to the buffer, with a sanity limit
@@ -161,7 +174,7 @@ void G::LogOutput::doOutput( Log::Severity severity , const char * file , int li
 			buffer[buffer.find('\033')] = '.' ;
 
 		// do the actual output in an o/s-specific manner
-		rawOutput( severity , buffer ) ;
+		rawOutput( m_std_err , severity , buffer ) ;
 	}
 }
 
@@ -177,12 +190,25 @@ std::string G::LogOutput::timestampString()
 	if( m_time == 0 || m_time != now )
 	{
 		m_time = now ;
-		struct std::tm * tm_p = std::localtime( &m_time ) ; // see also gdef.h
+		static struct std::tm zero_broken_down_time ;
+		struct std::tm broken_down_time = zero_broken_down_time ;
+		getLocalTime( m_time , &broken_down_time ) ;
 		m_time_buffer[0] = '\0' ;
-		std::strftime( m_time_buffer , sizeof(m_time_buffer)-1U , "%Y" "%m" "%d." "%H" "%M" "%S: " , tm_p ) ;
+		std::strftime( m_time_buffer, sizeof(m_time_buffer)-1U, "%Y" "%m" "%d." "%H" "%M" "%S: ", &broken_down_time ) ;
 		m_time_buffer[sizeof(m_time_buffer)-1U] = '\0' ;
 	}
 	return std::string(m_time_buffer) ;
+}
+
+std::string G::LogOutput::dateString()
+{
+	static struct std::tm zero_broken_down_time ;
+	struct std::tm broken_down_time = zero_broken_down_time ;
+	getLocalTime( std::time(NULL) , &broken_down_time ) ;
+	char buffer[10] = { 0 } ;
+	std::strftime( buffer , sizeof(buffer)-1U , "%Y" "%m" "%d" , &broken_down_time ) ;
+	buffer[sizeof(buffer)-1U] = '\0' ;
+	return std::string( buffer ) ;
 }
 
 std::string G::LogOutput::fileAndLine( const char * file , int line )
@@ -219,12 +245,13 @@ void G::LogOutput::doAssertion( const char * file , int line , const std::string
 	// method since all code in this class is re-entrant
 	onAssert() ;
 
-	rawOutput( Log::s_Assertion , std::string() + "Assertion error: " + fileAndLine(file,line) + test_string ) ;
+	rawOutput( m_std_err , Log::s_Assertion ,
+		std::string() + "Assertion error: " + fileAndLine(file,line) + test_string ) ;
 }
 
 void G::LogOutput::halt()
 {
-	::abort() ;
+	std::abort() ;
 }
 
 std::string G::LogOutput::levelString( Log::Severity s )

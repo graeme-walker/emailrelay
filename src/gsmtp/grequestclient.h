@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -85,7 +85,7 @@ protected:
 	virtual void onDeleteImp( const std::string & , bool ) ;
 		///< Final override from GNet::Client.
 
-	virtual void onSecure() ;
+	virtual void onSecure( const std::string & ) ;
 		///< Final override from GNet::SocketProtocolSink.
 
 private:

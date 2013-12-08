@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -89,7 +89,7 @@ std::string GGui::WindowBase::windowClass() const
 {
 	char buffer[G::limits::win32_classname_buffer] ;
 	buffer[0U] = '\0' ;
-	::GetClassName( m_hwnd , buffer , sizeof(buffer)-1U ) ;
+	::GetClassNameA( m_hwnd , buffer , sizeof(buffer)-1U ) ;
 	buffer[sizeof(buffer)-1U] = '\0' ;
 
 	if( (std::strlen(buffer)+1U) == sizeof(buffer) )
@@ -103,7 +103,7 @@ std::string GGui::WindowBase::windowClass() const
 
 HINSTANCE GGui::WindowBase::windowInstanceHandle() const
 {
-	return reinterpret_cast<HINSTANCE>(::GetWindowLong(m_hwnd,GWL_HINSTANCE)) ;
+	return reinterpret_cast<HINSTANCE>(::GetWindowLongPtr(m_hwnd,GWLP_HINSTANCE)) ;
 }
 
 /// \file gwinbase.cpp

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -54,14 +54,16 @@ G::DateTime::EpochTime G::DateTime::epochTime( const BrokenDownTime & bdt_in )
 
 G::DateTime::BrokenDownTime G::DateTime::utc( EpochTime epoch_time )
 {
-	BrokenDownTime result ;
+	static BrokenDownTime zero ;
+	BrokenDownTime result = zero ;
 	G::DateTime::gmtime_r( &epoch_time , &result ) ;
 	return result ;
 }
 
 G::DateTime::BrokenDownTime G::DateTime::local( EpochTime epoch_time )
 {
-	BrokenDownTime bdt_local ;
+	static BrokenDownTime zero ;
+	BrokenDownTime bdt_local = zero ;
 	G::DateTime::localtime_r( &epoch_time , &bdt_local ) ;
 	return bdt_local ;
 }
@@ -72,8 +74,8 @@ G::DateTime::Offset G::DateTime::offset( EpochTime utc )
 
 	EpochTime local = epochTime(bdt_local) ;
 	bool ahead = local >= utc ; // ie. east-of
-	unsigned int n = ahead ? (local-utc) : (utc-local) ;
-	return Offset( ahead , n ) ;
+	EpochTime n = ahead ? (local-utc) : (utc-local) ;
+	return Offset( ahead , static_cast<unsigned int>(n) ) ;
 }
 
 std::string G::DateTime::offsetString( Offset offset )

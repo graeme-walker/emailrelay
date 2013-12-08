@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2008 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,13 +24,14 @@
 #include "gassert.h"
 #include "gsocket.h"
 #include "glog.h"
+#include <list>
 #include <errno.h>
 
 bool GNet::Socket::valid( Descriptor s )
 {
 	// (beware loosing WSAGetLastError() information, so...)
 	// (put no debug here)
-	return Descriptor__valid( s ) ;
+	return s.valid() ;
 }
 
 int GNet::Socket::reason()
@@ -44,8 +45,8 @@ int GNet::Socket::reason()
 void GNet::Socket::doClose()
 {
 	G_ASSERT( valid() ) ;
-	::closesocket( m_socket );
-	m_socket = Descriptor__invalid() ;
+	::closesocket( m_socket.fd() );
+	m_socket = Descriptor::invalid() ;
 }
 
 bool GNet::Socket::error( int rc )
@@ -79,7 +80,7 @@ bool GNet::Socket::eMsgSize()
 bool GNet::Socket::setNonBlock()
 {
 	unsigned long ul = 1 ;
-	return ioctlsocket( m_socket , FIONBIO , &ul ) != SOCKET_ERROR ;
+	return ioctlsocket( m_socket.fd() , FIONBIO , &ul ) != SOCKET_ERROR ;
 	// (put no debug here)
 }
 
