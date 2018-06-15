@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,28 +18,9 @@
 /// \file gnet.h
 ///
 
-#ifndef G_NET_H
-#define G_NET_H
+#ifndef G_NET__H
+#define G_NET__H
 
-/// Title: gnet.h
-/// gnet.h includes o/s-dependent network header files.
-
-#ifdef G_UNIX
-	#include <sys/types.h>
-	#include <sys/utsname.h>
-	#include <sys/socket.h>
-	#include <netinet/in.h>
-	#include <netdb.h>
-	#include <arpa/inet.h> // for inet_ntoa()
-	typedef int SOCKET ; // used in gdescriptor.h
-#else
-	typedef int socklen_t ;
-#endif
-typedef g_uint16_t g_port_t ; // 'in_port_t' not always available
-
-#ifndef INADDR_NONE
-#define INADDR_NONE 0xffffffff // (should be in netinet/in.h)
-#endif
+// empty
 
 #endif
-

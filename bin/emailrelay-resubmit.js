@@ -1,24 +1,24 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 //
 // emailrelay-resubmit.js
 //
-// A utility script for Windows that looks for all failed e-mails in the 
-// E-MailRelay spool directory and resubmits them. However, if an e-mail has 
+// A utility script for Windows that looks for all failed e-mails in the
+// E-MailRelay spool directory and resubmits them. However, if an e-mail has
 // been retried five times already then it is not submitted again.
 //
 // usage: cscript //nologo emailrelay-resubmit.js [<spool-dir>]
@@ -26,7 +26,7 @@
 
 // configuration
 //
-var cfg_store = "c:/windows/spool/emailrelay" ;
+var cfg_store = "C:/ProgramData/E-MailRelay/spool" ;
 var cfg_retry_limit = 5 ;
 var cfg_debug = false ;
 
@@ -53,7 +53,7 @@ function debug( line )
 var fso = WScript.CreateObject( "Scripting.FileSystemObject" ) ;
 if( ! fso.FolderExists( cfg_store ) )
 {
-	WScript.StdOut.WriteLine( "invalid spool directory: \"" + cfg_store + "\"" ) ;
+	WScript.Echo( "invalid spool directory: \"" + cfg_store + "\"" ) ;
 	WScript.Quit( 1 ) ;
 }
 

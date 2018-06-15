@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,7 +19,9 @@
 //
 
 #include "gdef.h"
+#include "gdatetime.h"
 #include "glogoutput.h"
+#include "genvironment.h"
 #include "glimits.h"
 #include <sstream>
 #include <string>
@@ -27,29 +29,31 @@
 #include <cstdlib>
 #include <fstream>
 
-// (note that the implementation here has to be reentrant and using only the standard runtime library)
+// (note that this code cannot use any library code that might do logging)
 
 G::LogOutput::LogOutput( const std::string & prefix , bool enabled , bool summary_log ,
-	bool verbose_log , bool debug , bool level , bool timestamp , bool strip ,
+	bool verbose_log , bool debug , bool with_level , bool with_timestamp , bool strip ,
 	bool use_syslog , const std::string & stderr_replacement , SyslogFacility syslog_facility ) :
 		m_prefix(prefix) ,
 		m_enabled(enabled) ,
 		m_summary_log(summary_log) ,
 		m_verbose_log(verbose_log) ,
+		m_quiet(false) ,
 		m_debug(debug) ,
-		m_level(level) ,
+		m_level(with_level) ,
 		m_strip(strip) ,
 		m_syslog(use_syslog) ,
 		m_std_err(err(stderr_replacement)) ,
 		m_facility(syslog_facility) ,
 		m_time(0) ,
-		m_timestamp(timestamp) ,
+		m_timestamp(with_timestamp) ,
 		m_handle(0) ,
 		m_handle_set(false)
 {
-	if( pthis() == NULL )
+	if( pthis() == nullptr )
 		pthis() = this ;
 	init() ;
+	groups( G::Environment::get("G_LOG_GROUPS","") ) ;
 }
 
 G::LogOutput::LogOutput( bool enabled_and_summary , bool verbose_and_debug ,
@@ -57,6 +61,7 @@ G::LogOutput::LogOutput( bool enabled_and_summary , bool verbose_and_debug ,
 		m_enabled(enabled_and_summary) ,
 		m_summary_log(enabled_and_summary) ,
 		m_verbose_log(verbose_and_debug) ,
+		m_quiet(false) ,
 		m_debug(verbose_and_debug) ,
 		m_level(false) ,
 		m_strip(false) ,
@@ -68,9 +73,10 @@ G::LogOutput::LogOutput( bool enabled_and_summary , bool verbose_and_debug ,
 		m_handle(0) ,
 		m_handle_set(false)
 {
-	if( pthis() == NULL )
+	if( pthis() == nullptr )
 		pthis() = this ;
 	init() ;
+	groups( G::Environment::get("G_LOG_GROUPS","") ) ;
 }
 
 std::ostream & G::LogOutput::err( const std::string & path_in )
@@ -95,13 +101,13 @@ std::ostream & G::LogOutput::err( const std::string & path_in )
 G::LogOutput::~LogOutput()
 {
 	if( pthis() == this )
-		pthis() = NULL ;
+		pthis() = nullptr ;
 	cleanup() ;
 }
 
 G::LogOutput * & G::LogOutput::pthis()
 {
-	static G::LogOutput * p = NULL ;
+	static G::LogOutput * p = nullptr ;
 	return p ;
 }
 
@@ -117,15 +123,24 @@ bool G::LogOutput::enable( bool enabled )
 	return was_enabled ;
 }
 
+void G::LogOutput::quiet( bool quiet )
+{
+	m_quiet = quiet ; // used in o/s-specific rawOutput
+}
+
+void G::LogOutput::verbose( bool verbose_log )
+{
+	m_verbose_log = verbose_log ;
+}
+
 void G::LogOutput::output( Log::Severity severity , const char * file , int line , const std::string & text )
 {
-	if( instance() != NULL )
+	if( instance() != nullptr )
 		instance()->doOutput( severity , file , line , text ) ;
 }
 
-void G::LogOutput::doOutput( Log::Severity severity , const char * /* file */ , int /* line */ , const std::string & text )
+bool G::LogOutput::at( Log::Severity severity ) const
 {
-	// decide what to do
 	bool do_output = m_enabled ;
 	if( severity == Log::s_Debug )
 		do_output = m_enabled && m_debug ;
@@ -133,25 +148,56 @@ void G::LogOutput::doOutput( Log::Severity severity , const char * /* file */ , 
 		do_output = m_enabled && m_summary_log ;
 	else if( severity == Log::s_LogVerbose )
 		do_output = m_enabled && m_verbose_log ;
+	return do_output ;
+}
 
+void G::LogOutput::groups( const std::string & list )
+{
+	if( instance() )
+	{
+		instance()->m_groups.clear() ;
+		const char sep = ',' ;
+		size_t p1 = 0U ;
+		const size_t npos = std::string::npos ;
+		for( size_t p2 = list.find(sep,p1) ; p1 < list.size() ; p1 = p2==npos?npos:(p2+1U) , p2 = list.find(sep,p1) )
+		{
+			if( p1 != p2 )
+				instance()->m_groups.insert( list.substr( p1 , p2==npos ? p2 : (p2-p1) ) ) ;
+		}
+	}
+}
+
+bool G::LogOutput::at( Log::Severity severity , const std::string & group ) const
+{
+	if( m_groups.empty() )
+		return at( severity ) ;
+	else
+		return at(severity) && ( m_groups.find("log-all") != m_groups.end() || m_groups.find("log-"+group) != m_groups.end() ) ;
+}
+
+void G::LogOutput::doOutput( Log::Severity severity , const char * /*file*/ , int /*line*/ , const std::string & text )
+{
+	bool do_output = at( severity ) ;
 	if( do_output )
 	{
-		// allocate a buffer
+		// reserve the buffer
 		const size_type limit = static_cast<size_type>(limits::log) ;
-		std::string buffer ;
-		buffer.reserve( (text.length()>limit?limit:text.length()) + 40U ) ;
+		m_buffer.reserve( (text.length()>limit?limit:text.length()) + 40U ) ;
+		m_buffer.clear() ;
 
-		// add the preamble to tbe buffer
+		// add the preamble to the buffer
 		std::string::size_type text_pos = 0U ;
 		if( m_prefix.length() )
 		{
-			buffer.append( m_prefix ) ;
-			buffer.append( ": " ) ;
+			m_buffer.append( m_prefix ) ;
+			m_buffer.append( ": " ) ;
 		}
 		if( m_timestamp )
-			buffer.append( timestampString() ) ;
+			appendTimestampStringTo( m_buffer ) ;
 		if( m_level )
-			buffer.append( levelString(severity) ) ;
+			m_buffer.append( levelString(severity) ) ;
+
+		// strip the first word from the text - expected to be the method name
 		if( m_strip )
 		{
 			text_pos = text.find(' ') ;
@@ -165,16 +211,16 @@ void G::LogOutput::doOutput( Log::Severity severity , const char * /* file */ , 
 		size_type text_len = text.length() - text_pos ;
 		bool limited = text_len > limit ;
 		text_len = text_len > limit ? limit : text_len ;
-		buffer.append( text , text_pos , text_len ) ;
+		m_buffer.append( text , text_pos , text_len ) ;
 		if( limited )
-			buffer.append( " ..." ) ;
+			m_buffer.append( " ..." ) ;
 
 		// last ditch removal of ansi escape sequences
-		while( buffer.find('\033') != std::string::npos )
-			buffer[buffer.find('\033')] = '.' ;
+		while( m_buffer.find('\033') != std::string::npos )
+			m_buffer[m_buffer.find('\033')] = '.' ;
 
 		// do the actual output in an o/s-specific manner
-		rawOutput( m_std_err , severity , buffer ) ;
+		rawOutput( m_std_err , severity , m_buffer ) ;
 	}
 }
 
@@ -183,28 +229,35 @@ void G::LogOutput::onAssert()
 	// no-op
 }
 
-std::string G::LogOutput::timestampString()
+void G::LogOutput::appendTimestampStringTo( std::string & result )
 {
-	// use a data member buffer to optimise away calls to localtime() and strftime()
-	std::time_t now = std::time(NULL) ;
-	if( m_time == 0 || m_time != now )
+	// use a cache to optimise away calls to localtime() and strftime()
+	G::EpochTime now = G::DateTime::now() ;
+	if( m_time == 0 || m_time != now.s )
 	{
-		m_time = now ;
+		m_time = now.s ;
 		static struct std::tm zero_broken_down_time ;
 		struct std::tm broken_down_time = zero_broken_down_time ;
 		getLocalTime( m_time , &broken_down_time ) ;
-		m_time_buffer[0] = '\0' ;
-		std::strftime( m_time_buffer, sizeof(m_time_buffer)-1U, "%Y" "%m" "%d." "%H" "%M" "%S: ", &broken_down_time ) ;
-		m_time_buffer[sizeof(m_time_buffer)-1U] = '\0' ;
+		m_time_buffer.reserve( 30U ) ;
+		m_time_buffer.assign( 17U , '\0' ) ;
+		std::strftime( &m_time_buffer[0] , m_time_buffer.size() , "%Y" "%m" "%d." "%H" "%M" "%S.", &broken_down_time ) ;
+		m_time_buffer.pop_back() ;
 	}
-	return std::string(m_time_buffer) ;
+
+	result.append( &m_time_buffer[0] , m_time_buffer.size() ) ;
+	result.append( 1U , '0' + ( ( now.us / 100000 ) % 10 ) ) ;
+	result.append( 1U , '0' + ( ( now.us / 10000 ) % 10 ) ) ;
+	result.append( 1U , '0' + ( ( now.us / 1000 ) % 10 ) ) ;
+	result.append( ": " ) ;
 }
 
 std::string G::LogOutput::dateString()
 {
+	// (prefer to not use G::Date here to avoid reentrancy)
 	static struct std::tm zero_broken_down_time ;
 	struct std::tm broken_down_time = zero_broken_down_time ;
-	getLocalTime( std::time(NULL) , &broken_down_time ) ;
+	getLocalTime( std::time(nullptr) , &broken_down_time ) ;
 	char buffer[10] = { 0 } ;
 	std::strftime( buffer , sizeof(buffer)-1U , "%Y" "%m" "%d" , &broken_down_time ) ;
 	buffer[sizeof(buffer)-1U] = '\0' ;
@@ -213,7 +266,7 @@ std::string G::LogOutput::dateString()
 
 std::string G::LogOutput::fileAndLine( const char * file , int line )
 {
-	if( file != NULL )
+	if( file != nullptr )
 	{
 		std::string basename( file ) ;
 		std::string::size_type slash_pos = basename.find_last_of( "/\\" ) ;
@@ -227,7 +280,7 @@ std::string G::LogOutput::fileAndLine( const char * file , int line )
 	}
 }
 
-void G::LogOutput::assertion( const char * file , int line , bool test , const std::string & test_string )
+void G::LogOutput::assertion( const char * file , int line , bool test , const char * test_string )
 {
 	if( !test )
 	{
@@ -254,7 +307,7 @@ void G::LogOutput::halt()
 	std::abort() ;
 }
 
-std::string G::LogOutput::levelString( Log::Severity s )
+const char * G::LogOutput::levelString( Log::Severity s )
 {
 	if( s == Log::s_Debug ) return "debug: " ;
 	else if( s == Log::s_LogSummary ) return "info: " ;
@@ -262,7 +315,7 @@ std::string G::LogOutput::levelString( Log::Severity s )
 	else if( s == Log::s_Warning ) return "warning: " ;
 	else if( s == Log::s_Error ) return "error: " ;
 	else if( s == Log::s_Assertion ) return "fatal: " ;
-	return std::string() ;
+	return "" ;
 }
 
 std::string G::LogOutput::itoa( int n_ )
@@ -280,4 +333,8 @@ std::string G::LogOutput::itoa( int n_ )
 	return zero ? buffer : (p+1U) ;
 }
 
+bool G::LogOutput::syslog() const
+{
+	return m_syslog ;
+}
 /// \file glogoutput.cpp

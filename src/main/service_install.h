@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,12 +18,14 @@
 /// \file service_install.h
 ///
 
-#ifndef GUI_SERVICE_INSTALL_H__
-#define GUI_SERVICE_INSTALL_H__
+#ifndef GUI_SERVICE_INSTALL_H
+#define GUI_SERVICE_INSTALL_H
 
 #include <string>
 
 std::string service_install( std::string commandline , std::string name , std::string display_name ,
-	std::string description ) ;
+	std::string description , bool autostart = true ) ;
+
+bool service_installed( std::string name ) ;
 
 #endif

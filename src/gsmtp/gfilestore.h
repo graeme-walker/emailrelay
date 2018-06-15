@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,11 +31,9 @@
 #include "gslot.h"
 #include "groot.h"
 #include "gpath.h"
-#include "gexecutable.h"
 #include <memory>
 #include <string>
 
-/// \namespace GSmtp
 namespace GSmtp
 {
 	class FileStore ;
@@ -45,10 +43,8 @@ namespace GSmtp
 }
 
 /// \class GSmtp::FileStore
-/// A concrete implementation of the MessageStore
-/// interface dealing in paired flat files and with an optional
-/// external preprocessor program which is used to process files
-/// once they have been stored.
+/// A concrete implementation of the MessageStore interface dealing
+/// in paired flat files.
 ///
 /// The implementation puts separate envelope and content files
 /// in the spool directory. The content file is written first.
@@ -59,7 +55,7 @@ namespace GSmtp
 /// Passes out unique sequence numbers, filesystem paths and
 /// i/o streams to NewMessageImp.
 ///
-class GSmtp::FileStore : public GSmtp::MessageStore
+class GSmtp::FileStore : public MessageStore
 {
 public:
 	G_EXCEPTION( InvalidDirectory , "invalid spool directory" ) ;
@@ -81,7 +77,7 @@ public:
 	unsigned long newSeq() ;
 		///< Hands out a new non-zero sequence number.
 
-	std::auto_ptr<std::ostream> stream( const G::Path & path ) ;
+	unique_ptr<std::ostream> stream( const G::Path & path ) ;
 		///< Returns a stream to the given content.
 
 	G::Path contentPath( unsigned long seq ) const ;
@@ -94,43 +90,47 @@ public:
 		///< Returns the path for an envelope file
 		///< which is in the process of being written.
 
-	virtual bool empty() const ;
-		///< Final override from GSmtp::MessageStore.
+	virtual bool empty() const override ;
+		///< Override from GSmtp::MessageStore.
 
-	virtual std::auto_ptr<StoredMessage> get( unsigned long id ) ;
-		///< Final override from GSmtp::MessageStore.
+	virtual unique_ptr<StoredMessage> get( unsigned long id ) override ;
+		///< Override from GSmtp::MessageStore.
 
-	virtual MessageStore::Iterator iterator( bool lock ) ;
-		///< Final override from GSmtp::MessageStore.
+	virtual MessageStore::Iterator iterator( bool lock ) override ;
+		///< Override from GSmtp::MessageStore.
 
-	virtual MessageStore::Iterator failures() ;
-		///< Final override from GSmtp::MessageStore.
+	virtual MessageStore::Iterator failures() override ;
+		///< Override from GSmtp::MessageStore.
 
-	virtual std::auto_ptr<NewMessage> newMessage( const std::string & from ) ;
-		///< Final override from GSmtp::MessageStore.
+	virtual unique_ptr<NewMessage> newMessage( const std::string & from ,
+		const std::string & from_auth_in , const std::string & from_auth_out ) override ;
+			///< Override from GSmtp::MessageStore.
 
 	static std::string x() ;
 		///< Returns the prefix for envelope header lines.
 
-	static std::string format() ;
-		///< Returns an identifier for the storage format
-		///< implemented by this class.
+	static std::string format( int generation = 0 ) ;
+		///< Returns an identifier for the storage format implemented
+		///< by this class, or some older generation of it (eg. -1).
 
 	static bool knownFormat( const std::string & format ) ;
 		///< Returns true if the storage format string is
 		///< recognised and supported for reading.
 
-	virtual void repoll() ;
-		///< Final override from GSmtp::MessageStore.
+	virtual void rescan() override ;
+		///< Override from GSmtp::MessageStore.
 
-	virtual void unfailAll() ;
-		///< Final override from GSmtp::MessageStore.
+	virtual void unfailAll() override ;
+		///< Override from GSmtp::MessageStore.
 
-	virtual void updated() ;
-		///< Final override from GSmtp::MessageStore.
+	virtual void updated() override ;
+		///< Override from GSmtp::MessageStore.
 
-	virtual G::Signal1<bool> & signal() ;
-		///< Final override from GSmtp::MessageStore.
+	virtual G::Slot::Signal0 & messageStoreUpdateSignal() override ;
+		///< Override from GSmtp::MessageStore.
+
+	virtual G::Slot::Signal0 & messageStoreRescanSignal() override ;
+		///< Override from GSmtp::MessageStore.
 
 private:
 	static void checkPath( const G::Path & dir ) ;
@@ -140,16 +140,19 @@ private:
 	std::string value( const std::string & ) const ;
 	static const std::string & crlf() ;
 	bool emptyCore() const ;
+	void createTestMessage() ;
+	void clearAll() ;
 
 private:
 	unsigned long m_seq ;
 	G::Path m_dir ;
 	bool m_optimise ;
 	bool m_empty ; // mutable
-	bool m_repoll ;
+	bool m_rescan ;
 	unsigned long m_max_size ;
 	unsigned long m_pid_modifier ;
-	G::Signal1<bool> m_signal ;
+	G::Slot::Signal0 m_update_signal ;
+	G::Slot::Signal0 m_rescan_signal ;
 } ;
 
 /// \class GSmtp::FileReader

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,13 +22,11 @@
 #define G_AUTH_SECRETS_H
 
 #include "gdef.h"
-#include "gauth.h"
 #include "gpath.h"
 #include "gexception.h"
-#include "gsaslserver.h"
-#include "gsaslclient.h"
+#include "gsaslserversecrets.h"
+#include "gsaslclientsecrets.h"
 
-/// \namespace GAuth
 namespace GAuth
 {
 	class Secrets ;
@@ -36,29 +34,26 @@ namespace GAuth
 }
 
 /// \class GAuth::Secrets
-/// A simple interface to a store of secrets as used in
-/// authentication. The default implementation uses a flat file.
+/// A simple interface for a store of secrets used in authentication.
+/// The default implementation uses a flat file.
 ///
-/// \see GAuth::SaslClient, GAuth::SaslServer
-///
-class GAuth::Secrets : public GAuth::SaslClient::Secrets , public GAuth::SaslServer::Secrets
+class GAuth::Secrets : public SaslClientSecrets , public SaslServerSecrets
 {
 public:
 	G_EXCEPTION( OpenError , "cannot read secrets file" ) ;
 
-	Secrets( const std::string & source_storage_path ,
-		const std::string & debug_name ,
+	Secrets( const std::string & source_storage_path , const std::string & debug_name ,
 		const std::string & server_type = std::string() ) ;
-			///< Constructor. In principle the repository 'storage-path'
-			///< can be a path to a file, a database connection string,
-			///< etc.
+			///< Constructor. The connection string is a secrets file path
+			///< or "/pam".
 			///<
 			///< The 'debug-name' is used in log and error messages to
 			///< identify the repository.
 			///<
 			///< The 'server-type' parameter can be used to select
 			///< a different set of server-side authentication records
-			///< that may be stored in the same repository.
+			///< that may be stored in the same repository such as
+			///< "smtp" or "pop". The default is "server".
 			///<
 			///< Throws on error, although an empty path is not
 			///< considered an error: see valid().
@@ -69,47 +64,28 @@ public:
 	virtual ~Secrets() ;
 		///< Destructor.
 
-	virtual std::string source() const ;
-		///< Final override from GAuth::SaslServer::Secrets.
-		///<
-		///< Returns the source storage path as passed in to
-		///< the constructor.
+	virtual std::string source() const override ;
+		///< Override from GAuth::SaslServerSecrets.
 
-	virtual bool valid() const ;
-		///< Final override from GAuth::Valid virtual base.
-		///<
-		///< The implementation returns false if the path was empty.
+	virtual bool valid() const override ;
+		///< Override from GAuth::Valid virtual base.
 
-	virtual std::string id( const std::string & mechanism ) const ;
-		///< Final override from GAuth::SaslClient::Secrets.
-		///<
-		///< Returns the default id for client-side
-		///< authentication.
+	virtual Secret clientSecret( const std::string & mechanism ) const override ;
+			///< Override from GAuth::SaslClientSecrets.
 
-	virtual std::string secret( const std::string & mechanism ) const ;
-		///< Final override from GAuth::SaslClient::Secrets.
-		///<
-		///< Returns the default secret for client-side
-		///< authentication.
+	virtual Secret serverSecret( const std::string & mechanism ,
+		const std::string & id ) const override ;
+			///< Override from GAuth::SaslServerSecrets.
 
-	virtual std::string secret( const std::string & mechanism , const std::string & id ) const ;
-		///< Final override from GAuth::SaslServer::Secrets.
-		///<
-		///< Returns the given user's secret for server-side
-		///< authentication. Returns the empty string if not a
-		///< valid id.
+	virtual std::pair<std::string,std::string> serverTrust( const std::string & address_range ) const override ;
+			///< Override from GAuth::SaslServerSecrets.
 
-	virtual bool contains( const std::string & mechanism ) const ;
-		///< Final override from GAuth::SaslServer::Secrets.
-		///<
-		///< Returns true if there is one or more server
-		///< secrets using the given mechanism. This can
-		///< be used to limit the list of mechanisms
-		///< advertised by a server.
+	virtual bool contains( const std::string & mechanism ) const override ;
+		///< Override from GAuth::SaslServerSecrets.
 
 private:
-	Secrets( const Secrets & ) ; // not implemented
-	void operator=( const Secrets & ) ; // not implemented
+	Secrets( const Secrets & ) ;
+	void operator=( const Secrets & ) ;
 
 private:
 	std::string m_source ;
@@ -117,4 +93,3 @@ private:
 } ;
 
 #endif
-

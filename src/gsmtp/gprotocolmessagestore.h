@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,12 +26,11 @@
 #include "gprotocolmessage.h"
 #include "gmessagestore.h"
 #include "gnewmessage.h"
-#include "gprocessor.h"
+#include "gfilter.h"
 #include "gslot.h"
 #include <string>
 #include <memory>
 
-/// \namespace GSmtp
 namespace GSmtp
 {
 	class ProtocolMessageStore ;
@@ -42,53 +41,53 @@ namespace GSmtp
 /// that stores incoming messages in the message store.
 /// \see GSmtp::ProtocolMessageForward
 ///
-class GSmtp::ProtocolMessageStore : public GSmtp::ProtocolMessage
+class GSmtp::ProtocolMessageStore : public ProtocolMessage
 {
 public:
-	ProtocolMessageStore( MessageStore & store , std::auto_ptr<Processor> ) ;
+	ProtocolMessageStore( MessageStore & store , unique_ptr<Filter> ) ;
 		///< Constructor.
 
 	virtual ~ProtocolMessageStore() ;
 		///< Destructor.
 
-	virtual G::Signal3<bool,unsigned long,std::string> & doneSignal() ;
-		///< Final override from GSmtp::ProtocolMessage.
+	virtual G::Slot::Signal4<bool,unsigned long,std::string,std::string> & doneSignal() override ;
+		///< Override from GSmtp::ProtocolMessage.
 
-	virtual void reset() ;
-		///< Final override from GSmtp::ProtocolMessage.
+	virtual void reset() override ;
+		///< Override from GSmtp::ProtocolMessage.
 
-	virtual void clear() ;
-		///< Final override from GSmtp::ProtocolMessage.
+	virtual void clear() override ;
+		///< Override from GSmtp::ProtocolMessage.
 
-	virtual bool setFrom( const std::string & from_user ) ;
-		///< Final override from GSmtp::ProtocolMessage.
+	virtual bool setFrom( const std::string & from_user , const std::string & ) override ;
+		///< Override from GSmtp::ProtocolMessage.
 
-	virtual bool addTo( const std::string & to_user , VerifierStatus to_status ) ;
-		///< Final override from GSmtp::ProtocolMessage.
+	virtual bool addTo( const std::string & to_user , VerifierStatus to_status ) override ;
+		///< Override from GSmtp::ProtocolMessage.
 
-	virtual void addReceived( const std::string & ) ;
-		///< Final override from GSmtp::ProtocolMessage.
+	virtual void addReceived( const std::string & ) override ;
+		///< Override from GSmtp::ProtocolMessage.
 
-	virtual bool addText( const std::string & ) ;
-		///< Final override from GSmtp::ProtocolMessage.
+	virtual bool addText( const char * , size_t ) override ;
+		///< Override from GSmtp::ProtocolMessage.
 
-	virtual std::string from() const ;
-		///< Final override from GSmtp::ProtocolMessage.
+	virtual std::string from() const override ;
+		///< Override from GSmtp::ProtocolMessage.
 
 	virtual void process( const std::string & auth_id , const std::string & peer_socket_address ,
-		const std::string & peer_socket_name , const std::string & peer_certificate ) ;
-			///< Final override from GSmtp::ProtocolMessage.
+		const std::string & peer_certificate ) override ;
+			///< Override from GSmtp::ProtocolMessage.
 
 private:
 	void operator=( const ProtocolMessageStore & ) ; // not implemented
-	void preprocessorDone( bool ) ;
+	void filterDone( int ) ;
 
 private:
 	MessageStore & m_store ;
-	std::auto_ptr<Processor> m_processor ;
-	std::auto_ptr<NewMessage> m_msg ;
+	unique_ptr<Filter> m_filter ;
+	unique_ptr<NewMessage> m_new_msg ;
 	std::string m_from ;
-	G::Signal3<bool,unsigned long,std::string> m_done_signal ;
+	G::Slot::Signal4<bool,unsigned long,std::string,std::string> m_done_signal ;
 } ;
 
 #endif

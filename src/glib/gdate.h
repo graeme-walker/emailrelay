@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@
 #include <ctime>
 #include <string>
 
-/// \namespace G
 namespace G
 {
 	class Date ;
@@ -40,8 +39,7 @@ namespace G
 class G::Date
 {
 public:
-	/// An overload discriminator class for Date constructors.
-	class LocalTime
+	class LocalTime /// An overload discriminator class for Date constructors.
 		{} ;
 
 	enum Weekday
@@ -71,11 +69,11 @@ public:
 	Date( const G::DateTime::BrokenDownTime & tm ) ;
 		///< Constructor for the specified date.
 
-	explicit Date( G::DateTime::EpochTime t ) ;
+	explicit Date( G::EpochTime t ) ;
 		///< Constructor for the date in the UTC
 		///< timezone as at the given epoch time.
 
-	Date( G::DateTime::EpochTime t , const LocalTime & ) ;
+	Date( G::EpochTime t , const LocalTime & ) ;
 		///< Constructor for the date in the local
 		///< timezone as at the given epoch time.
 
@@ -91,14 +89,12 @@ public:
 	std::string weekdayName( bool brief = false ) const ;
 		///< Returns an english string representation of
 		///< the day of the week.
-		///< (Was weekdayString().)
 
 	int monthday() const ;
 		///< Returns the day of the month.
 
 	std::string dd() const ;
 		///< Returns the day of the month as a two-digit decimal string.
-		///< (Was monthdayString().)
 
 	Month month() const ;
 		///< Returns the month.
@@ -114,7 +110,6 @@ public:
 
 	std::string yyyy() const ;
 		///< Returns the year as a four-digit decimal string.
-		///< (Was yearString().)
 
 	Date & operator++() ;
 		///< Increments the date by one day.

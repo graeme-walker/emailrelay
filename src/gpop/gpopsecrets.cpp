@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,14 +25,14 @@
 
 /// \class GPop::SecretsImp
 /// A private pimple-pattern implementation class used by GPop::Secrets.
-///  The implementation delegates to GSmtp::Secrets.
+/// The implementation delegates to GSmtp::Secrets.
 ///
 class GPop::SecretsImp
 {
 public:
 	explicit SecretsImp( const std::string & path ) ;
 	std::string path() const ;
-	std::string secret( const std::string & mechanism , const std::string & id ) const ;
+	GAuth::Secret serverSecret( const std::string & encoding_type , const std::string & id ) const ;
 	bool contains( const std::string & mechanism ) const ;
 	std::string m_path ;
 	GAuth::Secrets m_secrets ;
@@ -65,9 +65,14 @@ bool GPop::Secrets::valid() const
 	return true ;
 }
 
-std::string GPop::Secrets::secret( const std::string & mechanism , const std::string & id ) const
+GAuth::Secret GPop::Secrets::serverSecret( const std::string & encoding_type , const std::string & id ) const
 {
-	return m_imp->secret( mechanism , id ) ;
+	return m_imp->serverSecret( encoding_type , id ) ;
+}
+
+std::pair<std::string,std::string> GPop::Secrets::serverTrust( const std::string & ) const
+{
+	return std::make_pair( std::string() , std::string() ) ;
 }
 
 bool GPop::Secrets::contains( const std::string & mechanism ) const
@@ -91,9 +96,9 @@ std::string GPop::SecretsImp::path() const
 	return m_path ;
 }
 
-std::string GPop::SecretsImp::secret( const std::string & mechanism , const std::string & id ) const
+GAuth::Secret GPop::SecretsImp::serverSecret( const std::string & encoding_type , const std::string & id ) const
 {
-	return m_secrets.secret( mechanism , id ) ;
+	return m_secrets.serverSecret( encoding_type , id ) ;
 }
 
 bool GPop::SecretsImp::contains( const std::string & mechanism ) const

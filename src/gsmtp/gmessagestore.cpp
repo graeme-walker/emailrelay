@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ GSmtp::MessageStore::IteratorImp::~IteratorImp()
 // ===
 
 GSmtp::MessageStore::Iterator::Iterator() :
-	m_imp(NULL)
+	m_imp(nullptr)
 {
 }
 
@@ -52,9 +52,9 @@ GSmtp::MessageStore::Iterator::Iterator( IteratorImp * imp ) :
 	G_ASSERT( m_imp->m_ref_count == 1UL ) ;
 }
 
-std::auto_ptr<GSmtp::StoredMessage> GSmtp::MessageStore::Iterator::next()
+unique_ptr<GSmtp::StoredMessage> GSmtp::MessageStore::Iterator::next()
 {
-	return m_imp ? m_imp->next() : std::auto_ptr<StoredMessage>(NULL) ;
+	return m_imp ? m_imp->next() : unique_ptr<StoredMessage>() ;
 }
 
 GSmtp::MessageStore::Iterator::~Iterator()
@@ -96,7 +96,7 @@ GSmtp::MessageStore::Iterator & GSmtp::MessageStore::Iterator::operator=( const 
 void GSmtp::MessageStore::Iterator::last()
 {
 	IteratorImp * imp = m_imp ;
-	m_imp = NULL ;
+	m_imp = nullptr ;
 	delete imp ;
 }
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,24 +22,31 @@
 #define G_MAIN_OUTPUT_H
 
 #include "gdef.h"
+#include "goptions.h"
 #include <string>
 
-/// \namespace Main
 namespace Main
 {
 	class Output ;
 }
 
 /// \class Main::Output
-/// An abstract interface for generating output
-/// on a command-line or a GUI. The appropriate implementation is
-/// selected from main() or WinMain().
+/// An abstract interface for generating output on a command-line
+/// or a GUI. The appropriate implementation is selected from
+/// main() or WinMain().
 ///
 class Main::Output
 {
 public:
 	virtual void output( const std::string & , bool error ) = 0 ;
 		///< Outputs the given string.
+
+	virtual G::Options::Layout layout() const = 0 ;
+		///< Returns a layout definition for G::Options.
+
+	virtual bool simpleOutput() const = 0 ;
+		///< Returns true if the output is just sent to stdout;
+		///< returns false for a fancy gui message box.
 
 	virtual ~Output() ;
 		///< Destructor.
@@ -49,4 +56,3 @@ private:
 } ;
 
 #endif
-

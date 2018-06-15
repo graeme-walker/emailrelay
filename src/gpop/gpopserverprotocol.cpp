@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 #include "gpop.h"
 #include "gpopserverprotocol.h"
 #include "gstr.h"
-#include "gmemory.h"
 #include "gbase64.h"
 #include "gassert.h"
 #include "glog.h"
@@ -119,7 +118,7 @@ void GPop::ServerProtocol::apply( const std::string & line )
 	if( event == eAuthData )
 		log_text = ("[password not logged]") ;
 	if( event == eAuth && !commandPart(line,1U).empty() )
-		log_text = (commandPart(line,0U)+" "+commandPart(line,1U) + " [password not logged]") ;
+		log_text = commandPart(line,0U) + " " + commandPart(line,1U) ;
 	G_LOG( "GPop::ServerProtocol: rx<<: \"" << log_text << "\"" ) ;
 
 	// apply the event to the state machine
@@ -147,7 +146,7 @@ void GPop::ServerProtocol::sendContent()
 	if( end_of_content )
 	{
 		G_LOG( "GPop::ServerProtocol: tx>>: ." ) ;
-		m_content <<= 0 ; // free up resources
+		m_content.reset() ; // free up resources
 		m_fsm.apply( *this , eSent , "" ) ; // sData -> sActive
 	}
 }
@@ -161,7 +160,7 @@ void GPop::ServerProtocol::resume()
 
 bool GPop::ServerProtocol::sendContentLine( std::string & line , bool & stop )
 {
-	G_ASSERT( m_content.get() != NULL ) ;
+	G_ASSERT( m_content.get() != nullptr ) ;
 
 	// maintain the line limit
 	bool limited = m_in_body && m_body_limit == 0L ;
@@ -170,7 +169,7 @@ bool GPop::ServerProtocol::sendContentLine( std::string & line , bool & stop )
 
 	// read the line of text
 	line.erase( 1U ) ; // leave "."
-	G::Str::readLineFrom( *(m_content.get()) , crlf() , line , false ) ;
+	G::Str::readLineFrom( *(m_content.get()) , crlf() , line , false/*erase*/ ) ;
 
 	// add crlf and choose an offset
 	bool eof = m_content->fail() || m_content->bad() ;
@@ -222,12 +221,9 @@ std::string GPop::ServerProtocol::commandWord( const std::string & line ) const
 
 std::string GPop::ServerProtocol::commandPart( const std::string & line , size_t index ) const
 {
-	G::Strings part ;
-	G::Str::splitIntoTokens( line , part , " \t\r\n" ) ;
-	if( index >= part.size() ) return std::string() ;
-	G::Strings::iterator p = part.begin() ;
-	for( ; index > 0 ; ++p , index-- ) ;
-	return *p ;
+	G::StringArray part ;
+	G::Str::splitIntoTokens( line , part , G::Str::ws() ) ;
+	return index >= part.size() ? std::string() : part.at(index) ;
 }
 
 std::string GPop::ServerProtocol::commandParameter( const std::string & line_in , size_t index ) const
@@ -330,8 +326,7 @@ void GPop::ServerProtocol::doRetr( const std::string & line , bool & more )
 	}
 	else
 	{
-		std::auto_ptr<std::istream> content( m_store_lock.get(id) ) ; // for gcc2.95
-		m_content <<= content.release() ;
+		m_content.reset( m_store_lock.get(id).release() ) ;
 		m_body_limit = -1L ;
 
 		std::ostringstream ss ;
@@ -352,8 +347,7 @@ void GPop::ServerProtocol::doTop( const std::string & line , bool & more )
 	}
 	else
 	{
-		std::auto_ptr<std::istream> content( m_store_lock.get(id) ) ; // for gcc2.95
-		m_content <<= content.release() ;
+		m_content.reset( m_store_lock.get(id).release() ) ;
 		m_body_limit = n ;
 		m_in_body = false ;
 		sendOk() ;
@@ -414,7 +408,7 @@ void GPop::ServerProtocol::doAuth( const std::string & line , bool & ok )
 	{
 		std::string initial_response = commandParameter(line,2) ;
 		if( initial_response == "=" )
-			initial_response = std::string() ; // RFC 5034
+			initial_response = std::string() ; // RFC-5034
 
 		// reject the LOGIN mechanism here since we did not avertise it
 		// and we only want a one-step challenge-response dialogue
@@ -489,8 +483,8 @@ std::string GPop::ServerProtocol::mechanismsWithoutLogin() const
 	if( m_auth.valid() )
 	{
 		result = m_auth.mechanisms() ;
-		G::Str::replace( result , "LOGIN" , "" ) ; // could do better
-		G::Str::replace( result , "  " , " " ) ;
+		G::Str::replace( result , "LOGIN" , "" ) ;
+		result = G::Str::trimmed( G::Str::unique(result) , G::Str::ws() ) ;
 	}
 	return result ;
 }

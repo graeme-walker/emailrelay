@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,10 +22,15 @@
 #include "gpop.h"
 #include "gpopsecrets.h"
 #include "gpath.h"
+#include "gmacros.h"
+
+#ifndef G_SYSCONFDIR
+#define G_SYSCONFDIR
+#endif
 
 std::string GPop::Secrets::defaultPath()
 {
-	std::string sysconfdir( G_SYSCONFDIR ) ;
+	std::string sysconfdir( G_STR(G_SYSCONFDIR) ) ;
 	if( sysconfdir.empty() )
 		sysconfdir = "/etc" ;
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file glink.h
 ///
 
-#ifndef G_LINK_H__
-#define G_LINK_H__
+#ifndef G_LINK_H
+#define G_LINK_H
 
 #include "gdef.h"
 #include "gpath.h"
@@ -41,7 +41,7 @@ public:
 	enum Show { Show_Default , Show_Hide } ;
 
 	GLink( const G::Path & target_path , const std::string & name , const std::string & description ,
-		const G::Path & working_dir , const G::Strings & args = G::Strings() ,
+		const G::Path & working_dir , const G::StringArray & args = G::StringArray() ,
 		const G::Path & icon_source = G::Path() , Show show = Show_Default ,
 		const std::string & internal_comment_1 = std::string() ,
 		const std::string & internal_comment_2 = std::string() ,
@@ -60,8 +60,11 @@ public:
 	~GLink() ;
 		///< Destructor.
 
-	static bool remove( const G::Path & ) ;
-		///< Removes a link.
+	static bool remove( const G::Path & link_path ) ;
+		///< Removes a link. Returns true if removed.
+
+	static bool exists( const G::Path & link_path ) ;
+		///< Returns true if the link exists.
 
 private:
 	GLink( const GLink & ) ;

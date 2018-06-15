@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include "gdebug.h"
 #include <cmath>
 #include <algorithm>
+#include <iterator>
 #include <functional>
 #include <ctype.h>
 #include <iomanip>
@@ -30,26 +31,142 @@
 #include <string>
 #include <sstream>
 
-std::string G::Str::escaped( const std::string & s_in , const std::string & specials , char c_escape )
+std::string G::Str::escaped( const std::string & s_in )
 {
 	std::string s( s_in ) ;
-	escape( s , specials , c_escape ) ;
+	escape( s ) ;
 	return s ;
 }
 
-void G::Str::escape( std::string & s , const std::string & specials , char c_escape )
+std::string G::Str::escaped( const std::string & s_in , char c_escape , const std::string & specials_in , const std::string & specials_out )
 {
+	std::string s( s_in ) ;
+	escape( s , c_escape , specials_in , specials_out ) ;
+	return s ;
+}
+
+std::string G::Str::escaped( const std::string & s_in , char c_escape , const char * specials_in , const char * specials_out )
+{
+	std::string s( s_in ) ;
+	escape( s , c_escape , specials_in , specials_out ) ;
+	return s ;
+}
+
+void G::Str::escape( std::string & s )
+{
+	escapeImp( s , '\\' , "\\\r\n\t" , "\\rnt0" , true ) ;
+}
+
+void G::Str::escape( std::string & s , char c_escape , const char * specials_in , const char * specials_out )
+{
+	bool with_nul = std::strlen(specials_in) != std::strlen(specials_out) ;
+	escapeImp( s , c_escape , specials_in , specials_out , with_nul ) ;
+}
+
+void G::Str::escape( std::string & s , char c_escape , const std::string & specials_in , const std::string & specials_out )
+{
+	G_ASSERT( specials_in.length() == specials_out.length() ) ;
+	bool with_nul = !specials_in.empty() && specials_in.at(specials_in.length()-1U) == '\0' ;
+	escapeImp( s , c_escape , specials_in.c_str() , specials_out.c_str() , with_nul ) ;
+}
+
+void G::Str::escapeImp( std::string & s , char c_escape , const char * specials_in , const char * specials_out , bool with_nul )
+{
+	G_ASSERT( specials_in != nullptr && specials_out != nullptr && (std::strlen(specials_out)-std::strlen(specials_in)) <= 1U ) ;
 	size_type pos = 0U ;
 	for(;;)
 	{
-		pos = s.find_first_of( specials , pos ) ;
+		char c_in = '\0' ;
+		pos = s.find_first_of( specials_in , pos ) ;
+		if( pos != std::string::npos )
+			c_in = s.at( pos ) ;
+		else if( with_nul )
+			pos = s.find( '\0' , pos ) ;
 		if( pos == std::string::npos )
 			break ;
 
+		G_ASSERT( std::strchr(specials_in,c_in) != nullptr ) ;
+		const size_t special_index = std::strchr(specials_in,c_in) - specials_in ;
+		G_ASSERT( special_index < std::strlen(specials_out) ) ;
+
 		s.insert( pos , 1U , c_escape ) ;
 		pos++ ;
+		s.at(pos) = specials_out[special_index] ;
 		pos++ ;
 	}
+}
+
+std::string G::Str::dequote( const std::string & s , char qq , char esc , const std::string & ws )
+{
+	std::string result ;
+	result.reserve( s.size() ) ;
+	bool in_quote = false ;
+	bool escaped = false ;
+	for( std::string::const_iterator p = s.begin() ; p != s.end() ; ++p )
+	{
+		if( *p == esc && !escaped )
+		{
+			escaped = true ;
+		}
+		else
+		{
+			bool is_space = ws.find(*p) != std::string::npos ;
+			if( *p == qq && !escaped && !in_quote )
+			{
+				in_quote = true ;
+			}
+			else if( *p == qq && !escaped )
+			{
+				in_quote = false ;
+			}
+			else if( ws.find(*p) != std::string::npos && in_quote )
+			{
+				result.append( 1U , esc ) ;
+				result.append( 1U , *p ) ;
+			}
+			else
+			{
+				result.append( 1U , *p ) ;
+			}
+			escaped = false ;
+		}
+	}
+	return result ;
+}
+
+void G::Str::unescape( std::string & s )
+{
+	unescape( s , '\\' , "rnt0" , "\r\n\t" ) ;
+}
+
+void G::Str::unescape( std::string & s , char c_escape , const char * specials_in , const char * specials_out )
+{
+	G_ASSERT( specials_in != nullptr && specials_out != nullptr && (std::strlen(specials_in)-std::strlen(specials_out)) <= 1U ) ;
+	bool escaped = false ;
+	std::string::iterator out = s.begin() ; // output in-place
+	for( std::string::iterator in = s.begin() ; in != s.end() ; ++in )
+	{
+		const char * specials_in_p = std::strchr( specials_in , *in ) ;
+		const char * specials_out_p = specials_in_p ? (specials_out+(specials_in_p-specials_in)) : nullptr ;
+		if( escaped && specials_out_p )
+			*out++ = *specials_out_p , escaped = false ;
+		else if( escaped && *in == c_escape )
+			*out++ = c_escape , escaped = false ;
+		else if( escaped )
+			*out++ = *in , escaped = false ;
+		else if( *in == c_escape )
+			escaped = true ;
+		else
+			*out++ = *in , escaped = false ;
+	}
+	if( out != s.end() ) s.erase( out , s.end() ) ;
+}
+
+std::string G::Str::unescaped( const std::string & s_in )
+{
+	std::string s( s_in ) ;
+	unescape( s ) ;
+	return s ;
 }
 
 bool G::Str::replace( std::string & s , const std::string & from , const std::string & to , size_type * pos_p )
@@ -57,7 +174,7 @@ bool G::Str::replace( std::string & s , const std::string & from , const std::st
 	if( from.length() == 0 )
 		return false ;
 
-	size_type pos = pos_p == NULL ? 0 : *pos_p ;
+	size_type pos = pos_p == nullptr ? 0 : *pos_p ;
 	if( pos >= s.length() )
 		return false ;
 
@@ -69,7 +186,7 @@ bool G::Str::replace( std::string & s , const std::string & from , const std::st
 	else
 	{
 		s.replace( pos , from.length() , to ) ;
-		if( pos_p != NULL )
+		if( pos_p != nullptr )
 			*pos_p = pos + to.length() ;
 		return true ;
 	}
@@ -85,10 +202,6 @@ unsigned int G::Str::replaceAll( std::string & s , const std::string & from , co
 
 unsigned int G::Str::replaceAll( std::string & s , const char * from , const char * to )
 {
-	// this char* overload is an optimisation to avoid constructing
-	// temporaries when starting with a c-string -- we only construct
-	// std-strings if there is work to do
-
 	if( s.find(from) != std::string::npos )
 	{
 		unsigned int count = 0U ;
@@ -126,8 +239,8 @@ void G::Str::trimRight( std::string & s , const std::string & ws , size_type lim
 		n = limit >= s.length() ? std::string::npos : (s.length()-limit-1U) ;
 	if( n == std::string::npos )
 		s = std::string() ;
-	else if( n != 0U )
-		s.resize( n+1U ) ;
+	else if( (n+1U) != s.length() )
+		s.resize( n + 1U ) ;
 }
 
 void G::Str::trim( std::string & s , const std::string & ws )
@@ -149,6 +262,7 @@ namespace
 		bool operator()( char c ) const { return !! isdigit( c ) ; }
 	} ;
 }
+
 bool G::Str::isNumeric( const std::string & s , bool allow_minus_sign )
 {
 	const std::string::const_iterator end = s.end() ;
@@ -164,61 +278,43 @@ namespace
 		bool operator()( char c ) const { return c >= 0x20 && c < 0x7f ; }
 	} ;
 }
+
 bool G::Str::isPrintableAscii( const std::string & s )
 {
 	const std::string::const_iterator end = s.end() ;
 	return std::find_if( s.begin() , end , std::not1(IsPrintableAscii()) ) == end ;
 }
 
+bool G::Str::isInt( const std::string & s )
+{
+	bool overflow = false ;
+	bool invalid = false ;
+	toIntImp( s , overflow , invalid ) ;
+	return !overflow && !invalid ;
+}
+
 bool G::Str::isUShort( const std::string & s )
 {
-	try
-	{
-		G_IGNORE_RETURN(unsigned short) toUShort(s) ;
-	}
-	catch( Overflow & )
-	{
-		return false ;
-	}
-	catch( InvalidFormat & )
-	{
-		return false ;
-	}
-	return true ;
+	bool overflow = false ;
+	bool invalid = false ;
+	toUShortImp( s , overflow , invalid ) ;
+	return !overflow && !invalid ;
 }
 
 bool G::Str::isUInt( const std::string & s )
 {
-	try
-	{
-		G_IGNORE_RETURN(unsigned int) toUInt(s) ;
-	}
-	catch( Overflow & )
-	{
-		return false ;
-	}
-	catch( InvalidFormat & )
-	{
-		return false ;
-	}
-	return true ;
+	bool overflow = false ;
+	bool invalid = false ;
+	toUIntImp( s , overflow , invalid ) ;
+	return !overflow && !invalid ;
 }
 
 bool G::Str::isULong( const std::string & s )
 {
-	try
-	{
-		G_IGNORE_RETURN(unsigned long) toULong(s) ;
-	}
-	catch( Overflow & )
-	{
-		return false ;
-	}
-	catch( InvalidFormat & )
-	{
-		return false ;
-	}
-	return true ;
+	bool overflow = false ;
+	bool invalid = false ;
+	toULongImp( s , overflow , invalid ) ;
+	return !overflow && !invalid ;
 }
 
 std::string G::Str::fromBool( bool b )
@@ -229,7 +325,7 @@ std::string G::Str::fromBool( bool b )
 std::string G::Str::fromDouble( double d )
 {
 	std::ostringstream ss ;
-	ss << std::setprecision(16) << d ; // was "setprecision(DBL_DIG+1)
+	ss << std::setprecision(16) << d ; // was "setprecision(DBL_DIG+1)"
 	return ss.str() ;
 }
 
@@ -288,18 +384,18 @@ bool G::Str::toBool( const std::string & s )
 	}
 	else
 	{
-		throw InvalidFormat( s ) ;
+		throw InvalidFormat( "expected true/false" , s ) ;
 		return false ; // never gets here -- the return pacifies some compilers
 	}
 }
 
-double G::Str::toDouble( const std::string &s )
+double G::Str::toDouble( const std::string & s )
 {
-	char * end = NULL ;
+	char * end = nullptr ;
 	double result = ::strtod( s.c_str(), &end ) ;
 
 	if( end == 0 || end[0] != '\0' )
-		throw InvalidFormat( s ) ;
+		throw InvalidFormat( "expected floating point number" , s ) ;
 
 	if( result == HUGE_VAL || result == -(HUGE_VAL) )
 	 	throw Overflow( s ) ;
@@ -307,91 +403,184 @@ double G::Str::toDouble( const std::string &s )
 	return result ;
 }
 
-int G::Str::toInt( const std::string &s )
+int G::Str::toInt( const std::string & s )
 {
-	long long_val = toLong( s ) ;
-	int int_val = static_cast<int>( long_val ) ;
-
-	if( int_val != long_val )
+	bool overflow = false ;
+	bool invalid = false ;
+	int result = toIntImp( s , overflow , invalid ) ;
+	if( invalid )
+		throw InvalidFormat( "expected integer" , s ) ;
+	if( overflow )
 		throw Overflow( s ) ;
-
-	return int_val ;
+	return result ;
 }
 
-long G::Str::toLong( const std::string &s )
+int G::Str::toIntImp( const std::string & s , bool & overflow , bool & invalid )
 {
-	char * end = NULL ;
-	long result = ::strtol( s.c_str(), &end, 0 ) ;
+	long long_val = toLongImp( s , overflow , invalid ) ;
+	int result = static_cast<int>( long_val ) ;
+	if( result != long_val )
+		overflow = true ;
+	return result ;
+}
 
+long G::Str::toLong( const std::string & s )
+{
+	bool overflow = false ;
+	bool invalid = false ;
+	long result = toLongImp( s , overflow , invalid ) ;
+	if( invalid )
+		throw InvalidFormat( "expected long integer" , s ) ;
+	if( overflow )
+		throw Overflow( s ) ;
+	return result ;
+}
+
+long G::Str::toLongImp( const std::string & s , bool & overflow , bool & invalid )
+{
+	char * end = nullptr ;
+	long result = ::strtol( s.c_str(), &end, 10 ) ; // was radix 0
 	if( end == 0 || end[0] != '\0' )
-		throw InvalidFormat( s ) ;
-
+		invalid = true ;
 	if( result == LONG_MAX || result == LONG_MIN )
-		throw Overflow( s ) ;
-
+		overflow = true ;
 	return result ;
 }
 
-short G::Str::toShort( const std::string &s )
+short G::Str::toShort( const std::string & s )
 {
-	long long_val = toLong( s ) ;
-	short short_val = static_cast<short>( long_val ) ;
-
-	if( short_val != long_val )
+	bool overflow = false ;
+	bool invalid = false ;
+	short result = toShortImp( s , overflow , invalid ) ;
+	if( invalid )
+		throw InvalidFormat( "expected short integer" , s ) ;
+	if( overflow )
 		throw Overflow( s ) ;
-
-	return short_val ;
-}
-
-unsigned int G::Str::toUInt( const std::string &s , bool limited )
-{
-	unsigned long ulong_val = toULong( s ) ;
-	unsigned int uint_val = static_cast<unsigned int>( ulong_val ) ;
-
-	if( uint_val != ulong_val )
-	{
-		if( limited )
-			uint_val = UINT_MAX ;
-		else
-			throw Overflow( s ) ;
-	}
-
-	return uint_val ;
-}
-
-unsigned long G::Str::toULong( const std::string &s , bool limited )
-{
-	char * end = NULL ;
-	unsigned long result = ::strtoul( s.c_str() , &end , 10 ) ;
-
-	if( end == 0 || end[0] != '\0' )
-		throw InvalidFormat( s ) ;
-
-	if( result == ULONG_MAX )
-	{
-		if( limited )
-			result = ULONG_MAX ;
-		else
-			throw Overflow( s ) ;
-	}
-
 	return result ;
 }
 
-unsigned short G::Str::toUShort( const std::string &s , bool limited )
+short G::Str::toShortImp( const std::string & s , bool & overflow , bool & invalid )
 {
-	unsigned long ulong_val = toULong( s ) ;
-	unsigned short ushort_val = static_cast<unsigned short>( ulong_val ) ;
+	long long_val = toLongImp( s , overflow , invalid ) ;
+	short result = static_cast<short>( long_val ) ;
+	if( result != long_val )
+		overflow = true ;
+	return result ;
+}
 
-	if( ushort_val != ulong_val )
+unsigned int G::Str::toUInt( const std::string & s1 , const std::string & s2 )
+{
+	return !s1.empty() && isUInt(s1) ? toUInt(s1) : toUInt(s2) ;
+}
+
+unsigned int G::Str::toUInt( const std::string & s , Limited )
+{
+	bool overflow = false ;
+	bool invalid = false ;
+	unsigned int result = toUIntImp( s , overflow , invalid ) ;
+	if( invalid )
+		throw InvalidFormat( "expected unsigned integer" , s ) ;
+	if( overflow )
+		result = UINT_MAX ;
+	return result ;
+}
+
+unsigned int G::Str::toUInt( const std::string & s )
+{
+	bool overflow = false ;
+	bool invalid = false ;
+	unsigned int result = toUIntImp( s , overflow , invalid ) ;
+	if( invalid )
+		throw InvalidFormat( "expected unsigned integer" , s ) ;
+	if( overflow )
+		throw Overflow( s ) ;
+	return result ;
+}
+
+unsigned int G::Str::toUIntImp( const std::string & s , bool & overflow , bool & invalid )
+{
+	unsigned long ulong_val = toULongImp( s , overflow , invalid ) ;
+	unsigned int result = static_cast<unsigned int>( ulong_val ) ;
+	if( result != ulong_val )
+		overflow = true ;
+	return result ;
+}
+
+unsigned long G::Str::toULong( const std::string & s , Limited )
+{
+	bool overflow = false ;
+	bool invalid = false ;
+	unsigned long result = toULongImp( s , overflow , invalid ) ;
+	if( invalid )
+		throw InvalidFormat( "expected unsigned long integer" , s ) ;
+	if( overflow )
+		result = ULONG_MAX ;
+	return result ;
+}
+
+unsigned long G::Str::toULong( const std::string & s )
+{
+	bool overflow = false ;
+	bool invalid = false ;
+	unsigned long result = toULongImp( s , overflow , invalid ) ;
+	if( invalid )
+		throw InvalidFormat( "expected unsigned long integer" , s ) ;
+	else if( overflow )
+		throw Overflow( s ) ;
+	return result ;
+}
+
+unsigned long G::Str::toULongImp( const std::string & s , bool & overflow , bool & invalid )
+{
+	if( s.empty() ) // new
 	{
-		if( limited )
-			ushort_val = USHRT_MAX ;
-		else
-			throw Overflow( s ) ;
+		invalid = true ;
+		overflow = false ;
+		return 0UL ;
 	}
+	else
+	{
+		char * end = nullptr ;
+		unsigned long result = ::strtoul( s.c_str() , &end , 10 ) ;
+		if( end == 0 || end[0] != '\0' )
+			invalid = true ;
+		if( result == ULONG_MAX )
+			overflow = true ;
+		return result ;
+	}
+}
 
-	return ushort_val ;
+unsigned short G::Str::toUShort( const std::string & s , Limited )
+{
+	bool overflow = false ;
+	bool invalid = false ;
+	unsigned short result = toUShortImp( s , overflow , invalid ) ;
+	if( invalid )
+		throw InvalidFormat( "expected unsigned short integer" , s ) ;
+	if( overflow )
+		result = USHRT_MAX ;
+	return result ;
+}
+
+unsigned short G::Str::toUShort( const std::string & s )
+{
+	bool overflow = false ;
+	bool invalid = false ;
+	unsigned short result = toUShortImp( s , overflow , invalid ) ;
+	if( invalid )
+		throw InvalidFormat( "expected unsigned short integer" , s ) ;
+	else if( overflow )
+		throw Overflow( s ) ;
+	return result ;
+}
+
+unsigned short G::Str::toUShortImp( const std::string & s , bool & overflow , bool & invalid )
+{
+	unsigned long ulong_val = toULongImp( s , overflow , invalid ) ;
+	unsigned short result = static_cast<unsigned short>( ulong_val ) ;
+	if( result != ulong_val )
+		overflow = true ;
+	return result ;
 }
 
 namespace
@@ -401,10 +590,12 @@ namespace
 		char operator()( char c ) { return static_cast<char>( tolower(c) ) ; }
 	} ;
 }
+
 void G::Str::toLower( std::string & s )
 {
 	std::transform( s.begin() , s.end() , s.begin() , ToLower() ) ;
 }
+
 std::string G::Str::lower( const std::string & in )
 {
 	std::string out = in ;
@@ -419,10 +610,12 @@ namespace
 		char operator()( char c ) { return static_cast<char>( toupper(c) ) ; }
 	} ;
 }
+
 void G::Str::toUpper( std::string & s )
 {
 	std::transform( s.begin() , s.end() , s.begin() , ToUpper() ) ;
 }
+
 std::string G::Str::upper( const std::string & in )
 {
 	std::string out = in ;
@@ -504,6 +697,7 @@ namespace
 		}
 	} ;
 }
+
 std::string G::Str::printable( const std::string & in , char escape )
 {
 	std::string result ;
@@ -511,6 +705,7 @@ std::string G::Str::printable( const std::string & in , char escape )
 	std::for_each( in.begin() , in.end() , PrintableAppender<char,unsigned char>(result,escape,true) ) ;
 	return result ;
 }
+
 std::string G::Str::toPrintableAscii( const std::string & in , char escape )
 {
 	std::string result ;
@@ -518,6 +713,7 @@ std::string G::Str::toPrintableAscii( const std::string & in , char escape )
 	std::for_each( in.begin() , in.end() , PrintableAppender<char,unsigned char>(result,escape,false) ) ;
 	return result ;
 }
+
 std::string G::Str::toPrintableAscii( char c , char escape )
 {
 	std::string result ;
@@ -525,6 +721,7 @@ std::string G::Str::toPrintableAscii( char c , char escape )
 	append_printable( c ) ;
 	return result ;
 }
+
 std::string G::Str::toPrintableAscii( const std::wstring & in , wchar_t escape )
 {
 	std::string result ;
@@ -550,11 +747,11 @@ void G::Str::readLineFrom( std::istream & stream , const std::string & eol , std
 	// this is a special speed optimisation for a two-character terminator with a one-character initial string ;-)
 	if( eol.length() == 2U && eol[0] != eol[1] && line.length() == 1U )
 	{
-		// Save the initial character, use std::getline() for speed (terminating
+		// save the initial character, use std::getline() for speed (terminating
 		// on the second character of the two-character terminator), check that the
 		// one-character terminator was actually part of the required two-character
 		// terminator, remove the first character of the two-character terminator,
-		// and finally re-insert the initial character.
+		// and finally re-insert the initial character
 		//
 		const char c = line[0] ;
 		line.erase() ; // since getline() doesnt erase it if already at eof
@@ -593,11 +790,12 @@ void G::Str::readLineFromImp( std::istream & stream , const std::string & eol , 
 	char c ;
 	for(;;)
 	{
-		stream.get( c ) ; // sets the fail bit at eof
-		if( stream.fail() )
+		// (maybe optimise by hoisting the sentry and calling rdbuf() methods)
+		stream.get( c ) ;
+
+		if( stream.fail() ) // get(char) always sets the failbit at eof, not necessarily eofbit
 		{
-			// work more like std::getline() in <string> -- reset the failbit and set eof
-			// (remember that clear() sets all the flags explicitly to the given values)
+			// set eofbit, reset failbit -- cf. std::getline() in <string>
 			stream.clear( ( stream.rdstate() & ~std::ios_base::failbit ) | std::ios_base::eofbit ) ;
 			break ;
 		}
@@ -608,11 +806,11 @@ void G::Str::readLineFromImp( std::istream & stream , const std::string & eol , 
 			break ;
 		}
 
-		line.append( 1U , c ) ; // fast enough if 'line' has sufficient capacity
+		line.append( 1U , c ) ;
 		changed = true ;
 		++line_length ;
 
-		if( line_length >= eol_length && c == eol_final ) // optimisation
+		if( line_length >= eol_length && c == eol_final )
 		{
 			const size_type offset = line_length - eol_length ;
 			if( line.find(eol,offset) == offset )
@@ -623,11 +821,7 @@ void G::Str::readLineFromImp( std::istream & stream , const std::string & eol , 
 		}
 	}
 	if( !changed )
-	{
-		// set the failbit
-		// (remember that setstate() sets the flag(s) identified by the given bitmask to 1)
 		stream.setstate( std::ios_base::failbit ) ;
-	}
 }
 
 std::string G::Str::wrap( std::string text , const std::string & prefix_1 ,
@@ -711,41 +905,57 @@ namespace
 		}
 	}
 }
-void G::Str::splitIntoTokens( const std::string & in , Strings & out , const std::string & ws )
-{
-	splitIntoTokens_( in , out , ws ) ;
-}
 void G::Str::splitIntoTokens( const std::string & in , StringArray & out , const std::string & ws )
 {
 	splitIntoTokens_( in , out , ws ) ;
+}
+G::StringArray G::Str::splitIntoTokens( const std::string & in , const std::string & ws )
+{
+	StringArray out ;
+	splitIntoTokens_( in , out , ws ) ;
+	return out ;
 }
 
 namespace
 {
 	template <typename T>
-	void splitIntoFields_( const std::string & in_in , T & out , const std::string & ws ,
-		char escape , bool discard_bogus )
+	void splitIntoFields_( const std::string & in , T & out , const std::string & ws )
 	{
-		typedef G::Str::size_type size_type ;
-		std::string all( ws ) ;
-		if( escape != '\0' )
-			all.append( 1U , escape ) ;
-
-		if( in_in.length() )
+		if( in.length() )
 		{
-			std::string in = in_in ;
-			size_type start = 0U ;
-			size_type last_pos = in.length() - 1U ;
-			size_type pos = 0U ;
+			size_t start = 0U ;
+			size_t pos = 0U ;
 			for(;;)
 			{
 				if( pos >= in.length() ) break ;
-				pos = in.find_first_of( all , pos ) ;
+				pos = in.find_first_of( ws , pos ) ;
+				if( pos == std::string::npos ) break ;
+				out.push_back( in.substr(start,pos-start) ) ;
+				pos++ ;
+				start = pos ;
+			}
+			out.push_back( in.substr(start,pos-start) ) ;
+		}
+	}
+	template <typename T>
+	void splitIntoFields_( const std::string & in_in , T & out , const std::string & ws ,
+		char escape , bool remove_escapes )
+	{
+		std::string ews( ws ) ; // escape+whitespace
+		if( escape != '\0' ) ews.append( 1U , escape ) ;
+		if( in_in.length() )
+		{
+			std::string in = in_in ;
+			size_t start = 0U ;
+			size_t pos = 0U ;
+			for(;;)
+			{
+				if( pos >= in.length() ) break ;
+				pos = in.find_first_of( ews , pos ) ;
 				if( pos == std::string::npos ) break ;
 				if( in.at(pos) == escape )
 				{
-					const bool valid = pos != last_pos && in.find(all,pos+1U) == (pos+1U) ;
-					if( valid || discard_bogus )
+					if( remove_escapes )
 						in.erase( pos , 1U ) ;
 					else
 						pos++ ;
@@ -762,15 +972,16 @@ namespace
 		}
 	}
 }
-void G::Str::splitIntoFields( const std::string & in , Strings & out , const std::string & ws ,
-	char escape , bool discard_bogus )
-{
-	splitIntoFields_( in , out , ws , escape , discard_bogus ) ;
-}
 void G::Str::splitIntoFields( const std::string & in , StringArray & out , const std::string & ws ,
-	char escape , bool discard_bogus )
+	char escape , bool remove_escapes )
 {
-	splitIntoFields_( in , out , ws , escape , discard_bogus ) ;
+	splitIntoFields_( in , out , ws , escape , remove_escapes ) ;
+}
+G::StringArray G::Str::splitIntoFields( const std::string & in , const std::string & ws )
+{
+	G::StringArray out ;
+	splitIntoFields_( in , out , ws ) ;
+	return out ;
 }
 
 namespace
@@ -796,19 +1007,57 @@ namespace
 		}
 	} ;
 }
-std::string G::Str::join( const Strings & strings , const std::string & sep )
+
+std::string G::Str::join( const std::string & sep , const StringMap & map ,
+	const std::string & pre_in , const std::string & post )
+{
+	std::string pre = pre_in.empty() ? std::string("=") : pre_in ;
+	std::string result ;
+	bool first = true ;
+	Joiner<std::string> joiner( result , sep , first ) ;
+	for( StringMap::const_iterator p = map.begin() ; p != map.end() ; ++p )
+		joiner( (*p).first + pre + (*p).second + post ) ;
+	return result ;
+}
+
+std::string G::Str::join( const std::string & sep , const StringArray & strings )
 {
 	std::string result ;
 	bool first = true ;
 	std::for_each( strings.begin() , strings.end() , Joiner<std::string>(result,sep,first) ) ;
 	return result ;
 }
-std::string G::Str::join( const StringArray & strings , const std::string & sep )
+
+std::string G::Str::join( const std::string & sep , const std::set<std::string> & strings )
 {
 	std::string result ;
 	bool first = true ;
 	std::for_each( strings.begin() , strings.end() , Joiner<std::string>(result,sep,first) ) ;
 	return result ;
+}
+
+std::string G::Str::join( const std::string & sep , const std::string & s1 , const std::string & s2 ,
+	const std::string & s3 , const std::string & s4 , const std::string & s5 , const std::string & s6 ,
+	const std::string & s7 , const std::string & s8 , const std::string & s9 )
+{
+	std::string result ;
+	joinImp( sep , result , s1 ) ;
+	joinImp( sep , result , s2 ) ;
+	joinImp( sep , result , s3 ) ;
+	joinImp( sep , result , s4 ) ;
+	joinImp( sep , result , s5 ) ;
+	joinImp( sep , result , s6 ) ;
+	joinImp( sep , result , s7 ) ;
+	joinImp( sep , result , s8 ) ;
+	joinImp( sep , result , s9 ) ;
+	return result ;
+}
+
+void G::Str::joinImp( const std::string & sep , std::string & result , const std::string & s )
+{
+	if( !result.empty() && !s.empty() )
+		result.append( sep ) ;
+	result.append( s ) ;
 }
 
 namespace
@@ -819,10 +1068,10 @@ namespace
 		const typename T::first_type & operator()( const T & pair ) { return pair.first ; }
 	} ;
 }
-G::Strings G::Str::keys( const StringMap & map )
+std::set<std::string> G::Str::keySet( const StringMap & map )
 {
-	Strings result ;
-	std::transform( map.begin() , map.end() , std::back_inserter(result) , Firster<StringMap::value_type>() ) ;
+	std::set<std::string> result ;
+	std::transform( map.begin() , map.end() , std::inserter(result,result.end()) , Firster<StringMap::value_type>() ) ;
 	return result ;
 }
 
@@ -831,12 +1080,23 @@ std::string G::Str::ws()
 	return std::string(" \t\n\r") ;
 }
 
+std::string G::Str::meta()
+{
+	return std::string("~<>[]*$|?\\(){}\"`'&;=") ; // bash meta-characters plus "~"
+}
+
 std::string G::Str::head( const std::string & in , std::string::size_type pos , const std::string & default_ )
 {
 	return
 		pos == std::string::npos ?
 			default_ :
-			( pos == 0U ? std::string() : ( (pos+1U) >= in.length() ? in : in.substr(0U,pos) ) ) ;
+			( pos == 0U ? std::string() : ( pos >= in.length() ? in : in.substr(0U,pos) ) ) ;
+}
+
+std::string G::Str::head( const std::string & in , const std::string & sep , bool default_empty )
+{
+	size_t pos = sep.empty() ? std::string::npos : in.find( sep ) ;
+	return head( in , pos , default_empty ? std::string() : in ) ;
 }
 
 std::string G::Str::tail( const std::string & in , std::string::size_type pos , const std::string & default_ )
@@ -847,13 +1107,168 @@ std::string G::Str::tail( const std::string & in , std::string::size_type pos , 
 			( (pos+1U) >= in.length() ? std::string() : in.substr(pos+1U) ) ;
 }
 
-bool G::Str::tailMatch( const std::string & in , const std::string & ending )
+std::string G::Str::tail( const std::string & in , const std::string & sep , bool default_empty )
+{
+	size_t pos = sep.empty() ? std::string::npos : in.find(sep) ;
+	if( pos != std::string::npos ) pos += (sep.length()-1U) ;
+	return tail( in , pos , default_empty ? std::string() : in ) ;
+}
+
+bool G::Str::tailMatch( const std::string & in , const std::string & tail )
 {
 	return
-		ending.empty() ||
-		( in.length() >= ending.length() &&
-			in.substr( in.length() - ending.length() ) == ending ) ;
-			// 0 == in.compare( in.length() - ending.length() , ending.length() , ending ) // faster, but not gcc2.95
+		tail.empty() ||
+		( in.length() >= tail.length() && 0 == in.compare(in.length()-tail.length(),tail.length(),tail) ) ;
+}
+
+namespace
+{
+	struct TailMatch
+	{
+		const std::string & m_tail ;
+		TailMatch( const std::string & s ) : m_tail(s) {}
+		bool operator()( const std::string & s ) const { return G::Str::tailMatch(s,m_tail) ; }
+	} ;
+}
+bool G::Str::tailMatch( const StringArray & in , const std::string & tail )
+{
+	TailMatch matcher( tail ) ;
+	return std::find_if( in.begin() , in.end() , matcher ) != in.end() ;
+}
+
+bool G::Str::headMatch( const std::string & in , const std::string & head )
+{
+	return
+		head.empty() ||
+		( in.length() >= head.length() && 0 == in.compare(0U,head.length(),head) ) ;
+}
+
+namespace
+{
+	struct HeadMatch
+	{
+		const std::string & m_head ;
+		HeadMatch( const std::string & s ) : m_head(s) {}
+		bool operator()( const std::string & s ) const { return G::Str::headMatch(s,m_head) ; }
+	} ;
+}
+bool G::Str::headMatch( const StringArray & in , const std::string & head )
+{
+	HeadMatch matcher( head ) ;
+	return std::find_if( in.begin() , in.end() , matcher ) != in.end() ;
+}
+
+std::string G::Str::headMatchResidue( const StringArray & in , const std::string & head )
+{
+	G::StringArray::const_iterator const end = in.end() ;
+	for( G::StringArray::const_iterator p = in.begin() ; p != end ; ++p )
+	{
+		if( headMatch( *p , head ) )
+			return (*p).substr( head.length() ) ;
+	}
+	return std::string() ;
+}
+
+std::string G::Str::positive()
+{
+	return "yes" ;
+}
+
+std::string G::Str::negative()
+{
+	return "no" ;
+}
+
+bool G::Str::isPositive( const std::string & s_in )
+{
+	std::string s = trimmed( lower(s_in) , ws() ) ;
+	return !s.empty() && ( s == "y" || s == "yes" || s == "t" || s == "true" || s == "1" || s == "on" ) ;
+}
+
+bool G::Str::isNegative( const std::string & s_in )
+{
+	std::string s = trimmed( lower(s_in) , ws() ) ;
+	return !s.empty() && ( s == "n" || s == "no" || s == "f" || s == "false" || s == "0" || s == "off" ) ;
+}
+
+bool G::Str::match( const std::string & a , const std::string & b )
+{
+	return a == b ;
+}
+
+bool G::Str::match( const StringArray & a , const std::string & b )
+{
+	StringArray::const_iterator const end = a.end() ;
+	for( StringArray::const_iterator p = a.begin() ; p != end ; ++p )
+	{
+		if( match(*p,b) )
+			return true ;
+	}
+	return false ;
+}
+
+namespace
+{
+	bool icompare( char c1 , char c2 )
+	{
+		if( c1 >= 'A' && c1 <= 'Z' ) c1 += '\x20' ;
+		if( c2 >= 'A' && c2 <= 'Z' ) c2 += '\x20' ;
+		return c1 == c2 ;
+	}
+}
+
+bool G::Str::imatch( const std::string & a , const std::string & b )
+{
+	return a.size() == b.size() && std::equal( a.begin() , a.end() , b.begin() , icompare ) ;
+}
+
+bool G::Str::imatch( const StringArray & a , const std::string & b )
+{
+	StringArray::const_iterator const end = a.end() ;
+	for( StringArray::const_iterator p = a.begin() ; p != end ; ++p )
+	{
+		if( imatch(*p,b) )
+			return true ;
+	}
+	return false ;
+}
+
+std::string::size_type G::Str::ifind( const std::string & s , const std::string & key , std::string::size_type pos )
+{
+	if( s.empty() || key.empty() || pos > s.length() ) return std::string::npos ;
+	std::string::const_iterator p = std::search( s.begin()+pos , s.end() , key.begin() , key.end() , icompare ) ;
+	return p == s.end() ? std::string::npos : std::distance(s.begin(),p) ;
+}
+
+namespace
+{
+	template <typename T, typename V>
+	T unique_imp( T in , T end , V repeat , V replacement )
+	{
+		// replace repeated repeat-s with a single replacement
+		T out = in ;
+		while( in != end )
+		{
+			T in_next = in ; ++in_next ;
+			if( *in == repeat && *in_next == repeat )
+			{
+				while( *in == repeat )
+					++in ;
+				*out++ = replacement ;
+			}
+			else
+			{
+				*out++ = *in++ ;
+			}
+		}
+		return out ; // new end
+	}
+}
+
+std::string G::Str::unique( std::string s , char c , char r )
+{
+	s.erase( unique_imp( s.begin() , s.end() , c , r ) , s.end() ) ;
+	return s ;
 }
 
 /// \file gstr.cpp

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,11 +34,16 @@
 #include <memory.h>
 #include <sys/types.h>
 #include <sys/time.h>
-extern "C"
-{
-// in '/usr/include/security' or '/usr/include/pam'
+
+#if GCONFIG_HAVE_PAM_IN_INCLUDE
 #include <pam_appl.h>
-}
+#else
+#if GCONFIG_HAVE_PAM_IN_PAM
+#include <pam/pam_appl.h>
+#else
+#include <security/pam_appl.h>
+#endif
+#endif
 
 namespace
 {
@@ -46,7 +51,7 @@ namespace
 	{
 		p = p ? p : "" ;
 		char * copy = static_cast<char*>( std::malloc(std::strlen(p)+1U) ) ;
-		if( copy != NULL )
+		if( copy != nullptr )
 			std::strcpy( copy , p ) ;
 		return copy ;
 	}
@@ -55,7 +60,7 @@ namespace
 // ==
 
 /// \class G::PamImp
-/// A pimple-pattern implementation class for Pam.
+/// A pimple-pattern implementation class for G::Pam.
 ///
 class G::PamImp
 {
@@ -64,7 +69,7 @@ public:
 
 private:
 	typedef struct pam_conv Conversation ;
-	typedef G::Pam::Error Error ;
+	typedef G::PamError Error ;
 	typedef G::Pam::ItemArray ItemArray ;
 	enum { MAGIC = 3456 } ;
 
@@ -91,8 +96,8 @@ public:
 	std::string name() const ;
 
 private:
-	static int converse( int n , const struct pam_message ** in , struct pam_response ** out , void * vp ) ;
-	static void delay( int , unsigned , void * ) ;
+	static int converseCallback( int n , const struct pam_message ** in , struct pam_response ** out , void * vp ) ;
+	static void delayCallback( int , unsigned , void * ) ;
 	static std::string decodeStyle( int pam_style ) ;
 	static void release( struct pam_response * , size_t ) ;
 } ;
@@ -107,7 +112,7 @@ G::PamImp::PamImp( G::Pam & pam , const std::string & application , const std::s
 {
 	G_DEBUG( "G::PamImp::ctor: [" << application << "] [" << user << "]" ) ;
 
-	m_conv.conv = converse ;
+	m_conv.conv = converseCallback ;
 	m_conv.appdata_ptr = this ;
 	m_rc = ::pam_start( application.c_str() , user.c_str() , &m_conv , &m_hpam ) ;
 	if( m_rc != PAM_SUCCESS )
@@ -117,7 +122,7 @@ G::PamImp::PamImp( G::Pam & pam , const std::string & application , const std::s
 
 	// (linux-specific)
  #ifdef PAM_FAIL_DELAY
-	m_rc = ::pam_set_item( m_hpam , PAM_FAIL_DELAY , reinterpret_cast<const void*>(delay) ) ;
+	m_rc = ::pam_set_item( m_hpam , PAM_FAIL_DELAY , reinterpret_cast<const void*>(delayCallback) ) ;
 	if( m_rc != PAM_SUCCESS )
 	{
 		::pam_end( m_hpam , m_rc ) ;
@@ -162,8 +167,8 @@ std::string G::PamImp::decodeStyle( int pam_style )
 bool G::PamImp::authenticate( bool require_token )
 {
 	int flags = 0 ;
-	if( silent() ) flags |= PAM_SILENT ;
-	if( require_token ) flags |= PAM_DISALLOW_NULL_AUTHTOK ;
+	if( silent() ) flags |= static_cast<int>(PAM_SILENT) ;
+	if( require_token ) flags |= static_cast<int>(PAM_DISALLOW_NULL_AUTHTOK) ;
 	m_rc = ::pam_authenticate( hpam() , flags ) ;
  #ifdef PAM_INCOMPLETE
 	if( m_rc == PAM_INCOMPLETE )
@@ -176,7 +181,7 @@ bool G::PamImp::authenticate( bool require_token )
 
 std::string G::PamImp::name() const
 {
-	const void * vp = NULL ;
+	const void * vp = nullptr ;
 	m_rc = ::pam_get_item( hpam() , PAM_USER , &vp ) ;
 	check( "pam_get_item" , m_rc ) ;
 	const char * cp = reinterpret_cast<const char*>(vp) ;
@@ -187,7 +192,7 @@ void G::PamImp::setCredentials( int flag )
 {
 	int flags = 0 ;
 	flags |= flag ;
-	if( silent() ) flags |= PAM_SILENT ;
+	if( silent() ) flags |= static_cast<int>(PAM_SILENT) ;
 	m_rc = ::pam_setcred( hpam() , flags ) ;
 	check( "pam_setcred" , m_rc ) ;
 }
@@ -195,29 +200,29 @@ void G::PamImp::setCredentials( int flag )
 void G::PamImp::checkAccount( bool require_token )
 {
 	int flags = 0 ;
-	if( silent() ) flags |= PAM_SILENT ;
-	if( require_token ) flags |= PAM_DISALLOW_NULL_AUTHTOK ;
+	if( silent() ) flags |= static_cast<int>(PAM_SILENT) ;
+	if( require_token ) flags |= static_cast<int>(PAM_DISALLOW_NULL_AUTHTOK) ;
 	m_rc = ::pam_acct_mgmt( hpam() , flags ) ;
 	check( "pam_acct_mgmt" , m_rc ) ;
 }
 
 void G::PamImp::release( struct pam_response * rsp , size_t n )
 {
-	if( rsp != NULL )
+	if( rsp != nullptr )
 	{
 		for( size_t i = 0U ; i < n ; i++ )
 		{
-			if( rsp[i].resp != NULL )
+			if( rsp[i].resp != nullptr )
 				std::free( rsp[i].resp ) ;
 		}
 	}
 	std::free( rsp ) ;
 }
 
-int G::PamImp::converse( int n_in , const struct pam_message ** in , struct pam_response ** out , void * vp )
+int G::PamImp::converseCallback( int n_in , const struct pam_message ** in , struct pam_response ** out , void * vp )
 {
 	G_ASSERT( n_in > 0 ) ;
-	G_ASSERT( out != NULL ) ;
+	G_ASSERT( out != nullptr ) ;
 	size_t n = n_in < 0 ? size_t(0U) : static_cast<size_t>(n_in) ;
 
 	// pam_conv(3) on linux points out that the pam interface is under-speficied, and on some
@@ -226,19 +231,14 @@ int G::PamImp::converse( int n_in , const struct pam_message ** in , struct pam_
 	//
 	if( n > 1U )
 	{
-		static bool warned = false ;
-		if( !warned )
-		{
-			G_WARNING( "PamImp::converse: received a complex pam converse() structure: proceed with caution" ) ;
-			warned = true ;
-		}
+		G_WARNING_ONCE( "PamImp::converseCallback: received a complex pam converse() structure: proceed with caution" ) ;
 	}
 
-	*out = NULL ;
-	struct pam_response * rsp = NULL ;
+	*out = nullptr ;
+	struct pam_response * rsp = nullptr ;
 	try
 	{
-		G_DEBUG( "G::Pam::converse: " << n << " item(s)" ) ;
+		G_DEBUG( "G::Pam::converseCallback: called back from pam with " << n << " item(s)" ) ;
 		PamImp * This = reinterpret_cast<PamImp*>(vp) ;
 		G_ASSERT( This->m_magic == MAGIC ) ;
 
@@ -267,10 +267,10 @@ int G::PamImp::converse( int n_in , const struct pam_message ** in , struct pam_
 		// to a contiguous array of structures (see linux man pam_conv)
 		//
 		rsp = reinterpret_cast<struct pam_response*>( std::malloc(n*sizeof(struct pam_response)) ) ;
-		if( rsp == NULL )
+		if( rsp == nullptr )
 			throw std::bad_alloc() ;
 		for( size_t j = 0U ; j < n ; j++ )
-			rsp[j].resp = NULL ;
+			rsp[j].resp = nullptr ;
 
 		// fill in the response from the c++ container
 		//
@@ -280,33 +280,33 @@ int G::PamImp::converse( int n_in , const struct pam_message ** in , struct pam_
 			if( array[i].out_defined )
 			{
 				char * response = strdup_( array[i].out.c_str() ) ;
-				if( response == NULL )
+				if( response == nullptr )
 					throw std::bad_alloc() ;
 				rsp[i].resp = response ;
 			}
 		}
 
 		*out = rsp ;
-		G_DEBUG( "G::Pam::converse: complete" ) ;
+		G_DEBUG( "G::Pam::converseCallback: returning to pam from callback" ) ;
 		return PAM_SUCCESS ;
 	}
 	catch(...) // c callback
 	{
-		G_ERROR( "G::Pam::converse: exception" ) ;
+		G_ERROR( "G::Pam::converseCallback: exception" ) ;
 		release( rsp , n ) ;
 		return PAM_CONV_ERR ;
 	}
 }
 
-void G::PamImp::delay( int status , unsigned delay_usec , void * pam_vp )
+void G::PamImp::delayCallback( int status , unsigned delay_usec , void * pam_vp )
 {
 	try
 	{
-		G_DEBUG( "G::Pam::delay: status=" << status << ", delay=" << delay_usec ) ;
+		G_DEBUG( "G::Pam::delayCallback: status=" << status << ", delay=" << delay_usec ) ;
 		if( status != PAM_SUCCESS )
 		{
 			PamImp * This = reinterpret_cast<PamImp*>(pam_vp) ;
-			if( This != NULL )
+			if( This != nullptr )
 			{
 				G_ASSERT( This->m_magic == MAGIC ) ;
 				This->m_pam.delay( delay_usec ) ;
@@ -315,14 +315,14 @@ void G::PamImp::delay( int status , unsigned delay_usec , void * pam_vp )
 	}
 	catch(...) // c callback
 	{
-		G_ERROR( "G::Pam::delay: exception" ) ;
+		G_ERROR( "G::Pam::delayCallback: exception" ) ;
 	}
 }
 
 void G::PamImp::openSession()
 {
 	int flags = 0 ;
-	if( silent() ) flags |= PAM_SILENT ;
+	if( silent() ) flags |= static_cast<int>(PAM_SILENT) ;
 	m_rc = ::pam_open_session( hpam() , flags ) ;
 	check( "pam_open_session" , m_rc ) ;
 }
@@ -330,7 +330,7 @@ void G::PamImp::openSession()
 void G::PamImp::closeSession()
 {
 	int flags = 0 ;
-	if( silent() ) flags |= PAM_SILENT ;
+	if( silent() ) flags |= static_cast<int>(PAM_SILENT) ;
 	m_rc = ::pam_close_session( hpam() , flags ) ;
 	check( "pam_close_session" , m_rc ) ;
 }
@@ -405,13 +405,14 @@ void G::Pam::refreshCredentials()
 
 void G::Pam::delay( unsigned int usec )
 {
+	// this is the default implementation, usually overridden
 	if( usec != 0U )
 	{
-		typedef struct timeval Timeval ; // std:: ??
+		typedef struct timeval Timeval ;
 		Timeval timeout ;
-		timeout.tv_sec = 0 ;
-		timeout.tv_usec = usec ;
-		::select( 0 , NULL , NULL , NULL , &timeout ) ;
+		timeout.tv_sec = usec / 1000000U ;
+		timeout.tv_usec = usec % 1000000U ;
+		::select( 0 , nullptr , nullptr , nullptr , &timeout ) ;
 	}
 }
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 std::string G::hostname()
 {
 	char buffer[G::limits::net_hostname] = { '\0' } ;
-	if( 0 == ::gethostname( buffer , sizeof(buffer)-1U ) )
+	if( 0 == ::gethostname( buffer , sizeof(buffer)-1U ) ) // winsock2.h
 	{
 		buffer[sizeof(buffer)-1U] = '\0' ;
 		return std::string(buffer) ;

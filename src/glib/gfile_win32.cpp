@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 //
 // gfile_win32.cpp
 //
-	
+
 #include "gdef.h"
 #include "gfile.h"
 #include <sys/stat.h>
@@ -72,26 +72,40 @@ std::string G::File::sizeString( g_uint32_t hi , g_uint32_t lo )
 	return s ;
 }
 
-bool G::File::exists( const char * path , bool & enoent )
+bool G::File::exists( const char * path , bool & enoent , bool & eaccess )
 {
 	struct _stat statbuf ;
 	bool ok = 0 == ::_stat( path , &statbuf ) ;
-	enoent = !ok ;
+	enoent = !ok ; // could do better
+	eaccess = false ;
 	return ok ;
 }
 
-G::File::time_type G::File::time( const Path & path )
+bool G::File::isLink( const Path & path )
+{
+	// this is weak, but good enough
+	struct _stat statbuf ;
+	return 0 == ::_stat( path.str().c_str() , &statbuf ) && !(statbuf.st_mode & S_IFDIR) ;
+}
+
+bool G::File::isDirectory( const Path & path )
+{
+	struct _stat statbuf ;
+	return 0 == ::_stat( path.str().c_str() , &statbuf ) && (statbuf.st_mode & S_IFDIR) ;
+}
+
+G::EpochTime G::File::time( const Path & path )
 {
 	struct _stat statbuf ;
 	if( 0 != ::_stat( path.str().c_str() , &statbuf ) )
 		throw TimeError( path.str() ) ;
-	return statbuf.st_mtime ;
+	return EpochTime(statbuf.st_mtime) ;
 }
 
-G::File::time_type G::File::time( const Path & path , const NoThrow & )
+G::EpochTime G::File::time( const Path & path , const NoThrow & )
 {
 	struct _stat statbuf ;
-	return ::_stat( path.str().c_str() , &statbuf ) == 0 ? statbuf.st_mtime : 0 ;
+	return EpochTime( ::_stat( path.str().c_str() , &statbuf ) == 0 ? statbuf.st_mtime : 0 ) ;
 }
 
 bool G::File::chmodx( const Path & , bool )
@@ -111,4 +125,22 @@ bool G::File::link( const Path & , const Path & , const NoThrow & )
 	return false ; // not supported
 }
 
+#if 0
+G::Path G::File::realpath( const Path & path )
+{
+	std::vector<char> buffer( PATH_MAX + 1 ) ;
+	buffer[0] = '\0' ;
+	DWORD rc = GetFullPathNameA( path.str().c_str() , &buffer[0] , buffer.size() , NULL ) ;
+	size_t n = static_cast<size_t>(rc) ;
+	if( n > buffer.size() )
+	{
+		buffer.resize( rc ) ;
+		rc = GetFullPathNameA( path.str().c_str() , &buffer[0] , buffer.size() , NULL ) ;
+		n = static_cast<size_t>(rc) ;
+	}
+	if( rc == 0U )
+		throw StatError( path.str() ) ;
+	return Path( std::string(&buffer[0],n) ) ;
+}
+#endif
 /// \file gfile_win32.cpp

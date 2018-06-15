@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,13 +18,14 @@
 /// \file gevent.h
 ///
 
-#ifndef G_EVENT_H
-#define G_EVENT_H
+#ifndef G_NET_EVENT__H
+#define G_NET_EVENT__H
 
 #include "gdef.h"
-#include "gnet.h"
+#include "gexceptionhandler.h"
 #include "geventloop.h"
 #include "geventhandler.h"
+#include "geventhandlerlist.h"
 
 #endif
 

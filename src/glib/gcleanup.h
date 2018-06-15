@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,15 +26,15 @@
 #include "gsignalsafe.h"
 #include "gexception.h"
 
-/// \namespace G
 namespace G
 {
 	class Cleanup ;
 }
 
 /// \class G::Cleanup
-/// An interface for registering cleanup functions
-/// which are called when the process terminates abnormally.
+/// A static interface for registering cleanup functions that are called when
+/// the process terminates abnormally. On unix this relates to signals like
+/// SIGTERM, SIGINT etc.
 ///
 class G::Cleanup
 {
@@ -42,19 +42,24 @@ public:
 	G_EXCEPTION( Error , "cleanup error" ) ;
 
 	static void init() ;
-		///< An optional early-initialisation function.
-		///< May be called more than once.
+		///< An optional early-initialisation function. May be called more than once.
 
 	static void add( void (*fn)(SignalSafe,const char*) , const char * arg ) ;
-		///< Adds the given handler to the list which
-		///< are to be called when the process
-		///< terminates abnormally. The handler
-		///< function must be fully reentrant.
-		///< The 'arg' pointer is kept.
+		///< Adds the given handler to the list of handlers that are to be called
+		///< when the process terminates abnormally. The handler function must be
+		///< fully reentrant, hence the SignalSafe dummy parameter. The 'arg'
+		///< pointer is kept.
+
+	static void atexit( bool active = true ) ;
+		///< Ensures that the cleanup functions are also called via atexit(), in
+		///< addition to abnormal-termination signals.
+		///<
+		///< This can be useful when third-party library code (eg. Xlib) might call
+		///< exit() (grrr). But be careful to call atexit(false) before normal
+		///< termination, returning from main().
 
 private:
-	Cleanup() ; // not implemeneted
+	Cleanup() ;
 } ;
 
 #endif
-

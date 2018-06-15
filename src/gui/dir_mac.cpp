@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,86 +23,59 @@
 #include "gpath.h"
 #include "gfile.h"
 #include "gdirectory.h"
+#include "gmacros.h"
 
 #ifndef G_SBINDIR
-	#define G_SBINDIR ""
+	#define G_SBINDIR
 #endif
 #ifndef G_LIBEXECDIR
-	#define G_LIBEXECDIR ""
+	#define G_LIBEXECDIR
 #endif
 #ifndef G_EXAMPLESDIR
-	#define G_EXAMPLESDIR ""
+	#define G_EXAMPLESDIR
 #endif
 #ifndef G_SYSCONFDIR
-	#define G_SYSCONFDIR ""
+	#define G_SYSCONFDIR
 #endif
 #ifndef G_MANDIR
-	#define G_MANDIR ""
+	#define G_MANDIR
 #endif
 #ifndef G_DOCDIR
-	#define G_DOCDIR ""
+	#define G_DOCDIR
 #endif
 #ifndef G_SPOOLDIR
-	#define G_SPOOLDIR ""
+	#define G_SPOOLDIR
 #endif
 #ifndef G_INITDIR
-	#define G_INITDIR ""
+	#define G_INITDIR
 #endif
 
-std::string Dir::dotexe()
+std::string Dir::rebase( const std::string & dir )
 {
-	return std::string() ;
+	static bool use_root = ok( "/Applications" ) ;
+	return (use_root?"":"~") + dir ;
 }
 
 G::Path Dir::os_install()
 {
 	// user expects to say "/Applications" or "~/Applications"
-	return "/Applications" ;
-}
-
-G::Path Dir::os_gui( const G::Path & install )
-{
-	return install + "E-MailRelay" + "emailrelay-gui.real" ; // should use G_SBINDIR
-}
-
-G::Path Dir::os_icon( const G::Path & )
-{
-	return G::Path() ;
-}
-
-G::Path Dir::os_server( const G::Path & install )
-{
-	return install + "E-MailRelay" + "emailrelay" ; // should use G_SBINDIR
-}
-
-G::Path Dir::os_bootcopy( const G::Path & , const G::Path & install )
-{
-	return install + "E-MailRelay" + "StartupItems" ; // should use G_SBINDIR
+	return rebase( "/Applications" ) ;
 }
 
 G::Path Dir::os_config()
 {
-	std::string sysconfdir( G_SYSCONFDIR ) ;
+	std::string sysconfdir( G_STR(G_SYSCONFDIR) ) ;
 	if( sysconfdir.empty() )
-		sysconfdir = "/Applications/E-MailRelay" ; // "/Library/Preferences/E-MailRelay"?
+		sysconfdir = rebase( "/Applications/E-MailRelay" ) ;
 	return sysconfdir ;
 }
 
 G::Path Dir::os_spool()
 {
-	std::string spooldir( G_SPOOLDIR ) ;
+	std::string spooldir( G_STR(G_SPOOLDIR) ) ;
 	if( spooldir.empty() )
-		spooldir = "/Library/Mail/Spool" ;
+		spooldir = rebase( "/Applications/E-MailRelay/Spool" ) ;
 	return spooldir ;
-}
-
-G::Path Dir::cwd()
-{
-	char buffer[10000] = { '\0' } ;
-	const char * p = getcwd( buffer , sizeof(buffer)-1U ) ;
-	buffer[sizeof(buffer)-1U] = '\0' ;
-	std::string s = p ? std::string(buffer) : std::string(".") ;
-	return G::Path( s ) ;
 }
 
 G::Path Dir::os_pid( const G::Path & )
@@ -121,7 +94,7 @@ G::Path Dir::special( const std::string & type )
 
 G::Path Dir::os_boot()
 {
-	std::string s( G_INITDIR ) ;
+	std::string s( G_STR(G_INITDIR) ) ;
 	if( !s.empty() )
 		return s ;
 	return "/Library/StartupItems" ;

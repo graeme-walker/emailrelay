@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -48,12 +48,12 @@ GSmtp::VerifierStatus GSmtp::InternalVerifier::verifyInternal( const std::string
 	return status ;
 }
 
-G::Signal2<std::string,GSmtp::VerifierStatus> & GSmtp::InternalVerifier::doneSignal()
+G::Slot::Signal2<std::string,GSmtp::VerifierStatus> & GSmtp::InternalVerifier::doneSignal()
 {
 	return m_done_signal ;
 }
 
-void GSmtp::InternalVerifier::reset()
+void GSmtp::InternalVerifier::cancel()
 {
 }
 

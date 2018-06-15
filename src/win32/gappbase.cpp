@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ GGui::ApplicationBase::~ApplicationBase()
 {
 }
 
-void GGui::ApplicationBase::createWindow( int show_style , bool do_show )
+std::string GGui::ApplicationBase::createWindow( int show_style , bool do_show , int dx , int dy , bool no_throw )
 {
 	G_DEBUG( "GGui::ApplicationBase::createWindow" ) ;
 
@@ -49,14 +49,19 @@ void GGui::ApplicationBase::createWindow( int show_style , bool do_show )
 	}
 
 	// create the main window
+	dx = dx ? dx : CW_USEDEFAULT ;
+	dy = dy ? dy : CW_USEDEFAULT ;
 	if( !create( className() , title() , windowStyle() ,
 			CW_USEDEFAULT , CW_USEDEFAULT , // position (x,y)
-			CW_USEDEFAULT , CW_USEDEFAULT , // size
+			dx , dy , // size
 			NULL , // parent window
 			NULL , // menu handle: NULL => use class's menu
 			hinstance() ) )
 	{
-		throw CreateError() ;
+		if( no_throw )
+			return wndProcExceptionString() ;
+		else
+			throw CreateError( wndProcExceptionString() ) ;
 	}
 
 	if( do_show )
@@ -64,6 +69,7 @@ void GGui::ApplicationBase::createWindow( int show_style , bool do_show )
 		show( show_style ) ;
 		update() ;
 	}
+	return std::string() ;
 }
 
 bool GGui::ApplicationBase::firstInstance() const
@@ -96,6 +102,7 @@ void GGui::ApplicationBase::initFirst()
 
 void GGui::ApplicationBase::close() const
 {
+	G_DEBUG( "GGui::ApplicationBase::close: sending wm-close" ) ;
 	::SendMessage( handle() , WM_CLOSE , 0 , 0 ) ;
 }
 
@@ -109,6 +116,7 @@ void GGui::ApplicationBase::run( bool with_idle )
 
 void GGui::ApplicationBase::onDestroy()
 {
+	G_DEBUG( "GGui::ApplicationBase::onDestroy: application on-destroy" ) ;
 	GGui::Pump::quit() ;
 }
 

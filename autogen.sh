@@ -4,7 +4,7 @@
 #
 # Autogenerates stuff.
 #
-aclocal
+aclocal -I .
 autoconf
 autoheader
-automake -a -Woverride -Wportability
+automake -ac -Woverride -Wportability

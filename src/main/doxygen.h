@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+   Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -24,16 +24,8 @@ source code. The <a href="namespaces.html">Namespace List</a> is a good starting
 for browsing -- the detailed description section towards the end of each namespace
 page gives a list of the namespace's key classes.
 
-The E-MailRelay <a href="../developer.html">internals guide</a> gives an overview
-of the code structure, and there are a number of supporting diagrams:
-<ul>
-<li>GNet namespace <a href="../gnet-classes.png">class diagram</a></li>
-<li>GSmtp namespace <a href="../gsmtp-classes.png">class diagram</a></li>
-<li>Proxy-mode forwarding <a href="../sequence-3.png">sequence diagram</a></li>
-<li>GNet::Client <a href="../gnet-client.png">state transition diagram</a></li>
-<li>GSmtp::ServerProtocol <a href="../gsmtp-serverprotocol.png">state transition diagram</a></li>
-<li><a href="../auth.png">Authentication usage</a></li>
-</ul>
+The E-MailRelay <a href="../developer.html">developer guide</a> gives an overview
+of the code structure.
 
 */
 
@@ -147,20 +139,6 @@ Key classes are:
 - Path
 - Process
 - Str
-
-*/
-
-/*! \namespace md5
-\short
-A standalone implementation of the MD5 hashing algorithm.
-
-The md5 namespace is used for an implementation of the
-RFC 1321 MD5 algorithm that is independent of the rest of
-the E-MailRelay library code.
-
-Key classes are:
-- digest_stream
-- digest
 
 */
 

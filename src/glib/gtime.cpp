@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ G::Time::Time()
 	m_ss = tm.tm_sec ;
 }
 
-G::Time::Time( G::DateTime::EpochTime t )
+G::Time::Time( G::EpochTime t )
 {
 	G::DateTime::BrokenDownTime tm = G::DateTime::utc( t ) ;
 	m_hh = tm.tm_hour ;
@@ -54,7 +54,7 @@ G::Time::Time( const LocalTime & )
 	m_ss = tm.tm_sec ;
 }
 
-G::Time::Time( G::DateTime::EpochTime t , const LocalTime & )
+G::Time::Time( G::EpochTime t , const LocalTime & )
 {
 	G::DateTime::BrokenDownTime tm = G::DateTime::local( t ) ;
 	m_hh = tm.tm_hour ;
@@ -79,7 +79,7 @@ int G::Time::seconds() const
 
 std::string G::Time::hhmmss( const char * sep ) const
 {
-	if( sep == NULL ) sep = "" ;
+	if( sep == nullptr ) sep = "" ;
 	std::ostringstream ss ;
 	ss << (m_hh/10) << (m_hh%10) << sep << (m_mm/10) << (m_mm%10) << sep << (m_ss/10) << (m_ss%10) ;
 	return ss.str() ;
@@ -87,7 +87,7 @@ std::string G::Time::hhmmss( const char * sep ) const
 
 std::string G::Time::hhmm( const char * sep ) const
 {
-	if( sep == NULL ) sep = "" ;
+	if( sep == nullptr ) sep = "" ;
 	std::ostringstream ss ;
 	ss << (m_hh/10) << (m_hh%10) << sep << (m_mm/10) << (m_mm%10) ;
 	return ss.str() ;

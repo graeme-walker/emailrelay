@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@
 #include "gpop.h"
 #include "gpopsecrets.h"
 
-/// \namespace GPop
 namespace GPop
 {
 	class Auth ;
@@ -33,20 +32,17 @@ namespace GPop
 }
 
 /// \class GPop::Auth
-/// An authenticator interface for POP3
-/// sessions.
-///
-/// The implementation may use GSmtp::SaslServer.
-///
-/// \see GSmtp::SaslServer, RFC2222
+/// An authenticator interface for POP3 sessions that is a very
+/// thin veneer over GSmtp::SaslServer.
+/// \see RFC-2222
 ///
 class GPop::Auth
 {
 public:
 	explicit Auth( const Secrets & ) ;
-		///< Constructor. Defaults to the APOP mechanism
-		///< so that challenge() returns the APOP initial
-		///< challege to go into the POP3 greeting.
+		///< Constructor. Defaults to the APOP mechanism so that
+		///< challenge() returns the APOP initial challege to go
+		///< into the POP3 greeting.
 
 	~Auth() ;
 		///< Destructor.

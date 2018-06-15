@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,14 +19,9 @@
 //
 
 #include "gdef.h"
-#include "gnet.h"
 #include "geventhandler.h"
-#include "geventloop.h"
 #include "gexception.h"
 #include "gdebug.h"
-#include "gassert.h"
-#include "gdescriptor.h"
-#include "glog.h"
 
 GNet::EventHandler::~EventHandler()
 {
@@ -42,90 +37,23 @@ void GNet::EventHandler::writeEvent()
 	G_DEBUG( "GNet::EventHandler::writeEvent: no override" ) ;
 }
 
-void GNet::EventHandler::exceptionEvent()
+void GNet::EventHandler::otherEvent( EventHandler::Reason reason )
 {
-	throw G::Exception( "exception event" ) ;
+	// this event is mostly relevant to windows -- the default action is
+	// to throw an exception -- for 'reason_closed' (ie. a clean shutdown())
+	// it would be reasonable to read the socket until it returns an error
+	// or zero, and/or set a close timer
+
+	throw G::Exception( "socket disconnect event" , str(reason) ) ;
 }
 
-// ===
-
-GNet::EventHandlerList::EventHandlerList( const std::string & type ) :
-	m_type(type) ,
-	m_lock(0U) ,
-	m_has_garbage(false)
+std::string GNet::EventHandler::str( EventHandler::Reason reason )
 {
-}
-
-GNet::EventHandlerList::Iterator GNet::EventHandlerList::begin() const
-{
-	return m_map.begin() ;
-}
-
-GNet::EventHandlerList::Iterator GNet::EventHandlerList::end() const
-{
-	return m_map.end() ;
-}
-
-bool GNet::EventHandlerList::contains( Descriptor fd ) const
-{
-	return m_map.find(fd) != m_map.end() ;
-}
-
-GNet::EventHandler * GNet::EventHandlerList::find( Descriptor fd )
-{
-	Map::iterator p = m_map.find( fd ) ;
-	return p != m_map.end() ? (*p).second : NULL ;
-}
-
-void GNet::EventHandlerList::add( Descriptor fd , EventHandler * handler )
-{
-	G_ASSERT( handler != NULL ) ;
-	G_DEBUG( "GNet::EventHandlerList::add: " << m_type << "-list: " << "adding " << fd ) ;
-
-	m_map[fd] = handler ;
-}
-
-void GNet::EventHandlerList::remove( Descriptor fd )
-{
-	Map::iterator p = m_map.find( fd ) ;
-	if( p != m_map.end() )
-	{
-		G_DEBUG( "GNet::EventHandlerList::remove: " << m_type << "-list: " << "removing " << fd ) ;
-		if( m_lock )
-		{
-			(*p).second = NULL ;
-			m_has_garbage = true ;
-		}
-		else
-		{
-			m_map.erase( p ) ;
-		}
-	}
-}
-
-void GNet::EventHandlerList::lock()
-{
-	m_lock++ ;
-}
-
-void GNet::EventHandlerList::unlock()
-{
-	G_ASSERT( m_lock != 0U ) ;
-	m_lock-- ;
-	if( m_lock == 0U && m_has_garbage )
-		collectGarbage() ;
-}
-
-void GNet::EventHandlerList::collectGarbage()
-{
-	const Map::iterator end = m_map.end() ;
-	for( Map::iterator p = m_map.begin() ; p != end ; )
-	{
-		Map::iterator test = p++ ;
-		if( (*test).second == NULL )
-			m_map.erase( test ) ;
-	}
-	m_has_garbage = false ;
+	if( reason == EventHandler::reason_closed ) return "closed" ;
+	if( reason == EventHandler::reason_down ) return "network down" ;
+	if( reason == EventHandler::reason_reset ) return "connection reset by peer" ;
+	if( reason == EventHandler::reason_abort ) return "connection aborted" ;
+	return std::string() ;
 }
 
 /// \file geventhandler.cpp

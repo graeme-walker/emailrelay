@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,23 +27,22 @@
 #include <string>
 #include <list>
 
-/// \namespace GGui
 namespace GGui
 {
 	class Cracker ;
 }
 
 /// \class GGui::Cracker
-/// The Cracker class encapsulates a typical
-/// window procedure by 'cracking' Windows messages
-/// into virtual functions.
+/// The Cracker class encapsulates a typical window procedure by
+/// 'cracking' Windows messages into virtual functions.
 ///
-class GGui::Cracker : public GGui::WindowBase
+class GGui::Cracker : public WindowBase
 {
 public:
 
 	explicit Cracker( HWND hwnd ) ;
-		///< Constructor.
+		///< Constructor. The window handle is passed on to
+		///< the base class.
 
 	virtual ~Cracker() ;
 		///< Virtual destructor.
@@ -54,12 +53,10 @@ public:
 	Cracker & operator=( const Cracker & other ) ;
 		///< Assignment operator.
 
-	LRESULT crack( unsigned int msg , WPARAM w , LPARAM l , bool &defolt ) ;
-		///< Cracks the given message, calling
-		///< virtual functions as appropriate.
-		///< If the message is not processed
-		///< then 'defolt' is set to true: the
-		///< user should then normally call
+	LRESULT crack( unsigned int msg , WPARAM w , LPARAM l , bool & default_ ) ;
+		///< Cracks the given message, calling virtual functions as
+		///< appropriate. If the message is not processed then 'default_'
+		///< is set to true: the user should then normally call
 		///< DefWindowProc().
 
 	static unsigned int wm_user() ;
@@ -87,144 +84,119 @@ public:
 
 protected:
 	virtual bool onEraseBackground( HDC hdc ) ;
-		///< Overridable. Called when the window
-		///< receives a WM_ERASEBKGND message. The default
-		///< implementation uses the brush from the
-		///< window class registration. Returns true
-		///< if the background was erased.
+		///< Overridable. Called when the window receives a
+		///< WM_ERASEBKGND message. The default implementation
+		///< uses the brush from the window class registration.
+		///< Returns true if the background was erased.
 
 	virtual HBRUSH onControlColour( HDC hDC , HWND hWndControl , WORD type ) ;
-		///< Overridable. Called when the window
-		///< receives a WM_CTLCOLOR message.
-		///<
-		///< Under Win32 all the various MW_CTLCOLOR
-		///< messages call this method.
+		///< Overridable. Called when the window receives a
+		///< WM_CTLCOLOR message.
 
 	virtual void onSysColourChange() ;
-		///< Overridable. Called when the window
-		///< receives a WM_SYSCOLORCHANGE message.
+		///< Overridable. Called when the window receives a
+		///< WM_SYSCOLORCHANGE message.
 
 	enum SysCommand { scMaximise , scMinimise , scClose , scSize /*etc*/ } ;
 	virtual bool onSysCommand( SysCommand sys_command ) ;
-		///< Overridable. Called when the window
-		///< receives a WM_SYSCOMMAND message.
-		///< Returns true if processed.
+		///< Overridable. Called when the window receives a
+		///< WM_SYSCOMMAND message. Returns true if processed.
 
 	virtual bool onCreate() ;
-		///< Overridable. Called when the window
-		///< receives a WM_CREATE message.
-		///< The main window should return false
-		///< if the application should fail to start up.
+		///< Overridable. Called when the window receives a
+		///< WM_CREATE message. The main window should return
+		///< false if the application should fail to start up.
 
 	virtual bool onPaintMessage() ;
-		///< Overridable. Called when the window
-		///< receives a WM_PAINT message, before
-		///< ::BeginPaint() is called.
-		///< If the override returns true then
-		///< the message is considered to be
-		///< fully processed and onPaint()
+		///< Overridable. Called when the window receives a
+		///< WM_PAINT message, before ::BeginPaint() is called.
+		///< If the override returns true then the message is
+		///< considered to be fully processed and onPaint()
 		///< is not used.
 
 	virtual void onPaint( HDC dc ) ;
-		///< Overridable. Called when the window
-		///< receives a WM_PAINT message,
-		///< after ::BeginPaint().
+		///< Overridable. Called when the window receives a
+		///< WM_PAINT message, after ::BeginPaint().
 
 	virtual bool onClose() ;
-		///< Overridable. Called when the window
-		///< receives a WM_CLOSE message. The main
-		///< window should return true if the
-		///< application should terminate.
+		///< Overridable. Called when the window receives a
+		///< WM_CLOSE message. The main window should return
+		///< true if the application should terminate.
 
 	virtual void onDestroy() ;
-		///< Overridable. Called when the window
-		///< receives a WM_DESTROY message.
+		///< Overridable. Called when the window receives a
+		///< WM_DESTROY message.
 
 	virtual void onNcDestroy() ;
-		///< Overridable. Called when the window
-		///< receives a WM_NCDESTROY message.
+		///< Overridable. Called when the window receives a
+		///< WM_NCDESTROY message.
 
 	virtual void onMenuCommand( UINT id ) ;
-		///< Overridable. Called when the window
-		///< receives a WM_COMMAND message resulting
-		///< from a menu action.
+		///< Overridable. Called when the window receives a
+		///< WM_COMMAND message resulting from a menu action.
 
 	virtual void onControlCommand( HWND hwnd , UINT message , UINT id ) ;
-		///< Overridable. Called when the window
-		///< receives a WM_COMMAND message from a
-		///< control.
+		///< Overridable. Called when the window receives a
+		///< WM_COMMAND message from a control.
 
-	virtual bool onDrop( const G::Strings & files ) ;
-		///< Overridable. Called when the window
-		///< receives a WM_DROPFILES message.
-		///< Returns false if the file list
+	virtual bool onDrop( const G::StringArray & files ) ;
+		///< Overridable. Called when the window receives a
+		///< WM_DROPFILES message. Returns false if the file list
 		///< is ignored. See also: DragAcceptFiles().
 
 	enum SizeType { maximised , minimised , restored } ;
 	virtual void onSize( SizeType type , unsigned int dx , unsigned int dy ) ;
-		///< Overridable. Called on receipt of
-		///< a WM_SIZE message.
+		///< Overridable. Called on receipt of a WM_SIZE message.
 
 	virtual void onMove( int x , int y ) ;
-		///< Overridable. Called on receipt of
-		///< a WM_MOVE message.
+		///< Overridable. Called on receipt of a WM_MOVE message.
 
 	virtual void onLooseFocus( HWND to ) ;
-		///< Overridable. Called on receipt of
-		///< a WM_KILLFOCUS message.
+		///< Overridable. Called on receipt of a WM_KILLFOCUS message.
 
 	virtual void onGetFocus( HWND from ) ;
-		///< Overridable. Called on receipt of
-		///< a WM_SETFOCUS message, indicating that
-		///< this windows has just received input focus.
-		///< Typically this is overridden with a
-		///< call to ::SetFocus(), passing focus on to
-		///< some more appropriate window.
+		///< Overridable. Called on receipt of a WM_SETFOCUS message,
+		///< indicating that this windows has just received input
+		///< focus. Typically this is overridden with a call to
+		///< ::SetFocus(), passing focus on to some more appropriate
+		///< window.
 
 	virtual void onChar( WORD vkey , unsigned int repeat_count ) ;
-		///< Overridable. Called on receipt of
-		///< a WM_CHAR message.
+		///< Overridable. Called on receipt of a WM_CHAR message.
 
 	virtual void onDimension( int &dx , int &dy ) ;
-		///< Overridable. Called on receipt of
-		///< a WM_MINMAXINFO message.
+		///< Overridable. Called on receipt of a WM_MINMAXINFO message.
 
 	virtual void onDoubleClick( unsigned int x , unsigned int y , unsigned int keys ) ;
-		///< Overridable. Called when the left mouse
-		///< button is double clicked (but depending
-		///< on the window class-style).
+		///< Overridable. Called when the left mouse button is
+		///< double clicked (but depending on the window
+		///< class-style).
 
 	virtual void onTrayDoubleClick() ;
-		///< Overridable. Called when the left mouse
-		///< button is double clicked on the window's
-		///< system-tray icon.
-		///< See also: GGui::Tray
+		///< Overridable. Called when the left mouse button is double
+		///< clicked on the window's system-tray icon.
+		/// \see GGui::Tray
 
 	virtual void onTrayLeftMouseButtonDown() ;
-		///< Overridable. Called when the left mouse
-		///< button is clicked on the window's
-		///< system-tray icon.
-		///< See also: GGui::Tray
+		///< Overridable. Called when the left mouse button is clicked
+		///< on the window's system-tray icon.
+		/// \see GGui::Tray
 
 	virtual void onTrayRightMouseButtonDown() ;
-		///< Overridable. Called when the right mouse
-		///< button is clicked on the window's
-		///< system-tray icon.
-		///< See also: GGui::Tray
+		///< Overridable. Called when the right mouse button is clicked
+		///< on the window's system-tray icon.
+		/// \see GGui::Tray
 
 	virtual void onTrayRightMouseButtonUp() ;
-		///< Overridable. Called when the right mouse
-		///< button is released on the window's
-		///< system-tray icon.
-		///< See also: GGui::Tray
+		///< Overridable. Called when the right mouse button is released
+		///< on the window's system-tray icon.
+		/// \see GGui::Tray
 
 	virtual void onTimer( unsigned int id ) ;
-		///< Overridable. Called on receipt of a WM_TIMER
-		///< message.
+		///< Overridable. Called on receipt of a WM_TIMER message.
 
 	virtual LRESULT onUser( WPARAM wparam , LPARAM lparam ) ;
-		///< Overridable. Called on receipt of a WM_USER
-		///< message.
+		///< Overridable. Called on receipt of a WM_USER message.
 
 	virtual LRESULT onUserOther( WPARAM wparam , LPARAM lparam ) ;
 		///< Overridable. Called on receipt of a wm_user_other()
@@ -251,8 +223,8 @@ protected:
 	virtual void onMouseButton( MouseButton , MouseButtonDirection ,
 		int x , int y , bool shift_key_down , bool control_key_down ) ;
 			///< Overridable. Called on receipt of a mouse
-			///< button-down/button-up message. Called
-			///< before the separate functions below.
+			///< button-down/button-up message. Called before
+			///< the separate functions below.
 
 	virtual void onLeftMouseButtonDown( int x , int y ,
 		bool shift_key_down , bool control_key_down ) ;
@@ -285,30 +257,28 @@ protected:
 			///< message.
 
 	virtual bool onPalette() ;
-		///< Called when the window gets focus, allowing
-		///< it to realise its own palette into the
-		///< system-wide hardware palette. If the
-		///< window has a palette it should realise
-		///< it and return true. If it has no palette
-		///< it should return false.
+		///< Called when the window gets focus, allowing it to realise
+		///< its own palette into the system-wide hardware palette. If
+		///< the window has a palette it should realise it and return
+		///< true. If it has no palette it should return false.
 		///<
-		///< See also: WM_QUERYNEWPALETTE
+		/// \see WM_QUERYNEWPALETTE
 
 	virtual void onPaletteChange() ;
-		///< Called when some other window changes
-		///< the system-wide hardware palette.
+		///< Called when some other window changes the system-wide
+		///< hardware palette.
 		///<
-		///< If a window has a palette, but it ignores this
-		///< message, then the window's colors will be bogus
-		///< while another application has input focus.
+		///< If a window has a palette, but it ignores this message,
+		///< then the window's colors will be bogus while another
+		///< application has input focus.
 		///<
-		///< See also: WM_PALETTECHANGED
+		/// \see WM_PALETTECHANGED
 
 	virtual bool onIdle() ;
-		///< Called whenever the event loop becomes empty.
-		///< If true is returned then it is called again
-		///< (as long as the queue is still empty).
-		///< See also: GGui::Pump
+		///< Called whenever the event loop becomes empty. If true is
+		///< returned then it is called again (as long as the queue is
+		///< still empty).
+		/// \see GGui::Pump
 
 private:
 	typedef void (Cracker::*Fn)(int,int,bool,bool) ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,6 @@
 #include <set>
 #include <list>
 
-/// \namespace GPop
 namespace GPop
 {
 	class Store ;
@@ -39,9 +38,9 @@ namespace GPop
 }
 
 /// \class GPop::Store
-/// A message store. Unlike the SMTP message store the
-/// POP message store allows content files to be in the envelope file's
-/// parent directory.
+/// A message store. Unlike the SMTP message store the POP message
+/// store allows content files to be in the envelope file's parent
+/// directory.
 ///
 class GPop::Store
 {
@@ -141,7 +140,7 @@ public:
 	List list( int id = -1 ) const ;
 		///< Lists messages in the store.
 
-	std::auto_ptr<std::istream> get( int id ) const ;
+	unique_ptr<std::istream> get( int id ) const ;
 		///< Retrieves the message content.
 
 	void remove( int ) ;
@@ -158,8 +157,7 @@ public:
 		///< Postcondition: !locked()
 
 private:
-	/// A private implementation class used by GPop::StoreLock.
-	struct File
+	struct File /// A private implementation class used by GPop::StoreLock.
 	{
 		std::string name ; // content name
 		StoreLockEntry::Size size ;

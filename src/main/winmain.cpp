@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,16 +19,17 @@
 //
 
 #include "gdef.h"
-#include "gsmtp.h"
 #include "garg.h"
 #include "gslot.h"
 #include "gexception.h"
 #include "winapp.h"
 #include "commandline.h"
+#include "options.h"
 #include "run.h"
+#include "resource.h"
 #include <clocale>
 
-int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous , LPSTR command_line , int show )
+int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous , LPSTR command_line , int show_style )
 {
 	try
 	{
@@ -36,19 +37,20 @@ int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous , LPSTR command_lin
 
 		G::Arg arg ;
 		arg.parse( hinstance , command_line ) ;
-		Main::WinApp app( hinstance , previous , "E-MailRelay" ) ;
-		Main::Run run( app , arg , Main::CommandLine::switchSpec(true) ) ;
-		if( run.hidden() )
-			app.disableOutput() ;
 
+		Main::WinApp app( hinstance , previous , "E-MailRelay" ) ;
+		Main::Run run( app , arg , Main::Options::spec(true) ) ;
 		try
 		{
-			if( run.prepare() )
+			run.configure() ;
+			if( run.hidden() )
+				app.disableOutput() ;
+
+			if( run.runnable() )
 			{
-				const bool visible = ! run.config().daemon() ;
-				app.init( run.config() ) ;
-				app.createWindow( show , visible ) ;
-				run.signal().connect( G::slot(app,&Main::WinApp::onRunEvent) ) ;
+				app.init( run.configuration() ) ;
+				app.createWindow( show_style , /*show*/false ) ; // invisible main window
+				run.signal().connect( G::Slot::slot(app,&Main::WinApp::onRunEvent) ) ;
 				run.run() ;
 			}
 		}
@@ -66,6 +68,5 @@ int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous , LPSTR command_lin
 	}
 	return 1 ;
 }
-
 
 /// \file winmain.cpp

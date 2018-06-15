@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -54,13 +54,21 @@ void G::LogOutput::rawOutput( std::ostream & std_err , G::Log::Severity severity
 	{
 		::syslog( mode(m_facility,severity) , "%s" , message.c_str() ) ;
 	}
-	std_err << message << std::endl ;
+
+	if( !m_quiet || severity == G::Log::s_Error || severity == G::Log::s_Warning )
+	{
+		std_err << message << std::endl ;
+	}
 }
 
 void G::LogOutput::init()
 {
 	if( m_syslog )
-		::openlog( NULL , LOG_PID , decode(m_facility) ) ;
+		::openlog( nullptr , LOG_PID , decode(m_facility) ) ;
+}
+
+void G::LogOutput::register_( const std::string & )
+{
 }
 
 void G::LogOutput::cleanup()

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ const std::string & G::StringMapReader::at( const std::string & key ) const
 {
 	StringMap::const_iterator p = m_map.find( key ) ;
 	if( p == m_map.end() )
-		throw std::out_of_range(std::string()+"key ["+key+"] not found in ["+G::Str::join(keys(14U,"..."),",")+"]") ;
+		throw std::out_of_range(std::string()+"key ["+key+"] not found in ["+G::Str::join(",",keys(14U,"..."))+"]" ) ;
 	return (*p).second ;
 }
 
@@ -45,14 +45,15 @@ const std::string & G::StringMapReader::at( const std::string & key , const std:
 	return p == m_map.end() ? default_ : (*p).second ;
 }
 
-G::Strings G::StringMapReader::keys( unsigned int limit , const char * elipsis ) const
+G::StringArray G::StringMapReader::keys( unsigned int limit , const char * elipsis ) const
 {
-	Strings result ;
+	StringArray result ;
+	result.reserve( limit < m_map.size() ? limit : m_map.size() ) ;
 	unsigned int i = 0U ;
 	StringMap::const_iterator p = m_map.begin() ;
 	for( ; p != m_map.end() && limit > 0U && i < limit ; ++p , i++ )
 		result.push_back( (*p).first ) ;
-	if( p != m_map.end() && elipsis != NULL )
+	if( p != m_map.end() && elipsis != nullptr )
 		result.push_back( elipsis ) ;
 	return result ;
 }

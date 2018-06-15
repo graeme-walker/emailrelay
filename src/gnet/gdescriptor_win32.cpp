@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,17 +19,32 @@
 //
 
 #include "gdef.h"
-#include "gnet.h"
 #include "gdescriptor.h"
 
 GNet::Descriptor::Descriptor() :
-	m_fd(INVALID_SOCKET)
+	m_fd(INVALID_SOCKET) ,
+	m_handle(NULL)
 {
 }
 
 bool GNet::Descriptor::valid() const
 {
 	return m_fd != INVALID_SOCKET ;
+}
+
+HANDLE GNet::Descriptor::h() const
+{
+	return m_handle ;
+}
+
+void GNet::Descriptor::streamOut( std::ostream & stream ) const
+{
+	if( m_fd == INVALID_SOCKET )
+		stream << "-1" ;
+	else
+		stream << m_fd ;
+
+	stream << "," << m_handle ;
 }
 
 /// \file gdescriptor_win32.cpp

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 #define G_SASL_SERVER_H
 
 #include "gdef.h"
-#include "gauth.h"
 #include "gvalid.h"
 #include "gexception.h"
 #include "gaddress.h"
@@ -31,7 +30,6 @@
 #include <map>
 #include <memory>
 
-/// \namespace GAuth
 namespace GAuth
 {
 	class SaslServer ;
@@ -39,54 +37,35 @@ namespace GAuth
 }
 
 /// \class GAuth::SaslServer
-/// A class for implementing the server-side SASL
-/// challenge/response concept. SASL is described in RFC4422,
-/// and the SMTP extension for authentication is described
-/// in RFC2554.
-///
-/// Common SASL mechanisms are:
-/// - GSSAPI [RFC2222]
-/// - CRAM-MD5 [RFC2195]
-/// - PLAIN [RFC2595]
-/// - DIGEST-MD5 [RFC2831]
-/// - KERBEROS_V5
-/// - LOGIN
-/// - PLAIN
+/// An interface for implementing the server-side SASL challenge/response
+/// concept. Third-party libraries could be plumbed in at this interface in order
+/// to get support for more exotic authentication mechanisms. In practice there is
+/// one derived class for basic authentication mechanisms using a secrets file,
+/// and another for PAM.
 ///
 /// Usage:
 /// \code
 /// SaslServer sasl( secrets ) ;
-/// client.advertise( sasl.mechanisms() ) ;
-/// if( sasl.init(client.preferredMechanism()) )
+/// peer.advertise( sasl.mechanisms() ) ;
+/// if( sasl.init(peer.preferred()) )
 /// {
-///   client.send( sasl.initialChallenge() ) ;
+///   peer.send( sasl.initialChallenge() ) ;
 ///   for(;;)
 ///   {
-///     std::string reply = client.receive() ;
+///     std::string reply = peer.receive() ;
 ///     bool done = false ;
 ///     std::string challenge = sasl.apply( reply , done ) ;
 ///     if( done ) break ;
-///     client.send( challenge ) ;
+///     peer.send( challenge ) ;
 ///   }
 ///   bool ok = sasl.authenticated() ;
 /// }
 /// \endcode
 ///
-/// \see GAuth::SaslClient, RFC2554, RFC4422
+/// \see GAuth::SaslClient, RFC-2554, RFC-4422
 ///
 class GAuth::SaslServer
 {
-public:
-	/// An interface used by GAuth::SaslServer to obtain authentication secrets.
-	class Secrets : public virtual Valid
-	{
-		public: virtual std::string secret( const std::string & mechanism, const std::string & id ) const = 0 ;
-		public: virtual std::string source() const = 0 ;
-		public: virtual ~Secrets() ;
-		public: virtual bool contains( const std::string & mechanism ) const = 0 ;
-		private: void operator=( const Secrets & ) ; // not implemented
-	} ;
-
 public:
 	virtual ~SaslServer() ;
 		///< Destructor.
@@ -104,22 +83,33 @@ public:
 		///< Returns a list of supported, standard mechanisms
 		///< that can be advertised to the client.
 		///<
-		///< Mechanisms (eg. APOP) may still be accepted by
+		///< Some mechanisms (like "APOP") may be accepted by
 		///< init() even though they are not advertised.
 
 	virtual bool init( const std::string & mechanism ) = 0 ;
-		///< Initialiser. Returns true if a supported mechanism.
-		///< May be used more than once.
+		///< Initialiser. Returns true if the mechanism is in the
+		///< mechanisms() list, or if it is some other supported
+		///< mechanism (like "APOP") that the derived-class object
+		///< allows implicitly. May be used more than once.
+		///< The initialChallenge() is re-initialised.
 
 	virtual std::string mechanism() const = 0 ;
 		///< Returns the mechanism, as passed to the last init()
 		///< call to return true.
 
 	virtual bool mustChallenge() const = 0 ;
-		///< Returns true if the mechanism must start with
-		///< a non-empty server challenge. Returns false for
-		///< the "LOGIN" mechanism since the initial challenge
-		///< ("username:") is not essential.
+		///< Returns true if authentication using the current mechanism
+		///< must always start with a non-empty server challenge, ie.
+		///< it is a "server-first" mechanism as per RFC-4422.
+		///<
+		///< Returns false for the "LOGIN" mechanism since the initial
+		///< challenge ("Username:") is not essential, ie. it is a
+		///< "variable" mechanism.
+		///<
+		///< The server should call initialChallenge() to decide whether
+		///< to send an initial challenge; this method is only to
+		///< stop a client providing an initial response before an
+		///< initial challenge has been sent.
 
 	virtual std::string initialChallenge() const = 0 ;
 		///< Returns the initial server challenge. May return
@@ -137,9 +127,12 @@ public:
 		///< Returns the authenticated or trusted identity. Returns the
 		///< empty string if not authenticated and not trusted.
 
-	virtual bool trusted( GNet::Address ) const = 0 ;
+	virtual bool trusted( const GNet::Address & ) const = 0 ;
 		///< Returns true if a trusted client that
 		///< does not need to authenticate.
+
+private:
+	void operator=( const SaslServer & ) ;
 } ;
 
 #endif

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,17 +19,9 @@
 //
 
 #include "gdef.h"
-#include "gnet.h"
-#include "gauth.h"
 #include "gsaslserver.h"
 
 GAuth::SaslServer::~SaslServer()
-{
-}
-
-// ==
-
-GAuth::SaslServer::Secrets::~Secrets()
 {
 }
 

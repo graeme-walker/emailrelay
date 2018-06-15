@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,13 +19,13 @@
 //
 
 #include "gdef.h"
-#include "gnet.h"
 #include "gbufferedserverpeer.h"
+#include "gstr.h"
 #include "glog.h"
 
-GNet::BufferedServerPeer::BufferedServerPeer( Server::PeerInfo peer_info , const std::string & eol ) :
+GNet::BufferedServerPeer::BufferedServerPeer( Server::PeerInfo peer_info , LineBufferConfig line_buffer_config ) :
 	ServerPeer(peer_info) ,
-	m_line_buffer(eol)
+	m_line_buffer(line_buffer_config)
 {
 }
 
@@ -35,10 +35,22 @@ GNet::BufferedServerPeer::~BufferedServerPeer()
 
 void GNet::BufferedServerPeer::onData( const char * p , ServerPeer::size_type n )
 {
-	m_line_buffer.add(p,n) ;
-	LineBufferIterator iter( m_line_buffer ) ;
-	while( iter.more() && onReceive(iter.line()) )
-		;
+	m_line_buffer.add( p , n ) ;
+	while( m_line_buffer.more() )
+	{
+		if( !onReceive( m_line_buffer.lineData() , m_line_buffer.lineSize() , m_line_buffer.eolSize() ) )
+			break ;
+	}
+}
+
+void GNet::BufferedServerPeer::expect( size_t n )
+{
+	m_line_buffer.expect( n ) ;
+}
+
+std::string GNet::BufferedServerPeer::lineBufferEndOfLine() const
+{
+	return m_line_buffer.eol() ;
 }
 
 /// \file gbufferedserverpeer.cpp

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@
 #include "gexception.h"
 #include <map>
 
-/// \namespace G
 namespace G
 {
 
@@ -38,9 +37,9 @@ G_EXCEPTION_CLASS( StateMachine_Error , "invalid state machine transition" ) ;
 /// apply()d to the state machine, it undergoes a state 'transition'
 /// and then calls the associated 'action' method.
 ///
-/// Any action method can return a boolean predicate value which is used to select
-/// between two transitions -- the 'normal' transition if the predicate is
-/// true, and an 'alternative' transition if false.
+/// Any action method can return a boolean predicate value which is used to
+/// select between two transitions -- the 'normal' transition if the predicate
+/// is true, and an 'alternative' transition if false.
 ///
 /// Transition states can be implemented by having the relevant action
 /// method call apply() on the state-machine. The state machine's state
@@ -105,11 +104,11 @@ G_EXCEPTION_CLASS( StateMachine_Error , "invalid state machine transition" ) ;
 /// } ;
 /// \endcode
 ///
-template <typename T, typename State, typename Event, typename Arg = std::string>
+template <typename T, typename State, typename Event, typename Arg>
 class StateMachine
 {
 public:
-	typedef void (T::*Action)(const Arg &, bool &) ;
+	typedef void (T::*Action)(Arg, bool &) ;
 	typedef StateMachine_Error Error ;
 
 	StateMachine( State s_start , State s_end , State s_same , State s_any ) ;
@@ -124,7 +123,7 @@ public:
 		///< The 'alt' state is taken as an alternative 'to' state
 		///< if the action's predicate is returned as false.
 
-	State apply( T & t , Event event , const Arg & arg ) ;
+	State apply( T & t , Event event , Arg arg ) ;
 		///< Applies an event. Calls the appropriate action method
 		///< on object "t" and changes state. The state change
 		///< takes into account the predicate returned by the
@@ -147,8 +146,7 @@ public:
 		///< Sets the current state. Returns the old state.
 
 private:
-	/// A private structure used by G::StateMachine<>.
-	struct Transition
+	struct Transition /// A private structure used by G::StateMachine<>.
 	{
 		State from ;
 		State to ;
@@ -214,7 +212,7 @@ State StateMachine<T,State,Event,Arg>::state() const
 }
 
 template <typename T, typename State, typename Event, typename Arg>
-State StateMachine<T,State,Event,Arg>::apply( T & t , Event event , const Arg & arg )
+State StateMachine<T,State,Event,Arg>::apply( T & t , Event event , Arg arg )
 {
 	State state = m_state ;
 	typename Map::iterator p = m_map.find(event) ; // look up in the multimap keyed on event + current-state

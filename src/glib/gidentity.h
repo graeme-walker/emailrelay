@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@
 #include <string>
 #include <iostream>
 
-/// \namespace G
 namespace G
 {
 	class Identity ;
@@ -35,7 +34,9 @@ namespace G
 }
 
 /// \class G::Identity
-/// A very low-level interface to getpwnam() and the get/set/e/uid/gid functions.
+/// A combination of user-id and group-id, with a very low-level interface
+/// to the get/set/e/uid/gid functions. Uses getpwnam() to do username
+/// lookups.
 /// \see G::Process, G::Root
 ///
 class G::Identity
@@ -60,6 +61,10 @@ public:
 
 	static Identity invalid() ;
 		///< Returns an invalid identity.
+
+	static Identity invalid( SignalSafe ) ;
+		///< Returns an invalid identity, with a
+		///< signal-safe guarantee.
 
 	bool isRoot() const ;
 		///< Returns true if the userid is zero.
@@ -95,6 +100,7 @@ public:
 
 private:
 	Identity() ; // no throw
+	explicit Identity( SignalSafe ) ; // no throw
 
 private:
 	uid_t m_uid ;
@@ -103,8 +109,8 @@ private:
 } ;
 
 /// \class G::IdentityUser
-/// A convenience class which, when used as a private base,
-/// can improve readability when calling Identity 'set' methods.
+/// A convenience class which, when used as a private base, can improve
+/// readability when calling Identity 'set' methods.
 ///
 class G::IdentityUser
 {
@@ -131,7 +137,6 @@ private:
 	IdentityUser() ; // not implemented
 } ;
 
-/// \namespace G
 namespace G
 {
 	inline

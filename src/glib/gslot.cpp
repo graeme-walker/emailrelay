@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,20 +21,20 @@
 #include "gdef.h"
 #include "gslot.h"
 
-G::SlotBase::~SlotBase()
+G::Slot::SlotImpBase::~SlotImpBase()
 {
 }
 
-G::SlotBase::SlotBase() : m_ref_count(1UL)
+G::Slot::SlotImpBase::SlotImpBase() : m_ref_count(1UL)
 {
 }
 
-void G::SlotBase::up()
+void G::Slot::SlotImpBase::up()
 {
 	m_ref_count++ ;
 }
 
-void G::SlotBase::down()
+void G::Slot::SlotImpBase::down()
 {
 	m_ref_count-- ;
 	if( m_ref_count == 0UL )
@@ -43,9 +43,9 @@ void G::SlotBase::down()
 
 // ===
 
-void G::SignalImp::check( const SlotBase * p )
+void G::Slot::SignalImp::check( const SlotImpBase * p )
 {
-	if( p != NULL )
+	if( p != nullptr )
 		throw AlreadyConnected() ;
 }
 

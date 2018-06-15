@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,34 +21,23 @@
 #include "gdef.h"
 #include "qt.h"
 #include "gdialog.h"
+#include "gfile.h"
 #include "gdebug.h"
 #include <algorithm>
 #include <stdexcept>
 
-GDialog::GDialog( bool with_help ) :
-	QDialog(NULL) ,
+GDialog::GDialog( bool with_help , G::Path virgin_flag_file ) :
+	QDialog(nullptr) ,
 	m_first(true) ,
-	m_help_button(NULL) ,
-	m_cancel_button(NULL) ,
-	m_back_button(NULL) ,
-	m_next_button(NULL) ,
-	m_finish_button(NULL) ,
-	m_waiting(false)
+	m_help_button(nullptr) ,
+	m_cancel_button(nullptr) ,
+	m_back_button(nullptr) ,
+	m_next_button(nullptr) ,
+	m_finish_button(nullptr) ,
+	m_waiting(false) ,
+	m_virgin_flag_file(virgin_flag_file)
 {
 	init( with_help ) ;
-}
-
-GDialog::GDialog( QWidget *parent ) :
-	QDialog(parent) ,
-	m_first(true) ,
-	m_help_button(NULL) ,
-	m_cancel_button(NULL) ,
-	m_back_button(NULL) ,
-	m_next_button(NULL) ,
-	m_finish_button(NULL) ,
-	m_waiting(false)
-{
-	init( false ) ;
 }
 
 void GDialog::init( bool with_help )
@@ -70,7 +59,7 @@ void GDialog::init( bool with_help )
 	connect( m_finish_button, SIGNAL(clicked()) , this , SLOT(finishButtonClicked()) ) ;
 
 	m_button_layout = new QHBoxLayout ;
-	if( m_help_button != NULL )
+	if( m_help_button != nullptr )
 		m_button_layout->addWidget( m_help_button ) ;
 	m_button_layout->addStretch( 1 ) ;
 	m_button_layout->addWidget( m_cancel_button ) ;
@@ -183,8 +172,10 @@ void GDialog::pageUpdated()
 		m_next_button->setEnabled(false) ;
 		m_finish_button->setText(tr("Close")) ;
 		m_finish_button->setEnabled(true) ;
-		if( m_help_button != NULL )
+		if( m_help_button != nullptr )
 			m_help_button->setEnabled(!current_page.helpName().empty()) ;
+		if( m_virgin_flag_file != G::Path() )
+			G::File::remove( m_virgin_flag_file , G::File::NoThrow() ) ;
 	}
 	else
 	{
@@ -205,7 +196,7 @@ void GDialog::pageUpdated()
 		active_button->setEnabled( active_state ) ;
 		inactive_button->setEnabled( false ) ;
 
-		if( m_help_button != NULL )
+		if( m_help_button != nullptr )
 			m_help_button->setEnabled(!current_page.helpName().empty()) ;
 	}
 }
@@ -224,12 +215,12 @@ void GDialog::switchPage( std::string new_page_name , std::string old_page_name 
 
 	// show and connect the new page
 	//
-	GPage & newPage = page(new_page_name) ;
-	m_main_layout->insertWidget(0, &newPage);
-	newPage.onShow( back ) ; // GPage method
-	newPage.show() ;
-	newPage.setFocus() ;
-	connect(&newPage, SIGNAL(pageUpdateSignal()), this, SLOT(pageUpdated())) ;
+	GPage & new_page = page(new_page_name) ;
+	m_main_layout->insertWidget(0, &new_page);
+	new_page.onShow( back ) ; // GPage method
+	new_page.show() ;
+	new_page.setFocus() ;
+	connect(&new_page, SIGNAL(pageUpdateSignal()), this, SLOT(pageUpdated())) ;
 
 	// modify the next and finish buttons according to the page state
 	//

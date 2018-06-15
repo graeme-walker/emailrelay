@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,60 +21,60 @@
 #include "gdef.h"
 #include "gsmtp.h"
 #include "gfactoryparser.h"
+#include "gaddress.h"
 #include "gresolver.h"
-#include "gexecutable.h"
+#include "gexecutablecommand.h"
 #include "gstr.h"
 #include "gfile.h"
 
-std::pair<std::string,std::string> GSmtp::FactoryParser::parse( const std::string & address ,
-	const std::string & extra_net_prefix )
+GSmtp::FactoryParser::Result GSmtp::FactoryParser::parse( const std::string & identifier , bool allow_spam )
 {
-	G_DEBUG( "GSmtp::FactoryParser::parse: [" << address << "] [" << extra_net_prefix << "]" ) ;
-	if( address.find("ip:") == 0U || address.find("net:") == 0U )
+	G_DEBUG( "GSmtp::FactoryParser::parse: [" << identifier << "]" ) ;
+	if( identifier.find("net:") == 0U )
 	{
-		return std::make_pair( std::string("net") , G::Str::tail(address,address.find(":")) ) ;
+		return Result( "net" , G::Str::tail(identifier,":") ) ;
 	}
-	else if( address.find(extra_net_prefix+":") == 0U )
+	else if( allow_spam && identifier.find("spam:") == 0U )
 	{
-		return std::make_pair( extra_net_prefix , G::Str::tail(address,address.find(":")) ) ;
+		return Result( "spam" , G::Str::tail(identifier,":") , 0 ) ;
 	}
-	else if( address.find("file:") == 0U || address.find("exe:") == 0U )
+	else if( allow_spam && identifier.find("spam-edit:") == 0U )
 	{
-		return std::make_pair( std::string("file") , G::Str::tail(address,address.find(":")) ) ;
+		return Result( "spam" , G::Str::tail(identifier,":") , 1 ) ;
 	}
-	else if( address.find("exit:") == 0U )
+	else if( identifier.find("file:") == 0U )
 	{
-		return std::make_pair( std::string("exit") , G::Str::tail(address,address.find(":")) ) ;
+		return Result( "file" , G::Str::tail(identifier,":") ) ;
 	}
-	else if( address.empty() )
+	else if( identifier.find("exit:") == 0U )
 	{
-		return std::make_pair( std::string() , std::string() ) ;
+		return Result( "exit" , G::Str::tail(identifier,":") ) ;
+	}
+	else if( !identifier.empty() )
+	{
+		return Result( "file" , identifier ) ;
 	}
 	else
 	{
-		return std::make_pair( std::string("file") , address ) ;
+		return Result() ;
 	}
 }
 
-std::string GSmtp::FactoryParser::check( const std::string & address , const std::string & extra_net_prefix )
+std::string GSmtp::FactoryParser::check( const std::string & identifier , bool allow_spam )
 {
-	std::pair<std::string,std::string> p = parse( address , extra_net_prefix ) ;
-	if( p.first == "net" || p.first == extra_net_prefix )
+	Result p = parse( identifier , allow_spam ) ;
+	if( p.first == "net" || ( allow_spam && p.first == "spam" ) )
 	{
-		std::string s1 , s2 ;
-		if( ! GNet::Resolver::parse(p.second,s1,s2) )
-			return std::string() + "invalid network address: " + p.second ;
-		else
-			return std::string() ;
+		return std::string() ;
 	}
 	else if( p.first == "file" )
 	{
-		G::Executable exe( p.second ) ;
-		if( ! G::File::exists(exe.exe(),G::File::NoThrow()) )
+		G::Path exe = p.second ;
+		if( ! G::File::exists(exe,G::File::NoThrow()) )
 			return "no such file" ;
-		else if( ! G::File::executable(exe.exe()) )
+		else if( ! G::File::executable(exe) )
 			return "probably not executable" ;
-		else if( ! exe.exe().isAbsolute() )
+		else if( ! exe.isAbsolute() )
 			return "not an absolute path" ;
 		else
 			return std::string() ;
@@ -90,6 +90,25 @@ std::string GSmtp::FactoryParser::check( const std::string & address , const std
 	{
 		return std::string() ;
 	}
+}
+
+GSmtp::FactoryParser::Result::Result() :
+	third(0)
+{
+}
+
+GSmtp::FactoryParser::Result::Result( const std::string & first_ , const std::string & second_ ) :
+	first(first_) ,
+	second(second_) ,
+	third(0)
+{
+}
+
+GSmtp::FactoryParser::Result::Result( const std::string & first_ , const std::string & second_ , int third_ ) :
+	first(first_) ,
+	second(second_) ,
+	third(third_)
+{
 }
 
 /// \file gfactoryparser.cpp

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,18 +26,29 @@
 #include "gsize.h"
 #include <string>
 
-/// \namespace GGui
 namespace GGui
 {
 	class Window ;
 }
 
 /// \class GGui::Window
-/// A window class. Window messages should be processed by
-/// overriding the on*() virtual functions inherited from GGui::Cracker.
+/// A window class. Window messages should be processed by overriding
+/// the on*() virtual functions inherited from GGui::Cracker.
+///
+/// Recall that messages are passed through a global message queue
+/// and dispatched to window procedures. Windows are created with
+/// reference to a window class that is registered with a name and a
+/// window procedure. A window is identified by a handle that points'
+/// to a hidden window structure containing a reference to the
+/// window class. Windows messages have a message-id and two
+/// parameters. The message-id is typically used in a big switch
+/// statement within the window procedure. The GGui::Cracker
+/// class contains a standardised window procedure that dispatches
+/// to virtual functions.
+///
 /// \see WindowBase
 ///
-class GGui::Window : public GGui::Cracker
+class GGui::Window : public Cracker
 {
 public:
 	explicit Window( HWND hwnd = 0 ) ;
@@ -46,14 +57,33 @@ public:
 		///< create() function.
 
 	virtual ~Window() ;
-		///< Virtual destructor. The Windows window is _not_ destroyed.
+		///< Virtual destructor. The Windows window is _not_ destroyed; its
+		///< "window long" is reset so any window messages go unprocessed
+		///< and return zero.
 
 	static bool registerWindowClass( const std::string & class_name ,
 		HINSTANCE hinstance , UINT class_style , HICON icon ,
 		HCURSOR cursor , HBRUSH background , UINT menu_resource_id = 0 ) ;
-			///< Registers a window class specifically for Window objects.
-			///< All Window windows must have their window class registered
-			///< in this way before any window is created.
+			///< Registers a Windows window class specifically for GGui::Window
+			///< windows. The Windows window class points to a window procedure
+			///< and in this case the window procedure is implemented by
+			///< GGui::Window::wndProc(). In processing the WM_CREATE message
+			///< the wndProc() method sets the "window long" to point to the
+			///< GGui::Window object. In subsequent messages this is used to
+			///< deliver the message to GGui::Cracker::crack().
+			///<
+			///< (Compare this to GGui::Dialog where the window (dialog)
+			///< procedure is passed in when the dialog box is created; when
+			///< the WM_INITDIALOG message is processed the dialog procedure
+			///< sets the window long to point to the GGui::Dialog object.
+			///< The WM_INITDIALOG message handling also maintains a list of
+			///< modeless dialog boxes so that the message pump short-ciruits
+			///< the DispatchMessage() call. The GGUi::Dialog dialog procedure
+			///< does its own limited message cracking independently of the
+			///< GGui::Cracker class.)
+			///<
+			///< All GGui::Window objects must have their Windows window class
+			///< registered in this way before any window is created.
 			///<
 			///< Returns true on success. Fails beningly if the class is already
 			///< registered.
@@ -94,7 +124,7 @@ public:
 
 	void update() ;
 		///< Does ::UpdateWindow().
-		
+
 	void show( int style = SW_SHOW ) ;
 		///< Does ::ShowWindow().
 
@@ -162,19 +192,19 @@ public:
 		///< Returns a default for registerWindowClass(hcursor).
 
 	static LRESULT wndProc( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam ) ;
-		///< Called directly from the global, exported
-		///< window procedure. The implementation locates
-		///< the particular Window object and calls its
-		///< non-static wndProc() method.
+		///< Called directly from the global, exported window
+		///< procedure. The implementation locates the particular
+		///< Window object and calls its non-static wndProc()
+		///< method.
 
 	bool wndProcException() const ;
-		///< Returns true if an exception was thrown and caught just before
-		///< the wndproc returned.
+		///< Returns true if an exception was thrown and caught
+		///< just before the wndproc returned.
 
 	std::string wndProcExceptionString() ;
 		///< Returns and clears the exception string.
 
-protected:		
+protected:
 	virtual LRESULT onUserString( const char *string ) ;
 		///< Overridable. Called when the window receives a message
 		///< from sendUserString().
@@ -183,7 +213,7 @@ protected:
 		///< Returns the address of the exported 'C' window procedure.
 		///< This is not for general use -- see WindowHidden.
 
-	virtual void onException( std::exception & e ) ;
+	virtual void onWindowException( std::exception & e ) = 0 ;
 		///< Called if an exception is being thrown out of the
 		///< window procedure. The default implementation
 		///< posts a quit message.
@@ -193,6 +223,7 @@ private:
 	virtual LRESULT onUserOther( WPARAM , LPARAM ) ;
 	Window( const Window & other ) ; // not implemented
 	void operator=( const Window & other ) ; // not implemented
+	static Window * instance( CREATESTRUCT * ) ;
 
 private:
 	std::string m_reason ;

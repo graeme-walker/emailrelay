@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,16 +22,10 @@
 #define G_SASL_CLIENT_H
 
 #include "gdef.h"
-#include "gauth.h"
-#include "gvalid.h"
+#include "gsaslclientsecrets.h"
 #include "gexception.h"
-#include "gaddress.h"
 #include "gstrings.h"
-#include "gpath.h"
-#include <map>
-#include <memory>
 
-/// \namespace GAuth
 namespace GAuth
 {
 	class SaslClient ;
@@ -39,47 +33,56 @@ namespace GAuth
 }
 
 /// \class GAuth::SaslClient
-/// A class for implementing the client-side SASL
-/// challenge/response concept. SASL is described in RFC4422,
-/// and the SMTP extension for authentication is described
-/// in RFC2554.
-/// \see GAuth::SaslServer, RFC4422, RFC2554.
+/// A class that implements the client-side SASL challenge/response concept.
+/// \see GAuth::SaslServer, RFC-4422, RFC-2554.
 ///
 class GAuth::SaslClient
 {
 public:
-	/// An interface used by GAuth::SaslClient to obtain authentication secrets.
-	class Secrets : public virtual Valid
+	struct Response /// Result structure returned from GAuth::SaslClient::response
 	{
-		public: virtual std::string id( const std::string & mechanism ) const = 0 ;
-		public: virtual std::string secret( const std::string & id ) const = 0 ;
-		public: virtual ~Secrets() ;
-		private: void operator=( const Secrets & ) ; // not implemented
+		std::string data ;
+		bool sensitive ; // don't log
+		bool error ; // abort the sasl dialog
+		bool final ; // final response, server's decision time
 	} ;
 
-	SaslClient( const Secrets & secrets , const std::string & server_name ) ;
+	explicit SaslClient( const SaslClientSecrets & secrets ) ;
 		///< Constructor. The secrets reference is kept.
 
 	~SaslClient() ;
 		///< Destructor.
 
 	bool active() const ;
-		///< Returns true if the constructor's secrets object
-		///< is valid.
+		///< Returns true if the constructor's secrets object is valid.
 
-	std::string response( const std::string & mechanism , const std::string & challenge ,
-		bool & done , bool & error , bool & sensitive ) const ;
-			///< Returns a response to the given challenge.
-			///< Returns various boolean flags by reference.
+	Response response( const std::string & mechanism , const std::string & challenge ) const ;
+		///< Returns a response to the given challenge. The mechanism is
+		///< used to choose the appropriate entry in the secrets file.
 
-	std::string preferred( const G::Strings & mechanisms ) const ;
-		///< Returns the name of the preferred mechanism taken from
-		///< the given set. Returns the empty string if none is
-		///< supported or if not active().
+	std::string preferred( const G::StringArray & mechanisms ) const ;
+		///< Returns the name of the preferred mechanism taken from the given
+		///< set, taking into account what client secrets are available.
+		///< Returns the empty string if none is supported or if not active().
+
+	bool next() ;
+		///< Moves to the next preferred mechanism.
+
+	std::string preferred() const ;
+		///< Returns the name of the current preferred mechanism after
+		///< next() returns true.
+
+	std::string id() const ;
+		///< Returns the authentication id, valid after the last
+		///< response().
+
+	std::string info() const ;
+		///< Returns logging and diagnostic information, valid after
+		///< the last response().
 
 private:
-	SaslClient( const SaslClient & ) ; // not implemented
-	void operator=( const SaslClient & ) ; // not implemented
+	SaslClient( const SaslClient & ) ;
+	void operator=( const SaslClient & ) ;
 
 private:
 	SaslClientImp * m_imp ;

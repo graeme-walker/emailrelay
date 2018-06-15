@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@
 #include "gdef.h"
 #include "gsmtp.h"
 
-/// \namespace GSmtp
 namespace GSmtp
 {
 	class NewMessage ;
@@ -32,8 +31,8 @@ namespace GSmtp
 }
 
 /// \class GSmtp::NewMessage
-/// An abstract class to allow the creation
-/// of a new message in the message store.
+/// An abstract class to allow the creation of a new message in
+/// the message store.
 /// \see GSmtp::MessageStore, GSmtp::MessageStore::newMessage()
 ///
 class GSmtp::NewMessage
@@ -42,19 +41,26 @@ public:
 	virtual void addTo( const std::string & to , bool local ) = 0 ;
 		///< Adds a 'to' address.
 
-	virtual bool addText( const std::string & line ) = 0 ;
-		///< Adds a line of content. Returns false on overflow.
+	virtual bool addText( const char * , size_t ) = 0 ;
+		///< Adds a line of content. The line should not include the
+		///< line ending. Returns false on overflow.
 
-	virtual std::string prepare( const std::string & auth_id , const std::string & peer_socket_address ,
-		const std::string & peer_socket_name , const std::string & peer_certificate ) = 0 ;
+	virtual std::string prepare( const std::string & session_auth_id ,
+		const std::string & peer_socket_address , const std::string & peer_certificate ) = 0 ;
 			///< Prepares to store the message in the message store.
 			///< Returns the location of the pre-commit()ed message.
 
-	virtual void commit() = 0 ;
-		///< Commits the prepare()d message to the store.
+	virtual void commit( bool strict ) = 0 ;
+		///< Commits the prepare()d message to the store. Errors are
+		///< ignored (eg. missing files) if the 'strict' parameter
+		///< is false.
 
 	virtual unsigned long id() const = 0 ;
 		///< Returns the message's unique non-zero identifier.
+
+	bool addTextLine( const std::string & ) ;
+		///< A convenience function that calls addText() taking
+		///< a string parameter.
 
 	virtual ~NewMessage() ;
 		///< Destructor. Rolls back any prepare()d storage

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,12 +22,10 @@
 #define G_SASL_SERVER_FACTORY_H
 
 #include "gdef.h"
-#include "gauth.h"
 #include "gsaslserver.h"
 #include "gsecrets.h"
 #include <memory>
 
-/// \namespace GAuth
 namespace GAuth
 {
 	class SaslServerFactory ;
@@ -39,11 +37,11 @@ namespace GAuth
 class GAuth::SaslServerFactory
 {
 public:
-	static std::auto_ptr<SaslServer> newSaslServer( const SaslServer::Secrets & , bool , bool ) ;
+	static unique_ptr<SaslServer> newSaslServer( const SaslServerSecrets & , bool allow_apop ) ;
 		///< A factory function for a SaslServer.
 
 private:
-	SaslServerFactory() ; // not implemented
+	SaslServerFactory() ;
 } ;
 
 #endif

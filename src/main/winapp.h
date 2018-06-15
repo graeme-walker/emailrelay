@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,22 +30,30 @@
 #include "output.h"
 #include <memory>
 
-/// \namespace Main
 namespace Main
 {
 	class WinApp ;
 }
 
 /// \class Main::WinApp
-/// An application class instantiated in WinMain() and containing a
-/// Main::WinForm object.
+/// A main-window class instantiated in WinMain() that contains the
+/// Main::WinForm user interface.
 ///
-/// WinMain() sets up slot/signal links from Main::Run to Main::WinApp so that
-/// the Main::Run class can emit() progress events like "connecting to ..." and
-/// the Main::WinApp class will display them (in the title bar, for instance).
+/// The class derives from Main::Output so that Main::CommandLine can
+/// call output() to throw up message boxes.
 ///
-/// The class derives from Main::Output so that Main::CommandLine can call
-/// output() to throw up message boxes.
+/// The window can be a normal window, or controlled from the system
+/// tray, or 'hidden' (see Main::Configuration), and if hidden the
+/// Main::Output mechanism is also disabled.
+///
+/// When controlled from the system tray the main window is alternately
+/// 'shown' and 'hidden'; when the window is hidden the form is destroyed,
+/// and when reshown the form is recreated.
+///
+/// WinMain() sets up slot/signal links from Main::Run to Main::WinApp
+/// objects so that the Main::Run class can emit() progress events like
+/// "connecting to ..." and the Main::WinApp class will display them
+/// (in a status page, for instance).
 ///
 class Main::WinApp : public GGui::ApplicationBase , public Main::Output
 {
@@ -67,8 +75,14 @@ public:
 	void disableOutput() ;
 		///< Disables subsequent calls to output().
 
-	virtual void output( const std::string & message , bool error ) ;
+	virtual void output( const std::string & message , bool error ) override ;
 		///< Puts up a message box. Override from Main::Output.
+
+	virtual G::Options::Layout layout() const override ;
+		///< Override from Main::Output.
+
+	virtual bool simpleOutput() const override ;
+		///< Override from Main::Output.
 
 	void onError( const std::string & message ) ;
 		///< To be called when WinMain() catches an exception.
@@ -82,32 +96,31 @@ public:
 	void formOk() ;
 		///< Called from the form's ok button handler.
 
-	void formDone() ;
-		///< Called from the form's nc-destroy message handler.
-
 	void onRunEvent( std::string , std::string , std::string ) ;
 		///< Slot for Main::Run::signal().
+
+	virtual void onWindowException( std::exception & e ) override ;
+		///< Override from GGui::Window.
 
 private:
 	void doOpen() ;
 	void doClose() ;
 	void doQuit() ;
 	void hide() ;
-	virtual UINT resource() const ;
-	virtual DWORD windowStyle() const ;
-	virtual bool onCreate() ;
-	virtual bool onClose() ;
-	virtual void onTrayDoubleClick() ;
-	virtual void onTrayRightMouseButtonDown() ;
-	virtual void onDimension( int & , int & ) ;
-	virtual bool onSysCommand( SysCommand ) ;
-	virtual LRESULT onUser( WPARAM , LPARAM ) ;
-	void setStatus( const std::string & , const std::string & ) ;
+	virtual UINT resource() const override ;
+	virtual DWORD windowStyle() const override ;
+	virtual bool onCreate() override ;
+	virtual bool onClose() override ;
+	virtual void onTrayDoubleClick() override ;
+	virtual void onTrayRightMouseButtonDown() override ;
+	virtual bool onSysCommand( SysCommand ) override ;
+	virtual LRESULT onUser( WPARAM , LPARAM ) override ;
+	virtual LRESULT onUserOther( WPARAM , LPARAM ) override ;
 
 private:
-	std::auto_ptr<GGui::Tray> m_tray ;
-	std::auto_ptr<Main::WinForm> m_form ;
-	std::auto_ptr<Main::Configuration> m_cfg ;
+	unique_ptr<GGui::Tray> m_tray ;
+	unique_ptr<Main::WinForm> m_form ;
+	unique_ptr<Main::Configuration> m_cfg ;
 	bool m_quit ;
 	bool m_use_tray ;
 	bool m_hidden ;
@@ -115,4 +128,3 @@ private:
 } ;
 
 #endif
-

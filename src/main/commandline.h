@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,71 +24,45 @@
 #include "gdef.h"
 #include "gsmtp.h"
 #include "garg.h"
+#include "ggetopt.h"
+#include "output.h"
 #include "configuration.h"
 #include "output.h"
 #include "gstrings.h"
 #include <string>
 
-/// \namespace Main
 namespace Main
 {
 	class CommandLine ;
-	class CommandLineImp ;
 }
 
 /// \class Main::CommandLine
-/// A class which deals with the command-line interface
-/// to the process, both input and output. The input side is mostly
-/// done by providing a Configuration object via the cfg() method.
+/// A class which deals with the command-line interface to the process, both
+/// input from command-line parameters and feedback to (eg.) stdout.
+///
+/// Higher-level access to command-line options is provided by the Configuration class.
 ///
 class Main::CommandLine
 {
 public:
-	static std::string switchSpec( bool is_windows ) ;
-		///< Returns an o/s-specific G::GetOpt switch specification string.
-
 	CommandLine( Main::Output & output , const G::Arg & arg , const std::string & spec ,
-		const std::string & version , const std::string & capabilities ) ;
+		const std::string & version , const std::string & build_configuration ) ;
 			///< Constructor.
 
 	~CommandLine() ;
 		///< Destructor.
 
-	Configuration cfg() const ;
-		///< Returns a Configuration object.
+	const G::OptionMap & map() const ;
+		///< Exposes the option-map sub-object.
 
-	bool contains( const std::string & switch_ ) const ;
-		///< Returns true if the command line contained the give switch.
-
-	bool contains( const char * switch_ ) const ;
-		///< Returns true if the command line contained the give switch.
-
-	std::string value( const std::string & switch_ ) const ;
-		///< Returns the given switch's string value.
-
-	std::string value( const char * switch_ ) const ;
-		///< Returns the given switch's string value.
-
-	unsigned int value( const std::string & switch_ , unsigned int default_ ) const ;
-		///< Returns the given switch's integer value.
-
-	unsigned int value( const char * switch_ , unsigned int default_ ) const ;
-		///< Returns the given switch's integer value.
-
-	G::Strings value( const std::string & switch_ , const std::string & separators ) const ;
-		///< Returns the given switch's list-of-string value.
-
-	G::Strings value( const char * switch_ , const char * separators ) const ;
-		///< Returns the given switch's list-of-string value.
+	const G::Options & options() const ;
+		///< Exposes the options sub-object.
 
 	G::Arg::size_type argc() const ;
-		///< Returns the number of non-switch arguments on the command line.
+		///< Returns the number of non-option arguments on the command line.
 
 	bool hasUsageErrors() const ;
-		///< Returns true if the command line has usage errors (eg. invalid switch).
-
-	bool hasSemanticError() const ;
-		///< Returns true if the command line has logical errors (eg. conflicting switches).
+		///< Returns true if the command line has usage errors (eg. invalid option).
 
 	void showHelp( bool error_stream = false ) const ;
 		///< Writes help text.
@@ -96,17 +70,17 @@ public:
 	void showUsageErrors( bool error_stream = true ) const ;
 		///< Writes the usage errors.
 
-	void showSemanticError( bool error_stream = true ) const ;
-		///< Writes the logic errors.
-
-	void logSemanticWarnings() const ;
-		///< Emits warnings about conflicting switches.
-
 	void showArgcError( bool error_stream = true ) const ;
 		///< Writes a too-many-arguments error message.
 
-	void showNoop( bool error_stream = false ) const ;
+	void showNothingToSend( bool error_stream = false ) const ;
+		///< Writes a nothing-to-send message.
+
+	void showNothingToDo( bool error_stream = false ) const ;
 		///< Writes a nothing-to-do message.
+
+	void showFinished( bool error_stream = false ) const ;
+		///< Writes an all-done message.
 
 	void showError( const std::string & reason , bool error_stream = true ) const ;
 		///< Writes a failed message.
@@ -120,15 +94,36 @@ public:
 	void showCopyright( bool error_stream = false , const std::string & = std::string() ) const ;
 		///< Writes a copyright message.
 
-	void showCapabilities( bool error_stream = false , const std::string & = std::string() ) const ;
-		///< Writes a capability line.
+	void showBuildConfiguration( bool error_stream = false , const std::string & = std::string() ) const ;
+		///< Writes a build configuration line.
+
+	void showSemanticError( const std::string & semantic_error ) const ;
+		///< Displays the given semantic error. See Configuration::semanticError().
+
+	void showSemanticWarnings( const G::StringArray & semantic_warnings ) const ;
+		///< Displays the given semantic warnings. See Configuration::semanticWarnings().
+
+	void logSemanticWarnings( const G::StringArray & semantic_warnings ) const ;
+		///< Logs the given semantic warnings. See Configuration::semanticWarnings().
 
 private:
-	CommandLine( const CommandLine & ) ; // not implemented
-	void operator=( const CommandLine & ) ; // not implemented
+	CommandLine( const CommandLine & ) ;
+	void operator=( const CommandLine & ) ;
+	void showUsage( bool e ) const ;
+	void showShortHelp( bool e ) const ;
+	void showExtraHelp( bool e ) const ;
+	void showWarranty( bool e = false , const std::string & eot = std::string() ) const ;
+	void showSslCredit( bool e = false , const std::string & eot = std::string() ) const ;
+	void showSslVersion( bool e = false , const std::string & eot = std::string() ) const ;
+	void showTestFeatures( bool e = false , const std::string & eot = std::string() ) const ;
+	void showThreading( bool e = false , const std::string & eot = std::string() ) const ;
 
 private:
-	CommandLineImp * m_imp ;
+	Output & m_output ;
+	std::string m_version ;
+	std::string m_build_configuration ;
+	G::Arg m_arg ;
+	G::GetOpt m_getopt ;
 } ;
 
 #endif

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,15 +24,14 @@
 #include "gdef.h"
 #include <string>
 
-/// \namespace G
 namespace G
 {
 	class Xtext ;
 }
 
 /// \class G::Xtext
-/// An xtext codec class.
-/// \see RFC1891 section 5
+/// An xtext codec class, encoding space as "+20" etc.
+/// \see RFC-1891 section 5
 ///
 class G::Xtext
 {
@@ -41,7 +40,12 @@ public:
 		///< Encodes the given string.
 
 	static std::string decode( const std::string & ) ;
-		///< Decodes the given string.
+		///< Decodes the given string. Allows lowercase
+		///< hex characters (eg. "+1a")
+
+	static bool valid( const std::string & ) ;
+		///< Returns true if a valid encoding. Allows
+		///< lowercase hex characters (eg. "+1a")
 
 private:
 	Xtext() ;

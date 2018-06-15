@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,18 +25,21 @@
 #include "gsmtp.h"
 #include <string>
 
-/// \namespace GSmtp
 namespace GSmtp
 {
 	class VerifierStatus ;
 }
 
 /// \class GSmtp::VerifierStatus
-/// A structure returned by GSmtp::Verifier to describe
-/// the status of a rcpt-to recipient.
+/// A structure returned by GSmtp::Verifier to describe the status of
+/// a 'rcpt-to' recipient.
 ///
 /// If describing an invalid recipient then 'is_valid' is set false
-/// and a 'reason' is supplied.
+/// and a 'response' is supplied. The response is typically reported back
+/// to the submitter, so it should not contain too much detail.
+///
+/// The 'reason' string can be added by the user of the verifier to give
+/// more context in the log in addition to 'response'.
 ///
 /// If a valid local recipient then 'is_local' is set true, 'full_name'
 /// is set to the full description of the mailbox and 'address' is set
@@ -45,19 +48,17 @@ namespace GSmtp
 /// If a valid remote recipient then 'is_local' is set false, 'full_name'
 /// is empty, and 'address' is copied from the original recipient 'to' address.
 ///
-/// The 'help' string can be added by the user of the verifier to give
-/// more context in the log in addition to 'reason'.
-///
 class GSmtp::VerifierStatus
 {
 public:
 	bool is_valid ;
 	bool is_local ;
 	bool temporary ;
+	bool abort ;
 	std::string full_name ;
 	std::string address ;
+	std::string response ;
 	std::string reason ;
-	std::string help ;
 
 	VerifierStatus() ;
 		///< Default constructor for an invalid remote mailbox.

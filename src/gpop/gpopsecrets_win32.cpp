@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,14 +23,15 @@
 #include "gpop.h"
 #include "gpopsecrets.h"
 #include "gpath.h"
+#include <vector>
 
 std::string GPop::Secrets::defaultPath()
 {
-	char buffer[G::limits::path] ;
-	if( 0 == ::GetWindowsDirectoryA( buffer , sizeof(buffer)-1U ) )
+	std::vector<char> buffer( G::limits::path + 1U ) ;
+	if( 0 == ::GetWindowsDirectoryA( &buffer[0] , static_cast<unsigned int>(buffer.size()-1U) ) )
 		buffer[0] = '\0' ;
 
-	G::Path path( buffer ) ;
+	G::Path path( &buffer[0] ) ;
 	path.pathAppend( "emailrelay.auth" ) ;
 	return path.str() ;
 }

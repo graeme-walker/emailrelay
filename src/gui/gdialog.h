@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include "gdef.h"
 #include "qt.h"
 #include "gpage.h"
+#include "gpath.h"
 #include <list>
 #include <map>
 class QHBoxLayout;
@@ -37,12 +38,8 @@ class GPage ;
 class GDialog : public QDialog
 {Q_OBJECT
 public:
-	
-	explicit GDialog( bool with_help ) ;
-		///< Constructor. Use a sequence of add()s to initialise
-		///< ending with add(void).
 
-	explicit GDialog( QWidget * parent = NULL ) ;
+	GDialog( bool with_help , G::Path virgin_flag_file ) ;
 		///< Constructor. Use a sequence of add()s to initialise
 		///< ending with add(void).
 
@@ -94,7 +91,7 @@ private slots:
 private:
 	void init( bool ) ;
 	void dump( std::ostream & , bool for_install ) const ;
-	void setFirstPage( GPage & page ) ;
+	void setFirstPage( GPage & ) ;
 	void switchPage( std::string new_page_name , std::string old_page_name = std::string() , bool back = false ) ;
 
 private:
@@ -114,6 +111,7 @@ private:
 	bool m_back_state ;
 	bool m_next_state ;
 	bool m_finish_state ;
-};
+	G::Path m_virgin_flag_file ;
+} ;
 
 #endif

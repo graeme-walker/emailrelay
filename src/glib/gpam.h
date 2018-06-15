@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,11 +22,11 @@
 #define G_PAM_H
 
 #include "gdef.h"
+#include "gpamerror.h"
 #include "gexception.h"
 #include <string>
 #include <vector>
 
-/// \namespace G
 namespace G
 {
 	class Pam ;
@@ -34,10 +34,10 @@ namespace G
 }
 
 /// \class G::Pam
-/// A thin abstract interface to the system PAM library.
-///
-/// Derived classes should implement converse() to supply passwords
-/// etc. and delay() to implement anti-brute-force delays.
+/// A thin interface to the system PAM library, with two pure
+/// virtual methods that derived classes should implement: the
+/// converse() method supplies passwords etc. and delay()
+/// implements an optional anti-brute-force delay.
 ///
 /// As per the PAM model the user code should authenticate(),
 /// then checkAccount(), then establishCredentials() and finally
@@ -58,8 +58,7 @@ namespace G
 class G::Pam
 {
 public:
-	/// A structure used by G::Pam to hold conversation items.
-	struct Item
+	struct Item /// A structure used by G::Pam to hold conversation items.
 	{
 		const std::string in_type ; // "password", "prompt", "error", "info"
 		const std::string in ; // password prompt, non-password prompt, error text, infomation message, etc
@@ -67,14 +66,6 @@ public:
 		bool out_defined ; // to be set to true if 'out' is assigned
 	} ;
 	typedef std::vector<Item> ItemArray ;
-
-	/// An exception class used by G::Pam.
-	class Error : public G::Exception
-	{
-		public: int m_pam_error ;
-		public: Error( const std::string & op , int pam_error ) ;
-		public: Error( const std::string & op , int pam_error , const char * ) ;
-	} ;
 
 	Pam( const std::string & app , const std::string & user , bool silent ) ;
 		///< Constructor.
@@ -153,12 +144,11 @@ public:
 		///< is running.
 
 private:
-	Pam( const Pam & ) ; // not implemented
-	void operator=( const Pam & ) ; // not implemented
+	Pam( const Pam & ) ;
+	void operator=( const Pam & ) ;
 
 private:
 	PamImp * m_imp ;
 } ;
 
 #endif
-

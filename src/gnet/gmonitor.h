@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,18 +18,15 @@
 /// \file gmonitor.h
 ///
 
-#ifndef G_GNET_MONITOR_H
-#define G_GNET_MONITOR_H
+#ifndef G_NET_MONITOR__H
+#define G_NET_MONITOR__H
 
 #include "gdef.h"
 #include "gslot.h"
-#include "gnet.h"
 #include "gconnection.h"
-#include "gnoncopyable.h"
 #include <iostream>
 #include <utility>
 
-/// \namespace GNet
 namespace GNet
 {
 	class Monitor ;
@@ -37,10 +34,11 @@ namespace GNet
 }
 
 /// \class GNet::Monitor
-/// A singleton for monitoring SimpleClient and ServerPeer connections.
+/// A singleton for monitoring GNet::SimpleClient and GNet::ServerPeer
+/// connections and for storing their TLS certificates.
 /// \see GNet::SimpleClient, GNet::ServerPeer
 ///
-class GNet::Monitor : public G::noncopyable
+class GNet::Monitor
 {
 public:
 	Monitor() ;
@@ -69,12 +67,15 @@ public:
 		const std::string & eol = std::string("\n") ) const ;
 			///< Reports itself onto a stream.
 
+	void report( G::StringArray & out ) const ;
+			///< Reports itself into a three-column table.
+
 	std::pair<std::string,bool> findCertificate( const std::string & certificate ) ;
 		///< Returns a short id for the given certificate and a boolean
 		///< flag to indicate if it is a new certificate id that has
 		///< not been returned before.
 
-	G::Signal2<std::string,std::string> & signal() ;
+	G::Slot::Signal2<std::string,std::string> & signal() ;
 		///< Provides a callback signal which can be connect()ed
 		///< to a slot.
 		///<
@@ -83,9 +84,13 @@ public:
 		///< "start" or "stop".
 
 private:
+	Monitor( const Monitor & ) ;
+	void operator=( const Monitor & ) ;
+
+private:
 	static Monitor * & pthis() ;
 	MonitorImp * m_imp ;
-	G::Signal2<std::string,std::string> m_signal ;
+	G::Slot::Signal2<std::string,std::string> m_signal ;
 } ;
 
 #endif

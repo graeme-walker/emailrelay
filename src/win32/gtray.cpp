@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,18 +26,26 @@
 GGui::Tray::Tray( unsigned int icon_id , const WindowBase & window ,
 	const std::string & tip , unsigned int message )
 {
+	static NOTIFYICONDATA m_info_zero ;
+	m_info = m_info_zero ;
 	m_info.cbSize = sizeof(m_info) ;
 	m_info.hWnd = window.handle() ;
 	m_info.uID = message ;
 	m_info.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP ;
 	m_info.uCallbackMessage = message ;
 	m_info.hIcon = ::LoadIcon( ApplicationInstance::hinstance() , MAKEINTRESOURCE(icon_id)) ;
+	strncpy_s( m_info.szTip , sizeof(m_info.szTip) , tip.c_str() , _TRUNCATE ) ;
+	//m_info.dwState = 0 ;
+	//m_info.dwStateMask = 0 ;
+	//m_info.szInfo ...
+	//m_info.uVersion = 0 ;
+	//m_info.szInfoTitle ...
+	//m_info.dwInfoFlags = 0 ;
+	//m_info.guidItem = ...
+	//m_info.hBalloonIcon = 0 ;
 
-	char * p = m_info.szTip ;
-	const size_t n = sizeof(m_info.szTip) ;
-
-	std::strncpy( p , tip.c_str() , n ) ;
-	p[n-1U] = '\0' ;
+	if( m_info.hIcon == NULL )
+		throw IconError() ;
 
 	bool ok = !! ::Shell_NotifyIconA( NIM_ADD , &m_info ) ;
 	if( !ok )

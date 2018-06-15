@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,6 @@
 #include <memory>
 #include <string>
 
-/// \namespace Main
 namespace Main
 {
 	class Admin ;
@@ -45,8 +44,8 @@ public:
 	static bool enabled() ;
 		///< Returns true if newServer() is fully implemented.
 
-	static std::auto_ptr<GSmtp::AdminServer> newServer( const Configuration & ,
-		GSmtp::MessageStore & store , const GSmtp::Client::Config & ,
+	static unique_ptr<GSmtp::AdminServer> newServer( GNet::ExceptionHandler & ,
+		const Configuration & , GSmtp::MessageStore & store , const GSmtp::Client::Config & ,
 		const GAuth::Secrets & client_secrets , const std::string & version_number ) ;
 			///< A factory function for creating a new GSmtp::AdminServer
 			///< instance on the heap.

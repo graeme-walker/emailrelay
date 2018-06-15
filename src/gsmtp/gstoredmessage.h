@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,15 +26,13 @@
 #include "gstrings.h"
 #include "gpath.h"
 
-/// \namespace GSmtp
 namespace GSmtp
 {
 	class StoredMessage ;
 }
 
 /// \class GSmtp::StoredMessage
-/// An abstract class for messages which have
-/// come from the store.
+/// An abstract interface for messages which have come from the store.
 /// \see GSmtp::MessageStore, GSmtp::MessageStore::get()
 ///
 class GSmtp::StoredMessage
@@ -49,10 +47,10 @@ public:
 	virtual const std::string & from() const = 0 ;
 		///< Returns the envelope 'from' field.
 
-	virtual const G::Strings & to() const = 0 ;
+	virtual const G::StringArray & to() const = 0 ;
 		///< Returns the envelope 'to' fields.
 
-	virtual std::auto_ptr<std::istream> extractContentStream() = 0 ;
+	virtual unique_ptr<std::istream> extractContentStream() = 0 ;
 		///< Extracts the content stream.
 		///< Can only be called once.
 
@@ -71,7 +69,15 @@ public:
 		///< bit set.
 
 	virtual std::string authentication() const = 0 ;
-		///< Returns the message authentication string.
+		///< Returns the original session authentication id.
+
+	virtual std::string fromAuthIn() const = 0 ;
+		///< Returns the incoming "mail from" auth parameter,
+		///< either empty, xtext-encoded or "<>".
+
+	virtual std::string fromAuthOut() const = 0 ;
+		///< Returns the outgoing "mail from" auth parameter,
+		///< either empty, xtext-encoded or "<>".
 
 	virtual size_t remoteRecipientCount() const = 0 ;
 		///< Returns the number of non-local recipients.
@@ -79,9 +85,10 @@ public:
 	virtual size_t errorCount() const = 0 ;
 		///< Returns the number of accumulated submission errors.
 
-	virtual void sync() = 0 ;
+	virtual void sync( bool check ) = 0 ;
 		///< Synchronises the message object with the underlying
-		///< storage.
+		///< storage. Optionally performs extra sanity checks if the
+		///< storage may have been edited.
 
 	virtual ~StoredMessage() ;
 		///< Destructor.

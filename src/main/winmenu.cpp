@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ Main::WinMenu::WinMenu( unsigned int id )
 {
 	HINSTANCE hinstance = GGui::ApplicationInstance::hinstance() ;
 	m_hmenu = ::LoadMenu( hinstance , MAKEINTRESOURCE(id) ) ;
-	if( m_hmenu == NULL )
+	if( m_hmenu == nullptr )
 		throw Error() ;
 }
 
@@ -58,13 +58,13 @@ int Main::WinMenu::popup( const GGui::WindowBase & w , bool with_open , bool wit
 	// display the menu
 	//
 	BOOL rc = ::TrackPopupMenuEx( m_hmenu_popup ,
-		TPM_RETURNCMD , p.x , p.y , w.handle() , NULL ) ;
+		TPM_RETURNCMD , p.x , p.y , w.handle() , nullptr ) ;
 	return static_cast<int>(rc) ; // BOOL->int!, only in Microsoft wonderland
 }
 
 Main::WinMenu::~WinMenu()
 {
-	if( m_hmenu != NULL )
+	if( m_hmenu != nullptr )
 		::DestroyMenu( m_hmenu ) ;
 }
 

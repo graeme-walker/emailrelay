@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 #define G_REQUEST_CLIENT_H
 
 #include "gdef.h"
-#include "gnet.h"
 #include "gsmtp.h"
 #include "gclient.h"
 #include "gtimer.h"
@@ -30,33 +29,43 @@
 #include "gslot.h"
 #include "gexception.h"
 
-/// \namespace GSmtp
 namespace GSmtp
 {
 	class RequestClient ;
 }
 
 /// \class GSmtp::RequestClient
-/// A client class that interacts with a remote process
-/// with a stateless line-based request/response protocol.
+/// A network client class that interacts with a remote server using a
+/// stateless line-based request/response protocol.
+///
+/// Line buffering uses newline as end-of-line, and trailing carriage-returns
+/// are trimmed from the input.
 ///
 class GSmtp::RequestClient : public GNet::Client
 {
 public:
 	G_EXCEPTION( ProtocolError , "protocol error" ) ;
 
-	RequestClient( const std::string & key , const std::string & ok , const std::string & eol ,
-		const GNet::ResolverInfo & host_and_service , unsigned int connect_timeout , unsigned int response_timeout ) ;
-			///< Constructor. The key parameter is used in the callback
-			///< signal; the (optional) ok parameter is a response
-			///< string that is considered to be a success response;
-			///< the eol parameter is the response end-of-line.
+	RequestClient( const std::string & key , const std::string & ok ,
+		const GNet::Location & host_and_service , unsigned int connect_timeout ,
+		unsigned int response_timeout ) ;
+			///< Constructor.  The 'key' parameter is used in the callback
+			///< signal. The 'ok' parameter is a response string that is
+			///< converted to the empty string.
 
 	void request( const std::string & ) ;
-		///< Issues a request. The base class's "event" signal emitted when
-		///< processing is complete with a first signal parameter of the
-		///< "key" string specified in the constructor call and a second
-		///< parameter giving the parsed response.
+		///< Issues a request. A newline is added to the request string,
+		///< so append a carriage-return if required.
+		///<
+		///< If not currently connected then the request is queued up until
+		///< the connection is made.
+		///<
+		///< The base class's "event" signal will be emitted when processing
+		///< is complete. In this case the first signal parameter will be the
+		///< "key" string specified in the constructor call and the second
+		///< will be the parsed response.
+		///<
+		///< See also GNet::Client::eventSignal().
 		///<
 		///< Every request will get a single response as long as this method
 		///< is not called re-entrantly from within the previous request's
@@ -70,36 +79,36 @@ protected:
 	virtual ~RequestClient() ;
 		///< Destructor.
 
-	virtual void onConnect() ;
-		///< Final override from GNet::SimpleClient.
+	virtual void onConnect() override ;
+		///< Override from GNet::SimpleClient.
 
-	virtual bool onReceive( const std::string & ) ;
-		///< Final override from GNet::Client.
+	virtual bool onReceive( const char * , size_t , size_t ) override ;
+		///< Override from GNet::Client.
 
-	virtual void onSendComplete() ;
-		///< Final override from GNet::BufferedClient.
+	virtual void onSendComplete() override ;
+		///< Override from GNet::BufferedClient.
 
-	virtual void onDelete( const std::string & , bool ) ;
-		///< Final override from GNet::HeapClient.
+	virtual void onDelete( const std::string & ) override ;
+		///< Override from GNet::HeapClient.
 
-	virtual void onDeleteImp( const std::string & , bool ) ;
-		///< Final override from GNet::Client.
+	virtual void onDeleteImp( const std::string & ) override ;
+		///< Override from GNet::Client.
 
-	virtual void onSecure( const std::string & ) ;
-		///< Final override from GNet::SocketProtocolSink.
+	virtual void onSecure( const std::string & ) override ;
+		///< Override from GNet::SocketProtocolSink.
 
 private:
-	typedef GNet::Client Base ;
-	RequestClient( const RequestClient & ) ; // not implemented
-	void operator=( const RequestClient & ) ; // not implemented
+	RequestClient( const RequestClient & ) ;
+	void operator=( const RequestClient & ) ;
 	void onTimeout() ;
 	std::string requestLine( const std::string & ) const ;
 	std::string result( std::string ) const ;
+	static GNet::LineBufferConfig config() ;
 
 private:
+	std::string m_eol ;
 	std::string m_key ;
 	std::string m_ok ;
-	std::string m_eol ;
 	std::string m_request ;
 	GNet::Timer<RequestClient> m_timer ;
 } ;

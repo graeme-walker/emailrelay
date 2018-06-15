@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,36 +28,19 @@
 #include <map>
 #include <stdexcept>
 
-/// \namespace G
 namespace G
 {
-
-///
-/// A std::list of std::strings.
-/// \see Str
-///
-typedef std::list<std::string> Strings ;
-
-///
-/// A std::vector of std::strings.
-///
-typedef std::vector<std::string> StringArray ;
-
-///
-/// A std::map of std::strings.
-///
-typedef std::map<std::string,std::string> StringMap ;
-
+	typedef std::vector<std::string> StringArray ; ///< A std::vector of std::strings.
+	typedef std::map<std::string,std::string> StringMap ; ///< A std::map of std::strings.
 }
 
-/// \namespace G
 namespace G
 {
 	class StringMapReader ;
 }
 
 /// \class G::StringMapReader
-/// An adaptor for reading a const StringMap with at().
+/// An adaptor for reading a const map<string,string> with at(key).
 ///
 class G::StringMapReader
 {
@@ -66,13 +49,13 @@ public:
 		///< Implicit constructor.
 
 	const std::string & at( const std::string & key ) const ;
-		///< Returns the value, or throws.
+		///< Returns the value from the map, or throws.
 
 	const std::string & at( const std::string & key , const std::string & default_ ) const ;
-		///< Returns the value, or the default.
+		///< Returns the value from the map, or the default.
 
-	Strings keys( unsigned int limit = 0U , const char * elipsis = NULL ) const ;
-		///< Returns a list of keys (optionally up to some limit).
+	StringArray keys( unsigned int limit = 0U , const char * elipsis = nullptr ) const ;
+		///< Returns a list of the keys in the map (optionally up to some limit).
 
 private:
 	const StringMap & m_map ;

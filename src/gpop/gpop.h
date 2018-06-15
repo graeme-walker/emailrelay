@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,12 +22,6 @@
 #define G_POP_H
 
 #include "gdef.h"
-#include "gnet.h"
-#include "gauth.h"
 #include "glog.h"
-
-#ifndef G_SYSCONFDIR
-	#define G_SYSCONFDIR ""
-#endif
 
 #endif

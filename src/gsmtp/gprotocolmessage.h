@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,7 +29,6 @@
 #include "gexception.h"
 #include <string>
 
-/// \namespace GSmtp
 namespace GSmtp
 {
 	class ProtocolMessage ;
@@ -38,7 +37,7 @@ namespace GSmtp
 /// \class GSmtp::ProtocolMessage
 /// An interface used by the ServerProtocol class
 /// to assemble and process an incoming message. It implements
-/// the three 'buffers' mentioned in RFC2821 (esp. section 4.1.1).
+/// the three 'buffers' mentioned in RFC-2821 (esp. section 4.1.1).
 ///
 /// This interface serves to decouple the protocol class from
 /// the downstream message processing -- hence the name. Derived
@@ -67,68 +66,62 @@ public:
 	virtual ~ProtocolMessage() ;
 		///< Destructor.
 
-	virtual G::Signal3<bool,unsigned long,std::string> & doneSignal() = 0 ;
+	virtual G::Slot::Signal4<bool,unsigned long,std::string,std::string> & doneSignal() = 0 ;
 		///< Returns a signal which is raised once process() has
 		///< completed.
 		///<
-		///< The signal parameters are 'success', 'id' and 'reason'.
-		///<
-		///< As a special case, if success is true and id is zero then
-		///< the message processing was cancelled.
+		///< The signal parameters are 'success', 'id', 'short-reason' and
+		///< 'full-reason'. As a special case, if success is true and id
+		///< is zero then the message processing was abandoned.
 
 	virtual void reset() = 0 ;
 		///< Resets the object state as if just constructed.
 
 	virtual void clear() = 0 ;
-		///< Clears the message state and terminates
-		///< any asynchronous message processing.
+		///< Clears the message state and terminates any asynchronous
+		///< message processing.
 
-	virtual bool setFrom( const std::string & from_user ) = 0 ;
-		///< Sets the message envelope 'from'.
-		///< Returns false if an invalid user.
+	virtual bool setFrom( const std::string & from_user , const std::string & from_auth ) = 0 ;
+		///< Sets the message envelope 'from'. Returns false if an
+		///< invalid user.
 
 	virtual bool addTo( const std::string & to_user , VerifierStatus to_status ) = 0 ;
-		///< Adds an envelope 'to'.
+		///< Adds an envelope 'to'. The 'to_status' parameter comes
+		///< from GSmtp::Verifier.verify(). Returns false if an
+		///< invalid user.
 		///<
-		///< The 'to_status' parameter comes from
-		///< GSmtp::Verifier.verify().
-		///<
-		///< Returns false if an invalid user.
-		///< Precondition: setFrom() called
-		///< since clear() or process().
+		///< Precondition: setFrom() called since clear() or process().
 
 	virtual void addReceived( const std::string & ) = 0 ;
-		///< Adds a 'received' line to the
-		///< start of the content.
-		///< Precondition: at least one
-		///< successful addTo() call
+		///< Adds a 'received' line to the start of the content.
+		///< Precondition: at least one successful addTo() call
 
-	virtual bool addText( const std::string & ) = 0 ;
+	virtual bool addText( const char * , size_t ) = 0 ;
 		///< Adds text. Returns false on error, typically because a size
 		///< limit is reached.
 		///<
 		///< Precondition: at least one successful addTo() call
 
+	bool addTextLine( const std::string & ) ;
+		///< A convenience function that calls addText() taking
+		///< a string parameter.
+
 	virtual std::string from() const = 0 ;
 		///< Returns the setFrom() string.
 
-	virtual void process( const std::string & authenticated_client_id , const std::string & peer_socket_address ,
-		const std::string & peer_socket_name , const std::string & peer_certificate ) = 0 ;
-			///< Starts asynchronous processing of the
-			///< message. Once processing is complete the
-			///< message state is cleared and the doneSignal()
-			///< is raised. The signal may be raised before
-			///< process() returns.
+	virtual void process( const std::string & session_auth_id , const std::string & peer_socket_address ,
+		const std::string & peer_certificate ) = 0 ;
+			///< Starts asynchronous processing of the message. Once processing
+			///< is complete the message state is cleared and the doneSignal()
+			///< is raised. The signal may be raised before process() returns.
 			///<
-			///< The client-id parameter is used to propagate
-			///< authentication information from the SMTP
-			///< AUTH command into individual messages.
-			///< It is the empty string for unauthenticated
-			///< clients. See also GAuth::SaslServer::id().
+			///< The session-auth-id parameter is used to propagate authentication
+			///< information from the SMTP AUTH command into individual messages.
+			///< It is the empty string for unauthenticated clients.
+			///< See also GAuth::SaslServer::id().
 
 private:
 	void operator=( const ProtocolMessage & ) ; // not implemented
 } ;
 
 #endif
-

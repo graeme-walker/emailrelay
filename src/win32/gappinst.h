@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,25 +28,23 @@ void ggui_applicationinstance( HINSTANCE h ) ;
 #else
 extern "C" void ggui_applicationinstance( HINSTANCE h ) ;
 
-/// \namespace GGui
 namespace GGui
 {
 	class ApplicationInstance ;
 }
 
 /// \class GGui::ApplicationInstance
+/// A class for storing the application's instance handle, as
+/// obtained from WinMain().
 ///
-/// A class for storing the application's
-/// instance handle, as obtained from WinMain().
+/// Other low-level classes in this library use this interface to
+/// obtain the application instance handle, rather than some
+/// higher-level mechanism.
 ///
-/// Other low-level classes in this library use this
-/// interface to obtain the application instance handle,
-/// rather than some higher-level mechanism.
-///
-/// Programs which need a message pump, but want to
-/// avoid the overhead of the full GUI application
-/// framework must, as an absolute minimum, use this
-/// class to set the application instance handle.
+/// Programs which need a message pump, but want to avoid the
+/// overhead of the full GUI application framework must, as an
+/// absolute minimum, use this class to set the application
+/// instance handle.
 ///
 /// \see GGui::ApplicationBase
 ///

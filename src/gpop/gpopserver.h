@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -35,7 +35,6 @@
 #include <memory>
 #include <list>
 
-/// \namespace GPop
 namespace GPop
 {
 	class Server ;
@@ -43,50 +42,49 @@ namespace GPop
 }
 
 /// \class GPop::ServerPeer
-/// Represents a connection from a POP client.
-/// Instances are created on the heap by Server (only).
+/// Represents a connection from a POP client. Instances are created
+/// on the heap by Server (only).
 /// \see GPop::Server
 ///
-class GPop::ServerPeer : public GNet::BufferedServerPeer , private GPop::ServerProtocol::Sender , private GPop::ServerProtocol::Security
+class GPop::ServerPeer : public GNet::BufferedServerPeer , private ServerProtocol::Sender , private ServerProtocol::Security
 {
 public:
 	G_EXCEPTION( SendError , "network send error" ) ;
 
 	ServerPeer( GNet::Server::PeerInfo , Server & , Store & , const Secrets & ,
-		std::auto_ptr<ServerProtocol::Text> ptext , ServerProtocol::Config ) ;
+		unique_ptr<ServerProtocol::Text> ptext , ServerProtocol::Config ) ;
 			///< Constructor.
 
-	virtual bool protocolSend( const std::string & line , size_t ) ;
+	virtual bool protocolSend( const std::string & line , size_t ) override ;
 		///< Final override from GPop::ServerProtocol::Sender.
 
 protected:
-	virtual void onDelete( const std::string & ) ;
+	virtual void onDelete( const std::string & ) override ;
 		///< Final override from GNet::ServerPeer.
 
-	virtual bool onReceive( const std::string & ) ;
+	virtual bool onReceive( const char * , size_t , size_t ) override ;
 		///< Final override from GNet::BufferedServerPeer.
 
-	virtual void onSecure( const std::string & ) ;
+	virtual void onSecure( const std::string & ) override ;
 		///< Final override from GNet::SocketProtocolSink.
 
-	virtual void onSendComplete() ;
+	virtual void onSendComplete() override ;
 		///< Final override from GNet::BufferedServerPeer.
 
-	virtual bool securityEnabled() const ;
+	virtual bool securityEnabled() const override ;
 		///< Final override from GPop::ServerProtocol::Security.
 
-	virtual void securityStart() ;
+	virtual void securityStart() override ;
 		///< Final override from GPop::ServerProtocol::Security.
 
 private:
 	ServerPeer( const ServerPeer & ) ;
 	void operator=( const ServerPeer & ) ;
 	void processLine( const std::string & line ) ;
-	static const std::string & crlf() ;
 
 private:
 	Server & m_server ;
-	std::auto_ptr<ServerProtocol::Text> m_ptext ; // order dependency
+	unique_ptr<ServerProtocol::Text> m_ptext ; // order dependency
 	ServerProtocol m_protocol ; // order dependency -- last
 } ;
 
@@ -97,24 +95,20 @@ class GPop::Server : public GNet::MultiServer
 {
 public:
 	G_EXCEPTION( Overflow , "too many interface addresses" ) ;
-	/// A structure containing GPop::Server configuration parameters.
-	struct Config
+	struct Config /// A structure containing GPop::Server configuration parameters.
 	{
 		bool allow_remote ;
 		unsigned int port ;
-		G::Strings interfaces ;
+		G::StringArray addresses ;
 		Config() ;
-		Config( bool , unsigned int , const G::Strings & interfaces ) ;
+		Config( bool , unsigned int , const G::StringArray & addresses ) ;
 	} ;
 
-	Server( Store & store , const Secrets & , Config ) ;
+	Server( GNet::ExceptionHandler & , Store & store , const Secrets & , Config ) ;
 		///< Constructor. The 'secrets' reference is kept.
 
 	virtual ~Server() ;
 		///< Destructor.
-
-	GNet::ServerPeer * newPeer( GNet::Server::PeerInfo ) ;
-		///< From MultiServer.
 
 	void report() const ;
 		///< Generates helpful diagnostics after construction.
@@ -122,7 +116,8 @@ public:
 private:
 	Server( const Server & ) ; // not implemented
 	void operator=( const Server & ) ; // not implemented
-	ServerProtocol::Text * newProtocolText( GNet::Address ) const ;
+	unique_ptr<ServerProtocol::Text> newProtocolText( GNet::Address ) const ;
+	virtual GNet::ServerPeer * newPeer( GNet::Server::PeerInfo , GNet::MultiServer::ServerInfo ) override ;
 
 private:
 	bool m_allow_remote ;

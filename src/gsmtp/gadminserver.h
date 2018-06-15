@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@
 #include "gdef.h"
 #include "gsmtp.h"
 #include "gmultiserver.h"
-#include "gexecutable.h"
 #include "gstr.h"
 #include "gstrings.h"
 #include "glinebuffer.h"
@@ -37,7 +36,6 @@
 #include <sstream>
 #include <utility>
 
-/// \namespace GSmtp
 namespace GSmtp
 {
 	class AdminServerPeer ;
@@ -51,8 +49,9 @@ namespace GSmtp
 class GSmtp::AdminServerPeer : public GNet::BufferedServerPeer
 {
 public:
-	AdminServerPeer( GNet::Server::PeerInfo , AdminServer & , const GNet::Address & local ,
-		const std::string & remote , const G::StringMap & extra_commands , bool with_terminate ) ;
+	AdminServerPeer( GNet::Server::PeerInfo , AdminServer & , const std::string & remote ,
+		const G::StringMap & info_commands , const G::StringMap & config_commands ,
+		bool with_terminate ) ;
 			///< Constructor.
 
 	virtual ~AdminServerPeer() ;
@@ -62,47 +61,48 @@ public:
 		///< Called when something happens.
 
 protected:
-	virtual void onSendComplete() ;
-		///< Final override from GNet::BufferedServerPeer.
+	virtual void onSendComplete() override ;
+		///< Override from GNet::BufferedServerPeer.
 
-	virtual bool onReceive( const std::string & ) ;
-		///< Final override from GNet::BufferedServerPeer.
+	virtual bool onReceive( const char * , size_t , size_t ) override ;
+		///< Override from GNet::BufferedServerPeer.
 
-	virtual void onDelete( const std::string & ) ;
-		///< Final override from GNet::ServerPeer.
+	virtual void onDelete( const std::string & ) override ;
+		///< Override from GNet::ServerPeer.
 
-	virtual void onSecure( const std::string & ) ;
-		///< Final override from GNet::SocketProtocolSink.
+	virtual void onSecure( const std::string & ) override ;
+		///< Override from GNet::SocketProtocolSink.
 
 private:
 	AdminServerPeer( const AdminServerPeer & ) ;
 	void operator=( const AdminServerPeer & ) ;
-	void clientDone( std::string , bool ) ;
+	void clientDone( std::string ) ;
 	static bool is( const std::string & , const std::string & ) ;
 	static std::pair<bool,std::string> find( const std::string & line , const G::StringMap & map ) ;
-	bool flush() ;
+	static std::string argument( const std::string & ) ;
+	void flush() ;
 	void help() ;
-	void info() ;
+	void status() ;
 	MessageStore::Iterator spooled() ;
 	MessageStore::Iterator failures() ;
-	void list( MessageStore::Iterator ) ;
-	void pid() ;
-	void sendLine( std::string ) ;
+	void sendList( MessageStore::Iterator ) ;
+	void sendLine( std::string , bool = true ) ;
 	void warranty() ;
 	void version() ;
 	void copyright() ;
-	static const std::string & crlf() ;
-	void prompt() ;
+	std::string eol() const ;
 	void unfailAll() ;
+	void send_( const std::string & ) ;
 
 private:
-	GNet::LineBuffer m_buffer ;
 	AdminServer & m_server ;
-	GNet::Address m_local_address ;
+	std::string m_prompt ;
+	bool m_blocked ;
 	std::string m_remote_address ;
 	GNet::ClientPtr<GSmtp::Client> m_client ;
 	bool m_notifying ;
-	G::StringMap m_extra_commands ;
+	G::StringMap m_info_commands ;
+	G::StringMap m_config_commands ;
 	bool m_with_terminate ;
 } ;
 
@@ -112,12 +112,13 @@ private:
 class GSmtp::AdminServer : public GNet::MultiServer
 {
 public:
-	AdminServer( MessageStore & store , const GSmtp::Client::Config & client_config ,
-		const GAuth::Secrets & client_secrets , const GNet::MultiServer::AddressList & listening_addresses ,
-		bool allow_remote , const GNet::Address & local_address , const std::string & remote_address ,
-		unsigned int connection_timeout , const G::StringMap & extra_commands , bool with_terminate ) ;
-			///< Constructor. The 'store' and 'client-secrets' references
-			///< are kept.
+	AdminServer( GNet::ExceptionHandler & , MessageStore & store ,
+		const GSmtp::Client::Config & client_config , const GAuth::Secrets & client_secrets ,
+		const GNet::MultiServer::AddressList & listening_addresses , bool allow_remote ,
+		const std::string & remote_address , unsigned int connection_timeout ,
+		const G::StringMap & info_commands , const G::StringMap & config_commands ,
+		bool with_terminate ) ;
+			///< Constructor.
 
 	virtual ~AdminServer() ;
 		///< Destructor.
@@ -150,8 +151,8 @@ public:
 		///< Called from the AdminServerPeer destructor.
 
 protected:
-	virtual GNet::ServerPeer * newPeer( GNet::Server::PeerInfo ) ;
-		///< Final override from GNet::MultiServer.
+	virtual GNet::ServerPeer * newPeer( GNet::Server::PeerInfo , GNet::MultiServer::ServerInfo ) g__final override ;
+		///< Override from GNet::MultiServer.
 
 private:
 	AdminServer( const AdminServer & ) ; // not implemented
@@ -163,11 +164,11 @@ private:
 	MessageStore & m_store ;
 	GSmtp::Client::Config m_client_config ;
 	const GAuth::Secrets & m_secrets ;
-	GNet::Address m_local_address ;
 	bool m_allow_remote ;
 	std::string m_remote_address ;
 	unsigned int m_connection_timeout ;
-	G::StringMap m_extra_commands ;
+	G::StringMap m_info_commands ;
+	G::StringMap m_config_commands ;
 	bool m_with_terminate ;
 } ;
 

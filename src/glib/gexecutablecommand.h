@@ -1,0 +1,75 @@
+//
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// ===
+///
+/// \file gexecutablecommand.h
+///
+
+#ifndef G_EXECUTABLE_COMMAND_H
+#define G_EXECUTABLE_COMMAND_H
+
+#include "gdef.h"
+#include "gpath.h"
+#include "gstrings.h"
+#include <string>
+
+namespace G
+{
+	class ExecutableCommand ;
+}
+
+/// \class G::ExecutableCommand
+/// A structure representing an external program, holding a path and a set of
+/// arguments. The constructor takes a complete command-line and splits it up
+/// into the executable part and a list of command-line parameters. If the
+/// command-line starts with a script then the contructed command-line may
+/// be for the appropriate interpreter (depending on the o/s).
+///
+/// \see G::Path, G::Args
+///
+class G::ExecutableCommand
+{
+public:
+	explicit ExecutableCommand( const std::string & command_line = std::string() ) ;
+		///< Constructor taking a complete command-line. The command-line
+		///< is split up on unescaped-and-unquoted space characters.
+
+	ExecutableCommand( const G::Path & exe , const StringArray & args , bool os_add_wrapper = true ) ;
+		///< Constructor taking the executable and arguments explicitly.
+
+	Path exe() const ;
+		///< Returns the executable.
+
+	StringArray args() const ;
+		///< Returns the command-line arguments.
+
+	void add( const std::string & arg ) ;
+		///< Adds a command-line argument.
+
+	std::string displayString() const ;
+		///< Returns a printable representation for logging and diagnostics.
+
+private:
+	bool osNativelyRunnable() const ;
+	void osAddWrapper() ;
+	static G::StringArray osSplit( const std::string & ) ;
+
+private:
+	G::Path m_exe ;
+	G::StringArray m_args ;
+} ;
+
+#endif

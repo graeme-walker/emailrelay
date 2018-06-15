@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ G::Pam::~Pam()
 
 bool G::Pam::authenticate( bool )
 {
-	throw Error( "authenticate" , 0 ) ;
+	throw PamError( "authenticate" , 0 ) ;
 	return false ;
 }
 

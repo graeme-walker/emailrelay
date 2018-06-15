@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,16 +23,22 @@
 #include "gprocess.h"
 #include "gexception.h"
 #include "gstr.h"
-#include "gfs.h"
 #include "glog.h"
 #include <iostream>
 #include <sstream>
+#include <algorithm>
+#include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <process.h>
 #include <io.h>
 #include <fcntl.h>
+#include <direct.h> // _getcwd()
 
+/// \class G::Process::IdImp
+/// A private implementation class used by G::Process that wraps
+/// a process id.
+///
 class G::Process::IdImp
 {
 public:
@@ -83,8 +89,11 @@ void G::Process::closeFiles( bool keep_stderr )
 {
 	std::cout << std::flush ;
 	std::cerr << std::flush ;
-	// old versions of this code closed files
-	// but it's not really needed
+}
+
+void G::Process::closeFilesExcept( int , int )
+{
+	// old versions of this code closed files but it's not really needed
 }
 
 void G::Process::closeStderr()
@@ -102,12 +111,12 @@ bool G::Process::cd( const Path & dir , NoThrow )
 	return 0 == ::_chdir( dir.str().c_str() ) ;
 }
 
-int G::Process::errno_()
+int G::Process::errno_( const G::SignalSafe & )
 {
 	return errno ;
 }
 
-int G::Process::errno_( int e )
+int G::Process::errno_( const G::SignalSafe & , int e )
 {
 	int old = errno ;
 	errno = e ;
@@ -150,6 +159,36 @@ void G::Process::revokeExtraGroups()
 	// not implemented
 }
 
+std::string G::Process::exe()
+{
+	HINSTANCE hinstance = NULL ;
+	std::vector<char> buffer( limits::path , '\0' ) ; // at least MAX_PATH
+	DWORD size = static_cast<DWORD>( buffer.size() ) ;
+	DWORD rc = ::GetModuleFileNameA( hinstance , &buffer[0] , size ) ;
+	if( rc == 0 ) // some doubt about what's in rc - just test for zero
+		return std::string() ;
+	if( std::find(buffer.begin(),buffer.end(),'\0') == buffer.end() )
+		*buffer.rbegin() = '\0' ;
+	return std::string( &buffer[0] ) ;
+}
+
+std::string G::Process::cwd( bool no_throw )
+{
+	char * p = _getcwd( nullptr , 2048 ) ; // "a buffer of at least .. is .. allocated" "more only if necessary"
+	if( p == nullptr )
+	{
+		if( !no_throw )
+			throw std::runtime_error( "getcwd() failed" ) ;
+		return std::string() ;
+	}
+	else
+	{
+		std::string result( p ) ;
+		free( p ) ;
+		return result ;
+	}
+}
+
 // not implemented...
 // Who G::Process::fork() {}
 // Who G::Process::fork( Id & child ) {}
@@ -173,4 +212,3 @@ void G::Process::Umask::set( G::Process::Umask::Mode )
 	// not implemented
 }
 
-/// \file gprocess_win32.cpp

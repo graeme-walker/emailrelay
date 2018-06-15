@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,24 +24,23 @@
 #include "gdef.h"
 #include "glimits.h"
 
-/// \namespace GGui
 namespace GGui
 {
 	class SubClassMap ;
 }
 
 /// \class GGui::SubClassMap
-/// A class for mapping sub-classed window handles
-/// to their old window procedures. Note that a sub-class
-/// map is only required for standard windows such as
-/// standard controls or standard dialog boxes; when subclassing
-/// our own windows it is better to store the old window procedure
-/// function pointer using SetWindowLong().
+/// A class for mapping sub-classed window handles to their old
+/// window procedures. Note that a sub-class map is only required
+/// for standard windows such as standard controls or standard
+/// dialog boxes; when subclassing our own windows it is better
+/// to store the old window procedure function pointer using
+/// SetWindowLong().
 ///
 class GGui::SubClassMap
 {
 public:
-	typedef WNDPROC Proc ; // could also be FARPROC -- see CallWindowProc
+	typedef WNDPROC Proc ; // see CallWindowProc
 
 	SubClassMap() ;
 		///< Default constructor.

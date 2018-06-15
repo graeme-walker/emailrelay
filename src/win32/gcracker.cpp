@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include "gdebug.h"
 #include "glog.h"
 #include <windowsx.h>
+#include <vector>
 
 GGui::Cracker::Cracker( HWND hwnd ) :
 	WindowBase(hwnd)
@@ -59,31 +60,31 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 			if( ! done )
 			{
 				PAINTSTRUCT ps ;
-				HDC dc = ::BeginPaint( m_hwnd , &ps ) ;
+				HDC dc = ::BeginPaint( handle() , &ps ) ;
 				onPaint( dc ) ;
-				::EndPaint( m_hwnd , &ps ) ;
+				::EndPaint( handle() , &ps ) ;
 			}
 			return 0 ;
 		}
-		
+
 		case WM_CLOSE:
 		{
 			G_DEBUG( "Cracker::onClose" ) ;
 			if( onClose() )
-				::PostMessage( m_hwnd , WM_DESTROY , 0 , 0 ) ;
+				::PostMessage( handle() , WM_DESTROY , 0 , 0 ) ;
 			return 0 ;
 		}
-		
+
 		case WM_DESTROY:
 		{
-			G_DEBUG( "Cracker::onDestroy: hwnd " << m_hwnd ) ;
+			G_DEBUG( "Cracker::onDestroy: hwnd " << handle() ) ;
 			onDestroy() ;
 			return 0 ;
 		}
 
 		case WM_NCDESTROY:
 		{
-			G_DEBUG( "Cracker::onNcDestroy: hwnd " << m_hwnd ) ;
+			G_DEBUG( "Cracker::onNcDestroy: hwnd " << handle() ) ;
 			onNcDestroy() ;
 			return 0 ;
 		}
@@ -145,7 +146,7 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 				defolt = true ;
 			return 0 ;
 		}
-		
+
 		case WM_KILLFOCUS:
 		{
 			// wparam, not lparam
@@ -160,7 +161,7 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 			onGetFocus( hwnd_other ) ;
 			return 0 ;
 		}
-		
+
 		case WM_CHAR:
 		{
 			unsigned int repeat_count = static_cast<unsigned int>(LOWORD(lparam)) ;
@@ -168,7 +169,7 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 			onChar( vkey , repeat_count ) ;
 			return 0 ;
 		}
-		
+
 		case WM_ERASEBKGND:
 		{
 			G_DEBUG( "Cracker::onEraseBackground" ) ;
@@ -181,20 +182,22 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 			G_DEBUG( "Cracker::onDrop" ) ;
 			HDROP hdrop = hdrop_from( wparam ) ;
 			int count = ::DragQueryFileA( hdrop , 0xFFFFFFFF , NULL , 0 ) ;
-			G::Strings list ;
+			G::StringArray list ;
 			for( int i = 0 ; i < count ; i++ )
 			{
-				static char buffer[G::limits::path] ;
-				if( ::DragQueryFileA( hdrop , i , buffer , sizeof(buffer) ) < sizeof(buffer) )
+				std::vector<char> buffer( G::limits::path , '\0' ) ;
+				unsigned int size = static_cast<unsigned int>(buffer.size()) ;
+				if( ::DragQueryFileA( hdrop , i , &buffer[0] , size ) < size )
 				{
-					G_DEBUG( "Cracker::onDrop: \"" << buffer << "\"" ) ;
-					list.push_back( std::string(buffer) ) ;
+					buffer.at(buffer.size()-1U) = '\0' ;
+					G_DEBUG( "Cracker::onDrop: \"" << &buffer[0] << "\"" ) ;
+					list.push_back( std::string(&buffer[0]) ) ;
 				}
 			}
 			::DragFinish( hdrop ) ;
 			return !onDrop( list ) ;
 		}
-		
+
 		case WM_SIZE:
 		{
 			SizeType type = restored ;
@@ -206,18 +209,18 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 				case SIZE_MAXHIDE:
 				case SIZE_MAXSHOW:
 				default:
-					return ::DefWindowProc( m_hwnd , message , wparam , lparam ) ;
+					return ::DefWindowProc( handle() , message , wparam , lparam ) ;
 			}
 			onSize( type , LOWORD(lparam) , HIWORD(lparam) ) ;
 			return 0 ;
 		}
-		
+
 		case WM_MOVE:
 		{
 			onMove( static_cast<int>(LOWORD(lparam)) , static_cast<int>(HIWORD(lparam)) ) ;
 			return 0 ;
 		}
-				
+
 		case WM_COMMAND:
 		{
 			UINT type = GET_WM_COMMAND_CMD( wparam , lparam ) ;
@@ -238,10 +241,10 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 				G_DEBUG( "Cracker::onControlCommand" ) ;
 				onControlCommand( window , message , id ) ;
 			}
-			
+
 			return 0 ;
 		}
-		
+
 		case WM_LBUTTONDBLCLK:
 		{
 			const unsigned int x = LOWORD(lparam) ;
@@ -374,7 +377,7 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam ,
 		case WM_PALETTECHANGED:
 		{
 			HWND hwnd_other = hwnd_from( wparam ) ;
-			if( m_hwnd != hwnd_other )
+			if( handle() != hwnd_other )
 				onPaletteChange() ;
 			return 0 ;
 		}
@@ -471,7 +474,7 @@ void GGui::Cracker::onControlCommand( HWND , UINT , UINT )
 {
 }
 
-bool GGui::Cracker::onDrop( const G::Strings & )
+bool GGui::Cracker::onDrop( const G::StringArray & )
 {
 	return false ;
 }
@@ -547,7 +550,7 @@ LRESULT GGui::Cracker::onUserOther( WPARAM , LPARAM )
 bool GGui::Cracker::onEraseBackground( HDC hdc )
 {
 	WPARAM wparam = reinterpret_cast<WPARAM>(hdc) ;
-	return !! ::DefWindowProc( m_hwnd , WM_ERASEBKGND , wparam , 0L ) ;
+	return !! ::DefWindowProc( handle() , WM_ERASEBKGND , wparam , 0L ) ;
 }
 
 void GGui::Cracker::onMouseMove( unsigned int x , unsigned int y ,

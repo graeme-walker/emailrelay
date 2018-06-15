@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 //
 // gfile.cpp
 //
-	
+
 #include "gdef.h"
 #include "glimits.h"
 #include "gfile.h"
@@ -37,7 +37,6 @@ void G::File::remove( const Path & path )
 {
 	if( 0 != std::remove( path.str().c_str() ) )
 	{
-		//int error = G::Process::errno_() ;
 		throw CannotRemove( path.str() ) ;
 	}
 	G_DEBUG( "G::File::remove: \"" << path << "\"" ) ;
@@ -45,19 +44,29 @@ void G::File::remove( const Path & path )
 
 bool G::File::rename( const Path & from , const Path & to , const NoThrow & )
 {
-	bool rc = 0 == std::rename( from.str().c_str() , to.str().c_str() ) ;
-	G_DEBUG( "G::File::rename: \"" << from << "\" -> \"" << to << "\": success=" << rc ) ;
-	return rc ;
+	bool is_missing = false ;
+	bool ok = rename( from.str().c_str() , to.str().c_str() , is_missing ) ;
+	G_DEBUG( "G::File::rename: \"" << from << "\" -> \"" << to << "\": success=" << ok ) ;
+	return ok ;
 }
 
-void G::File::rename( const Path & from , const Path & to )
+void G::File::rename( const Path & from , const Path & to , bool ignore_missing )
 {
-	if( 0 != std::rename( from.str().c_str() , to.str().c_str() ) )
+	bool is_missing = false ;
+	bool ok = rename( from.str().c_str() , to.str().c_str() , is_missing ) ;
+	if( !ok && !(is_missing && ignore_missing) )
 	{
-		//int error = G::Process::errno_() ;
 		throw CannotRename( std::string() + "[" + from.str() + "] to [" + to.str() + "]" ) ;
 	}
-	G_DEBUG( "G::File::rename: \"" << from << "\" -> \"" << to << "\"" ) ;
+	G_DEBUG( "G::File::rename: \"" << from << "\" -> \"" << to << "\": success=" << ok ) ;
+}
+
+bool G::File::rename( const char * from , const char * to , bool & enoent )
+{
+	bool ok = 0 == std::rename( from , to ) ;
+	int error = G::Process::errno_() ;
+	enoent = !ok && error == ENOENT ;
+	return ok ;
 }
 
 void G::File::copy( const Path & from , const Path & to )
@@ -84,22 +93,22 @@ std::string G::File::copy( const Path & from , const Path & to , int )
 
 	out << in.rdbuf() ;
 
-	if( in.fail() || in.bad() )
+	if( in.fail() )
 		return "read error" ;
-
-	if( !out.good() )
-		return "write error" ;
 
 	in.close() ;
 	out.close() ;
-	if( sizeString(from) != sizeString(to) )
-		return "file size mismatch" ;
+
+	if( out.fail() )
+		return "write error" ;
 
 	return std::string() ;
 }
 
 void G::File::copy( std::istream & in , std::ostream & out , std::streamsize limit , std::string::size_type block )
 {
+	std::ios_base::iostate in_state = in.rdstate() ;
+
 	block = block ? block : static_cast<std::string::size_type>(limits::file_buffer) ;
 	std::vector<char> buffer ;
 	buffer.reserve( block ) ;
@@ -118,7 +127,9 @@ void G::File::copy( std::istream & in , std::ostream & out , std::streamsize lim
 	}
 
 	out.flush() ;
-	in.clear( in.rdstate() & ~std::ios_base::failbit ) ; // failbit set at eof so not useful
+
+	// restore the input failbit because it might have been set by us reading an incomplete block at eof
+	in.clear( (in.rdstate() & ~std::ios_base::failbit) | (in_state & std::ios_base::failbit) ) ;
 }
 
 void G::File::mkdir( const Path & dir )
@@ -140,14 +151,15 @@ bool G::File::exists( const Path & path , const NoThrow & )
 bool G::File::exists( const Path & path , bool on_error , bool do_throw )
 {
 	bool enoent = false ;
-	bool rc = exists( path.str().c_str() , enoent ) ; // o/s-specific
+	bool eaccess = false ;
+	bool rc = exists( path.str().c_str() , enoent , eaccess ) ; // o/s-specific implementation
 	if( !rc && enoent )
 	{
 		return false ;
 	}
 	else if( !rc && do_throw )
 	{
-		throw StatError( path.str() ) ;
+		throw StatError( path.str() , eaccess?"permission denied":"" ) ;
 	}
 	else if( !rc )
 	{
@@ -158,24 +170,50 @@ bool G::File::exists( const Path & path , bool on_error , bool do_throw )
 
 bool G::File::chmodx( const Path & path , const NoThrow & )
 {
-	return chmodx(path,false) ;
+	return chmodx( path , false ) ;
 }
 
 void G::File::chmodx( const Path & path )
 {
-	chmodx(path,true) ;
+	chmodx( path , true ) ;
 }
 
 bool G::File::mkdirs( const Path & path , const NoThrow & , int limit )
 {
 	// (recursive)
+
 	G_DEBUG( "File::mkdirs: " << path ) ;
-	if( limit == 0 ) return false ;
-	if( exists(path) ) return true ;
-	if( path.str().empty() ) return true ;
-	if( ! mkdirs( path.dirname() , NoThrow() , limit-1 ) ) return false ;
+	if( limit == 0 )
+		return false ;
+
+	// use a trial mkdir() on the our way towards the root to avoid
+	// problems with the windows "virtual store" mis-feature
+	const bool mkdir_trial = true ;
+	if( mkdir_trial )
+	{
+		if( mkdir(path,NoThrow()) )
+		{
+			G_DEBUG( "File::mkdirs: mkdir(" << path << ") -> ok" ) ;
+			chmodx( path , NoThrow() ) ;
+			return true ;
+		}
+	}
+
+	if( exists(path) )
+		return true ;
+
+	if( path.str().empty() )
+		return true ;
+
+	if( ! mkdirs( path.dirname() , NoThrow() , limit-1 ) ) // (recursion)
+		return false ;
+
+	G_DEBUG( "File::mkdirs: mkdir(" << path << ")" ) ;
 	bool ok = mkdir( path , NoThrow() ) ;
-	if( ok ) chmodx( path , NoThrow() ) ;
+	if( ok )
+		chmodx( path , NoThrow() ) ;
+
+	G_DEBUG( "File::mkdirs: mkdir(" << path << ") -> " << (ok?"ok":"failed") ) ;
 	return ok ;
 }
 
@@ -187,7 +225,7 @@ void G::File::mkdirs( const Path & path , int limit )
 
 void G::File::create( const Path & path )
 {
-	std::ofstream f( path.str().c_str() ) ;
+	std::ofstream f( path.str().c_str() , std::ios_base::out | std::ios_base::app ) ;
 	f.close() ;
 	if( !exists(path) ) // race
 		throw CannotCreate( path.str() ) ;

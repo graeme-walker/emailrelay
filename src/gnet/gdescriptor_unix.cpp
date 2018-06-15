@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,11 +19,11 @@
 //
 
 #include "gdef.h"
-#include "gnet.h"
 #include "gdescriptor.h"
 
 GNet::Descriptor::Descriptor() :
-	m_fd(-1)
+	m_fd(-1) ,
+	m_handle(0)
 {
 }
 
@@ -32,5 +32,14 @@ bool GNet::Descriptor::valid() const
 	return m_fd >= 0 ;
 }
 
+HANDLE GNet::Descriptor::h() const
+{
+	return 0 ;
+}
+
+void GNet::Descriptor::streamOut( std::ostream & stream ) const
+{
+	stream << m_fd ;
+}
 
 /// \file gdescriptor_unix.cpp

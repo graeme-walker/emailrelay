@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@
 #include "gexception.h"
 #include <string>
 
-/// \namespace G
 namespace G
 {
 	class Base64 ;
@@ -33,7 +32,7 @@ namespace G
 
 /// \class G::Base64
 /// A base64 codec class.
-/// \see RFC 1341 section 5.2
+/// \see RFC-1341 section 5.2
 ///
 class G::Base64
 {
@@ -43,30 +42,20 @@ public:
 	static std::string encode( const std::string & s , const std::string & line_break ) ;
 		///< Encodes the given string.
 
-	static std::string encode( const std::string & s ) ;
+	static std::string encode( const std::string & ) ;
 		///< Encodes the given string. Uses carriage-return-line-feed
 		///< as the line-break string.
 
-	static std::string decode( const std::string & ) ;
+	static std::string decode( const std::string & , bool strict = false ) ;
 		///< Decodes the given string. Throws an exception
-		///< if not a valid encoding.
+		///< if strict and not a valid encoding.
 
 	static bool valid( const std::string & ) ;
-		///< Returns true if the string can be decoded.
+		///< Returns true if the string can be decoded without
+		///< any strict errors. An empty string is valid.
 
 private:
 	Base64() ;
-	static inline g_uint32_t numeric( char c ) ;
-	static inline void accumulate_8( g_uint32_t & n , std::string::const_iterator & ,
-		std::string::const_iterator , int & ) ;
-	static inline size_t hi_6( g_uint32_t n ) ;
-	static inline void generate_6( g_uint32_t & n , int & i , std::string & result ) ;
-	static inline char to_char( g_uint32_t n ) ;
-	static inline size_t index( char c , bool & error ) ;
-	static inline size_t accumulate_6( g_uint32_t & n , char c_in , int & , bool & error ) ;
-	static inline g_uint32_t hi_8( g_uint32_t n ) ;
-	static inline void generate_8( g_uint32_t & n , int & i , std::string & result ) ;
-	static std::string decode( const std::string & s , bool & error ) ;
 } ;
 
 #endif

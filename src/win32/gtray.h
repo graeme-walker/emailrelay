@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@
 #include "gcracker.h"
 #include "gexception.h"
 
-/// \namespace GGui
 namespace GGui
 {
 	class Tray ;
@@ -38,11 +37,17 @@ namespace GGui
 class GGui::Tray
 {
 public:
+	G_EXCEPTION( IconError , "no icon resource built-in" ) ;
 	G_EXCEPTION( Error , "system-tray error" ) ;
 
 	Tray( unsigned int icon_resource_id , const WindowBase & window ,
 		const std::string & tip , unsigned int message = Cracker::wm_tray() ) ;
 			///< Constructor. Adds the icon to the system tray.
+			///< Notification messages are sent to the given
+			///< window and the Cracker class converts them to
+			///< onTrayDoubleClick(), onTrayRightMouseButtonUp(),
+			///< onTrayRightMouseButtonDown(), and
+			///< onTrayLeftMouseButtonDown().
 
 	~Tray() ;
 		///< Destructor. Removes the icon from the system tray.

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,10 +24,10 @@
 #include "gdef.h"
 #include "gsmtp.h"
 #include "gverifier.h"
+#include "geventhandler.h"
 #include <string>
 #include <utility>
 
-/// \namespace GSmtp
 namespace GSmtp
 {
 	class VerifierFactory ;
@@ -39,11 +39,15 @@ namespace GSmtp
 class GSmtp::VerifierFactory
 {
 public:
-	static Verifier * newVerifier( const std::string & address , unsigned int timeout ) ;
-		///< Returns a Verifier on the heap.
+	static Verifier * newVerifier( GNet::ExceptionHandler & ,
+		const std::string & identifier , unsigned int timeout ,
+		bool compatible ) ;
+			///< Returns a Verifier on the heap. The identifier
+			///< is normally prefixed with a verifier type, or it
+			///< is the file system path of an exectuable.
 
-	static std::string check( const std::string & address ) ;
-		///< Checks an address. Returns an empty string if okay,
+	static std::string check( const std::string & identifier ) ;
+		///< Checks an identifier. Returns an empty string if okay,
 		///< or a diagnostic reason string.
 
 private:

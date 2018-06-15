@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,8 +27,6 @@
 // Searches for the executable and the configuration file in various
 // likely locations relative to argv0.
 //
-// See also: gui/guistart.cpp
-//
 
 #include "gdef.h"
 #include <iostream>
@@ -37,6 +35,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <ostream>
 #include <iterator>
 #include <algorithm>
 #include <functional>
@@ -54,28 +53,44 @@ static bool exists( std::string path )
 	return 0 == ::stat( path.c_str() , &statbuf ) && S_ISREG(statbuf.st_mode) ;
 }
 
-static std::string find( std::string argv0 , std::string name , bool more )
+static std::list<std::string> simple_candidates( std::string base , std::string name )
 {
-	std::string::size_type pos = argv0.find_last_of( "/\\" ) ;
-	std::string base = pos == std::string::npos ? "." : argv0.substr(0U,pos) ;
 	std::list<std::string> list ;
 	list.push_back( base + "/" + name ) ;
 	list.push_back( base + "/../" + name ) ;
 	list.push_back( base + "/../../" + name ) ;
 	list.push_back( base + "/../../../" + name ) ;
 	list.push_back( base + "/../../../../" + name ) ;
-	if( more )
-	{
-		list.push_back( base + "/../Resources/" + name ) ;
-		list.push_back( base + "/../../etc/" + name ) ;
-		list.push_back( base + "/../../Library/Preferences/E-MailRelay/" + name ) ;
-		list.push_back( base + "/../../../etc/" + name ) ;
-		list.push_back( base + "/../../../Library/Preferences/E-MailRelay/" + name ) ;
-		list.push_back( base + "/../../../../etc/" + name ) ;
-		list.push_back( base + "/../../../../Library/Preferences/E-MailRelay/" + name ) ;
-		list.push_back( base + "/../../../../../etc/" + name ) ;
-		list.push_back( base + "/../../../../../Library/Preferences/E-MailRelay/" + name ) ;
-	}
+	return list ;
+}
+
+static std::list<std::string> config_candidates( std::string base , std::string name )
+{
+	std::list<std::string> list = simple_candidates( base , name ) ;
+	list.push_back( base + "/../Resources/" + name ) ;
+	list.push_back( base + "/../../etc/" + name ) ;
+	list.push_back( base + "/../../Library/Preferences/E-MailRelay/" + name ) ;
+	list.push_back( base + "/../../../etc/" + name ) ;
+	list.push_back( base + "/../../../Library/Preferences/E-MailRelay/" + name ) ;
+	list.push_back( base + "/../../../../etc/" + name ) ;
+	list.push_back( base + "/../../../../Library/Preferences/E-MailRelay/" + name ) ;
+	list.push_back( base + "/../../../../../etc/" + name ) ;
+	list.push_back( base + "/../../../../../Library/Preferences/E-MailRelay/" + name ) ;
+	return list ;
+}
+
+static std::list<std::string> gui_candidates( std::string base )
+{
+	std::list<std::string> list ;
+	list.push_back( base + "/E-MailRelay-Configure.app/Contents/MacOS/E-MailRelay-Configure" ) ;
+	list.push_back( base + "/../../../E-MailRelay-Configure.app/Contents/MacOS/E-MailRelay-Configure" ) ;
+	list.push_back( base + "/emailrelay-gui.real" ) ;
+	list.push_back( base + "/../../../emailrelay-gui.real" ) ;
+	return list ;
+}
+
+static std::string find( std::list<std::string> list )
+{
 	for( std::list<std::string>::iterator p = list.begin() ; p != list.end() ; ++p )
 	{
 		if( exists(*p) )
@@ -90,6 +105,15 @@ static std::string find( std::string argv0 , std::string name , bool more )
 	return std::string() ;
 }
 
+static void rtrim( std::string & s )
+{
+	std::string::size_type n = s.find_last_not_of( " \t" ) ;
+	if( n == std::string::npos )
+		s = std::string() ;
+	else if( (n+1U) != s.length() )
+		s.resize( n + 1U ) ;
+}
+
 static void ltrim( std::string & s )
 {
 	std::string::size_type n = s.find_first_not_of( " \t" ) ;
@@ -97,6 +121,12 @@ static void ltrim( std::string & s )
 		s = std::string() ;
 	else if( n != 0U )
 		s.erase( 0U , n ) ;
+}
+
+static void trim( std::string & s )
+{
+	ltrim( s ) ;
+	rtrim( s ) ;
 }
 
 static void remove( std::string & s , char c )
@@ -127,7 +157,7 @@ static std::list<std::string> read( std::string path )
 	{
 		std::string line ;
 		std::getline( s , line ) ;
-		ltrim( line ) ;
+		trim( line ) ;
 		if( !line.empty() && line.at(0U) != '#' && line.find("gui-") != 0U )
 		{
 			// change "--foo bar" to "--foo=bar"
@@ -154,7 +184,7 @@ static void exec( std::string exe , std::list<std::string> args )
 		argv[i] = const_cast<char*>((*p).c_str()) ;
 	}
 	argv[0] = const_cast<char*>(exe.c_str()) ;
-	argv[i] = NULL ;
+	argv[i] = nullptr ;
 	::execv( exe.c_str() , argv ) ;
 }
 
@@ -164,7 +194,7 @@ static void run( std::string exe , std::list<std::string> args )
 	int rc = ::pipe( fds ) ;
 	if( rc < 0 )
 		throw std::runtime_error( "cannot create a pipe" ) ;
-	
+
 	rc = fork() ;
 	if( rc == -1 )
 	{
@@ -210,33 +240,56 @@ static void run( std::string exe , std::list<std::string> args )
 	}
 }
 
+std::string join( const std::list<std::string> & list )
+{
+	typedef std::list<std::string> List ;
+	std::ostringstream ss ;
+	const char * sep = "" ;
+	for( List::const_iterator p = list.begin() ; p != list.end() ; ++p , sep = " " )
+	{
+		ss << sep << *p ;
+	}
+	return ss.str() ;
+}
+
 int main( int , char * argv [] )
 {
+	std::string gui ;
 	try
 	{
-		std::string cfg = find( argv[0] , "emailrelay.conf" , true ) ;
+		std::string argv0( argv[0] ) ;
+		std::string::size_type pos = argv0.find_last_of( "/\\" ) ;
+		std::string base = pos == std::string::npos ? "." : argv0.substr(0U,pos) ;
+
+		std::string cfg = find( config_candidates(base,"emailrelay.conf") ) ;
 		if( cfg.empty() )
 			throw std::runtime_error( std::string() + "no config file" ) ;
 
-		std::string exe = find( argv[0] , "emailrelay" , false ) ;
+		std::string exe = find( simple_candidates(base,"emailrelay") ) ;
 		if( exe.empty() )
 			throw std::runtime_error( std::string() + "no executable" ) ;
 
-		run( exe , read(cfg) ) ;
+		gui = find( gui_candidates(base) ) ;
+
+		std::list<std::string> args = read( cfg ) ;
+		std::cout << "exe [" << exe << "]" << std::endl ;
+		std::cout << "args [" << join(args) << "]" << std::endl ;
+
+		run( exe , args ) ;
 		return 0 ;
 	}
 	catch( std::exception & e )
 	{
 		std::cerr << "exception: " << e.what() << std::endl ;
 
-		// dialog box for mac
-		std::stringstream ss ;
-		ss
-			<< "/usr/bin/osascript -e \""
-				<< "display dialog \\\"" << sanitised(e.what()) << "\\\" "
-				<< "with title \\\"Error\\\" buttons {\\\"Cancel\\\"}"
-			<< "\" 2>/dev/null" ;
-		::system( ss.str().c_str() ) ;
+		// dialog box
+		if( !gui.empty() )
+		{
+			std::stringstream ss ;
+			ss << gui << " --message " << sanitised(e.what()) ;
+			int rc = ::system( ss.str().c_str() ) ;
+			G_IGNORE_VARIABLE( rc ) ;
+		}
 	}
 	return 1 ;
 }

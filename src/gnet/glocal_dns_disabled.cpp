@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,25 +20,33 @@
 
 #include "gdef.h"
 #include "glocal.h"
-#include "genvironment.h"
+#include "ghostname.h"
 
-GNet::Address GNet::Local::canonicalAddressImp()
+std::string GNet::Local::m_name_override ;
+bool GNet::Local::m_name_override_set = false ;
+
+std::string GNet::Local::hostname()
 {
-	return Address::localhost() ;
+	std::string name = G::hostname() ;
+	if( name.empty() )
+		throw Error("cannot determine the hostname for this machine" ) ;
+	return name ;
 }
 
-std::string GNet::Local::fqdnImp()
+std::string GNet::Local::canonicalName()
 {
-	std::string host = hostname() ;
-	if( host.find('.') == std::string::npos )
-	{
-		std::string domain = G::Environment::get( "DOMAINNAME" , "local" ) ;
-		return host + "." + domain ;
-	}
-	else
-	{
-		return host ;
-	}
+	return m_name_override_set ? m_name_override : hostname() ;
+}
+
+void GNet::Local::canonicalName( const std::string & override )
+{
+	m_name_override = override ;
+	m_name_override_set = true ;
+}
+
+bool GNet::Local::isLocal( const Address & address , std::string & reason )
+{
+	bool local = address.sameHost( Address::loopback() ) ;
 }
 
 /// \file glocal_dns_disabled.cpp

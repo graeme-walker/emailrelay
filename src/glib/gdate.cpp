@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -40,12 +40,12 @@ G::Date::Date()
 	init( G::DateTime::utc(G::DateTime::now()) ) ;
 }
 
-G::Date::Date( G::DateTime::EpochTime t )
+G::Date::Date( G::EpochTime t )
 {
 	init( G::DateTime::utc(t) ) ;
 }
 
-G::Date::Date( G::DateTime::EpochTime t , const LocalTime & )
+G::Date::Date( G::EpochTime t , const LocalTime & )
 {
 	init( G::DateTime::local(t) ) ;
 }

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,16 +19,15 @@
 //
 
 #include "gdef.h"
-#include "gnet.h"
 #include "geventloop.h"
 #include "gdebug.h"
 #include "gassert.h"
 
-GNet::EventLoop * GNet::EventLoop::m_this = NULL ;
+GNet::EventLoop * GNet::EventLoop::m_this = nullptr ;
 
 GNet::EventLoop::EventLoop()
 {
-	if( m_this == NULL )
+	if( m_this == nullptr )
 		m_this = this ;
 	else
 		G_WARNING( "GNet::EventLoop::ctor: multiple instances" ) ;
@@ -37,20 +36,31 @@ GNet::EventLoop::EventLoop()
 GNet::EventLoop::~EventLoop()
 {
 	if( m_this == this )
-		m_this = NULL ;
+		m_this = nullptr ;
 }
 
 GNet::EventLoop & GNet::EventLoop::instance()
 {
-	if( m_this == NULL )
+	if( m_this == nullptr )
 		throw NoInstance() ;
-	G_ASSERT( m_this != NULL ) ;
+	G_ASSERT( m_this != nullptr ) ;
 	return *m_this ;
 }
 
 bool GNet::EventLoop::exists()
 {
-	return m_this != NULL ;
+	return m_this != nullptr ;
+}
+
+void GNet::EventLoop::stop( const G::SignalSafe & signal_safe )
+{
+	if( m_this != nullptr )
+		m_this->quit( signal_safe ) ;
+}
+
+void GNet::EventLoop::onException( std::exception & )
+{
+	throw ;
 }
 
 /// \file geventloop.cpp

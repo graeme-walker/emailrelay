@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 //
 // gidentity_unix.cpp
 //
-// Note that gcc requires -D_BSD_SOURCE for seteuid().
+// Note that gcc/glibc previously required -D_BSD_SOURCE for seteuid().
 //
 
 #include "gdef.h"
@@ -36,13 +36,18 @@ G::Identity::Identity() :
 {
 }
 
+G::Identity::Identity( G::SignalSafe ) :
+	m_uid(static_cast<uid_t>(-1)) ,
+	m_gid(static_cast<gid_t>(-1)) ,
+	m_h(0)
+{
+}
+
 G::Identity::Identity( const std::string & name ) :
 	m_uid(static_cast<uid_t>(-1)) ,
 	m_gid(static_cast<gid_t>(-1)) ,
 	m_h(0)
 {
-	typedef ::passwd Pwd ;
-
 	size_t buffer_size = 0 ;
 	{
 		long n = ::sysconf( _SC_GETPW_R_SIZE_MAX ) ;
@@ -61,10 +66,10 @@ G::Identity::Identity( const std::string & name ) :
 
 	std::vector<char> buffer( buffer_size ) ;
 
-	Pwd pwd ;
-	Pwd * result_p = NULL ;
+	::passwd pwd ;
+	::passwd * result_p = nullptr ;
 	int rc = ::getpwnam_r( name.c_str() , &pwd , &buffer[0] , buffer_size , &result_p ) ;
-	if( rc != 0 || result_p == NULL )
+	if( rc != 0 || result_p == nullptr )
 	{
 		if( name == "root" ) // in case no /etc/passwd
 		{
@@ -104,6 +109,11 @@ G::Identity G::Identity::invalid()
 	return G::Identity() ;
 }
 
+G::Identity G::Identity::invalid( SignalSafe safe )
+{
+	return G::Identity(safe) ;
+}
+
 G::Identity G::Identity::root()
 {
 	G::Identity id ;
@@ -136,7 +146,7 @@ bool G::Identity::operator!=( const Identity & other ) const
 
 void G::Identity::setEffectiveUser( SignalSafe )
 {
-	::seteuid(m_uid) ;
+	int rc = ::seteuid(m_uid) ; G_IGNORE_VARIABLE(rc) ;
 }
 
 void G::Identity::setEffectiveUser( bool do_throw )
@@ -156,7 +166,7 @@ void G::Identity::setEffectiveGroup( bool do_throw )
 
 void G::Identity::setEffectiveGroup( SignalSafe )
 {
-	::setegid(m_gid) ;
+	int rc = ::setegid(m_gid) ; G_IGNORE_VARIABLE(rc) ;
 }
 
 void G::Identity::setRealGroup( bool do_throw )

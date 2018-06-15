@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2013 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@
 #include "gsaslserver.h"
 #include "gsaslserverfactory.h"
 #include "gstr.h"
-#include "gmemory.h"
 
 /// \class GPop::AuthImp
 /// A private pimple-pattern implementation class used by GPop::Auth.
@@ -43,16 +42,18 @@ public:
 
 private:
 	const Secrets & m_secrets ;
-	std::auto_ptr<GAuth::SaslServer> m_sasl ;
+	unique_ptr<GAuth::SaslServer> m_sasl ;
+	bool m_first ;
 } ;
 
 // ==
 
 GPop::AuthImp::AuthImp( const Secrets & secrets ) :
 	m_secrets(secrets) ,
-	m_sasl(GAuth::SaslServerFactory::newSaslServer(secrets,true,false))
+	m_sasl(GAuth::SaslServerFactory::newSaslServer(secrets,true/*apop*/)) ,
+	m_first(true)
 {
-	m_sasl->init( "APOP" ) ; // for the initial challenge()
+	m_sasl->init( "APOP" ) ; // we need the apop challenge string early
 }
 
 bool GPop::AuthImp::valid() const
@@ -63,7 +64,20 @@ bool GPop::AuthImp::valid() const
 bool GPop::AuthImp::init( const std::string & mechanism )
 {
 	G_DEBUG( "GPop::AuthImp::init: mechanism " << mechanism ) ;
-	return m_sasl->init(mechanism) ;
+
+	// the first APOP authentication attempt must keep the original
+	// challenge as advertised in the server-ready line -- so only the
+	// first APOP request will work, and only if before any AUTH
+	// request -- could do better
+	//
+	if( m_first )
+	{
+		m_first = false ;
+		if( mechanism == "APOP" )
+			return true ;
+	}
+
+	return m_sasl->init( mechanism ) ;
 }
 
 bool GPop::AuthImp::authenticated( const std::string & p1 , const std::string & p2 )
