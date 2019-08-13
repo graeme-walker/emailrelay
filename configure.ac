@@ -17,7 +17,7 @@ dnl
 dnl Process this file with autoconf to produce a configure script.
 dnl
 
-AC_INIT([E-MailRelay],[2.0],[],[emailrelay])
+AC_INIT([E-MailRelay],[2.0.1],[],[emailrelay])
 AC_CONFIG_SRCDIR([src/gsmtp/gsmtp.h])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([no-define])
@@ -50,7 +50,6 @@ dnl check for libraries...
 dnl
 AC_LANG([C])
 GCONFIG_FN_SEARCHLIBS_POSIX
-GCONFIG_FN_SEARCHLIBS_PAM
 
 dnl ===
 dnl check for header files, functions and typedefs...
@@ -175,7 +174,6 @@ dnl ===
 dnl "--with-pam"
 dnl
 AC_ARG_WITH(pam,AS_HELP_STRING([--with-pam],[use linux pam for authentication (default auto)]))
-GCONFIG_FN_PAM
 GCONFIG_FN_WITH_PAM
 
 dnl ===

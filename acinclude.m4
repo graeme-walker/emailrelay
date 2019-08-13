@@ -21,8 +21,6 @@ dnl
 AC_DEFUN([GCONFIG_FN_SEARCHLIBS_POSIX],[
 	AC_SEARCH_LIBS([gethostbyname],[nsl])
 	AC_SEARCH_LIBS([connect],[socket])
-	AC_SEARCH_LIBS([shm_open],[rt])
-	AC_SEARCH_LIBS([dlopen],[dl])
 ])
 
 dnl GCONFIG_FN_SEARCHLIBS_CURSES
@@ -1629,6 +1627,12 @@ AC_DEFUN([GCONFIG_FN_TLS_MBEDTLS],
 		[[int x = MBEDTLS_ERR_NET_RECV_FAILED;]])],
 		gconfig_ssl_mbedtls_net_h=yes,
 		gconfig_ssl_mbedtls_net_h=no )
+
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[[#include <mbedtls/net_sockets.h>]],
+		[[int x = MBEDTLS_ERR_NET_RECV_FAILED;]])],
+		gconfig_ssl_mbedtls_net_sockets_h=yes,
+		gconfig_ssl_mbedtls_net_sockets_h=no )
 	fi
 
 	if test "$gconfig_cv_ssl_mbedtls" = "yes" ; then
@@ -1639,7 +1643,7 @@ AC_DEFUN([GCONFIG_FN_TLS_MBEDTLS],
 		gconfig_ssl_mbedtls_libs=""
 	fi
 
-	if test "$gconfig_ssl_mbedtls_net_h" = "yes" ; then
+	if test "$gconfig_ssl_mbedtls_net_h" = "yes" -a "$gconfig_ssl_mbedtls_net_sockets_h" = "no" ; then
 		AC_DEFINE(GCONFIG_HAVE_MBEDTLS_NET_H,1,[Define true to use deprecated mbedtls/net.h])
 	else
 		AC_DEFINE(GCONFIG_HAVE_MBEDTLS_NET_H,0,[Define true to use deprecated mbedtls/net.h])
@@ -1969,26 +1973,33 @@ dnl Tests for pam. Typically used after AC_ARG_WITH(pam).
 dnl
 AC_DEFUN([GCONFIG_FN_WITH_PAM],
 [
-	AC_REQUIRE([GCONFIG_FN_SEARCHLIBS_PAM])
 	AC_REQUIRE([GCONFIG_FN_PAM])
 
-	gconfig_pam_compiles="no"
-	if test "$gconfig_cv_pam_in_security" = "yes" -o "$gconfig_cv_pam_in_pam" = "yes" -o "$gconfig_cv_pam_in_include" = "yes"
+	if test "$with_pam" = "no"
 	then
-		gconfig_pam_compiles="yes"
-	fi
+		gconfig_use_pam="no"
+	else
 
-	if test "$with_pam" = "yes" -a "$gconfig_pam_compiles" = "no"
-	then
-		AC_MSG_WARN([forcing use of pam even though it does not seem to compile])
-	fi
+		AC_SEARCH_LIBS([pam_end],[pam],[gconfig_have_libpam=yes],[gconfig_have_libpam=no])
+	
+		gconfig_pam_compiles="no"
+		if test "$gconfig_cv_pam_in_security" = "yes" -o "$gconfig_cv_pam_in_pam" = "yes" -o "$gconfig_cv_pam_in_include" = "yes"
+		then
+			gconfig_pam_compiles="yes"
+		fi
 
-	gconfig_use_pam="$with_pam"
-	if test "$with_pam" = "" -a "$gconfig_pam_compiles" = "yes"
-	then
-		gconfig_use_pam="yes"
-	fi
+		if test "$with_pam" = "yes" -a "$gconfig_pam_compiles" = "no"
+		then
+			AC_MSG_WARN([forcing use of pam even though it does not seem to compile])
+		fi
 
+		gconfig_use_pam="$with_pam"
+		if test "$with_pam" = "" -a "$gconfig_pam_compiles" = "yes"
+		then
+			gconfig_use_pam="yes"
+		fi
+	fi
+	
 	if test "$gconfig_use_pam" = "yes"
 	then
 		AC_DEFINE(GCONFIG_HAVE_PAM,1,[Define true to use pam])
