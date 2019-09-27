@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -103,6 +103,7 @@ protected:
 	struct NameTip {} ;
 	struct PasswordTip {} ;
 	static QLabel * newTitle( QString ) ;
+	static void tip( QWidget * , const std::string & ) ;
 	static void tip( QWidget * , const char * ) ;
 	static void tip( QWidget * , NameTip ) ;
 	static void tip( QWidget * , PasswordTip ) ;
@@ -113,6 +114,7 @@ protected:
 	static std::string value( bool ) ;
 	static std::string value( const QAbstractButton * ) ;
 	static std::string value( const QLineEdit * ) ;
+	static std::string value_utf8( const QLineEdit * ) ;
 	static std::string value( const QComboBox * ) ;
 	bool testMode() const ;
 	int testModeValue() const ;
@@ -122,6 +124,7 @@ protected:
 
 private:
 	static std::string stdstr( const QString & ) ;
+	static std::string stdstr_utf8( const QString & ) ;
 
 private:
 	GDialog & m_dialog ;

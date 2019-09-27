@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 //
 
 #include "gdef.h"
-#include "glimits.h"
 #include "gnewprocess.h"
 #include "gprocess.h"
 #include "genvironment.h"
@@ -55,6 +54,10 @@ public:
 	void write( const std::string & ) ;
 
 private:
+	Pipe( const Pipe & ) g__eq_delete ;
+	void operator=( const Pipe & ) g__eq_delete ;
+
+private:
 	int m_fds[2] ;
 	int m_fd ;
 } ;
@@ -70,24 +73,23 @@ public:
 		Identity run_as_id , bool strict_id ,
 		int exec_error_exit , const std::string & exec_error_format ,
 		std::string (*exec_error_format_fn)(std::string,int) ) ;
-
-	int id() const ;
+	int id() const g__noexcept ;
 	static std::pair<bool,pid_t> fork() ;
 	NewProcessWaitFuture & wait() ;
-	int run( const G::Path & , const StringArray & , bool clean_env , bool strict ) ;
-	void kill() ;
+	int run( const Path & , const StringArray & , bool clean_env , bool strict ) ;
+	void kill() g__noexcept ;
 	static void printError( int , const std::string & s ) ;
 	std::string execErrorFormat( const std::string & format , int errno_ ) ;
+
+private:
+	NewProcessImp( const NewProcessImp & ) g__eq_delete ;
+	void operator=( const NewProcessImp & ) g__eq_delete ;
 
 private:
 	Pipe m_pipe ;
 	NewProcessWaitFuture m_wait_future ;
 	pid_t m_child_pid ;
 	bool m_killed ;
-
-private:
-	NewProcessImp( const NewProcessImp & ) ;
-	void operator=( const NewProcessImp & ) ;
 } ;
 
 // ==
@@ -104,7 +106,6 @@ G::NewProcess::NewProcess( const Path & exe , const StringArray & args ,
 
 G::NewProcess::~NewProcess()
 {
-	delete m_imp ;
 }
 
 G::NewProcessWaitFuture & G::NewProcess::wait()
@@ -117,14 +118,20 @@ std::pair<bool,pid_t> G::NewProcess::fork()
 	return NewProcessImp::fork() ;
 }
 
-int G::NewProcess::id() const
+int G::NewProcess::id() const g__noexcept
 {
 	return m_imp->id() ;
 }
 
-void G::NewProcess::kill()
+void G::NewProcess::kill( bool yield ) g__noexcept
 {
 	m_imp->kill() ;
+	if( yield )
+	{
+		G::threading::yield() ;
+		::close( ::open( "/dev/null" , O_RDONLY ) ) ; // hmm
+		G::threading::yield() ;
+	}
 }
 
 // ==
@@ -138,10 +145,8 @@ G::NewProcessImp::NewProcessImp( const Path & exe , const StringArray & args ,
 		m_child_pid(-1) ,
 		m_killed(false)
 {
-	// impose sanity
-	G_ASSERT( stdxxx == -1 || stdxxx == 1 || stdxxx == 2 ) ;
-	if( stdxxx == 1 ) stdxxx = STDOUT_FILENO ;
-	else if( stdxxx == 2 ) stdxxx = STDERR_FILENO ;
+	G_ASSERT( stdxxx == 0 || stdxxx == 1 || stdxxx == 2 ) ;
+	stdxxx = stdxxx == 1 ? STDOUT_FILENO : ( stdxxx == 2 ? STDERR_FILENO : -1 ) ;
 
 	// safety checks
 	if( strict_path && exe.isRelative() )
@@ -192,7 +197,7 @@ G::NewProcessImp::NewProcessImp( const Path & exe , const StringArray & args ,
 	else
 	{
 		m_pipe.inParent() ;
-		m_wait_future = NewProcessWaitFuture( m_child_pid , m_pipe.fd() ) ;
+		m_wait_future.assign( m_child_pid , m_pipe.fd() ) ;
 	}
 }
 
@@ -211,6 +216,7 @@ std::pair<bool,pid_t> G::NewProcessImp::fork()
 void G::NewProcessImp::printError( int stdxxx , const std::string & s )
 {
 	// write an exec-failure message back down the pipe
+	if( stdxxx <= 0 ) return ;
 	G_IGNORE_RETURN( int , ::write( stdxxx , s.c_str() , s.length() ) ) ;
 }
 
@@ -256,7 +262,7 @@ int G::NewProcessImp::run( const G::Path & exe , const StringArray & args , bool
 	return e ;
 }
 
-int G::NewProcessImp::id() const
+int G::NewProcessImp::id() const g__noexcept
 {
 	return static_cast<int>(m_child_pid) ;
 }
@@ -266,9 +272,8 @@ G::NewProcessWaitFuture & G::NewProcessImp::wait()
 	return m_wait_future ;
 }
 
-void G::NewProcessImp::kill()
+void G::NewProcessImp::kill() g__noexcept
 {
-	G_DEBUG( "G::NewProcessImp::kill: killing process group " << m_child_pid ) ;
 	if( !m_killed && m_child_pid != -1 )
 	{
 		// kill the group so the pipe is closed in all processes and the read returns zero
@@ -341,6 +346,7 @@ void G::Pipe::dupTo( int stdxxx )
 
 G::NewProcessWaitFuture::NewProcessWaitFuture() :
 	m_hprocess(0) ,
+	m_hpipe(0) ,
 	m_pid(0) ,
 	m_fd(-1) ,
 	m_rc(0) ,
@@ -353,6 +359,7 @@ G::NewProcessWaitFuture::NewProcessWaitFuture() :
 G::NewProcessWaitFuture::NewProcessWaitFuture( pid_t pid , int fd ) :
 	m_buffer(1024U) ,
 	m_hprocess(0) ,
+	m_hpipe(0) ,
 	m_pid(pid) ,
 	m_fd(fd) ,
 	m_rc(0) ,
@@ -360,6 +367,19 @@ G::NewProcessWaitFuture::NewProcessWaitFuture( pid_t pid , int fd ) :
 	m_error(0) ,
 	m_read_error(0)
 {
+}
+
+void G::NewProcessWaitFuture::assign( pid_t pid , int fd )
+{
+	m_buffer.resize( 1024U ) ;
+	m_hprocess = 0 ;
+	m_hpipe = 0 ;
+	m_pid = pid ;
+	m_fd = fd ;
+	m_rc = 0 ;
+	m_status = 0 ;
+	m_error = 0 ;
+	m_read_error = 0 ;
 }
 
 G::NewProcessWaitFuture & G::NewProcessWaitFuture::run()

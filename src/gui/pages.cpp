@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,22 +33,22 @@
 #include "ghash.h"
 #include "gbase64.h"
 #include "gxtext.h"
-#include "gdebug.h"
+#include "glog.h"
 #include <stdexcept>
 #include <fstream>
 
 namespace
 {
-	std::string encode( const std::string & pwd , const std::string & mechanism )
+	std::string encode( const std::string & pwd_utf8 , const std::string & mechanism )
 	{
 		return
 			mechanism == "CRAM-MD5" ?
-				G::Base64::encode( "MD5:" + G::Hash::mask(G::Md5::predigest,G::Md5::digest2,G::Md5::blocksize(),pwd) ) :
-				G::Xtext::encode(pwd) ;
+				G::Base64::encode( G::Hash::mask(G::Md5::predigest,G::Md5::digest2,G::Md5::blocksize(),pwd_utf8) ) :
+				G::Xtext::encode( pwd_utf8 ) ;
 	}
-	std::string encode( const std::string & id )
+	std::string encode( const std::string & id_utf8 )
 	{
-		return G::Xtext::encode( id ) ;
+		return G::Xtext::encode( id_utf8 ) ;
 	}
 }
 
@@ -178,7 +178,7 @@ DirectoryPage::DirectoryPage( GDialog & dialog , const G::MapFile & config , con
 
 	m_runtime_dir_label = new QLabel(tr("Dire&ctory:")) ;
 	m_runtime_dir_edit_box = new QLineEdit ;
-	tip( m_runtime_dir_edit_box , "--pid-file" ) ;
+	tip( m_runtime_dir_edit_box , "--pid-file, --log-file" ) ;
 	m_runtime_dir_label->setBuddy(m_runtime_dir_edit_box) ;
 	m_runtime_dir_browse_button = new QPushButton(tr("B&rowse")) ;
 
@@ -307,7 +307,7 @@ void DirectoryPage::dump( std::ostream & stream , bool for_install ) const
 	dumpItem( stream , for_install , "dir-boot" , Dir::boot() ) ;
 	dumpItem( stream , for_install , "dir-desktop" , Dir::desktop() ) ;
 	dumpItem( stream , for_install , "dir-menu" , Dir::menu() ) ;
-	dumpItem( stream , for_install , "dir-login" , Dir::login() ) ;
+	dumpItem( stream , for_install , "dir-login" , Dir::autostart() ) ;
 }
 
 bool DirectoryPage::isComplete()
@@ -611,12 +611,12 @@ void PopPage::dump( std::ostream & stream , bool for_install ) const
 	dumpItem( stream , for_install , "pop-auth-mechanism" , mechanism ) ;
 	if( for_install )
 	{
-		dumpItem( stream , for_install , "pop-account-1-name" , encode(value(m_name_1)) ) ;
-		dumpItem( stream , for_install , "pop-account-1-password" , encode(value(m_pwd_1),mechanism) ) ;
-		dumpItem( stream , for_install , "pop-account-2-name" , encode(value(m_name_2)) ) ;
-		dumpItem( stream , for_install , "pop-account-2-password" , encode(value(m_pwd_2),mechanism) ) ;
-		dumpItem( stream , for_install , "pop-account-3-name" , encode(value(m_name_3)) ) ;
-		dumpItem( stream , for_install , "pop-account-3-password" , encode(value(m_pwd_3),mechanism) ) ;
+		dumpItem( stream , for_install , "pop-account-1-name" , encode(value_utf8(m_name_1)) ) ;
+		dumpItem( stream , for_install , "pop-account-1-password" , encode(value_utf8(m_pwd_1),mechanism) ) ;
+		dumpItem( stream , for_install , "pop-account-2-name" , encode(value_utf8(m_name_2)) ) ;
+		dumpItem( stream , for_install , "pop-account-2-password" , encode(value_utf8(m_pwd_2),mechanism) ) ;
+		dumpItem( stream , for_install , "pop-account-3-name" , encode(value_utf8(m_name_3)) ) ;
+		dumpItem( stream , for_install , "pop-account-3-password" , encode(value_utf8(m_pwd_3),mechanism) ) ;
 	}
 }
 
@@ -798,8 +798,8 @@ void SmtpServerPage::dump( std::ostream & stream , bool for_install ) const
 	dumpItem( stream , for_install , "smtp-server-auth-mechanism" , mechanism ) ;
 	if( for_install )
 	{
-		dumpItem( stream , for_install , "smtp-server-account-name" , encode(value(m_account_name)) ) ;
-		dumpItem( stream , for_install , "smtp-server-account-password" , encode(value(m_account_pwd),mechanism) ) ;
+		dumpItem( stream , for_install , "smtp-server-account-name" , encode(value_utf8(m_account_name)) ) ;
+		dumpItem( stream , for_install , "smtp-server-account-password" , encode(value_utf8(m_account_pwd),mechanism) ) ;
 	}
 	dumpItem( stream , for_install , "smtp-server-trust" , value(m_trust_address) ) ;
 	dumpItem( stream , for_install , "smtp-server-tls" , value(m_tls_checkbox) ) ;
@@ -1113,8 +1113,8 @@ void SmtpClientPage::dump( std::ostream & stream , bool for_install ) const
 	dumpItem( stream , for_install , "smtp-client-auth-mechanism" , mechanism ) ;
 	if( for_install )
 	{
-		dumpItem( stream , for_install , "smtp-client-account-name" , encode(value(m_account_name)) ) ;
-		dumpItem( stream , for_install , "smtp-client-account-password" , encode(value(m_account_pwd),mechanism) ) ;
+		dumpItem( stream , for_install , "smtp-client-account-name" , encode(value_utf8(m_account_name)) ) ;
+		dumpItem( stream , for_install , "smtp-client-account-password" , encode(value_utf8(m_account_pwd),mechanism) ) ;
 	}
 }
 
@@ -1176,7 +1176,7 @@ LoggingPage::LoggingPage( GDialog & dialog , const G::MapFile & config , const s
 	bool syslog = syslog_override || !(as_client||no_syslog) ; // true by default
 
 	m_syslog_checkbox->setChecked( syslog ) ;
-	m_verbose_checkbox->setChecked( config.booleanValue("verbose",false) ) ;
+	m_verbose_checkbox->setChecked( config.booleanValue("verbose",true) ) ; // true, because windows users
 	m_debug_checkbox->setChecked( config.booleanValue("debug",false) ) ;
 	m_debug_checkbox->setEnabled( config.booleanValue("debug",false) ) ; // todo
 
@@ -1228,7 +1228,7 @@ QString LoggingPage::browse( QString /*ignored*/ )
 	return QFileDialog::getOpenFileName( this ) ;
 }
 
-void LoggingPage::onShow( bool back )
+void LoggingPage::onShow( bool /*back*/ )
 {
 	// initialise after contruction because we need the directory-page state
 	bool first_time = m_logfile_edit_box->text().isEmpty() ;
@@ -1244,7 +1244,8 @@ void LoggingPage::onShow( bool back )
 	}
 	if( first_time )
 	{
-		m_logfile_checkbox->setChecked( m_config_log_file != G::Path() ) ;
+		// enable log file output by default, because windows users
+		m_logfile_checkbox->setChecked( true ) ; // was 'm_config_log_file != G::Path()'
 	}
 
 	onToggle() ;
@@ -1396,10 +1397,10 @@ StartupPage::StartupPage( GDialog & dialog , const G::MapFile & config , const s
 		m_add_menu_item_checkbox->setEnabled( false ) ;
 		m_add_desktop_item_checkbox->setEnabled( false ) ;
 	}
-	m_at_login_checkbox->setEnabled( !Dir::login().str().empty() ) ;
+	m_at_login_checkbox->setEnabled( !Dir::autostart().str().empty() ) ;
 	m_on_boot_checkbox->setEnabled( start_on_boot_able ) ;
 
-	m_at_login_checkbox->setChecked( !Dir::login().str().empty() && config.booleanValue("start-at-login",false) ) ;
+	m_at_login_checkbox->setChecked( !Dir::autostart().str().empty() && config.booleanValue("start-at-login",false) ) ;
 	m_add_menu_item_checkbox->setChecked( !m_is_mac && config.booleanValue("start-link-menu",true) ) ;
 	m_add_desktop_item_checkbox->setChecked( !m_is_mac && config.booleanValue("start-link-desktop",false) ) ;
 	m_on_boot_checkbox->setChecked( start_on_boot_able && config.booleanValue("start-on-boot",false) ) ;
@@ -1416,6 +1417,10 @@ StartupPage::StartupPage( GDialog & dialog , const G::MapFile & config , const s
 	layout->addWidget(manual_group) ;
 	layout->addStretch() ;
 	setLayout( layout ) ;
+
+	tip( m_at_login_checkbox , Dir::autostart().str() ) ;
+	tip( m_add_menu_item_checkbox , Dir::menu().str() ) ;
+	tip( m_add_desktop_item_checkbox , Dir::desktop().str() ) ;
 
 	connect( m_on_boot_checkbox , SIGNAL(toggled(bool)), this, SIGNAL(pageUpdateSignal()));
 	connect( m_add_desktop_item_checkbox , SIGNAL(toggled(bool)), this, SIGNAL(pageUpdateSignal()));
@@ -1504,9 +1509,10 @@ ProgressPage::ProgressPage( GDialog & dialog , const G::MapFile & , const std::s
 	const std::string & next_1 , const std::string & next_2 , bool finish , bool close ,
 	Installer & installer ) :
 		GPage(dialog,name,next_1,next_2,finish,close) ,
+		m_timer(nullptr) ,
 		m_installer(installer)
 {
-	m_text_edit = new QTextEdit;
+	m_text_edit = new QTextEdit ;
 	m_text_edit->setReadOnly(true) ;
 	m_text_edit->setWordWrapMode(QTextOption::NoWrap) ;
 	m_text_edit->setLineWrapMode(QTextEdit::NoWrap) ;

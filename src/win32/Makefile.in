@@ -91,10 +91,10 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 subdir = src/win32
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/m4_ax_cxx_compile_stdcxx.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/m4/acinclude.m4 \
+	$(top_srcdir)/m4/m4_ax_cxx_compile_stdcxx.m4 \
 	$(top_srcdir)/m4/m4_ax_cxx_compile_stdcxx_11.m4 \
-	$(top_srcdir)/m4/pkg.m4 $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/pkg.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
@@ -115,7 +115,7 @@ am__libextra_a_SOURCES_DIST = empty.c gappinst.cpp gappinst.h \
 	gdialog.cpp gdialog.h gcontrol.cpp gcontrol.h gpump.cpp \
 	gpump.h gscmap.h gscmap.cpp gsize.h gstack.cpp gstack.h \
 	gtray.h gtray.cpp gwinbase.cpp gwinbase.h gwindow.cpp \
-	gwindow.h gwindowhidden.cpp gwindowhidden.h
+	gwindow.h
 @GCONFIG_WINDOWS_FALSE@am_libextra_a_OBJECTS = empty.$(OBJEXT)
 @GCONFIG_WINDOWS_TRUE@am_libextra_a_OBJECTS = gappinst.$(OBJEXT) \
 @GCONFIG_WINDOWS_TRUE@	gappbase.$(OBJEXT) gcracker.$(OBJEXT) \
@@ -123,8 +123,7 @@ am__libextra_a_SOURCES_DIST = empty.c gappinst.cpp gappinst.h \
 @GCONFIG_WINDOWS_TRUE@	gcontrol.$(OBJEXT) gpump.$(OBJEXT) \
 @GCONFIG_WINDOWS_TRUE@	gscmap.$(OBJEXT) gstack.$(OBJEXT) \
 @GCONFIG_WINDOWS_TRUE@	gtray.$(OBJEXT) gwinbase.$(OBJEXT) \
-@GCONFIG_WINDOWS_TRUE@	gwindow.$(OBJEXT) \
-@GCONFIG_WINDOWS_TRUE@	gwindowhidden.$(OBJEXT)
+@GCONFIG_WINDOWS_TRUE@	gwindow.$(OBJEXT)
 libextra_a_OBJECTS = $(am_libextra_a_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -208,6 +207,7 @@ CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
+CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -216,15 +216,13 @@ DEPDIR = @DEPDIR@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
+EGREP = @EGREP@
 EXEEXT = @EXEEXT@
-GCONFIG_CONFIGURATION = @GCONFIG_CONFIGURATION@
 GCONFIG_HAVE_DOXYGEN = @GCONFIG_HAVE_DOXYGEN@
 GCONFIG_HAVE_MAN2HTML = @GCONFIG_HAVE_MAN2HTML@
 GCONFIG_QT_CFLAGS = @GCONFIG_QT_CFLAGS@
 GCONFIG_QT_LIBS = @GCONFIG_QT_LIBS@
 GCONFIG_QT_MOC = @GCONFIG_QT_MOC@
-GCONFIG_STATIC_END = @GCONFIG_STATIC_END@
-GCONFIG_STATIC_START = @GCONFIG_STATIC_START@
 GCONFIG_TLS_LIBS = @GCONFIG_TLS_LIBS@
 GCONFIG_WINDMC = @GCONFIG_WINDMC@
 GCONFIG_WINDRES = @GCONFIG_WINDRES@
@@ -290,6 +288,7 @@ e_icondir = @e_icondir@
 e_initdir = @e_initdir@
 e_libexecdir = @e_libexecdir@
 e_pamdir = @e_pamdir@
+e_rundir = @e_rundir@
 e_spooldir = @e_spooldir@
 e_sysconfdir = @e_sysconfdir@
 exec_prefix = @exec_prefix@
@@ -343,9 +342,7 @@ noinst_LIBRARIES = libextra.a
 @GCONFIG_WINDOWS_FALSE@	gwinbase.cpp \
 @GCONFIG_WINDOWS_FALSE@	gwinbase.h \
 @GCONFIG_WINDOWS_FALSE@	gwindow.cpp \
-@GCONFIG_WINDOWS_FALSE@	gwindow.h \
-@GCONFIG_WINDOWS_FALSE@	gwindowhidden.cpp \
-@GCONFIG_WINDOWS_FALSE@	gwindowhidden.h
+@GCONFIG_WINDOWS_FALSE@	gwindow.h
 
 @GCONFIG_WINDOWS_TRUE@EXTRA_DIST = empty.c
 @GCONFIG_WINDOWS_FALSE@libextra_a_SOURCES = empty.c
@@ -374,9 +371,7 @@ noinst_LIBRARIES = libextra.a
 @GCONFIG_WINDOWS_TRUE@	gwinbase.cpp \
 @GCONFIG_WINDOWS_TRUE@	gwinbase.h \
 @GCONFIG_WINDOWS_TRUE@	gwindow.cpp \
-@GCONFIG_WINDOWS_TRUE@	gwindow.h \
-@GCONFIG_WINDOWS_TRUE@	gwindowhidden.cpp \
-@GCONFIG_WINDOWS_TRUE@	gwindowhidden.h
+@GCONFIG_WINDOWS_TRUE@	gwindow.h
 
 all: all-am
 
@@ -439,7 +434,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtray.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gwinbase.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gwindow.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gwindowhidden.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@
 
 #ifndef G_NEW_PROCESS_H
 #define G_NEW_PROCESS_H
-#define G_NEW_PROCESS_WITH_WAIT_FUTURE
 
 #include "gdef.h"
 #include "gexception.h"
@@ -75,7 +74,8 @@ public:
 			///<
 			///< The parent process can capture the child process's stdout or
 			///< stderr (ie. stdxxx) by redirecting it to an internal pipe going
-			///< from child to parent.
+			///< from child to parent. The stdxxx parameter is 1 for stdout,
+			///< 2 for stderr or 0 for neither.
 			///<
 			///< The child process is optionally given a clean, minimalist
 			///< environment.
@@ -89,35 +89,37 @@ public:
 			///< that identity. If 'strict_id' is also true then the id is not
 			///< allowed to be root. See Process::beOrdinaryForExec().
 			///<
-			///< By default the child process runs with stdin and stderr attached to
-			///< the null device and stdout attached to the internal pipe. The
-			///< internal pipe is also used for error messages in case the exec()
-			///< fails.
-			///<
 			///< If the exec() fails then the 'exec_error_exit' argument is used as
-			///< the child process exit code, and if either of the other 'exec_whatever'
-			///< arguments is supplied then an exec error message is written into
-			///< the child process's end of the internal pipe.
+			///< the child process exit code.
+			///<
+			///< By default the child process runs with stdin and stderr attached to
+			///< the null device and stdout attached to the internal pipe.
+			///<
+			///< The internal pipe can be used for error messages in the situation
+			///< where the exec() in the forked child process fails. This requires
+			///< that one of the 'exec_error_format' parameters is given; by default
+			///< nothing is sent over the pipe when the exec() fails.
 			///<
 			///< The exec error message is assembled by the given callback function,
-			///< with the 'exec_error_format' argument passed as its second parameter.
-			///< The first parameter is the exec() errno. The default callback function
-			///< does text substitution for "__errno__" and "__strerror__"
+			///< with the 'exec_error_format' argument passed as its first parameter.
+			///< The second parameter is the exec() errno. The default callback
+			///< function does text substitution for "__errno__" and "__strerror__"
 			///< substrings that appear within the error format string.
 
 	~NewProcess() ;
 		///< Destructor. Kills the spawned process if the WaitFuture has
 		///< not been resolved.
 
-	int id() const ;
+	int id() const g__noexcept ;
 		///< Returns the process id.
 
 	NewProcessWaitFuture & wait() ;
 		///< Returns a reference to the WaitFuture sub-object so that the caller
 		///< can wait for the child process to exit.
 
-	void kill() ;
-		///< Tries to kill the spawned process.
+	void kill( bool yield = false ) g__noexcept ;
+		///< Tries to kill the spawned process and optionally yield
+		///< to a thread that might be waiting on it.
 
 	static std::pair<bool,pid_t> fork() ;
 		///< A utility function that forks the calling process and returns
@@ -126,12 +128,12 @@ public:
 		/// \see G::Daemon
 
 private:
-	NewProcess( const NewProcess & ) ;
-	void operator=( const NewProcess & ) ;
+	NewProcess( const NewProcess & ) g__eq_delete ;
+	void operator=( const NewProcess & ) g__eq_delete ;
 	static std::string execErrorFormat( const std::string & , int ) ;
 
 private:
-	NewProcessImp * m_imp ;
+	unique_ptr<NewProcessImp> m_imp ;
 } ;
 
 /// \class G::NewProcessWaitFuture
@@ -139,7 +141,7 @@ private:
 /// call. The run() method can be run from a worker thread and the results
 /// collected by the main thread using get() once the worker thread has
 /// signalled that it has finished. The signalling mechanism is outside the
-/// scope of this class.
+/// scope of this class (see GNet::FutureEvent).
 ///
 class G::NewProcessWaitFuture
 {
@@ -152,9 +154,17 @@ public:
 		///< Constructor taking a posix process-id and optional
 		///< readable file descriptor.
 
+	void assign( pid_t pid , int fd ) ;
+		///< Reinitialises as if constructed with the given proces-id
+		///< and file descriptor.
+
 	NewProcessWaitFuture( HANDLE hprocess , HANDLE hpipe , int ) ;
 		///< Constructor taking process and pipe handles.
 		///< Used in the windows implementation.
+
+	void assign( HANDLE hprocess , HANDLE hpipe , int ) ;
+		///< Reinitialises as if constructed with the given proces
+		///< handle and pipe handle.
 
 	NewProcessWaitFuture & run() ;
 		///< Waits for the process identified by the constructor
@@ -170,6 +180,10 @@ public:
 	std::string output() ;
 		///< Returns the first bit of child-process output.
 		///< Used after get().
+
+private:
+	NewProcessWaitFuture( const NewProcessWaitFuture & ) g__eq_delete ;
+	void operator=( const NewProcessWaitFuture & ) g__eq_delete ;
 
 private:
 	std::vector<char> m_buffer ;

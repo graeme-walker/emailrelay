@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,12 +21,10 @@
 
 #include "gdef.h"
 #include "gaddress6.h"
-#include "gstrings.h"
 #include "gstr.h"
-#include "gassert.h"
-#include "gdebug.h"
-#include <utility> // std::swap()
+#include "glog.h"
 #include <algorithm> // std::swap()
+#include <utility> // std::swap()
 #include <climits>
 #include <sys/types.h>
 #include <sstream>
@@ -54,8 +52,8 @@ void GNet::Address6::init()
 	static specific_type zero ;
 	m_inet.specific = zero ;
 	m_inet.specific.sin6_family = family() ;
-	m_inet.specific.sin6_flowinfo = 0 ;
 	m_inet.specific.sin6_port = 0 ;
+	m_inet.specific.sin6_flowinfo = 0 ;
 	gnet_address6_init( m_inet.specific ) ; // gdef.h
 }
 
@@ -214,6 +212,18 @@ std::string GNet::Address6::hostPartString() const
 	return std::string(buffer) ;
 }
 
+std::string GNet::Address6::queryString() const
+{
+	std::ostringstream ss ;
+	const char * hexmap = "0123456789abcdef" ;
+	for( size_t i = 0U ; i < 16U ; i++ )
+	{
+		unsigned int n = static_cast<unsigned int>(m_inet.specific.sin6_addr.s6_addr[15U-i]) % 256U ;
+		ss << (i==0U?"":".") << hexmap[(n&15U)%16U] << "." << hexmap[(n>>4U)%16U] ;
+	}
+	return ss.str() ;
+}
+
 bool GNet::Address6::validData( const sockaddr * addr , socklen_t len )
 {
 	return addr != nullptr && addr->sa_family == family() && len == sizeof(specific_type) ;
@@ -300,17 +310,19 @@ socklen_t GNet::Address6::length()
 
 namespace
 {
-	void shiftLeft( struct in6_addr & mask )
+	bool shiftLeft( struct in6_addr & mask )
 	{
+		bool carry_out = false ;
 		bool carry_in = false ;
 		for( int i = 15 ; i >= 0 ; i-- )
 		{
 			const unsigned char top_bit = 128U ;
-			bool carry_out = !!( mask.s6_addr[i] & top_bit ) ;
+			carry_out = !!( mask.s6_addr[i] & top_bit ) ;
 			mask.s6_addr[i] <<= 1U ;
 			if( carry_in ) ( mask.s6_addr[i] |= 1U ) ;
 			carry_in = carry_out ;
 		}
+		return carry_out ;
 	}
 	void shiftLeft( struct in6_addr & mask , unsigned int bits )
 	{
@@ -381,6 +393,15 @@ G::StringArray GNet::Address6::wildcards() const
 	return result ;
 }
 
+unsigned int GNet::Address6::bits() const
+{
+	struct in6_addr a = m_inet.specific.sin6_addr ;
+	unsigned int count = 0U ;
+	while( shiftLeft(a) )
+		count++ ;
+	return count ;
+}
+
 bool GNet::Address6::isLoopback() const
 {
 	// ::1/128
@@ -390,26 +411,28 @@ bool GNet::Address6::isLoopback() const
 
 bool GNet::Address6::isLocal( std::string & reason ) const
 {
-	struct in6_addr addr_128 = masked( m_inet.specific.sin6_addr , mask(128U) ) ; // degenerate mask
-	struct in6_addr addr_64 = masked( m_inet.specific.sin6_addr , mask(64U) ) ;
-	struct in6_addr addr_7 = masked( m_inet.specific.sin6_addr , mask(7U) ) ;
-
-	struct in6_addr _1 = make( 0U , 0U , 1U ) ;
-	struct in6_addr _fe80 = make( 0xfeU , 0x80U , 0U ) ;
-	struct in6_addr _fc00 = make( 0xfcU , 0U , 0U ) ;
-
-	bool local =
-		sameAddr( _1 , addr_128 ) ||
-		sameAddr( _fe80 , addr_64 ) ||
-		sameAddr( _fc00 , addr_7 ) ;
-
-	if( !local )
+	if( isLoopback() || isPrivate() )
+	{
+		return true ;
+	}
+	else
 	{
 		std::ostringstream ss ;
 		ss << hostPartString() << " is not ::1/128 or in fe80::/64 or fc00::/7" ;
 		reason = ss.str() ;
+		return false ;
 	}
-	return local ;
+}
+
+bool GNet::Address6::isPrivate() const
+{
+	struct in6_addr addr_64 = masked( m_inet.specific.sin6_addr , mask(64U) ) ;
+	struct in6_addr addr_7 = masked( m_inet.specific.sin6_addr , mask(7U) ) ;
+
+	struct in6_addr _fe80 = make( 0xfeU , 0x80U , 0U ) ;
+	struct in6_addr _fc00 = make( 0xfcU , 0U , 0U ) ;
+
+	return sameAddr( _fe80 , addr_64 ) || sameAddr( _fc00 , addr_7 ) ;
 }
 
 /// \file gaddress6.cpp

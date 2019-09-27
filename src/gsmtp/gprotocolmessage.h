@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,11 +18,10 @@
 /// \file gprotocolmessage.h
 ///
 
-#ifndef G_SMTP_PROTOCOL_MESSAGE_H
-#define G_SMTP_PROTOCOL_MESSAGE_H
+#ifndef G_SMTP_PROTOCOL_MESSAGE__H
+#define G_SMTP_PROTOCOL_MESSAGE__H
 
 #include "gdef.h"
-#include "gsmtp.h"
 #include "gslot.h"
 #include "gstrings.h"
 #include "gverifier.h"
@@ -35,9 +34,9 @@ namespace GSmtp
 }
 
 /// \class GSmtp::ProtocolMessage
-/// An interface used by the ServerProtocol class
-/// to assemble and process an incoming message. It implements
-/// the three 'buffers' mentioned in RFC-2821 (esp. section 4.1.1).
+/// An interface used by the ServerProtocol class to assemble and
+/// process an incoming message. It implements the three 'buffers'
+/// mentioned in RFC-2821 (esp. section 4.1.1).
 ///
 /// This interface serves to decouple the protocol class from
 /// the downstream message processing -- hence the name. Derived
@@ -70,9 +69,10 @@ public:
 		///< Returns a signal which is raised once process() has
 		///< completed.
 		///<
-		///< The signal parameters are 'success', 'id', 'short-reason' and
+		///< The signal parameters are 'success', 'id', 'short-response' and
 		///< 'full-reason'. As a special case, if success is true and id
-		///< is zero then the message processing was abandoned.
+		///< is zero then the message processing was either abandoned
+		///< or it only had local-mailbox recipients.
 
 	virtual void reset() = 0 ;
 		///< Resets the object state as if just constructed.
@@ -97,14 +97,14 @@ public:
 		///< Precondition: at least one successful addTo() call
 
 	virtual bool addText( const char * , size_t ) = 0 ;
-		///< Adds text. Returns false on error, typically because a size
-		///< limit is reached.
+		///< Adds text. The text should normally end in CR-LF. Returns
+		///< false on error, typically because a size limit is reached.
 		///<
 		///< Precondition: at least one successful addTo() call
 
 	bool addTextLine( const std::string & ) ;
 		///< A convenience function that calls addText() taking
-		///< a string parameter.
+		///< a string parameter and adding CR-LF.
 
 	virtual std::string from() const = 0 ;
 		///< Returns the setFrom() string.
@@ -119,9 +119,6 @@ public:
 			///< information from the SMTP AUTH command into individual messages.
 			///< It is the empty string for unauthenticated clients.
 			///< See also GAuth::SaslServer::id().
-
-private:
-	void operator=( const ProtocolMessage & ) ; // not implemented
 } ;
 
 #endif

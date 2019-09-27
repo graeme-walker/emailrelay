@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,12 +21,11 @@
 
 #include "gdef.h"
 #include "gaddress4.h"
-#include "gstrings.h"
 #include "gstr.h"
 #include "gassert.h"
-#include "gdebug.h"
-#include <utility> // std::swap()
+#include "glog.h"
 #include <algorithm> // std::swap()
+#include <utility> // std::swap()
 #include <climits>
 #include <sys/types.h>
 #include <sstream>
@@ -53,8 +52,8 @@ void GNet::Address4::init()
 {
 	static specific_type zero ;
 	m_inet.specific = zero ;
-	m_inet.specific.sin_family = family() ;
-	m_inet.specific.sin_port = 0 ;
+	m_inet.specific.sin_family =  family() ;
+	m_inet.specific.sin_port =  0 ;
 //
 //
 }
@@ -184,6 +183,18 @@ std::string GNet::Address4::hostPartString() const
 	buffer[sizeof(buffer)-1U] = '\0' ;
 	return std::string(buffer) ;
 }
+
+std::string GNet::Address4::queryString() const
+{
+	G::StringArray parts = G::Str::splitIntoFields( hostPartString() , "." ) ;
+	std::reverse( parts.begin() , parts.end() ) ;
+	return G::Str::join( "." , parts ) ;
+}
+
+
+
+
+
 
 bool GNet::Address4::validData( const sockaddr * addr , socklen_t len )
 {
@@ -376,6 +387,15 @@ bool GNet::Address4::format( std::string s )
 	return true ;
 }
 
+unsigned int GNet::Address4::bits() const
+{
+	const unsigned long a = ntohl( m_inet.specific.sin_addr.s_addr ) ;
+	unsigned int count = 0U ;
+	for( unsigned long mask = 0x80000000U ; mask && ( a & mask ) ; mask >>= 1 )
+		count++ ;
+	return count ;
+}
+
 bool GNet::Address4::isLoopback() const
 {
 	// 127.0.0.0/8
@@ -399,4 +419,14 @@ bool GNet::Address4::isLocal( std::string & reason ) const
 		return false ;
 	}
 }
+
+bool GNet::Address4::isPrivate() const
+{
+	// RFC-1918
+	return
+		( ntohl(m_inet.specific.sin_addr.s_addr) >> 24 ) == 0x0A || // 10.0.0.0/8
+		( ntohl(m_inet.specific.sin_addr.s_addr) >> 20 ) == 0xAC1 || // 172.16.0.0/12
+		( ntohl(m_inet.specific.sin_addr.s_addr) >> 16 ) == 0xC0A8 ; // 192.168.0.0/16
+}
+
 /// \file gaddress4.cpp

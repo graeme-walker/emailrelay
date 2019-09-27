@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -36,9 +36,9 @@ G::Path Dir::desktop()
 	return special( "desktop" ) ;
 }
 
-G::Path Dir::login()
+G::Path Dir::autostart()
 {
-	return special( "login" ) ;
+	return special( "autostart" ) ;
 }
 
 G::Path Dir::menu()

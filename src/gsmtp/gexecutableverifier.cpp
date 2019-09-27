@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,23 +19,19 @@
 //
 
 #include "gdef.h"
-#include "gsmtp.h"
 #include "gexecutableverifier.h"
 #include "gexecutablecommand.h"
-#include "gstrings.h"
 #include "gprocess.h"
 #include "gnewprocess.h"
 #include "gfile.h"
 #include "groot.h"
 #include "gstr.h"
 #include "glocal.h"
-#include "gassert.h"
 #include "glog.h"
 
-GSmtp::ExecutableVerifier::ExecutableVerifier( GNet::ExceptionHandler & eh , const G::Path & path , bool compatible ) :
+GSmtp::ExecutableVerifier::ExecutableVerifier( GNet::ExceptionSink es , const G::Path & path ) :
 	m_path(path) ,
-	m_task(*this,eh,"<<verifier exec error: __strerror__>>",G::Root::nobody()) ,
-	m_compatible(compatible)
+	m_task(*this,es,"<<verifier exec error: __strerror__>>",G::Root::nobody())
 {
 }
 
@@ -48,28 +44,12 @@ void GSmtp::ExecutableVerifier::verify( const std::string & to_address ,
 		<< "auth-extra \"" << auth_extra << "\"" ) ;
 
 	G::ExecutableCommand commandline( m_path.str() , G::StringArray() ) ;
-	if( m_compatible )
-	{
-		std::string user = G::Str::head( to_address , "@" , false ) ;
-		std::string host = G::Str::tail( to_address , "@" , true ) ;
-		commandline.add( to_address ) ;
-		commandline.add( G::Str::upper(user) ) ;
-		commandline.add( G::Str::upper(host) ) ;
-		commandline.add( G::Str::upper(GNet::Local::canonicalName()) ) ;
-		commandline.add( from_address ) ;
-		commandline.add( ip.hostPartString() ) ;
-		commandline.add( auth_mechanism ) ;
-		commandline.add( auth_extra ) ;
-	}
-	else
-	{
-		commandline.add( to_address ) ;
-		commandline.add( from_address ) ;
-		commandline.add( ip.displayString() ) ;
-		commandline.add( GNet::Local::canonicalName() ) ;
-		commandline.add( G::Str::lower(auth_mechanism) ) ;
-		commandline.add( auth_extra ) ;
-	}
+	commandline.add( to_address ) ;
+	commandline.add( from_address ) ;
+	commandline.add( ip.displayString() ) ;
+	commandline.add( GNet::Local::canonicalName() ) ;
+	commandline.add( G::Str::lower(auth_mechanism) ) ;
+	commandline.add( auth_extra ) ;
 
 	G_LOG( "GSmtp::ExecutableVerifier: address verifier: executing " << commandline.displayString() ) ;
 	m_to_address = to_address ;
@@ -110,23 +90,13 @@ void GSmtp::ExecutableVerifier::onTaskDone( int exit_code , const std::string & 
 		status.is_valid = false ;
 		status.temporary = exit_code == 3 ;
 
-		if( m_compatible )
-		{
-			G::Str::replaceAll( response , "\n" , " " ) ;
-			status.response = "no such mailbox: " +
-				( response.empty() ? G::Str::fromInt(exit_code) : G::Str::printable(response) ) ;
-			status.reason = "rejected by verifier" ;
-		}
-		else
-		{
-			status.response = parts > 0U ?
-				G::Str::printable(response_parts.at(0U)) :
-				std::string("mailbox unavailable") ;
+		status.response = parts > 0U ?
+			G::Str::printable(response_parts.at(0U)) :
+			std::string("mailbox unavailable") ;
 
-			status.reason = parts > 1U ?
-				G::Str::printable(response_parts.at(1U)) :
-				( "exit code " + G::Str::fromInt(exit_code) ) ;
-		}
+		status.reason = parts > 1U ?
+			G::Str::printable(response_parts.at(1U)) :
+			( "exit code " + G::Str::fromInt(exit_code) ) ;
 	}
 
 	doneSignal().emit( m_to_address , status ) ;

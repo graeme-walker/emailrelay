@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -54,7 +54,7 @@ require "winbuild.pm" ;
 $AutoMakeParser::verbose = 0 ;
 
 my $project = "emailrelay" ;
-my $version = "2.0.1" ;
+chomp( my $version = eval { FileHandle->new("VERSION")->gets() } || "2.1" ) ;
 my $install_x64 = "$project-$version-w64" ;
 my $install_x86 = "$project-$version-w32" ;
 
@@ -91,6 +91,8 @@ my %vars = (
 	e_spooldir => "c:/windows/spool/emailrelay" ,
 	e_docdir => "c:/emailrelay" ,
 	e_initdir => "c:/emailrelay" ,
+	e_bsdinitdir => "c:/emailrelay" ,
+	e_rundir => "c:/emailrelay" ,
 	e_icondir => "c:/emailrelay" ,
 	e_spooldir => "c:/emailrelay" ,
 	e_examplesdir => "c:/emailrelay" ,
@@ -99,7 +101,6 @@ my %vars = (
 	e_sysconfdir => "c:/emailrelay" ,
 	GCONFIG_WINDRES => "windres" ,
 	GCONFIG_WINDMC => "mc" ,
-	GCONFIG_CONFIGURATION => "windows" ,
 	GCONFIG_QT_LIBS => "" ,
 	GCONFIG_QT_CFLAGS => "" ,
 	GCONFIG_QT_MOC => "" ,
@@ -262,7 +263,7 @@ sub create_cmake_file
 		print $fh "add_subdirectory($subdir)\n" ;
 	}
 
-	my $definitions = join( " " , "G_WIN32=1" , $m->definitions() ) ;
+	my $definitions = join( " " , "G_WINDOWS=1" , $m->definitions() ) ;
 	my $includes = join( " " , "." , ".." , $m->includes($m->top()) , '"${MBEDTLS_INCLUDE_DIRS}"' ) ;
 
 	my @libraries = $m->libraries() ;
@@ -606,6 +607,8 @@ sub install_core
 		bin/emailrelay-edit-content.js examples
 		bin/emailrelay-edit-envelope.js examples
 		bin/emailrelay-resubmit.js examples
+		bin/emailrelay-set-from.pl examples
+		bin/emailrelay-set-from.js examples
 		doc/authentication.png doc
 		doc/forwardto.png doc
 		doc/whatisit.png doc
@@ -674,7 +677,7 @@ sub install_mkdir
 sub run_tests
 {
 	my ( $main_bin_dir , $test_bin_dir ) = @_ ;
-	my $dash_v = "-v" ; # for now
+	my $dash_v = "" ; # or "-v"
 	my $script = "test/emailrelay-test.pl" ;
 	## $script = ( $script."_") if ! -f $script ;
 	system( "perl -Itest \"$script\" $dash_v -d \"$main_bin_dir\" -x \"$test_bin_dir\" -c \"test/certificates\"" ) ;

@@ -2,6 +2,24 @@
 E-MailRelay Change Log
 **********************
 
+2.0.1 -> 2.1
+============
+
+* Backwards compatibility features for 1.9-to-2.0 transition removed.
+* Better handling of too-many-connections on Windows.
+* New *--idle-timeout* option for server-side connections.
+* Support for RFC-5782_ DNSBL_ blocking (\ *--dnsbl*\ ).
+* Filter scripts are given the path of the envelope file in argv2.
+* Message files can be editied by *--client-filter* scripts.
+* Better support for CRAM-SHAx authentication.
+* New *--client-auth-config* and *--server-auth-config* options.
+* New *--show* option on windows to better control the user interface style.
+* The *--pop* option always requires *--pop-auth*.
+* No message is spooled if all its envelope recipients are local-mailboxes.
+* TLS_ cipher name added to *Received* line as per RFC-8314_ 4.3.
+* Certificate contents are not logged.
+* Timestamp parts of spool filenames no longer limited to six digits.
+
 2.0 -> 2.0.1
 ============
 
@@ -12,7 +30,7 @@ E-MailRelay Change Log
 
 * Improved IPv6 support, with IPv4 and IPv6 used independently at run-time (see *--interface*).
 * Server process is not blocked during *--filter* or *--address-verifier* execution, if multi-threaded.
-* Support for the *mbedTLS* TLS_ library as an alternative to OpenSSL (\ *configure --with-mbedtls*\ ).
+* Support for the *mbedTLS* TLS library as an alternative to OpenSSL (\ *configure --with-mbedtls*\ ).
 * TLS server certificates specified with new *--server-tls-certificate* option, not *--server-tls*.
 * TLS servers enable client certificate verification with *--server-tls-verify*, not *--tls-config*.
 * TLS clients can verify server certificates with *--client-tls-verify* and *--client-tls-verify-name*.
@@ -47,7 +65,7 @@ E-MailRelay Change Log
 * A warning is emitted if there is more than one client authentication secret.
 * Multiple *--interface* options are allowed separately on the command-line.
 * Added a new *--client-interface* option.
-* The *Received* line is formatted as per RFC-3848 (\ *with ESMTPSA*\ ).
+* The *Received* line is formatted as per RFC-3848_ (\ *with ESMTPSA*\ ).
 * The LOGIN and PLAIN mechanisms in the secrets file are now equivalent.
 * The Windows service wrapper can use a configuration file to locate the startup batch file.
 * Simplified the implementation of the GUI installation program.
@@ -396,9 +414,13 @@ Windows fixes and improvements...
 * Experimental compile-time support for IPv6.
 
 
+.. _DNSBL: https://en.wikipedia.org/wiki/DNSBL
 .. _FHS: https://wiki.linuxfoundation.org/lsb/fhs
 .. _PAM: https://en.wikipedia.org/wiki/Linux_PAM
 .. _POP: https://en.wikipedia.org/wiki/Post_Office_Protocol
+.. _RFC-3848: https://tools.ietf.org/html/rfc3848
+.. _RFC-5782: https://tools.ietf.org/html/rfc5782
+.. _RFC-8314: https://tools.ietf.org/html/rfc8314
 .. _SMTP: https://en.wikipedia.org/wiki/Simple_Mail_Transfer_Protocol
 .. _SOCKS: https://en.wikipedia.org/wiki/SOCKS
 .. _TLS: https://en.wikipedia.org/wiki/Transport_Layer_Security

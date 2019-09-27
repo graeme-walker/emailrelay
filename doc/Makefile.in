@@ -92,10 +92,10 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 subdir = doc
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/m4_ax_cxx_compile_stdcxx.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/m4/acinclude.m4 \
+	$(top_srcdir)/m4/m4_ax_cxx_compile_stdcxx.m4 \
 	$(top_srcdir)/m4/m4_ax_cxx_compile_stdcxx_11.m4 \
-	$(top_srcdir)/m4/pkg.m4 $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/pkg.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
@@ -171,6 +171,7 @@ CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
+CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -179,15 +180,13 @@ DEPDIR = @DEPDIR@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
+EGREP = @EGREP@
 EXEEXT = @EXEEXT@
-GCONFIG_CONFIGURATION = @GCONFIG_CONFIGURATION@
 GCONFIG_HAVE_DOXYGEN = @GCONFIG_HAVE_DOXYGEN@
 GCONFIG_HAVE_MAN2HTML = @GCONFIG_HAVE_MAN2HTML@
 GCONFIG_QT_CFLAGS = @GCONFIG_QT_CFLAGS@
 GCONFIG_QT_LIBS = @GCONFIG_QT_LIBS@
 GCONFIG_QT_MOC = @GCONFIG_QT_MOC@
-GCONFIG_STATIC_END = @GCONFIG_STATIC_END@
-GCONFIG_STATIC_START = @GCONFIG_STATIC_START@
 GCONFIG_TLS_LIBS = @GCONFIG_TLS_LIBS@
 GCONFIG_WINDMC = @GCONFIG_WINDMC@
 GCONFIG_WINDRES = @GCONFIG_WINDRES@
@@ -253,6 +252,7 @@ e_icondir = @e_icondir@
 e_initdir = @e_initdir@
 e_libexecdir = @e_libexecdir@
 e_pamdir = @e_pamdir@
+e_rundir = @e_rundir@
 e_spooldir = @e_spooldir@
 e_sysconfdir = @e_sysconfdir@
 exec_prefix = @exec_prefix@
@@ -289,7 +289,7 @@ txt_files_install = \
 	windows.txt windows.md windows.rst \
 	changelog.txt changelog.md changelog.rst \
 	doxygen.cfg.in \
-	index.rst conf.py
+	index.rst conf.py.sphinx
 
 man_files_install = \
 	emailrelay.1 \
@@ -347,12 +347,12 @@ noinst_SCRIPTS = .dox
 man1_MANS = $(man_files_install)
 e_doc_DATA = $(txt_files_install) $(html_files_install) $(css_files_install) $(png_files_install)
 CLEANFILES = $(noinst_SCRIPTS) $(man_files_clean) doxygen.out doxygen.cfg doxygen/search/* doxygen/*
-SUFFIXES = .txt .html .mu
+SUFFIXES = .txt .html
 run_doxygen = $(top_srcdir)/bin/doxygen.sh
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .txt .html .mu
+.SUFFIXES: .txt .html
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -643,12 +643,13 @@ md:
 
 .PHONY: sphinx
 sphinx:
+	cp conf.py.sphinx conf.py
 	sphinx-build -b html . ./_build
 
 .PHONY: website
 website:
 	@chmod +x make-website || true
-	./make-website 2.0
+	./make-website 2.1
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

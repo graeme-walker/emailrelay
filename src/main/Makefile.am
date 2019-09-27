@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 ##
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -33,8 +33,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/gauth \
 	-I$(top_srcdir)/src/gsmtp \
 	-I$(top_srcdir)/src/gpop \
-	-D "G_SPOOLDIR=$(e_spooldir)" \
-	-D "GCONFIG_CONFIGURATION=$(GCONFIG_CONFIGURATION)"
+	-D "G_SPOOLDIR=$(e_spooldir)"
 
 WINDOWS_MAIN_SOURCES = \
 	winmain.cpp \
@@ -66,8 +65,6 @@ SHARED_SOURCES = \
 	options.h
 
 OTHER_SOURCES = \
-	admin.h \
-	admin.cpp \
 	commandline.h \
 	commandline.cpp \
 	configuration.h \
@@ -206,7 +203,7 @@ else
 	$(top_builddir)/src/glib/libglib.a
 endif
 
-emailrelay_filter_copy_SOURCES = filter_copy.cpp filter.cpp filter.h legal.cpp legal.h
+emailrelay_filter_copy_SOURCES = filter.cpp legal.cpp legal.h
 if GCONFIG_WINDOWS
  emailrelay_filter_copy_LDFLAGS = -static
  emailrelay_filter_copy_LDADD = \
@@ -245,6 +242,8 @@ install-data-local: install-sbinPROGRAMS install-e_spoolDATA install-e_libexecPR
 	-chmod g+s "$(DESTDIR)$(e_spooldir)"
 	-chgrp daemon "$(DESTDIR)$(sbindir)/emailrelay-submit"
 	-chmod g+s "$(DESTDIR)$(sbindir)/emailrelay-submit"
+	-chgrp daemon "$(DESTDIR)$(e_libexecdir)/emailrelay-filter-copy"
+	-chmod g+s "$(DESTDIR)$(e_libexecdir)/emailrelay-filter-copy"
 
 install-exec-local:
 	-mkdir -p "$(DESTDIR)$(sbindir)"

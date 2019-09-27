@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,11 +18,10 @@
 /// \file gnewmessage.h
 ///
 
-#ifndef G_SMTP_NEW_MESSAGE_H
-#define G_SMTP_NEW_MESSAGE_H
+#ifndef G_SMTP_NEW_MESSAGE__H
+#define G_SMTP_NEW_MESSAGE__H
 
 #include "gdef.h"
-#include "gsmtp.h"
 
 namespace GSmtp
 {
@@ -33,7 +32,7 @@ namespace GSmtp
 /// \class GSmtp::NewMessage
 /// An abstract class to allow the creation of a new message in
 /// the message store.
-/// \see GSmtp::MessageStore, GSmtp::MessageStore::newMessage()
+/// \see GSmtp::MessageStore
 ///
 class GSmtp::NewMessage
 {
@@ -42,13 +41,15 @@ public:
 		///< Adds a 'to' address.
 
 	virtual bool addText( const char * , size_t ) = 0 ;
-		///< Adds a line of content. The line should not include the
-		///< line ending. Returns false on overflow.
+		///< Adds a line of content, typically ending with CR-LF.
+		///< Returns false on overflow.
 
 	virtual std::string prepare( const std::string & session_auth_id ,
 		const std::string & peer_socket_address , const std::string & peer_certificate ) = 0 ;
 			///< Prepares to store the message in the message store.
-			///< Returns the location of the pre-commit()ed message.
+			///< Returns the location of the pre-commit()ed message,
+			///< or returns the empty string for a local-mailbox only
+			///< message that has already been fully written.
 
 	virtual void commit( bool strict ) = 0 ;
 		///< Commits the prepare()d message to the store. Errors are
@@ -60,14 +61,11 @@ public:
 
 	bool addTextLine( const std::string & ) ;
 		///< A convenience function that calls addText() taking
-		///< a string parameter.
+		///< a string parameter and adding CR-LF.
 
 	virtual ~NewMessage() ;
 		///< Destructor. Rolls back any prepare()d storage
 		///< if un-commit()ed.
-
-private:
-	void operator=( const NewMessage & ) ; // not implemented
 } ;
 
 #endif

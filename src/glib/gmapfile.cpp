@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -48,7 +48,6 @@ G::MapFile::MapFile( const G::Path & path ) :
 G::MapFile::MapFile( std::istream & stream ) :
 	m_logging(true)
 {
-	G_LOG( "MapFile::read: start" ) ;
 	readFrom( stream ) ;
 }
 
@@ -73,7 +72,7 @@ G::MapFile::MapFile( const OptionMap & map , const std::string & yes ) :
 			log( key , value ) ;
 			add( key , value ) ;
 		}
-		while( p != map.end() && (*p).first == key ) // since we used OptionMap::value()
+		while( p != map.end() && (*p).first == key ) // since we used OptionMap::value() to get them all
 			++p ;
 	}
 }
@@ -110,9 +109,9 @@ void G::MapFile::readFrom( std::istream & ss )
 				continue ;
 			key = part[0] ;
 
-			value = G::Str::tail( line , line.find(key)+key.size() , std::string() ) ;
-			G::Str::trimLeft( value , " =\t" ) ;
-			G::Str::trimRight( value , G::Str::ws() ) ;
+			value = Str::tail( line , line.find(key)+key.size() , std::string() ) ;
+			Str::trimLeft( value , " =\t" ) ;
+			Str::trimRight( value , Str::ws() ) ;
 
 			if( value.length() >= 2U && value.at(0U) == '"' && value.at(value.length()-1U) == '"' )
 				value = value.substr(1U,value.length()-2U) ;
@@ -158,7 +157,7 @@ void G::MapFile::log( bool logging , const std::string & key , const std::string
 {
 	if( logging )
 		G_LOG( "MapFile::item: " << key << "=[" <<
-			( key.find("password") == std::string::npos ?
+			( Str::ifind(key,"password") == std::string::npos ?
 				Str::printable(value) :
 				std::string("<not-logged>")
 		) << "]" ) ;
@@ -179,7 +178,7 @@ void G::MapFile::writeItem( std::ostream & stream , const std::string & key , co
 
 std::string G::MapFile::quote( const std::string & s )
 {
-	return s.find_first_of(" \t") == std::string::npos ? s : (std::string()+"\""+s+"\"") ;
+	return s.find_first_of(" \t") == std::string::npos ? s : ("\""+s+"\"") ;
 }
 
 void G::MapFile::editInto( const G::Path & path , bool make_backup , bool allow_read_error , bool allow_write_error ) const
@@ -251,9 +250,9 @@ void G::MapFile::backup( const G::Path & path )
 {
 	// ignore errors
 	DateTime::BrokenDownTime now = DateTime::local( DateTime::now() ) ;
-	std::string timestamp = Date(now).string(Date::yyyy_mm_dd) + Time(now).hhmmss() ;
+	std::string timestamp = Date(now).string(Date::Format::yyyy_mm_dd) + Time(now).hhmmss() ;
 	Path backup( path.dirname() , path.basename() + "." + timestamp ) ;
-	Process::Umask umask( Process::Umask::Tightest ) ;
+	Process::Umask umask( Process::Umask::Mode::Tightest ) ;
 	File::copy( path , backup , File::NoThrow() ) ;
 }
 
@@ -409,8 +408,15 @@ bool G::MapFile::expand_( std::string & value ) const
 void G::MapFile::add( const std::string & key , const std::string & value )
 {
 	if( m_map.find(key) == m_map.end() )
+	{
 		m_keys.push_back( key ) ;
-	m_map[key] = value ;
+		m_map[key] = value ;
+	}
+	else
+	{
+		m_map[key].append( std::string(1U,',') ) ;
+		m_map[key].append( value ) ;
+	}
 }
 
 bool G::MapFile::contains( const std::string & key ) const

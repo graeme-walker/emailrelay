@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 #define G_MAIN_CONFIGURATION_H
 
 #include "gdef.h"
-#include "gsmtp.h"
 #include "garg.h"
 #include "goptions.h"
 #include "goptionmap.h"
@@ -37,25 +36,17 @@ namespace Main
 }
 
 /// \class Main::Configuration
-/// An interface for returning application configuration information.
-/// In practice this is a thin wrapper around the command-line options obtained
-/// from the CommandLine object passed in to the constructor, but a separate
-/// interface allows for other sources of configuration information such as
-/// a configuration file.
-///
-/// \see CommandLine
+/// An interface for returning application configuration information. In
+/// practice this is a thin wrapper around the command-line options
+/// passed in to the constructor.
 ///
 class Main::Configuration
 {
 public:
 	Configuration( const G::Options & , const G::OptionMap & , const G::Path & app_dir , const G::Path & base_dir ) ;
 		///< Constructor. The app-dir path is used as a substitution
-		///< value, and the base-dir path is used turn relative paths
+		///< value, and the base-dir path is used to turn relative paths
 		///< into absolute ones.
-
-	static G::Arg backwardsCompatibilityFixup( const G::Arg & ) ;
-		///< Modifies the command-line for backwards-compatibility with
-		///< earlier releases.
 
 	std::string semanticError() const ;
 		///< Returns a non-empty string if there is a fatal semantic conflict
@@ -93,6 +84,9 @@ public:
 	bool debug() const ;
 		///< Returns true if doing debug-level logging.
 
+	bool hidden() const ;
+		///< Returns true if explicitly hidden, but see also show('hidden').
+
 	bool useSyslog() const ;
 		///< Returns true if generating syslog events.
 
@@ -100,7 +94,10 @@ public:
 		///< Returns true if logging output should be timestamped.
 
 	bool daemon() const ;
-		///< Returns true if running as a daemon.
+		///< Returns true if running in the background.
+
+	bool nodaemon() const ;
+		///< Returns true if running in the foreground.
 
 	bool forwardOnStartup() const ;
 		///< Returns true if running as a client.
@@ -161,11 +158,11 @@ public:
 		///< Returns the timeout for executing an ansynchronous
 		///< filter() or clientFilter() program.
 
-	bool hidden() const ;
-		///< Returns true if the main window is hidden (win32).
-
 	unsigned int responseTimeout() const ;
 		///< Returns the client-side protocol timeout value.
+
+	unsigned int idleTimeout() const ;
+		///< Returns the server-side idle timeout value.
 
 	unsigned int connectionTimeout() const ;
 		///< Returns the client-side connection timeout value.
@@ -180,26 +177,32 @@ public:
 		///< Returns the client-side autentication secrets (password) file.
 		///< Returns the empty string if none.
 
+	std::string smtpSaslClientConfig() const ;
+		///< Returns the SMTP client-side SASL configuration string.
+
 	G::Path serverSecretsFile() const ;
 		///< Returns the server-side autentication secrets (password) file.
 		///< Returns the empty string if none.
+
+	std::string smtpSaslServerConfig() const ;
+		///< Returns the SMTP server-side SASL configuration string.
 
 	G::Path popSecretsFile() const ;
 		///< Returns the pop-server autentication secrets (password) file.
 		///< Returns the empty string if not defined.
 
+	std::string popSaslServerConfig() const ;
+		///< Returns the POP SASL configuration string.
+
 	std::string networkName( std::string default_ = std::string() ) const ;
 		///< Returns an override for local host's canonical network name.
 
-	std::string nobody() const ;
+	std::string user() const ;
 		///< Returns the name of an unprivileged user. This is only
 		///< used if running with a real user-id of root.
 
 	G::Path verifier() const ;
 		///< Returns the path of an external address verifier program.
-
-	bool verifierCompatibility() const ;
-		///< Returns true if using the old-style verifier option.
 
 	bool doPolling() const ;
 		///< Returns true if doing poll-based forwarding.
@@ -279,12 +282,29 @@ public:
 	unsigned int maxSize() const ;
 		///< Returns the maximum size of submitted messages, or zero.
 
+	bool eightBitTest() const ;
+		///< Returns true if the new messages should be tested as to
+		///< whether they have 7bit or 8bit content.
+
+	std::string dnsbl() const ;
+		///< Returns a DNSBL configuration string including a list servers.
+
+	std::string show() const ;
+		///< Returns the requested Windows user-interface style,
+		///< such as "popup" or "tray".
+
+	bool show( const std::string & key ) const ;
+		///< Returns true if the show() string contains the given
+		///< sub-string.
+
 private:
 	G::Path pathValue( const std::string & ) const ;
 	std::string semanticError( bool & ) const ;
 	bool pathlike( const std::string & ) const ;
-	bool compoundy( const std::string & ) const ;
-	bool compound( const std::string & ) const ;
+	bool filterType( const std::string & ) const ;
+	bool specialFilterValue( const std::string & ) const ;
+	bool verifyType( const std::string & ) const ;
+	bool specialVerifyValue( const std::string & ) const ;
 	G::StringArray semantics( bool ) const ;
 
 private:

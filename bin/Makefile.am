@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 ##
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -18,8 +18,10 @@
 example_scripts = \
 	emailrelay-bcc-check.pl \
 	emailrelay-multicast.sh \
-	emailrelay-process.sh \
-	emailrelay-sendmail.pl
+	emailrelay-rot13.pl \
+	emailrelay-sendmail.pl \
+	emailrelay-set-from.js \
+	emailrelay-set-from.pl
 
 example_scripts_in = \
 	emailrelay-deliver.sh.in \
@@ -49,7 +51,6 @@ js_scripts = \
 	emailrelay-resubmit.js \
 	emailrelay-service-install.js
 
-
 EXTRA_DIST = \
 	$(example_scripts) \
 	$(example_scripts_in) \
@@ -72,7 +73,7 @@ e_init_SCRIPTS = \
 CLEANFILES = \
 	$(example_scripts_out)
 
-do_sed = sed -e "s%__SPOOL_DIR__%${e_spooldir}%g" -e "s%__SBIN_DIR__%${sbindir}%g" -e "s%__SYSCONF_DIR__%${e_sysconfdir}%g"
+do_sed = sed -e "s%__SPOOL_DIR__%${e_spooldir}%g" -e "s%__SBIN_DIR__%${sbindir}%g" -e "s%__SYSCONF_DIR__%${e_sysconfdir}%g" -e "s%__LIBEXEC_DIR__%${e_libexecdir}%g" -e "s%__RUNDIR__%${e_rundir}%g"
 
 emailrelay-deliver.sh: emailrelay-deliver.sh.in
 	$(do_sed) < $(srcdir)/emailrelay-deliver.sh.in > emailrelay-deliver.sh

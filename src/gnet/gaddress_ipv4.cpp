@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,10 +19,19 @@
 //
 
 #include "gdef.h"
-#include "gaddress.h"
 #include "gaddress4.h"
-#include <algorithm>
+#include "gaddress.h"
+#include "gassert.h"
+#include <algorithm> // std::swap()
+#include <utility> // std::swap()
 #include <cstring>
+
+namespace GNet
+{
+	class Address6
+	{
+	} ;
+}
 
 namespace
 {
@@ -35,13 +44,20 @@ namespace
 
 bool GNet::Address::supports( Family f )
 {
-	return f == Family::ipv4() ;
+	return f == Family::ipv4 ;
 }
 
 GNet::Address GNet::Address::defaultAddress()
 {
-	return Address( Family::ipv4() , 0U ) ;
+	return Address( Family::ipv4 , 0U ) ;
 }
+
+#if GCONFIG_HAVE_CXX_MOVE
+GNet::Address::Address( Address && other ) g__noexcept :
+	m_4imp(other.m_4imp.release())
+{
+}
+#endif
 
 GNet::Address::Address( Family f , unsigned int port ) :
 	m_4imp( new Address4(port) )
@@ -80,25 +96,43 @@ GNet::Address::Address( Family f , unsigned int port , int loopback_overload ) :
 	check( f ) ;
 }
 
+GNet::Address::~Address()
+{
+}
+
+void GNet::Address::swap( Address & other ) g__noexcept
+{
+	using std::swap ;
+	swap( m_4imp , other.m_4imp ) ;
+}
+
+GNet::Address & GNet::Address::operator=( const Address & other )
+{
+	Address(other).swap( *this ) ;
+	return *this ;
+}
+
+#if GCONFIG_HAVE_CXX_MOVE
+GNet::Address & GNet::Address::operator=( Address && other ) g__noexcept
+{
+	Address(std::move(other)).swap( *this ) ;
+	return *this ;
+}
+#endif
+
 GNet::Address GNet::Address::loopback( Family f , unsigned int port )
 {
 	return Address( f , port , 1 ) ;
 }
 
-void GNet::Address::operator=( const Address & addr )
-{
-	Address temp( addr ) ;
-	std::swap( m_4imp , temp.m_4imp ) ;
-}
-
-GNet::Address::~Address()
-{
-	delete m_4imp ;
-}
-
 void GNet::Address::setPort( unsigned int port )
 {
 	m_4imp->setPort( port ) ;
+}
+
+unsigned int GNet::Address::bits() const
+{
+	return m_4imp->bits() ;
 }
 
 bool GNet::Address::isLoopback() const
@@ -109,6 +143,11 @@ bool GNet::Address::isLoopback() const
 bool GNet::Address::isLocal( std::string & reason ) const
 {
 	return m_4imp->isLocal( reason ) ;
+}
+
+bool GNet::Address::isPrivate() const
+{
+	return m_4imp->isPrivate() ;
 }
 
 bool GNet::Address::operator==( const Address & other ) const
@@ -134,6 +173,11 @@ std::string GNet::Address::displayString() const
 std::string GNet::Address::hostPartString() const
 {
 	return m_4imp->hostPartString() ;
+}
+
+std::string GNet::Address::queryString() const
+{
+	return m_4imp->queryString() ;
 }
 
 bool GNet::Address::validString( const std::string & s , std::string * reason_p )
@@ -188,7 +232,12 @@ int GNet::Address::domain() const
 
 GNet::Address::Family GNet::Address::family() const
 {
-	return Family::ipv4() ;
+	return Family::ipv4 ;
+}
+
+int GNet::Address::af() const
+{
+	return AF_INET ;
 }
 
 G::StringArray GNet::Address::wildcards() const
@@ -213,12 +262,12 @@ public:
 GNet::AddressStorage::AddressStorage() :
 	m_imp(new AddressStorageImp)
 {
+	G_ASSERT( sizeof(Address4::union_type) == sizeof(Address4::storage_type) ) ;
 	m_imp->n = sizeof(Address4::union_type) ;
 }
 
 GNet::AddressStorage::~AddressStorage()
 {
-	delete m_imp ;
 }
 
 sockaddr * GNet::AddressStorage::p1()

@@ -91,10 +91,10 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 subdir = src/gpop
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/m4_ax_cxx_compile_stdcxx.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/m4/acinclude.m4 \
+	$(top_srcdir)/m4/m4_ax_cxx_compile_stdcxx.m4 \
 	$(top_srcdir)/m4/m4_ax_cxx_compile_stdcxx_11.m4 \
-	$(top_srcdir)/m4/pkg.m4 $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/pkg.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
@@ -110,17 +110,9 @@ am__v_AR_0 = @echo "  AR      " $@;
 am__v_AR_1 = 
 libgpop_a_AR = $(AR) $(ARFLAGS)
 libgpop_a_LIBADD =
-am__libgpop_a_SOURCES_DIST = gpopsecrets_unix.cpp \
-	gpopsecrets_win32.cpp gpopauth.cpp gpopauth.h gpop.h \
-	gpopsecrets.cpp gpopsecrets.h gpopserver.cpp gpopserver.h \
-	gpopstore.cpp gpopstore.h gpopserverprotocol.cpp \
-	gpopserverprotocol.h
-@GCONFIG_WINDOWS_FALSE@am__objects_1 = gpopsecrets_unix.$(OBJEXT)
-@GCONFIG_WINDOWS_TRUE@am__objects_1 = gpopsecrets_win32.$(OBJEXT)
-am__objects_2 = $(am__objects_1) gpopauth.$(OBJEXT) \
-	gpopsecrets.$(OBJEXT) gpopserver.$(OBJEXT) gpopstore.$(OBJEXT) \
+am__objects_1 = gpopserver.$(OBJEXT) gpopstore.$(OBJEXT) \
 	gpopserverprotocol.$(OBJEXT)
-am_libgpop_a_OBJECTS = $(am__objects_2)
+am_libgpop_a_OBJECTS = $(am__objects_1)
 libgpop_a_OBJECTS = $(am_libgpop_a_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -164,7 +156,7 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libgpop_a_SOURCES)
-DIST_SOURCES = $(am__libgpop_a_SOURCES_DIST)
+DIST_SOURCES = $(libgpop_a_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -204,6 +196,7 @@ CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
+CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -212,15 +205,13 @@ DEPDIR = @DEPDIR@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
+EGREP = @EGREP@
 EXEEXT = @EXEEXT@
-GCONFIG_CONFIGURATION = @GCONFIG_CONFIGURATION@
 GCONFIG_HAVE_DOXYGEN = @GCONFIG_HAVE_DOXYGEN@
 GCONFIG_HAVE_MAN2HTML = @GCONFIG_HAVE_MAN2HTML@
 GCONFIG_QT_CFLAGS = @GCONFIG_QT_CFLAGS@
 GCONFIG_QT_LIBS = @GCONFIG_QT_LIBS@
 GCONFIG_QT_MOC = @GCONFIG_QT_MOC@
-GCONFIG_STATIC_END = @GCONFIG_STATIC_END@
-GCONFIG_STATIC_START = @GCONFIG_STATIC_START@
 GCONFIG_TLS_LIBS = @GCONFIG_TLS_LIBS@
 GCONFIG_WINDMC = @GCONFIG_WINDMC@
 GCONFIG_WINDRES = @GCONFIG_WINDRES@
@@ -286,6 +277,7 @@ e_icondir = @e_icondir@
 e_initdir = @e_initdir@
 e_libexecdir = @e_libexecdir@
 e_pamdir = @e_pamdir@
+e_rundir = @e_rundir@
 e_spooldir = @e_spooldir@
 e_sysconfdir = @e_sysconfdir@
 exec_prefix = @exec_prefix@
@@ -314,31 +306,13 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-@GCONFIG_WINDOWS_FALSE@OS_SOURCES = gpopsecrets_unix.cpp
-@GCONFIG_WINDOWS_TRUE@OS_SOURCES = gpopsecrets_win32.cpp
-@GCONFIG_WINDOWS_FALSE@OS_SOURCES_EXTRA_DIST = gpopsecrets_win32.cpp
-@GCONFIG_WINDOWS_TRUE@OS_SOURCES_EXTRA_DIST = gpopsecrets_unix.cpp
 POP_SOURCES = \
-	$(OS_SOURCES) \
-	gpopauth.cpp \
-	gpopauth.h \
-	gpop.h \
-	gpopsecrets.cpp \
-	gpopsecrets.h \
 	gpopserver.cpp \
 	gpopserver.h \
 	gpopstore.cpp \
 	gpopstore.h \
 	gpopserverprotocol.cpp \
 	gpopserverprotocol.h
-
-POP_EXTRA_DIST = \
-	$(OS_SOURCES_EXTRA_DIST) \
-	gpop_disabled.cpp
-
-EXTRA_DIST = \
-	$(POP_EXTRA_DIST) \
-	gpopsecrets_win32.cpp
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/glib \
@@ -398,10 +372,6 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpopauth.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpopsecrets.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpopsecrets_unix.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpopsecrets_win32.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpopserver.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpopserverprotocol.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gpopstore.Po@am__quote@

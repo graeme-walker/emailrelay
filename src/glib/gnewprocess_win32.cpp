@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 //
 
 #include "gdef.h"
-#include "glimits.h"
 #include "gnewprocess.h"
 #include "gexception.h"
 #include "gstr.h"
@@ -29,12 +28,12 @@
 #include <sys/stat.h>
 #include <process.h>
 #include <io.h>
-#include <algorithm> // std::swap
-#include <utility> // std::swap
+#include <algorithm> // std::swap()
+#include <utility> // std::swap()
 
 namespace
 {
-	bool valid( HANDLE h )
+	bool valid( HANDLE h ) g__noexcept
 	{
 		return h != NULL && h != INVALID_HANDLE_VALUE ;
 	}
@@ -55,6 +54,8 @@ public:
 	void close() ;
 
 private:
+	Pipe( const Pipe & ) g__eq_delete ;
+	void operator=( const Pipe & ) g__eq_delete ;
 	static void create( HANDLE & read , HANDLE & write ) ;
 	static void uninherited( HANDLE h ) ;
 
@@ -79,15 +80,15 @@ public:
 		// Returns a reference to the WaitFuture sub-object to allow
 		// the caller to wait for the process to finish.
 
-	void kill() ;
+	void kill() g__noexcept ;
 		// Tries to kill the spawned process.
 
-	int id() const ;
+	int id() const g__noexcept ;
 		// Returns the process id.
 
 private:
-	void operator=( const NewProcessImp & ) ;
-	NewProcessImp( const NewProcessImp & ) ;
+	NewProcessImp( const NewProcessImp & ) g__eq_delete ;
+	void operator=( const NewProcessImp & ) g__eq_delete ;
 	static std::string commandLine( const std::string & exe , const StringArray & args ) ;
 	static std::pair<HANDLE,DWORD> createProcess( const std::string & exe , const std::string & command_line ,
 		HANDLE hstdout , int capture_stdxxx ) ;
@@ -113,7 +114,6 @@ G::NewProcess::NewProcess( const Path & exe , const StringArray & args ,
 
 G::NewProcess::~NewProcess()
 {
-	delete m_imp ;
 }
 
 G::NewProcessWaitFuture & G::NewProcess::wait()
@@ -121,14 +121,19 @@ G::NewProcessWaitFuture & G::NewProcess::wait()
 	return m_imp->wait() ;
 }
 
-int G::NewProcess::id() const
+int G::NewProcess::id() const g__noexcept
 {
 	return m_imp->id() ;
 }
 
-void G::NewProcess::kill()
+void G::NewProcess::kill( bool yield ) g__noexcept
 {
 	m_imp->kill() ;
+	if( yield )
+	{
+		G::threading::yield() ;
+		SleepEx( 0 , FALSE ) ;
+	}
 }
 
 // ===
@@ -146,10 +151,10 @@ G::NewProcessImp::NewProcessImp( const Path & exe_path , const StringArray & arg
 	m_pid = pair.second ;
 
 	m_pipe.close() ; // close write end, now used by child process
-	m_wait_future = NewProcessWaitFuture( m_hprocess , m_pipe.hread() , 0 ) ;
+	m_wait_future.assign( m_hprocess , m_pipe.hread() , 0 ) ;
 }
 
-void G::NewProcessImp::kill()
+void G::NewProcessImp::kill() g__noexcept
 {
 	if( !m_killed && valid(m_hprocess) )
 		::TerminateProcess( m_hprocess , 127 ) ;
@@ -167,7 +172,7 @@ G::NewProcessWaitFuture & G::NewProcessImp::wait()
 	return m_wait_future ;
 }
 
-int G::NewProcessImp::id() const
+int G::NewProcessImp::id() const g__noexcept
 {
 	return static_cast<int>(m_pid) ;
 }
@@ -337,21 +342,31 @@ G::NewProcessWaitFuture::NewProcessWaitFuture( HANDLE hprocess , HANDLE hpipe , 
 {
 }
 
+void G::NewProcessWaitFuture::assign( HANDLE hprocess , HANDLE hpipe , int )
+{
+	m_buffer.resize( 1024U ) ;
+	m_hprocess = hprocess ;
+	m_hpipe = hpipe ;
+	m_pid = 0 ;
+	m_rc = 0 ;
+	m_status = 0 ;
+	m_error = 0 ;
+}
+
 G::NewProcessWaitFuture & G::NewProcessWaitFuture::run()
 {
 	// (worker thread - keep it simple)
-	bool ok = false ;
 	if( valid(m_hprocess) )
 	{
 		DWORD exit_code = 1 ;
-		ok = ::WaitForSingleObject( m_hprocess , INFINITE ) == WAIT_OBJECT_0 ;
+		bool ok = ::WaitForSingleObject( m_hprocess , INFINITE ) == WAIT_OBJECT_0 ; G_IGNORE_VARIABLE(bool,ok) ;
 		::GetExitCodeProcess( m_hprocess , &exit_code ) ;
 		m_status = static_cast<int>(exit_code) ;
 		m_hprocess = NULL ;
 	}
 	if( m_hpipe != NULL )
 	{
-		size_t nread = Pipe::read( G::SignalSafe() , m_hpipe , &m_buffer[0] , m_buffer.size() ) ;
+		size_t nread = Pipe::read( SignalSafe() , m_hpipe , &m_buffer[0] , m_buffer.size() ) ;
 		m_buffer.resize( nread ) ;
 		m_hpipe = NULL ;
 	}

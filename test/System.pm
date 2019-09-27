@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -66,7 +66,8 @@ sub windows
 
 sub unlink
 {
-	my ( $path ) = @_ ;
+	my ( $path , $wintries ) = @_ ;
+	$wintries = (windows()?20:0) if !defined($wintries) ;
 	my $pidfile = ( $path =~ m/\.pid$/ ) ;
 	my $keep_this = $keep && !$pidfile ;
 	if( -f $path )
@@ -78,7 +79,15 @@ sub unlink
 		else
 		{
 			log_( "deleting [$path]" ) ;
-			CORE::unlink( $path ) or warn "warning: failed to delete [$path]: $!" ;
+			my $rc = CORE::unlink( $path ) ;
+			$rc or warn "warning: failed to delete [$path]: $!" ;
+
+			while( !$rc && $wintries && -f $path )
+			{
+				$wintries-- ;
+				sleep_cs( 50 ) ;
+				$rc = CORE::unlink( $path )
+			}
 		}
 	}
 }
@@ -90,7 +99,7 @@ sub _dot_exe
 
 sub path
 {
-	return join( "/" , @_ ) ;
+	return join( "/" , grep { m/./ } @_ ) ;
 }
 
 sub mangledpath
@@ -271,12 +280,19 @@ sub createMessageFile
 sub createSpoolDir
 {
 	# Creates a spool directory with open permissions.
-	my ( $mode , $dir , $key ) = @_ ;
+	my ( $mode , $dir , $key , $group ) = @_ ;
 	$mode = defined($mode) ? $mode : 0777 ;
 	$key = defined($key) ? $key : "spool" ;
+	$group ||= "daemon" ;
 	my $path = tempfile($key,$dir) ;
 	my $old_mask = umask 0 ;
 	my $ok = mkdir $path , $mode ;
+	if( unix() && `id -u` == 0 )
+	{
+		my $rc = system( "chgrp $group $path" ) ;
+		$rc += system( "chmod g+s $path" ) ;
+		Check::that( $rc == 0 , "cannot set spool dir permissions" ) ;
+	}
 	umask $old_mask ;
 	Check::that( $ok , "failed to create spool directory" , $path ) ;
 	return $path ;
@@ -301,7 +317,7 @@ sub deleteSpoolDir
 	# directory. Optionally deletes all files.
 	my ( $path , $all ) = @_ ;
 	$all = defined($all) ? $all : 0 ;
-	if( -d $path )
+	if( defined($path) && -d $path )
 	{
 		_deleteFiles( $path , "content" ) ;
 		_deleteFiles( $path , "envelope" ) ;
@@ -329,8 +345,18 @@ sub match
 	# the given filespec. Fails if not exactly one.
 	my ( $filespec ) = @_ ;
 	my @files = glob_( $filespec ) ;
-	Check::that( @files == 0 || @files == 1 , "too many matching files" , $filespec ) ;
+	Check::that( @files == 1 , "wrong number of matching files" , $filespec ) ;
 	return $files[0] ;
+}
+
+sub matchOne
+{
+	# Returns the name of one of the files that match
+	# the given filespec. Fails if not the expected count.
+	my ( $filespec , $index , $count ) = @_ ;
+	my @files = glob_( $filespec ) ;
+	Check::that( @files == $count , "wrong number of matching files" , $filespec ) ;
+	return $files[$index] ;
 }
 
 sub submitSmallMessage
@@ -481,8 +507,9 @@ sub kill_
 		sleep_cs( $timeout_cs ) ;
 		if( processIsRunning($pid) )
 		{
-			log_( "killing pid [$pid]" ) ;
+			log_( "still killing pid [$pid]" ) ;
 			kill( 9 , $pid ) ;
+			sleep_cs( $timeout_cs ) ;
 		}
 	}
 	else
@@ -504,7 +531,7 @@ sub processIsRunning
 	my ( $pid ) = @_ ;
 	if( unix() )
 	{
-		if( defined($pid) )
+		if( defined($pid) && $pid > 0 )
 		{
 			my $rc = kill 0 , $pid ;
 			return defined($rc) ? $rc : 0 ;
@@ -523,8 +550,8 @@ sub processIsRunning
 				return ( $f_pid eq "\"$pid\"" ? 1 : 0 ) ;
 			}
 		}
-		return 0 ;
 	}
+	return 0 ;
 }
 
 my $_port = 10000 ;

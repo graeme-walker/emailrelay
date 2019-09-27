@@ -21,7 +21,7 @@
 #
 # Additional pseudo-targets for packaging:
 #	* rpm - builds an rpm package using rpmbuild
-#	* deb - converts the rpm to a deb package using alien.
+#	* deb - builds a deb package using debhelper
 #
 # When running "make distcheck" consider doing this to avoid
 # a lengthy testing stage:
@@ -102,10 +102,10 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/m4_ax_cxx_compile_stdcxx.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/m4/acinclude.m4 \
+	$(top_srcdir)/m4/m4_ax_cxx_compile_stdcxx.m4 \
 	$(top_srcdir)/m4/m4_ax_cxx_compile_stdcxx_11.m4 \
-	$(top_srcdir)/m4/pkg.m4 $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/pkg.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
@@ -203,7 +203,7 @@ CTAGS = ctags
 CSCOPE = cscope
 DIST_SUBDIRS = $(SUBDIRS)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/gconfig_defs.h.in \
-	AUTHORS COPYING ChangeLog INSTALL NEWS README compile depcomp \
+	AUTHORS COPYING ChangeLog INSTALL NEWS README compile \
 	install-sh missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
@@ -260,6 +260,7 @@ CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
+CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -268,15 +269,13 @@ DEPDIR = @DEPDIR@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
+EGREP = @EGREP@
 EXEEXT = @EXEEXT@
-GCONFIG_CONFIGURATION = @GCONFIG_CONFIGURATION@
 GCONFIG_HAVE_DOXYGEN = @GCONFIG_HAVE_DOXYGEN@
 GCONFIG_HAVE_MAN2HTML = @GCONFIG_HAVE_MAN2HTML@
 GCONFIG_QT_CFLAGS = @GCONFIG_QT_CFLAGS@
 GCONFIG_QT_LIBS = @GCONFIG_QT_LIBS@
 GCONFIG_QT_MOC = @GCONFIG_QT_MOC@
-GCONFIG_STATIC_END = @GCONFIG_STATIC_END@
-GCONFIG_STATIC_START = @GCONFIG_STATIC_START@
 GCONFIG_TLS_LIBS = @GCONFIG_TLS_LIBS@
 GCONFIG_WINDMC = @GCONFIG_WINDMC@
 GCONFIG_WINDRES = @GCONFIG_WINDRES@
@@ -342,6 +341,7 @@ e_icondir = @e_icondir@
 e_initdir = @e_initdir@
 e_libexecdir = @e_libexecdir@
 e_pamdir = @e_pamdir@
+e_rundir = @e_rundir@
 e_spooldir = @e_spooldir@
 e_sysconfdir = @e_sysconfdir@
 exec_prefix = @exec_prefix@
@@ -391,9 +391,9 @@ SUBDIRS = bin src etc doc debian test m4 bsd
 # work-round PKG_CHECK_MODULES if no pkg-config
 ACLOCAL_AMFLAGS = -I m4
 e_doc_DATA = COPYING AUTHORS INSTALL NEWS README ChangeLog
-RPM = $(RPM_ROOT)/RPMS/$(RPM_ARCH)/emailrelay-$(VERSION)-1.$(RPM_ARCH).rpm
-DEB = emailrelay_$(VERSION)-1_$(RPM_ARCH).deb
+RPM = $(RPM_ROOT)/RPMS/$(ARCH)/emailrelay-$(VERSION)-1.$(ARCH).rpm
 TAR = emailrelay-$(VERSION).tar.gz
+DEB = emailrelay_$(VERSION)_$(ARCH).deb
 all: gconfig_defs.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -895,35 +895,40 @@ uninstall-local:
 	-for try in 1 2 3 4 ; do echo "$(e_pamdir)" "$(e_initdir)" "$(e_sysconfdir)" "$(e_examplesdir)" "$(e_libexecdir)" "$(e_spooldir)" "$(e_docdir)" "$(pkgdatadir)" | tr ' ' '\n' | grep "emailrelay$" | while read d ; do rmdir "$(DESTDIR)/$$d" 2>/dev/null ; done ; done
 
 RPM_ROOT ?= ${HOME}/rpmbuild
-#RPM_ARCH ?= $(shell arch)
-RPM_ARCH ?= x86_64
+#ARCH ?= $(shell arch)
+ARCH ?= x86_64
 
 .PHONY: rpm
 rpm: $(RPM)
 
 $(RPM): dist
-	-rm -rf $(RPM_ROOT)/BUILD/emailrelay-$(VERSION)
+	-rm -rf $(RPM_ROOT)/BUILD/emailrelay-$(VERSION)-1.$(ARCH)
+	test ! -d $(RPM_ROOT)/BUILD/emailrelay-$(VERSION)-1.$(ARCH)
 	-mkdir -p $(RPM_ROOT)/BUILD $(RPM_ROOT)/SOURCES $(RPM_ROOT)/SPECS 2>/dev/null
 	cp $(TAR) $(RPM_ROOT)/SOURCES/emailrelay-$(VERSION)-src.tar.gz
 	cp $(top_srcdir)/emailrelay.spec $(RPM_ROOT)/SPECS/
-	chown root:root $(RPM_ROOT)/SPECS/emailrelay.spec
-	-rm -f $(RPM) || true
+	-chown root:root $(RPM_ROOT)/SPECS/emailrelay.spec
+	-rm -f $(RPM)
+	test ! -f $(RPM)
 	rpmbuild -ba $(RPM_ROOT)/SPECS/emailrelay.spec
 	test -f $(RPM)
 
 .PHONY: deb
 deb: $(DEB)
 
-$(DEB): $(RPM)
+$(DEB): dist
 	-mv emailrelay-$(VERSION) emailrelay-$(VERSION).old.$$$$ || true
-	alien --to-deb --generate --single --keep-version $(RPM)
-	sed -i 's/^Section:.*/Section: mail/' emailrelay-$(VERSION)/debian/control
-	sed -i 's/^Maintainer:.*/Maintainer: Graeme Walker <graeme_walker@users.sourceforge.net>/' emailrelay-$(VERSION)/debian/control
-	chmod +x $(top_srcdir)/debian/pre* $(top_srcdir)/debian/post*
-	cp $(top_srcdir)/debian/* emailrelay-$(VERSION)/debian/
-	sed -i 's:dh_installchangelogs:dh_installchangelogs ; cp etc/init.d/emailrelay debian/emailrelay.init ; dh_installinit:' emailrelay-$(VERSION)/debian/rules
-	sed -i 's:dh_installdeb:dh_installdeb ; echo /etc/emailrelay.conf > debian/emailrelay/DEBIAN/conffiles:' emailrelay-$(VERSION)/debian/rules
-	cd emailrelay-$(VERSION) && debian/rules binary
+	tar xzf $(TAR)
+	cd emailrelay-$(VERSION) && fakeroot debian/rules binary
+	mkdir emailrelay-$(VERSION)/debian/source
+
+.PHONY: deb-src
+deb-src: dist
+	-mv emailrelay-$(VERSION) emailrelay-$(VERSION).old.$$$$ || true
+	tar xzf $(TAR)
+	mkdir emailrelay-$(VERSION)/debian/source
+	echo 1.0 > emailrelay-$(VERSION)/debian/source/format
+	dpkg-source --build emailrelay-$(VERSION)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

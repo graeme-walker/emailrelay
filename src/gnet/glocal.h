@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2018 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -50,11 +50,14 @@ public:
 		///< Sets the canonicalName() override.
 
 	static bool isLocal( const Address & , std::string & reason ) ;
-		///< Returns true if the given address appears to be associated
-		///< with the local host, or a helpful error message if not.
+		///< Returns true if the given address appears to be 'local',
+		///< or a helpful error message if not.
+
+	static bool isLocal( const Address & ) ;
+		///< Overload without an explanation.
 
 private:
-	Local() ;
+	Local() g__eq_delete ;
 	static std::string resolvedHostname() ;
 
 private:
