@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gmsg.h
 ///
 
-#ifndef G_MSG__H
-#define G_MSG__H
+#ifndef G_MSG_H
+#define G_MSG_H
 
 #include "gdef.h"
 
@@ -28,8 +28,8 @@ namespace G
 	class Msg ;
 }
 
-/// \class G::Msg
-/// Wrappers for sendmsg() and recvmsg() that are near drop-in replacements for
+//| \class G::Msg
+/// Wrappers for sendmsg() and recvmsg(). These are near drop-in replacements for
 /// send()/sendto() and recv()/recvto(), but with SIGPIPE disabled and optional
 /// file-descriptor-passing capabilities.
 /// \see man unix(7) and man cmsg(3)
@@ -37,30 +37,30 @@ namespace G
 class G::Msg
 {
 public:
-	static ssize_t send( SOCKET , const void * , size_t , int ,
-		int fd_to_send = -1 ) ;
+	static ssize_t send( SOCKET , const void * , std::size_t , int ,
+		int fd_to_send = -1 ) noexcept ;
 			///< A send() replacement using sendmsg().
 
-	static ssize_t sendto( SOCKET , const void * , size_t , int , const sockaddr * , socklen_t ,
-		int fd_to_send = -1 ) ;
+	static ssize_t sendto( SOCKET , const void * , std::size_t , int , const sockaddr * , socklen_t ,
+		int fd_to_send = -1 ) noexcept ;
 			///< A sendto() replacement using sendmsg().
 
-	static ssize_t recv( SOCKET , void * , size_t , int ) ;
+	static ssize_t recv( SOCKET , void * , std::size_t , int ) ;
 		///< A recv() wrapper.
 
-	static ssize_t recv( SOCKET , void * , size_t , int , int * fd_received_p ) ;
+	static ssize_t recv( SOCKET , void * , std::size_t , int , int * fd_received_p ) ;
 		///< A recv() replacement using recvmsg().
 
-	static ssize_t recvfrom( SOCKET , void * , size_t , int , sockaddr * , socklen_t * ,
+	static ssize_t recvfrom( SOCKET , void * , std::size_t , int , sockaddr * , socklen_t * ,
 		int * fd_received_p = nullptr ) ;
 			///< A recvfrom() replacement using recvmsg().
 
-	static bool fatal( int error ) ;
+	static bool fatal( int error ) noexcept ;
 		///< Returns true if the error value indicates a permanent
 		///< problem with the socket.
 
-private:
-	Msg() g__eq_delete ;
+public:
+	Msg() = delete ;
 } ;
 
 #endif

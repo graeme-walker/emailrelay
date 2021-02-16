@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,15 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gthread.cpp
-//
+///
+/// \file gthread.cpp
+///
 
 #include "gdef.h"
 
-namespace
+namespace G
 {
-	void test_fn( void ) {}
+	namespace ThreadImp
+	{
+		void test_fn() {}
+	}
 }
 
 bool G::threading::works()
@@ -36,7 +39,7 @@ bool G::threading::works()
 			first = false ;
 			try
 			{
-				threading::thread_type t( test_fn ) ;
+				threading::thread_type t( ThreadImp::test_fn ) ;
 				t.join() ;
 				threading::mutex_type mutex ;
 				threading::lock_type lock( mutex ) ;
@@ -59,4 +62,3 @@ bool G::threading::works()
 	}
 }
 
-/// \file gthread.cpp

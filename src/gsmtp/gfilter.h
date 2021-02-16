@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gfilter.h
 ///
 
-#ifndef G_SMTP_FILTER__H
-#define G_SMTP_FILTER__H
+#ifndef G_SMTP_FILTER_H
+#define G_SMTP_FILTER_H
 
 #include "gdef.h"
 #include "gslot.h"
@@ -29,7 +29,7 @@ namespace GSmtp
 	class Filter ;
 }
 
-/// \class GSmtp::Filter
+//| \class GSmtp::Filter
 /// An interface for processing a message file through a filter.
 /// The interface is asynchronous, using a slot/signal completion
 /// callback.
@@ -47,7 +47,7 @@ namespace GSmtp
 class GSmtp::Filter
 {
 public:
-	virtual ~Filter() ;
+	virtual ~Filter() = default ;
 		///< Destructor.
 
 	virtual std::string id() const = 0 ;
@@ -63,7 +63,7 @@ public:
 		///< incomplete filtering is cancel()ed. Asynchronous completion
 		///< is indicated by a doneSignal().
 
-	virtual G::Slot::Signal1<int> & doneSignal() = 0 ;
+	virtual G::Slot::Signal<int> & doneSignal() = 0 ;
 		///< Returns a signal which is raised once start() has completed
 		///< or failed. The signal parameter is ok=0, abandon=1, fail=2.
 
@@ -89,12 +89,12 @@ public:
 		///< Returns a diagnostic string for logging.
 
 public:
-	g__enum(Result) // Filter tri-state result value.
+	enum class Result // Filter tri-state result value.
 	{
 		f_ok = 0 ,
 		f_abandon = 1 ,
 		f_fail = 2
-	} ; g__enum_end(Result)
+	} ;
 
 protected:
 	struct Exit /// Interprets an executable filter's exit code.
@@ -106,9 +106,6 @@ protected:
 		Result result ;
 		bool special ;
 	} ;
-
-private:
-	void operator=( const Filter & ) g__eq_delete ;
 } ;
 
 #endif

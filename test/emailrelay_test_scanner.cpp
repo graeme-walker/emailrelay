@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// emailrelay_test_scanner.cpp
-//
+///
+/// \file emailrelay_test_scanner.cpp
+///
 // A dummy network processor for testing "emailrelay --filter net:<host>:<port>".
 //
 // usage: emailrelay-test-scanner [--log] [--log-file <file>] [--debug] [--pid-file <pidfile>]
@@ -37,6 +37,7 @@
 #include "glinebuffer.h"
 #include "gevent.h"
 #include "gtimerlist.h"
+#include "gfile.h"
 #include "gprocess.h"
 #include "gstr.h"
 #include "garg.h"
@@ -59,10 +60,10 @@ class Main::ScannerPeer : public GNet::ServerPeer
 public:
 	ScannerPeer( GNet::ExceptionSinkUnbound esu , GNet::ServerPeerInfo info ) ;
 private:
-	virtual void onDelete( const std::string & ) override ;
-	virtual bool onReceive( const char * , size_t , size_t , size_t , char ) override ;
-	virtual void onSecure( const std::string & , const std::string & ) override ;
-	virtual void onSendComplete() override ;
+	void onDelete( const std::string & ) override ;
+	bool onReceive( const char * , std::size_t , std::size_t , std::size_t , char ) override ;
+	void onSecure( const std::string & , const std::string & , const std::string & ) override ;
+	void onSendComplete() override ;
 	bool processFile( std::string , std::string ) ;
 } ;
 
@@ -77,11 +78,11 @@ void Main::ScannerPeer::onDelete( const std::string & )
 	G_LOG_S( "ScannerPeer::onDelete: disconnected" ) ;
 }
 
-void Main::ScannerPeer::onSecure( const std::string & , const std::string & )
+void Main::ScannerPeer::onSecure( const std::string & , const std::string & , const std::string & )
 {
 }
 
-bool Main::ScannerPeer::onReceive( const char * p , size_t n , size_t , size_t , char )
+bool Main::ScannerPeer::onReceive( const char * p , std::size_t n , std::size_t , std::size_t , char )
 {
 	G_DEBUG( "ScannerPeer::onReceive: " << G::Str::printable(std::string(p,n)) ) ;
 	std::string path( p , n ) ;
@@ -180,8 +181,8 @@ class Main::Scanner : public GNet::Server
 {
 public:
 	Scanner( GNet::ExceptionSink , unsigned int port , unsigned int idle_timeout ) ;
-	~Scanner() ;
-	virtual unique_ptr<GNet::ServerPeer> newPeer( GNet::ExceptionSinkUnbound ebu , GNet::ServerPeerInfo ) override ;
+	~Scanner() override ;
+	std::unique_ptr<GNet::ServerPeer> newPeer( GNet::ExceptionSinkUnbound ebu , GNet::ServerPeerInfo ) override ;
 } ;
 
 Main::Scanner::Scanner( GNet::ExceptionSink es , unsigned int port , unsigned int idle_timeout ) :
@@ -194,16 +195,16 @@ Main::Scanner::~Scanner()
 	serverCleanup() ; // base class early cleanup
 }
 
-unique_ptr<GNet::ServerPeer> Main::Scanner::newPeer( GNet::ExceptionSinkUnbound ebu , GNet::ServerPeerInfo info )
+std::unique_ptr<GNet::ServerPeer> Main::Scanner::newPeer( GNet::ExceptionSinkUnbound ebu , GNet::ServerPeerInfo info )
 {
 	try
 	{
-		return unique_ptr<GNet::ServerPeer>( new ScannerPeer( ebu , info ) ) ;
+		return std::unique_ptr<GNet::ServerPeer>( new ScannerPeer( ebu , info ) ) ;
 	}
 	catch( std::exception & e )
 	{
 		G_WARNING( "Scanner::newPeer: new connection error: " << e.what() ) ;
-		return unique_ptr<GNet::ServerPeer>() ;
+		return std::unique_ptr<GNet::ServerPeer>() ;
 	}
 }
 
@@ -211,7 +212,7 @@ unique_ptr<GNet::ServerPeer> Main::Scanner::newPeer( GNet::ExceptionSinkUnbound 
 
 static int run( unsigned int port , unsigned int idle_timeout )
 {
-	unique_ptr<GNet::EventLoop> event_loop( GNet::EventLoop::create() ) ;
+	std::unique_ptr<GNet::EventLoop> event_loop= GNet::EventLoop::create() ;
 	GNet::ExceptionSink es ;
 	GNet::TimerList timer_list ;
 	Main::Scanner scanner( es , port , idle_timeout ) ;
@@ -233,7 +234,8 @@ int main( int argc , char * argv [] )
 
 		if( !pid_file.empty() )
 		{
-			std::ofstream file( pid_file.c_str() ) ;
+			std::ofstream file ;
+			G::File::open( file , pid_file , G::File::Text() ) ;
 			file << G::Process::Id().str() << std::endl ;
 		}
 
@@ -253,4 +255,3 @@ int main( int argc , char * argv [] )
 	return 1 ;
 }
 
-/// \file emailrelay_test_scanner.cpp

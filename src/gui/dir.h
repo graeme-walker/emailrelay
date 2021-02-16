@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,22 +18,21 @@
 /// \file dir.h
 ///
 
-#ifndef G_GUI_DIR_H
-#define G_GUI_DIR_H
+#ifndef G_MAIN_GUI_DIR_H
+#define G_MAIN_GUI_DIR_H
 
 #include "gdef.h"
 #include "gpath.h"
 #include <string>
 #include <iostream>
 
-/// \class Dir
+//| \class Dir
 /// Provides default file-system paths. The implementations
 /// of this interface are highly platform-specific.
 ///
 class Dir
 {
 public:
-
 	static G::Path install() ;
 		///< Returns the default install directory, eg. "/usr".
 
@@ -61,8 +60,10 @@ public:
 	static G::Path menu() ;
 		///< Returns the menu path, eg. "/home/username/.local/share/applications".
 
+public:
+	Dir() = delete ;
+
 private:
-	Dir() ;
 	static G::Path envPath( const std::string & , const G::Path & = G::Path() ) ;
 	static bool ok( const std::string & ) ;
 	static std::string rebase( const std::string & ) ;

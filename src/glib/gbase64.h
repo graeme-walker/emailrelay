@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ namespace G
 	class Base64 ;
 }
 
-/// \class G::Base64
+//| \class G::Base64
 /// A base64 codec class.
 /// \see RFC-1341 section 5.2
 ///
@@ -40,8 +40,8 @@ public:
 	G_EXCEPTION( Error , "base64 encoding error" ) ;
 
 	static std::string encode( const std::string & s , const std::string & line_break = std::string() ) ;
-		///< Encodes the given string, inserting line-breaks to
-		///< limit the line length.
+		///< Encodes the given string, optionally inserting line-breaks
+		///< to limit the line length.
 
 	static std::string decode( const std::string & , bool throw_on_invalid = false , bool strict = true ) ;
 		///< Decodes the given string. Either throws an exception if
@@ -49,16 +49,15 @@ public:
 
 	static bool valid( const std::string & , bool strict = true ) ;
 		///< Returns true if the string is a valid base64 encoding,
-		///< possibly allowing for embedded newlines, carriage-returns,
-		///< and randomly-inserted space-characters. Strict checking
-		///< permits one or two pad characters at the end to make
-		///< a multiple of four characters in total, but no newlines,
-		///< carriage returns or other odd characters. Empty strings
+		///< possibly allowing for embedded newlines, carriage returns,
+		///< and space characters. Strict checking permits one or
+		///< two pad characters at the end to make a multiple of
+		///< four characters in total, but no newlines, carriage
+		///< returns or other odd characters. Empty strings
 		///< are valid; single character strings are not.
 
-private:
-	Base64() g__eq_delete ;
+public:
+	Base64() = delete ;
 } ;
 
 #endif
-

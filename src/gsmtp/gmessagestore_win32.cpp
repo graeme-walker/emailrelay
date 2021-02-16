@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gmessagestore_win32.cpp
-//
+///
+/// \file gmessagestore_win32.cpp
+///
 
 #include "gdef.h"
 #include "gmessagestore.h"
@@ -28,4 +28,3 @@ G::Path GSmtp::MessageStore::defaultDirectory()
 	return G::Path(G::Environment::get("ProgramData","c:/ProgramData")) + "E-MailRelay" + "spool" ;
 }
 
-/// \file gmessagestore_win32.cpp

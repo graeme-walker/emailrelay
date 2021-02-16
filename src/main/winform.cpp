@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,13 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// winform.cpp
-//
+///
+/// \file winform.cpp
+///
 
 #include "gdef.h"
 #include "gssl.h"
 #include "gstr.h"
+#include "gstringwrap.h"
 #include "gmonitor.h"
 #include "gtime.h"
 #include "run.h"
@@ -57,8 +58,7 @@ void Main::WinForm::addSystemMenuItem( const char * name , unsigned int id )
 	HMENU hmenu = GetSystemMenu( handle() , FALSE ) ;
 	if( hmenu )
 	{
-		static MENUITEMINFO item_zero ;
-		MENUITEMINFO item = item_zero ;
+		MENUITEMINFO item{} ;
 		item.cbSize = sizeof( item ) ;
 		item.fMask = MIIM_STRING | MIIM_ID ;
 		item.fType = MFT_STRING ;
@@ -105,22 +105,22 @@ void Main::WinForm::onInit( HWND hdialog , int index )
 	G_DEBUG( "Main::WinForm::onInit: h=" << hdialog << " index=" << index ) ;
 	if( index == 0 ) // "Configuration"
 	{
-		m_cfg_view.reset( new GGui::ListView(hdialog,IDC_LIST1) ) ;
+		m_cfg_view = std::make_unique<GGui::ListView>( hdialog , IDC_LIST1 ) ;
   		m_cfg_view->set( cfgData() , 2U , 150U ) ;
 	}
 	else if( index == 1 ) // "Licence"
 	{
-		m_licence_view.reset( new GGui::ListView(hdialog,IDC_LIST1) ) ;
+		m_licence_view = std::make_unique<GGui::ListView>( hdialog , IDC_LIST1 ) ;
   		m_licence_view->set( licenceData() , 1U , 330U ) ;
 	}
 	else if( index == 2 ) // "Version"
 	{
-		m_version_view.reset( new GGui::ListView(hdialog,IDC_LIST1) ) ;
+		m_version_view = std::make_unique<GGui::ListView>( hdialog , IDC_LIST1 ) ;
   		m_version_view->set( versionData() , 1U , 330U ) ;
 	}
 	else if( index == 3 ) // "Status"
 	{
-		m_status_view.reset( new GGui::ListView(hdialog,IDC_LIST1) ) ;
+		m_status_view = std::make_unique<GGui::ListView>( hdialog , IDC_LIST1 ) ;
   		m_status_view->set( statusData() , 3U , 100U ) ;
 	}
 }
@@ -151,7 +151,8 @@ void Main::WinForm::setStatus( const std::string & category , const std::string 
 	else if( ( category == "poll" || category == "forward" ) && s1 == "end" )
 	{
 		std::string reason = G::Str::printable( s2 ) ;
-		m_status_map["Forwarding"] = std::make_pair( timestamp() , reason.empty() ? std::string("finished") : reason ) ;
+		m_status_map["Forwarding"] = std::make_pair( timestamp() ,
+			reason.empty() ? std::string("finished") : reason ) ;
 	}
 	else if( category == "client" && s1 == "sending" )
 	{
@@ -162,7 +163,8 @@ void Main::WinForm::setStatus( const std::string & category , const std::string 
 	{
 		const std::string & message_id = s2 ;
 		std::string reason = G::Str::printable( s3 ) ;
-		m_status_map["Message"] = std::make_pair( timestamp() , (reason.empty()?std::string("sent"):reason) + ": " + message_id ) ;
+		m_status_map["Message"] = std::make_pair( timestamp() ,
+			(reason.empty()?std::string("sent"):reason) + ": " + message_id ) ;
 	}
 
 	// update the gui
@@ -196,7 +198,7 @@ G::StringArray Main::WinForm::versionData() const
 	}
 	add( s , Main::Legal::warranty("","\n") ) ;
 	add( s , "" ) ;
-	add( s , G::Str::wrap(Main::News::text(""),"","",60U) ) ;
+	add( s , G::StringWrap::wrap(Main::News::text(""),"","",60U) ) ;
 	return s ;
 }
 
@@ -270,4 +272,3 @@ void Main::WinForm::add( G::StringArray & list , std::string s )
 		list.push_back( *p ) ;
 }
 
-/// \file winform.cpp

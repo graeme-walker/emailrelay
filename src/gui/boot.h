@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,14 +18,14 @@
 /// \file boot.h
 ///
 
-#ifndef G_GUI_BOOT_H
-#define G_GUI_BOOT_H
+#ifndef G_MAIN_GUI_BOOT_H
+#define G_MAIN_GUI_BOOT_H
 
 #include "gdef.h"
 #include "gpath.h"
 #include "gstrings.h"
 
-/// \class Boot
+//| \class Boot
 /// Provides support for installing as a boot-time service.
 ///
 class Boot
@@ -36,21 +36,27 @@ public:
 		///< boot-system directory is valid. The parameter normally comes
 		///< from Dir::boot().
 
-	static bool install( const G::Path & dir_boot , const std::string & name ,
+	static void install( const G::Path & dir_boot , const std::string & name ,
 		const G::Path & path_1 , const G::Path & path_2 ) ;
-			///< Installs the target as a boot-time service. For Windows path_1 is
-			///< the batch file and path_2 is the service wrapper. For Unix path_1
-			///< is the startstop script and path_2 is the server executable.
+			///< Installs the target as a boot-time service. Throws on error.
+			///<
+			///< For Windows path_1 is the batch file and path_2 is the
+			///< service wrapper. For Unix path_1 is the startstop script and
+			///< path_2 is the server executable.
 
 	static bool uninstall( const G::Path & dir_boot , const std::string & name ,
 		const G::Path & path_1 , const G::Path & path_2 ) ;
-			///< Uninstalls the target as a boot-time service.
+			///< Uninstalls the target as a boot-time service. Returns
+			///< false on error or nothing-to-do.
 
 	static bool installed( const G::Path & dir_boot , const std::string & name ) ;
 		///< Returns true if currently installed.
 
-private:
-	Boot() ;
+	static void launch( const G::Path & dir_boot , const std::string & name ) ;
+		///< Starts the service.
+
+public:
+	Boot() = delete ;
 } ;
 
 #endif

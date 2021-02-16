@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,19 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gssl_mbedtls.cpp
-//
+///
+/// \file gssl_mbedtls.cpp
+///
 
 #include "gdef.h"
 #include "gssl.h"
 #include "gssl_mbedtls.h"
 #include "ghashstate.h"
 #include "gpath.h"
+#include "gsleep.h"
 #include "groot.h"
 #include "gtest.h"
 #include "gstr.h"
 #include "gfile.h"
+#include "gprocess.h"
+#include "gscope.h"
 #include "glog.h"
 #include "gassert.h"
 #include <mbedtls/ssl.h>
@@ -41,21 +44,78 @@
 #include <mbedtls/debug.h>
 #include <sstream>
 #include <fstream>
+#include <vector>
 #include <exception>
 #include <iomanip>
 
-namespace
+// macro magic to provide function-name/function-pointer arguments for call()
+#ifdef FN
+#undef FN
+#endif
+#define FN( fn ) (#fn),(fn)
+
+// in newer versions of the mbedtls library hashing functions like mbed_whatever_ret()
+// returning an integer are preferred, compared to mbed_whatever() returning void
+#define GSSL_PASTE_IMP( a , b ) a##b
+#define GSSL_PASTE( a , b ) GSSL_PASTE_IMP( a , b )
+#if MBEDTLS_VERSION_NUMBER >= 0x02070000
+#define FN_RET( fn ) (#fn),(GSSL_PASTE(fn,_ret))
+#else
+#define FN_RET( fn ) (#fn),(fn)
+#endif
+
+namespace GSsl
 {
-	template <typename T>
-	struct Cleanup
+	namespace MbedTls
 	{
-		explicit Cleanup( void (*fn)(T*) ) : m_p(nullptr) , m_fn(fn) {}
-		~Cleanup() { reset() ; }
-		void reset( T * p = nullptr ) { if(m_p) m_fn(m_p) ; m_p = p ; }
-		void release() { m_p = nullptr ; }
-		T * m_p ;
-		void (*m_fn)(T*) ;
-	} ;
+		void randomFillImp( char * p , std::size_t n ) ;
+		int randomFill( void * , unsigned char * output , std::size_t len , std::size_t * olen ) ;
+
+		template <typename F, typename... Args>
+		typename std::enable_if< !std::is_same<void,typename std::result_of<F(Args...)>::type>::value >::type
+		call( const char * fname , F fn , Args&&... args )
+		{
+			int rc = fn( std::forward<Args>(args)... ) ;
+			if( rc )
+				throw Error( fname , rc ) ;
+		}
+
+		template <typename F, typename... Args>
+		typename std::enable_if< std::is_same<void,typename std::result_of<F(Args...)>::type>::value >::type
+		call( const char * , F fn , Args&&... args )
+		{
+			fn( std::forward<Args>(args)... ) ;
+		}
+
+		template <typename T>
+		struct ScopeExitCleanup /// Calls a mbedtls free function on descruction.
+		{
+			explicit ScopeExitCleanup( void (*fn)(T*) ) : m_fn(fn) , m_p(nullptr) {}
+			ScopeExitCleanup( void (*fn)(T*) , T * p ) : m_fn(fn) , m_p(p) {}
+			~ScopeExitCleanup() { reset() ; }
+			void reset( T * p = nullptr ) { if(m_p) m_fn(m_p) ; m_p = p ; }
+			void release() { m_p = nullptr ; }
+			void (*m_fn)(T*) ;
+			T * m_p ;
+		} ;
+
+		template <typename T>
+		struct X /// Initialises and frees an mbedtls object on construction and destruction.
+		{
+			X( void (*init)(T*) , void (*free)(T*) ) : m_free(free) { init(&x) ; }
+			~X() { m_free(&x) ; }
+			T * ptr() { return &x ; }
+			const T * ptr() const { return &x ; }
+			T x ;
+			void (*m_free)(T*) ;
+			X * operator&() = delete ;
+			const X * operator&() const = delete ;
+			X( const X<T> & ) = delete ;
+			X( X<T> && ) = delete ;
+			void operator=( const X<T> & ) = delete ;
+			void operator=( X<T> && ) = delete ;
+		} ;
+	}
 }
 
 GSsl::MbedTls::LibraryImp::LibraryImp( G::StringArray & library_config , Library::LogFn log_fn , bool verbose ) :
@@ -66,8 +126,7 @@ GSsl::MbedTls::LibraryImp::LibraryImp( G::StringArray & library_config , Library
 }
 
 GSsl::MbedTls::LibraryImp::~LibraryImp()
-{
-}
+= default;
 
 const GSsl::MbedTls::Rng & GSsl::MbedTls::LibraryImp::rng() const
 {
@@ -79,21 +138,21 @@ void GSsl::MbedTls::LibraryImp::addProfile( const std::string & profile_name , b
 	const std::string & default_peer_certificate_name , const std::string & default_peer_host_name ,
 	const std::string & profile_config )
 {
-	shared_ptr<ProfileImp> profile_ptr(
-		new ProfileImp(*this,is_server_profile,key_file,cert_file,ca_file,
-			default_peer_certificate_name,default_peer_host_name,profile_config) ) ;
+	std::shared_ptr<ProfileImp> profile_ptr =
+		std::make_shared<ProfileImp>(*this,is_server_profile,key_file,cert_file,ca_file,
+			default_peer_certificate_name,default_peer_host_name,profile_config) ;
 	m_profile_map.insert( Map::value_type(profile_name,profile_ptr) ) ;
 }
 
 bool GSsl::MbedTls::LibraryImp::hasProfile( const std::string & profile_name ) const
 {
-	Map::const_iterator p = m_profile_map.find( profile_name ) ;
+	auto p = m_profile_map.find( profile_name ) ;
 	return p != m_profile_map.end() ;
 }
 
 const GSsl::Profile & GSsl::MbedTls::LibraryImp::profile( const std::string & profile_name ) const
 {
-	Map::const_iterator p = m_profile_map.find( profile_name ) ;
+	auto p = m_profile_map.find( profile_name ) ;
 	if( p == m_profile_map.end() ) throw Error( "no such profile: [" + profile_name + "]" ) ;
 	return *(*p).second.get() ;
 }
@@ -101,6 +160,15 @@ const GSsl::Profile & GSsl::MbedTls::LibraryImp::profile( const std::string & pr
 GSsl::Library::LogFn GSsl::MbedTls::LibraryImp::log() const
 {
 	return m_log_fn ;
+}
+
+std::string GSsl::MbedTls::LibraryImp::version()
+{
+	std::vector<char> buffer( 100U ) ; // "at least 9"
+	G_ASSERT( buffer.size() >= 9U ) ;
+	mbedtls_version_get_string( &buffer[0] ) ;
+	buffer[buffer.size()-1U] = '\0' ;
+	return G::Str::printable( std::string(&buffer[0]) ) ;
 }
 
 std::string GSsl::MbedTls::LibraryImp::sid()
@@ -115,6 +183,85 @@ std::string GSsl::MbedTls::LibraryImp::sid()
 std::string GSsl::MbedTls::LibraryImp::id() const
 {
 	return sid() ;
+}
+
+bool GSsl::MbedTls::LibraryImp::generateKeyAvailable() const
+{
+	return true ;
+}
+
+std::string GSsl::MbedTls::LibraryImp::generateKey( const std::string & issuer_name ) const
+{
+	// see mbedtls/programs/pkey/gen_key.c ...
+
+	X<mbedtls_entropy_context> entropy( mbedtls_entropy_init , mbedtls_entropy_free ) ;
+	if( !G::is_windows() )
+	{
+		const int threshold = 32 ;
+		call( FN(mbedtls_entropy_add_source) , entropy.ptr() , randomFill , nullptr ,
+			threshold , MBEDTLS_ENTROPY_SOURCE_STRONG ) ;
+	}
+
+	X<mbedtls_ctr_drbg_context> drbg( mbedtls_ctr_drbg_init , mbedtls_ctr_drbg_free ) ;
+	{
+		std::string seed_name = "gssl_mbedtls" ;
+		auto seed_name_p = reinterpret_cast<const unsigned char*>( seed_name.data() ) ;
+		call( FN(mbedtls_ctr_drbg_seed) , drbg.ptr() , mbedtls_entropy_func , entropy.ptr() , seed_name_p , seed_name.size() ) ;
+	}
+
+	X<mbedtls_pk_context> key( mbedtls_pk_init , mbedtls_pk_free ) ;
+	{
+		const mbedtls_pk_type_t type = MBEDTLS_PK_RSA;
+		const unsigned int keysize = 4096U ;
+		const int exponent = 65537 ;
+		call( FN(mbedtls_pk_setup) , key.ptr() , mbedtls_pk_info_from_type(type) ) ;
+		call( FN(mbedtls_rsa_gen_key) , mbedtls_pk_rsa(key.x) , mbedtls_ctr_drbg_random , drbg.ptr() , keysize , exponent ) ;
+	}
+
+	std::string s_key ;
+	{
+		std::vector<unsigned char> pk_buffer( 16000U ) ;
+		call( FN(mbedtls_pk_write_key_pem) , key.ptr() , &pk_buffer[0] , pk_buffer.size() ) ;
+		pk_buffer[pk_buffer.size()-1] = 0 ;
+		s_key = reinterpret_cast<const char*>( &pk_buffer[0] ) ;
+	}
+
+	// see mbedtls/programs/x509/cert_write.c ...
+
+	X<mbedtls_mpi> mpi( mbedtls_mpi_init , mbedtls_mpi_free ) ;
+	{
+		const char * serial = "1" ;
+		call( FN(mbedtls_mpi_read_string) , mpi.ptr() , 10 , serial ) ;
+	}
+
+	X<mbedtls_x509write_cert> crt( mbedtls_x509write_crt_init , mbedtls_x509write_crt_free ) ;
+	{
+		const char * not_before = "20200101000000" ;
+		const char * not_after = "20401231235959" ;
+		const int is_ca = 0 ;
+		const int max_pathlen = -1 ;
+		call( FN(mbedtls_x509write_crt_set_subject_key) , crt.ptr() , key.ptr() ) ;
+		call( FN(mbedtls_x509write_crt_set_issuer_key) , crt.ptr() , key.ptr() ) ;
+		call( FN(mbedtls_x509write_crt_set_subject_name) , crt.ptr() , issuer_name.c_str()/*sic*/ ) ;
+		call( FN(mbedtls_x509write_crt_set_issuer_name) , crt.ptr() , issuer_name.c_str() ) ;
+		call( FN(mbedtls_x509write_crt_set_version) , crt.ptr() , MBEDTLS_X509_CRT_VERSION_3 ) ;
+		call( FN(mbedtls_x509write_crt_set_md_alg) , crt.ptr() , MBEDTLS_MD_SHA256 ) ;
+		call( FN(mbedtls_x509write_crt_set_serial) , crt.ptr() , mpi.ptr() ) ;
+		call( FN(mbedtls_x509write_crt_set_validity) , crt.ptr() , not_before , not_after ) ;
+		call( FN(mbedtls_x509write_crt_set_basic_constraints) , crt.ptr() , is_ca , max_pathlen ) ;
+		call( FN(mbedtls_x509write_crt_set_subject_key_identifier) , crt.ptr() ) ;
+		call( FN(mbedtls_x509write_crt_set_authority_key_identifier) , crt.ptr() ) ;
+	}
+
+	std::string s_crt ;
+	{
+		std::vector<unsigned char> crt_buffer( 4096 ) ;
+		call( FN(mbedtls_x509write_crt_pem) , crt.ptr() , &crt_buffer[0] , crt_buffer.size() , mbedtls_ctr_drbg_random , drbg.ptr() ) ;
+		crt_buffer[crt_buffer.size()-1] = 0 ;
+		s_crt = reinterpret_cast<const char*>( &crt_buffer[0] ) ;
+	}
+
+	return s_key + s_crt ;
 }
 
 GSsl::MbedTls::Config GSsl::MbedTls::LibraryImp::config() const
@@ -133,22 +280,20 @@ std::string GSsl::MbedTls::LibraryImp::credit( const std::string & prefix , cons
 
 G::StringArray GSsl::MbedTls::LibraryImp::digesters( bool ) const
 {
-	G::StringArray result ;
-	result.push_back( "MD5" ) ;
-	result.push_back( "SHA1" ) ;
-	result.push_back( "SHA256" ) ;
-	return result ;
+	return { "MD5" , "SHA1" , "SHA256" } ;
 }
 
 GSsl::Digester GSsl::MbedTls::LibraryImp::digester( const std::string & hash_type , const std::string & state , bool need_state ) const
 {
-	return Digester( new MbedTls::DigesterImp(hash_type,state,need_state) ) ;
+	return Digester( std::make_unique<GSsl::MbedTls::DigesterImp>(hash_type,state,need_state) ) ;
 }
 
 // ==
 
 GSsl::MbedTls::Config::Config( G::StringArray & config ) :
 	m_noverify(consume(config,"noverify")),
+	m_clientnoverify(consume(config,"clientnoverify")),
+	m_servernoverify(consume(config,"servernoverify")),
 	m_min(-1),
 	m_max(-1)
 {
@@ -188,25 +333,22 @@ bool GSsl::MbedTls::Config::noverify() const
 	return m_noverify ;
 }
 
+bool GSsl::MbedTls::Config::clientnoverify() const
+{
+	return m_clientnoverify ;
+}
+
+bool GSsl::MbedTls::Config::servernoverify() const
+{
+	return m_servernoverify ;
+}
+
 bool GSsl::MbedTls::Config::consume( G::StringArray & list , const std::string & item )
 {
 	return LibraryImp::consume( list , item ) ;
 }
 
 // ==
-
-// old void-return functions without "_ret" are deprecated in mbedtls 2.7.0
-#if MBEDTLS_VERSION_NUMBER >= 0x02070000
-#define gssl_call_paste_imp( a , b ) a##b
-#define gssl_call_paste( a , b ) gssl_call_paste_imp( a , b )
-#define gssl_call2( fn , a ) check_ret( gssl_call_paste(fn,_ret)( a ) , #fn )
-#define gssl_call3( fn , a , b ) check_ret( gssl_call_paste(fn,_ret)( a , b ) , #fn )
-#define gssl_call4( fn , a , b , c ) check_ret( gssl_call_paste(fn,_ret)( a , b , c ) , #fn )
-#else
-#define gssl_call2( fn , a ) fn( a )
-#define gssl_call3( fn , a , b ) fn( a , b )
-#define gssl_call4( fn , a , b , c ) fn( a , b , c )
-#endif
 
 GSsl::MbedTls::DigesterImp::DigesterImp( const std::string & hash_name , const std::string & state , bool )
 {
@@ -219,7 +361,7 @@ GSsl::MbedTls::DigesterImp::DigesterImp( const std::string & hash_name , const s
 
 		mbedtls_md5_init( &m_md5 ) ;
 		if( state.empty() )
-			gssl_call2( mbedtls_md5_starts , &m_md5 ) ;
+			call( FN_RET(mbedtls_md5_starts) , &m_md5 ) ;
 		else
 			G::HashState<16,uint32_t,uint32_t>::decode( state , m_md5.state , m_md5.total[0] ) ;
 	}
@@ -232,7 +374,7 @@ GSsl::MbedTls::DigesterImp::DigesterImp( const std::string & hash_name , const s
 
 		mbedtls_sha1_init( &m_sha1 ) ;
 		if( state.empty() )
-			gssl_call2( mbedtls_sha1_starts , &m_sha1 ) ;
+			call( FN_RET(mbedtls_sha1_starts) , &m_sha1 ) ;
 		else
 			G::HashState<20,uint32_t,uint32_t>::decode( state , m_sha1.state , m_sha1.total[0] ) ;
 	}
@@ -245,7 +387,7 @@ GSsl::MbedTls::DigesterImp::DigesterImp( const std::string & hash_name , const s
 
 		mbedtls_sha256_init( &m_sha256 ) ;
 		if( state.empty() )
-			gssl_call3( mbedtls_sha256_starts , &m_sha256 , 0 ) ;
+			call( FN_RET(mbedtls_sha256_starts) , &m_sha256 , 0 ) ;
 		else
 			G::HashState<32,uint32_t,uint32_t>::decode( state , m_sha256.state , m_sha256.total[0] ) ;
 	}
@@ -268,11 +410,11 @@ GSsl::MbedTls::DigesterImp::~DigesterImp()
 void GSsl::MbedTls::DigesterImp::add( const std::string & s )
 {
 	if( m_hash_type == Type::Md5 )
-		gssl_call4( mbedtls_md5_update , &m_md5 , reinterpret_cast<const unsigned char*>(s.data()) , s.size() ) ;
+		call( FN_RET(mbedtls_md5_update) , &m_md5 , reinterpret_cast<const unsigned char*>(s.data()) , s.size() ) ;
 	else if( m_hash_type == Type::Sha1 )
-		gssl_call4( mbedtls_sha1_update , &m_sha1 , reinterpret_cast<const unsigned char*>(s.data()) , s.size() ) ;
+		call( FN_RET(mbedtls_sha1_update) , &m_sha1 , reinterpret_cast<const unsigned char*>(s.data()) , s.size() ) ;
 	else if( m_hash_type == Type::Sha256 )
-		gssl_call4( mbedtls_sha256_update , &m_sha256 , reinterpret_cast<const unsigned char*>(s.data()) , s.size() ) ;
+		call( FN_RET(mbedtls_sha256_update) , &m_sha256 , reinterpret_cast<const unsigned char*>(s.data()) , s.size() ) ;
 }
 
 std::string GSsl::MbedTls::DigesterImp::value()
@@ -280,19 +422,19 @@ std::string GSsl::MbedTls::DigesterImp::value()
 	if( m_hash_type == Type::Md5 )
 	{
 		unsigned char buffer[16] ;
-		gssl_call3( mbedtls_md5_finish , &m_md5 , buffer ) ;
+		call( FN_RET(mbedtls_md5_finish) , &m_md5 , buffer ) ;
 		return std::string( reinterpret_cast<const char*>(buffer) , sizeof(buffer) ) ;
 	}
 	else if( m_hash_type == Type::Sha1 )
 	{
 		unsigned char buffer[20] ;
-		gssl_call3( mbedtls_sha1_finish , &m_sha1 , buffer ) ;
+		call( FN_RET(mbedtls_sha1_finish) , &m_sha1 , buffer ) ;
 		return std::string( reinterpret_cast<const char*>(buffer) , sizeof(buffer) ) ;
 	}
 	else if( m_hash_type == Type::Sha256 )
 	{
 		unsigned char buffer[32] ;
-		gssl_call3( mbedtls_sha256_finish , &m_sha256 , buffer ) ;
+		call( FN_RET(mbedtls_sha256_finish) , &m_sha256 , buffer ) ;
 		return std::string( reinterpret_cast<const char*>(buffer) , sizeof(buffer) ) ;
 	}
 	else
@@ -313,25 +455,19 @@ std::string GSsl::MbedTls::DigesterImp::state()
 		return std::string() ;
 }
 
-size_t GSsl::MbedTls::DigesterImp::blocksize() const
+std::size_t GSsl::MbedTls::DigesterImp::blocksize() const
 {
 	return m_block_size ;
 }
 
-size_t GSsl::MbedTls::DigesterImp::valuesize() const
+std::size_t GSsl::MbedTls::DigesterImp::valuesize() const
 {
 	return m_value_size ;
 }
 
-size_t GSsl::MbedTls::DigesterImp::statesize() const
+std::size_t GSsl::MbedTls::DigesterImp::statesize() const
 {
 	return m_state_size ;
-}
-
-void GSsl::MbedTls::DigesterImp::check_ret( int rc , const char * fn )
-{
-	if( rc )
-		throw Error( fn , rc ) ;
 }
 
 // ==
@@ -344,7 +480,7 @@ GSsl::MbedTls::ProfileImp::ProfileImp( const LibraryImp & library_imp , bool is_
 		m_default_peer_certificate_name(default_peer_certificate_name) ,
 		m_default_peer_host_name(default_peer_host_name)
 {
-	Cleanup<mbedtls_ssl_config> cleanup( mbedtls_ssl_config_free ) ;
+	ScopeExitCleanup<mbedtls_ssl_config> cleanup( mbedtls_ssl_config_free ) ;
 
 	// use library config, or override with profile config
 	Config extra_config = library_imp.config() ;
@@ -352,19 +488,18 @@ GSsl::MbedTls::ProfileImp::ProfileImp( const LibraryImp & library_imp , bool is_
 	{
 		G::StringArray profile_config_list = G::Str::splitIntoTokens( profile_config , "," ) ;
 		extra_config = Config( profile_config_list ) ;
-		if( !profile_config_list.empty() )
+		if( !profile_config_list.empty() ) // ie. residue not consumed by Config ctor
 			G_WARNING( "GSsl::MbedTls::ProfileImp::ctor: tls-config: tls " << (is_server_profile?"server":"client")
 				<< " profile configuration ignored: [" << G::Str::join(",",profile_config_list) << "]" ) ;
 	}
 
 	// initialise the mbedtls_ssl_config structure
 	{
-		static mbedtls_ssl_config config_zero ;
-		m_config = config_zero ;
+		m_config = mbedtls_ssl_config{} ;
 		mbedtls_ssl_config_init( &m_config ) ;
 		cleanup.reset( &m_config ) ;
 		int rc = mbedtls_ssl_config_defaults( &m_config ,
-			is_server_profile ? MBEDTLS_SSL_IS_SERVER : MBEDTLS_SSL_IS_CLIENT ,  // see also mbedtls_ssl_conf_endpoint()
+			is_server_profile ? MBEDTLS_SSL_IS_SERVER : MBEDTLS_SSL_IS_CLIENT , // see also mbedtls_ssl_conf_endpoint()
 			MBEDTLS_SSL_TRANSPORT_STREAM ,
 			MBEDTLS_SSL_PRESET_DEFAULT ) ;
 		if( rc ) throw Error( "mbedtls_ssl_config_defaults" , rc ) ;
@@ -386,24 +521,33 @@ GSsl::MbedTls::ProfileImp::ProfileImp( const LibraryImp & library_imp , bool is_
 
 	// configure verification
 	{
-		std::string ca_path_default = "/etc/ssl/certs/ca-certificates.crt" ; // see debian "man update-ca-certificates"
+		int authmode = 0 ;
 		if( ca_path.empty() )
 		{
 			// verify if possible, but continue on failure - see mbedtls_ssl_get_verify_result()
-			mbedtls_ssl_conf_authmode( &m_config , MBEDTLS_SSL_VERIFY_OPTIONAL ) ;
+			authmode = MBEDTLS_SSL_VERIFY_OPTIONAL ;
+
+			// mbedtls 2.4.2 can incorrectly fail to handshake when OPTIONAL so provide some more tweakability
+			if( is_server_profile && extra_config.servernoverify() )
+				authmode = MBEDTLS_SSL_VERIFY_NONE ;
+			else if( !is_server_profile && extra_config.clientnoverify() )
+				authmode = MBEDTLS_SSL_VERIFY_NONE ;
+			else if( mbedtls_version_get_number() <= 0x02040200 )
+				G_WARNING_ONCE( "GSsl::MbedTls::LibraryImp::ctor: mbedtls library version " << LibraryImp::version() << " is deprecated" ) ;
 		}
 		else if( ca_path == "<none>" )
 		{
 			// dont verify
-			mbedtls_ssl_conf_authmode( &m_config , MBEDTLS_SSL_VERIFY_NONE ) ;
+			authmode = MBEDTLS_SSL_VERIFY_NONE ;
 		}
 		else if( ca_path == "<default>" )
 		{
 			// verify against the default ca database
+			std::string ca_path_default = "/etc/ssl/certs/ca-certificates.crt" ; // see debian "man update-ca-certificates"
 			m_ca_list.load( ca_path_default ) ;
 			bool no_verify = extra_config.noverify() ;
 			mbedtls_ssl_conf_ca_chain( &m_config , m_ca_list.ptr() , crl() ) ;
-			mbedtls_ssl_conf_authmode( &m_config , no_verify ? MBEDTLS_SSL_VERIFY_OPTIONAL : MBEDTLS_SSL_VERIFY_REQUIRED ) ;
+			authmode = no_verify ? MBEDTLS_SSL_VERIFY_OPTIONAL : MBEDTLS_SSL_VERIFY_REQUIRED ;
 		}
 		else
 		{
@@ -411,8 +555,9 @@ GSsl::MbedTls::ProfileImp::ProfileImp( const LibraryImp & library_imp , bool is_
 			m_ca_list.load( ca_path ) ;
 			bool no_verify = extra_config.noverify() ;
 			mbedtls_ssl_conf_ca_chain( &m_config , m_ca_list.ptr() , crl() ) ;
-			mbedtls_ssl_conf_authmode( &m_config , no_verify ? MBEDTLS_SSL_VERIFY_OPTIONAL : MBEDTLS_SSL_VERIFY_REQUIRED ) ;
+			authmode = no_verify ? MBEDTLS_SSL_VERIFY_OPTIONAL : MBEDTLS_SSL_VERIFY_REQUIRED ;
 		}
+		mbedtls_ssl_conf_authmode( &m_config , authmode ) ;
 	}
 
 	// configure protocol version
@@ -441,13 +586,12 @@ GSsl::MbedTls::ProfileImp::~ProfileImp()
 	mbedtls_ssl_config_free( &m_config ) ;
 }
 
-unique_ptr<GSsl::ProtocolImpBase> GSsl::MbedTls::ProfileImp::newProtocol( const std::string & peer_certificate_name ,
+std::unique_ptr<GSsl::ProtocolImpBase> GSsl::MbedTls::ProfileImp::newProtocol( const std::string & peer_certificate_name ,
 	const std::string & peer_host_name ) const
 {
-	return unique_ptr<ProtocolImpBase>(
-		new MbedTls::ProtocolImp( *this ,
-			peer_certificate_name.empty()?defaultPeerCertificateName():peer_certificate_name ,
-			peer_host_name.empty()?defaultPeerHostName():peer_host_name ) ) ;
+	return std::make_unique<MbedTls::ProtocolImp>( *this ,
+		peer_certificate_name.empty()?defaultPeerCertificateName():peer_certificate_name ,
+		peer_host_name.empty()?defaultPeerHostName():peer_host_name ) ; // upcast
 }
 
 mbedtls_x509_crl * GSsl::MbedTls::ProfileImp::crl() const
@@ -465,7 +609,7 @@ void GSsl::MbedTls::ProfileImp::onDebug( void * This , int level_in , const char
 {
 	try
 	{
-		reinterpret_cast<ProfileImp*>(This)->doDebug( level_in , file , line , message ) ;
+		static_cast<ProfileImp*>(This)->doDebug( level_in , file , line , message ) ;
 	}
 	catch(...) // callback from c code
 	{
@@ -539,19 +683,18 @@ GSsl::MbedTls::ProtocolImp::ProtocolImp( const ProfileImp & profile , const std:
 }
 
 GSsl::MbedTls::ProtocolImp::~ProtocolImp()
-{
-}
+= default;
 
-GSsl::Protocol::Result GSsl::MbedTls::ProtocolImp::read( char * buffer , size_t buffer_size_in , ssize_t & data_size_out )
+GSsl::Protocol::Result GSsl::MbedTls::ProtocolImp::read( char * buffer , std::size_t buffer_size_in , ssize_t & data_size_out )
 {
 	int rc = mbedtls_ssl_read( m_ssl.ptr() , reinterpret_cast<unsigned char*>(buffer) , buffer_size_in ) ;
 	data_size_out = rc < 0 ? 0 : rc ;
 	if( rc == 0 ) return Protocol::Result::error ; // disconnected
-	size_t available = rc > 0 ? mbedtls_ssl_get_bytes_avail( m_ssl.ptr() ) : 0U ;
+	std::size_t available = rc > 0 ? mbedtls_ssl_get_bytes_avail( m_ssl.ptr() ) : 0U ;
 	return convert( "mbedtls_ssl_read" , rc , available > 0U ) ;
 }
 
-GSsl::Protocol::Result GSsl::MbedTls::ProtocolImp::write( const char * buffer_in , size_t data_size_in ,
+GSsl::Protocol::Result GSsl::MbedTls::ProtocolImp::write( const char * buffer_in , std::size_t data_size_in ,
 	ssize_t & data_size_out )
 {
 	const unsigned char * p = reinterpret_cast<const unsigned char *>(buffer_in) ;
@@ -582,16 +725,16 @@ GSsl::Protocol::Result GSsl::MbedTls::ProtocolImp::shutdown()
 	return convert( "mbedtls_ssl_close_notify" , rc ) ;
 }
 
-int GSsl::MbedTls::ProtocolImp::doRecvTimeout( void * This , unsigned char * p , size_t n , uint32_t /*timeout_ms*/ )
+int GSsl::MbedTls::ProtocolImp::doRecvTimeout( void * This , unsigned char * p , std::size_t n , uint32_t /*timeout_ms*/ )
 {
 	// with event-driven i/o the timeout is probably not useful since
 	// higher layers will time out eventually
 	return doRecv( This , p , n ) ;
 }
 
-int GSsl::MbedTls::ProtocolImp::doRecv( void * This , unsigned char * p , size_t n )
+int GSsl::MbedTls::ProtocolImp::doRecv( void * This , unsigned char * p , std::size_t n )
 {
-	G::ReadWrite * io = reinterpret_cast<ProtocolImp*>(This)->m_io ;
+	G::ReadWrite * io = static_cast<ProtocolImp*>(This)->m_io ;
 	G_ASSERT( io != nullptr ) ;
 	ssize_t rc = io->read( reinterpret_cast<char*>(p) , n ) ;
 	if( rc < 0 && io->eWouldBlock() ) return MBEDTLS_ERR_SSL_WANT_READ ;
@@ -599,9 +742,9 @@ int GSsl::MbedTls::ProtocolImp::doRecv( void * This , unsigned char * p , size_t
 	return rc ;
 }
 
-int GSsl::MbedTls::ProtocolImp::doSend( void * This , const unsigned char * p , size_t n )
+int GSsl::MbedTls::ProtocolImp::doSend( void * This , const unsigned char * p , std::size_t n )
 {
-	G::ReadWrite * io = reinterpret_cast<ProtocolImp*>(This)->m_io ;
+	G::ReadWrite * io = static_cast<ProtocolImp*>(This)->m_io ;
 	G_ASSERT( io != nullptr ) ;
 	ssize_t rc = io->write( reinterpret_cast<const char*>(p) , n ) ;
 	if( rc < 0 && io->eWouldBlock() ) return MBEDTLS_ERR_SSL_WANT_WRITE ;
@@ -680,9 +823,9 @@ GSsl::Protocol::Result GSsl::MbedTls::ProtocolImp::handshake()
 		}
 
 		m_peer_certificate = getPeerCertificate() ;
-		m_peer_certificate_chain = m_peer_certificate ; // not implemted
+		m_peer_certificate_chain = m_peer_certificate ; // not implemented
 
-		m_profile.logAt( 2 , std::string() + "protocol=" + protocol() + ", cipher=" + cipher() + ", verification=[" + vstr + "]" ) ;
+		m_profile.logAt( 2 , std::string("certificate verification: [") + vstr + "]" ) ;
 	}
 	return result ;
 }
@@ -713,7 +856,7 @@ std::string GSsl::MbedTls::ProtocolImp::getPeerCertificate()
 		const char * head = "-----BEGIN CERTIFICATE-----\n" ;
 		const char * tail = "-----END CERTIFICATE-----\n" ;
 
-		size_t n = 0U ;
+		std::size_t n = 0U ;
 		unsigned char c = '\0' ;
 		int rc = mbedtls_pem_write_buffer( head , tail , certificate->raw.p , certificate->raw.len , &c , 0 , &n ) ;
 		if( n == 0U || rc != MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL )
@@ -752,8 +895,7 @@ bool GSsl::MbedTls::ProtocolImp::verified() const
 
 GSsl::MbedTls::Context::Context( const mbedtls_ssl_config * config_p )
 {
-	static mbedtls_ssl_context x_zero ;
-	x = x_zero ;
+	x = mbedtls_ssl_context{} ;
 	mbedtls_ssl_init( &x ) ;
 
 	int rc = mbedtls_ssl_setup( &x , config_p ) ;
@@ -779,12 +921,10 @@ mbedtls_ssl_context * GSsl::MbedTls::Context::ptr() const
 
 GSsl::MbedTls::Rng::Rng()
 {
-	static mbedtls_entropy_context entropy_zero ;
-	entropy = entropy_zero ;
+	entropy = mbedtls_entropy_context{} ;
 	mbedtls_entropy_init( &entropy ) ;
 
-	static mbedtls_ctr_drbg_context x_zero ;
-	x = x_zero ;
+	x = mbedtls_ctr_drbg_context{} ;
 	mbedtls_ctr_drbg_init( &x ) ;
 
 	unsigned char extra[] = "sdflkjsdlkjsdfkljxmvnxcvmxmncvx" ;
@@ -814,7 +954,7 @@ mbedtls_ctr_drbg_context * GSsl::MbedTls::Rng::ptr() const
 
 // ==
 
-static void scrub( unsigned char *p_in , size_t n )
+static void scrub( unsigned char *p_in , std::size_t n )
 {
 	// see also SecureZeroMemory(), memset_s(3), explicit_bzero(BSD) and mbedtls_zeroize()
 	volatile unsigned char *p = p_in ;
@@ -828,15 +968,14 @@ GSsl::MbedTls::SecureFile::SecureFile( const std::string & path , bool with_nul 
 	std::filebuf * fp = nullptr ;
 	try
 	{
-		const char * path_p = path.c_str() ;
 		{
 			G::Root claim_root ;
-			fp = G::File::open( f , path_p , std::ios_base::in ) ;
+			fp = G::File::open( f , path , G::File::InOut::In ) ;
 		}
 		std::streamoff n = 0 ;
 		bool ok = fp != nullptr ;
 		if( ok ) n = fp->pubseekoff( 0 , std::ios_base::end , std::ios_base::in ) ;
-		if( ok ) m_buffer.resize( static_cast<size_t>(n) ) ;
+		if( ok ) m_buffer.resize( static_cast<std::size_t>(n) ) ;
 		if( ok ) fp->pubseekpos( 0 , std::ios_base::in ) ;
 		if( ok ) ok = fp->sgetn( &m_buffer[0] , m_buffer.size() ) == static_cast<std::streamsize>(m_buffer.size()) ;
 		if( !ok ) scrub( pu() , size() ) ;
@@ -859,7 +998,7 @@ GSsl::MbedTls::SecureFile::~SecureFile()
 const char * GSsl::MbedTls::SecureFile::p() const
 {
 	static char c = '\0' ;
-	return m_buffer.size() ? &m_buffer[0] : &c ;
+	return m_buffer.empty() ? &c : &m_buffer[0] ;
 }
 
 const unsigned char * GSsl::MbedTls::SecureFile::pu() const
@@ -872,7 +1011,7 @@ unsigned char * GSsl::MbedTls::SecureFile::pu()
 	return const_cast<unsigned char*>(reinterpret_cast<const unsigned char*>(p())) ;
 }
 
-size_t GSsl::MbedTls::SecureFile::size() const
+std::size_t GSsl::MbedTls::SecureFile::size() const
 {
 	return m_buffer.size() ;
 }
@@ -919,8 +1058,7 @@ mbedtls_pk_context * GSsl::MbedTls::Key::ptr() const
 
 // ==
 
-GSsl::MbedTls::Certificate::Certificate() :
-	m_loaded(false)
+GSsl::MbedTls::Certificate::Certificate()
 {
 	mbedtls_x509_crt_init( &x ) ;
 }
@@ -966,32 +1104,62 @@ mbedtls_x509_crt * GSsl::MbedTls::Certificate::ptr() const
 // ==
 
 GSsl::MbedTls::Error::Error( const std::string & s ) :
-	m_what("tls error: "+s)
+	std::runtime_error("tls error: "+s)
 {
 }
 
 GSsl::MbedTls::Error::Error( const std::string & fnname , int rc , const std::string & more ) :
-	m_what("tls error: "+fnname+"()")
+	std::runtime_error(format(fnname,rc,more))
 {
-	char buffer[200] = { '\0' } ;
-	mbedtls_strerror( rc , buffer , sizeof(buffer) ) ;
-	buffer[sizeof(buffer)-1] = '\0' ;
+}
+
+std::string GSsl::MbedTls::Error::format( const std::string & fnname , int rc , const std::string & more )
+{
+	std::vector<char> buffer( 200U ) ;
+	buffer[0] = '\0' ;
+	mbedtls_strerror( rc , &buffer[0] , buffer.size() ) ;
+	buffer[buffer.size()-1U] = '\0' ;
 
 	std::ostringstream ss ;
-	ss << ": mbedtls [" << G::Str::printable(buffer) << "]" ;
+	ss << "tls error: " << fnname << "(): mbedtls [" << G::Str::printable(&buffer[0]) << "]" ;
 	if( !more.empty() )
 		ss << " [" << more << "]" ;
 
-	m_what.append( ss.str() ) ;
+	return ss.str() ;
 }
 
-GSsl::MbedTls::Error::~Error() throw ()
+// ==
+
+void GSsl::MbedTls::randomFillImp( char * p , std::size_t n )
 {
+	int fd = G::File::open( "/dev/random" , G::File::InOutAppend::In ) ; // not "/dev/urandom" here
+	if( fd < 0 )
+	{
+		int e = G::Process::errno_() ;
+		throw G::Exception( "cannot open /dev/random" , G::Process::strerror(e) ) ;
+	}
+	G::ScopeExit closer( [&](){G::File::close(fd);} ) ;
+
+	while( n )
+	{
+		ssize_t nread_s = G::File::read( fd , p , n ) ;
+		if( nread_s < 0 )
+			throw Error( "cannot read /dev/random" ) ;
+
+		std::size_t nread = static_cast<std::size_t>( nread_s ) ;
+		if( nread > n )
+			throw Error( "cannot read /dev/random" ) ;
+
+		n -= nread ;
+		p += nread ;
+		sleep( 1 ) ;
+	}
 }
 
-const char * GSsl::MbedTls::Error::what() const throw ()
+int GSsl::MbedTls::randomFill( void * , unsigned char * output , std::size_t len , std::size_t * olen )
 {
-	return m_what.c_str() ;
+	*olen = 0U ;
+	randomFillImp( reinterpret_cast<char*>(output) , len ) ;
+	*olen = len ;
+	return 0 ;
 }
-
-/// \file gssl_mbedtls.cpp

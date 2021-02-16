@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gdaemon_unix.cpp
-//
+///
+/// \file gdaemon_unix.cpp
+///
 
 #include "gdef.h"
 #include "gdaemon.h"
@@ -34,18 +34,17 @@ void G::Daemon::detach()
 	// see Stevens, ISBN 0-201-563137-7, ch 13.
 
 	if( !NewProcess::fork().first )
-		::_exit( 0 ) ; // exit from parent
+		std::_Exit( 0 ) ; // exit from parent
 
 	setsid() ;
-	bool rc = Process::cd( "/" , Process::NoThrow() ) ; G_IGNORE_VARIABLE(bool,rc) ;
+	Process::cd( "/" , std::nothrow ) ;
 
 	if( !NewProcess::fork().first )
-		::_exit( 0 ) ; // exit from parent
+		std::_Exit( 0 ) ; // exit from parent
 }
 
 void G::Daemon::setsid()
 {
-	pid_t rc = ::setsid() ; G_IGNORE_VARIABLE(pid_t,rc) ;
+	GDEF_IGNORE_RETURN ::setsid() ;
 }
 
-/// \file gdaemon_unix.cpp

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ namespace G
 	class ExecutableCommand ;
 }
 
-/// \class G::ExecutableCommand
+//| \class G::ExecutableCommand
 /// A structure representing an external program, holding a path and a set of
 /// arguments. The constructor takes a complete command-line and splits it up
 /// into the executable part and a list of command-line parameters. If the
@@ -65,7 +65,6 @@ public:
 private:
 	bool osNativelyRunnable() const ;
 	void osAddWrapper() ;
-	static G::StringArray osSplit( const std::string & ) ;
 
 private:
 	G::Path m_exe ;

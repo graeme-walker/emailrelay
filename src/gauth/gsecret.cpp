@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gsecret.cpp
-//
+///
+/// \file gsecret.cpp
+///
 
 #include "gdef.h"
 #include "gsecret.h"
@@ -152,13 +152,13 @@ std::string GAuth::Secret::undotted( const std::string & s )
 {
 	G::StringArray decimals = G::Str::splitIntoFields( s , "." ) ; decimals.resize( 8U ) ;
 	std::string result ;
-	for( size_t i = 0U ; i < 8U ; i++ )
+	for( std::size_t i = 0U ; i < 8U ; i++ )
 	{
 		G::Md5::big_t n = 0U ;
-		for( std::string::iterator p = decimals[i].begin() ; p != decimals[i].end() ; ++p )
+		for( const char & c : decimals[i] )
 		{
 			n *= 10U ;
-			n += ((*p)-'0') ;
+			n += (c-'0') ;
 		}
 		for( int j = 0 ; j < 4 ; j++ )
 		{
@@ -170,4 +170,3 @@ std::string GAuth::Secret::undotted( const std::string & s )
 	return result ;
 }
 
-/// \file gsecret.cpp

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gssl_openssl.h
 ///
 
-#ifndef G_SSL_OPENSSL__H
-#define G_SSL_OPENSSL__H
+#ifndef G_SSL_OPENSSL_H
+#define G_SSL_OPENSSL_H
 
 #include "gdef.h"
 #include "gssl.h"
@@ -30,6 +30,8 @@
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
+#include <stdexcept>
+#include <functional>
 #include <map>
 
 // debugging...
@@ -49,10 +51,7 @@
 
 namespace GSsl
 {
-	/// \namespace GSsl::OpenSSL
-	/// A namespace for implementing the GSsl interface using the OpenSSL library.
-	///
-	namespace OpenSSL
+	namespace OpenSSL /// A namespace for implementing the GSsl interface using the OpenSSL library.
 	{
 		class Error ;
 		class Certificate ;
@@ -65,7 +64,7 @@ namespace GSsl
 	}
 }
 
-/// \class GSsl::OpenSSL::Certificate
+//| \class GSsl::OpenSSL::Certificate
 /// Holds a certificate taken from an OpenSSL X509 structure.
 ///
 class GSsl::OpenSSL::Certificate
@@ -78,13 +77,13 @@ private:
 	std::string m_str ;
 } ;
 
-/// \class GSsl::OpenSSL::Config
+//| \class GSsl::OpenSSL::Config
 /// Holds protocol version information, etc.
 ///
 class GSsl::OpenSSL::Config
 {
 public:
-	typedef const SSL_METHOD * (*Fn)() ;
+	using Fn = const SSL_METHOD *(*)() ;
 	explicit Config( G::StringArray & config ) ;
 	Fn fn( bool server ) ;
 	long set() const ;
@@ -107,7 +106,7 @@ private:
 	bool m_noverify ;
 } ;
 
-/// \class GSsl::OpenSSL::CertificateChain
+//| \class GSsl::OpenSSL::CertificateChain
 /// Holds a certificate chain taken from a stack of OpenSSL X509 structures.
 ///
 class GSsl::OpenSSL::CertificateChain
@@ -120,39 +119,34 @@ private:
 	std::string m_str ;
 } ;
 
-/// \class GSsl::OpenSSL::Error
+//| \class GSsl::OpenSSL::Error
 /// An exception class for GSsl::OpenSSL classes.
 ///
-class GSsl::OpenSSL::Error : public std::exception
+class GSsl::OpenSSL::Error : public std::runtime_error
 {
 public:
 	explicit Error( const std::string & ) ;
 	Error( const std::string & , unsigned long ) ;
 	Error( const std::string & , unsigned long , const std::string & path ) ;
-	virtual ~Error() g__noexcept ;
-	virtual const char * what() const g__noexcept override ;
 	static void clearErrors() ;
 
 private:
 	static std::string text( unsigned long ) ;
-
-private:
-	std::string m_what ;
 } ;
 
-/// \class GSsl::OpenSSL::ProfileImp
+//| \class GSsl::OpenSSL::ProfileImp
 /// An implementation of the GSsl::Profile interface for OpenSSL.
 ///
 class GSsl::OpenSSL::ProfileImp : public Profile
 {
 public:
-	typedef OpenSSL::Error Error ;
+	using Error = OpenSSL::Error ;
 
 	ProfileImp( const LibraryImp & , bool is_server_profile , const std::string & key_file ,
 		const std::string & cert_file , const std::string & ca_file ,
 		const std::string & default_peer_certificate_name , const std::string & default_peer_host_name ,
 		const std::string & profile_config ) ;
-	virtual ~ProfileImp() ;
+	~ProfileImp() override ;
 	SSL_CTX * p() const ;
 	const LibraryImp & lib() const ;
 	const std::string & defaultPeerCertificateName() const ;
@@ -160,11 +154,15 @@ public:
 	void apply( const Config & ) ;
 
 private: // overrides
-	virtual unique_ptr<ProtocolImpBase> newProtocol( const std::string & , const std::string & ) const override ;
+	std::unique_ptr<ProtocolImpBase> newProtocol( const std::string & , const std::string & ) const override ;
+
+public:
+	ProfileImp( const ProfileImp & ) = delete ;
+	ProfileImp( ProfileImp && ) = delete ;
+	void operator=( const ProfileImp & ) = delete ;
+	void operator=( ProfileImp && ) = delete ;
 
 private:
-	ProfileImp( const ProfileImp & ) g__eq_delete ;
-	void operator=( const ProfileImp & ) g__eq_delete ;
 	static void check( int , const std::string & , const std::string & = std::string() ) ;
 	static int verifyPass( int , X509_STORE_CTX * ) ;
 	static int verifyPeerName( int , X509_STORE_CTX * ) ;
@@ -175,19 +173,19 @@ private:
 	const LibraryImp & m_library_imp ;
 	const std::string m_default_peer_certificate_name ;
 	const std::string m_default_peer_host_name ;
-	unique_ptr<SSL_CTX,std::pointer_to_unary_function<SSL_CTX*,void> > m_ssl_ctx ;
+	std::unique_ptr<SSL_CTX,std::function<void(SSL_CTX*)>> m_ssl_ctx ;
 } ;
 
-/// \class GSsl::OpenSSL::LibraryImp
+//| \class GSsl::OpenSSL::LibraryImp
 /// An implementation of the GSsl::LibraryImpBase interface for OpenSSL.
 ///
 class GSsl::OpenSSL::LibraryImp : public LibraryImpBase
 {
 public:
-	typedef GSsl::OpenSSL::Error Error ;
+	using Error = GSsl::OpenSSL::Error ;
 
 	LibraryImp( G::StringArray & library_config , Library::LogFn , bool verbose ) ;
-	virtual ~LibraryImp() ;
+	~LibraryImp() override ;
 	Config config() const ;
 	bool noverify() const ;
 
@@ -198,23 +196,29 @@ public:
 	static std::string sid() ;
 
 private: // overrides
-	virtual void addProfile( const std::string & name , bool is_server_profile ,
+	void addProfile( const std::string & name , bool is_server_profile ,
 		const std::string & key_file , const std::string & cert_file , const std::string & ca_file ,
 		const std::string & default_peer_certificate_name , const std::string & default_peer_host_name ,
 		const std::string & profile_config ) override ;
-	virtual bool hasProfile( const std::string & ) const override ;
-	virtual const GSsl::Profile & profile( const std::string & ) const override ;
-	virtual std::string id() const override ;
-	virtual G::StringArray digesters( bool ) const override ;
-	virtual Digester digester( const std::string & , const std::string & , bool ) const override ;
+	bool hasProfile( const std::string & ) const override ;
+	const GSsl::Profile & profile( const std::string & ) const override ;
+	std::string id() const override ;
+	bool generateKeyAvailable() const override ;
+	std::string generateKey( const std::string & ) const override ;
+	G::StringArray digesters( bool ) const override ;
+	Digester digester( const std::string & , const std::string & , bool ) const override ;
+
+public:
+	LibraryImp( const LibraryImp & ) = delete ;
+	LibraryImp( LibraryImp && ) = delete ;
+	void operator=( const LibraryImp & ) = delete ;
+	void operator=( LibraryImp && ) = delete ;
 
 private:
-	LibraryImp( const LibraryImp & ) g__eq_delete ;
-	void operator=( const LibraryImp & ) g__eq_delete ;
 	static void cleanup() ;
 
 private:
-	typedef std::map<std::string,shared_ptr<ProfileImp> > Map ;
+	using Map = std::map<std::string,std::shared_ptr<ProfileImp>> ;
 	std::string m_library_config ;
 	Library::LogFn m_log_fn ;
 	bool m_verbose ;
@@ -223,35 +227,40 @@ private:
 	Config m_config ;
 } ;
 
-/// \class GSsl::OpenSSL::ProtocolImp
+//| \class GSsl::OpenSSL::ProtocolImp
 /// An implementation of the GSsl::ProtocolImpBase interface for OpenSSL.
 ///
 class GSsl::OpenSSL::ProtocolImp : public ProtocolImpBase
 {
 public:
-	typedef Protocol::Result Result ;
-	typedef OpenSSL::Error Error ;
-	typedef OpenSSL::Certificate Certificate ;
-	typedef OpenSSL::CertificateChain CertificateChain ;
+	using Result = Protocol::Result ;
+	using Error = OpenSSL::Error ;
+	using Certificate = OpenSSL::Certificate ;
+	using CertificateChain = OpenSSL::CertificateChain ;
 
 	ProtocolImp( const ProfileImp & , const std::string & , const std::string & ) ;
-	virtual ~ProtocolImp() ;
+	~ProtocolImp() override ;
 	std::string requiredPeerCertificateName() const ;
 
 private: // overrides
-	virtual Result connect( G::ReadWrite & ) override ;
-	virtual Result accept( G::ReadWrite & ) override ;
-	virtual Result shutdown() override ;
-	virtual Result read( char * buffer , size_t buffer_size , ssize_t & read_size ) override ;
-	virtual Result write( const char * buffer , size_t size_in , ssize_t & size_out ) override ;
-	virtual std::string peerCertificate() const override ;
-	virtual std::string peerCertificateChain() const override ;
-	virtual std::string cipher() const override ;
-	virtual bool verified() const override ;
+	Result connect( G::ReadWrite & ) override ;
+	Result accept( G::ReadWrite & ) override ;
+	Result shutdown() override ;
+	Result read( char * buffer , std::size_t buffer_size , ssize_t & read_size ) override ;
+	Result write( const char * buffer , std::size_t size_in , ssize_t & size_out ) override ;
+	std::string peerCertificate() const override ;
+	std::string peerCertificateChain() const override ;
+	std::string protocol() const override ;
+	std::string cipher() const override ;
+	bool verified() const override ;
+
+public:
+	ProtocolImp( const ProtocolImp & ) = delete ;
+	ProtocolImp( ProtocolImp && ) = delete ;
+	void operator=( const ProtocolImp & ) = delete ;
+	void operator=( ProtocolImp && ) = delete ;
 
 private:
-	ProtocolImp( const ProtocolImp & ) g__eq_delete ;
-	void operator=( const ProtocolImp & ) g__eq_delete ;
 	int error( const char * , int ) const ;
 	void set( int ) ;
 	Result connect() ;
@@ -263,7 +272,7 @@ private:
 	static void deleter( SSL * ) ;
 
 private:
-	unique_ptr<SSL,std::pointer_to_unary_function<SSL*,void> > m_ssl ;
+	std::unique_ptr<SSL,std::function<void(SSL*)>> m_ssl ;
 	Library::LogFn m_log_fn ;
 	bool m_verbose ;
 	bool m_fd_set ;
@@ -273,37 +282,39 @@ private:
 	bool m_verified ;
 } ;
 
-/// \class GSsl::OpenSSL::DigesterImp
+//| \class GSsl::OpenSSL::DigesterImp
 /// An implementation of the GSsl::DigesterImpBase interface for OpenSSL.
 ///
 class GSsl::OpenSSL::DigesterImp : public GSsl::DigesterImpBase
 {
 public:
 	DigesterImp( const std::string & , const std::string & , bool ) ;
-	virtual ~DigesterImp() ;
+	~DigesterImp() override ;
 
 private: // overrides
-	virtual void add( const std::string & ) override ;
-	virtual std::string value() override ;
-	virtual std::string state() override ;
-	virtual size_t blocksize() const override ;
-	virtual size_t valuesize() const override ;
-	virtual size_t statesize() const override ;
+	void add( const std::string & ) override ;
+	std::string value() override ;
+	std::string state() override ;
+	std::size_t blocksize() const override ;
+	std::size_t valuesize() const override ;
+	std::size_t statesize() const override ;
+
+public:
+	DigesterImp( const DigesterImp & ) = delete ;
+	DigesterImp( DigesterImp && ) = delete ;
+	void operator=( const DigesterImp & ) = delete ;
+	void operator=( DigesterImp && ) = delete ;
 
 private:
-	DigesterImp( const DigesterImp & ) g__eq_delete ;
-	void operator=( const DigesterImp & ) g__eq_delete ;
-
-private:
-	g__enum(Type) { Md5 , Sha1 , Sha256 , Other } ; g__enum_end(Type)
+	enum class Type { Md5 , Sha1 , Sha256 , Other } ;
 	Type m_hash_type ;
-	MD5_CTX m_md5 ;
-	SHA_CTX m_sha1 ;
-	SHA256_CTX m_sha256 ;
+	MD5_CTX m_md5 {} ;
+	SHA_CTX m_sha1 {} ;
+	SHA256_CTX m_sha256 {} ;
 	EVP_MD_CTX * m_evp_ctx ;
-	size_t m_block_size ;
-	size_t m_value_size ;
-	size_t m_state_size ;
+	std::size_t m_block_size {0} ;
+	std::size_t m_value_size {0} ;
+	std::size_t m_state_size {0} ;
 } ;
 
 #endif

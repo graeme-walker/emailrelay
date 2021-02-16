@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file glinebuffer.h
 ///
 
-#ifndef G_NET_LINE_BUFFER__H
-#define G_NET_LINE_BUFFER__H
+#ifndef G_NET_LINE_BUFFER_H
+#define G_NET_LINE_BUFFER_H
 
 #include "gdef.h"
 #include "gexception.h"
@@ -35,7 +35,7 @@ namespace GNet
 	class LineBufferState ;
 }
 
-/// \class GNet::LineBuffer
+//| \class GNet::LineBuffer
 /// A class that does line buffering, supporting auto-detection of
 /// line endings and fixed-size block extraction. Raw data is
 /// added, and newline-delimited lines are extracted, optionally
@@ -62,12 +62,17 @@ namespace GNet
 ///
 /// \code
 /// {
-///   struct Callback { bool operator()( const char * , size_t size , size_t eolsize , size_t linesize , char c0 ) {...} } callback ;
+///   struct Callback { bool operator()( const char * , std::size_t size , std::size_t eolsize , std::size_t linesize , char c0 ) {...} } callback ;
 ///   GNet::LineBuffer buffer( (GNet::LineBufferConfig()) ) ;
 ///   for( std::string s : std::vector<std::string> { "foo" , "bar\r" , "\n" } )
 ///     buffer.apply( s.data() , s.size() , callback , true ) ;
 /// }
 /// \endcode
+///
+/// The expect() method allows for handling fixed-size blocks
+/// that are not line-structured (think http content-length).
+/// While the expect() value is in force the line buffer is in
+/// a transparent mode, delivering data() with a zero eolsize().
 ///
 /// Note that a line buffer that is configured as 'transparent'
 /// at run-time is essentially zero cost when using apply()
@@ -79,7 +84,7 @@ class GNet::LineBuffer
 public:
 	G_EXCEPTION( ErrorOverflow , "line buffer overflow" ) ;
 
-	explicit LineBuffer( LineBufferConfig ) ;
+	explicit LineBuffer( const LineBufferConfig & ) ;
 		///< Constructor.
 
 	void clear() ;
@@ -88,11 +93,11 @@ public:
 	void add( const std::string & data ) ;
 		///< Adds a data segment.
 
-	void add( const char * data , size_t size ) ;
+	void add( const char * data , std::size_t size ) ;
 		///< Adds a data segment by copying.
 		///< See also apply().
 
-	void expect( size_t n ) ;
+	void expect( std::size_t n ) ;
 		///< Requests that the next 'n' bytes extracted be extracted
 		///< in one contiguous block, without regard to line endings.
 		///< Once the expected number of bytes have been extracted
@@ -102,7 +107,10 @@ public:
 		///< obtain a chunk of data of known size, as in http with a
 		///< known content-length.
 		///<
-		///< A parameter value of size_t(-1) can be used to represent
+		///< A parameter value of zero switches back to normal line
+		///< buffering immediately.
+		///<
+		///< A parameter value of std::size_t(-1) can be used to represent
 		///< an infinite expectation that is never fully satisfied.
 		///< This is only sensible when extracting fragments and
 		///< results in full transparency.
@@ -114,41 +122,43 @@ public:
 		///< occurred.
 
 	template <typename Tfn>
-	void apply( const char * data , size_t data_size , Tfn sink_fn , bool fragments = false ) ;
+	void apply( const char * data , std::size_t data_size , Tfn sink_fn , bool fragments = false ) ;
 		///< Adds the data and passes complete lines to the sink
 		///< function with line-data, line-size, eol-size and
 		///< c0 parameters. Stops if the sink function returns false.
-		///< This method is zero-copy if the supplied data contains
-		///< complete lines or if allowing line fragments.
+		///< The data can be nullptr in order to flush any existing
+		///< data to the sink function. This method is zero-copy if
+		///< the supplied data contains complete lines or if allowing
+		///< line fragments.
 		///<
 		///< \code
-		///< void Foo::onData( const char * data , size_t size )
+		///< void Foo::onData( const char * data , std::size_t size )
 		///< {
 		///<   apply( data , size , onLine , false ) ;
 		///< }
-		///< bool onLine( const char * data , size_t size , size_t , size_t , char )
+		///< bool onLine( const char * data , std::size_t size , std::size_t , std::size_t , char )
 		///< {
 		///<   process( std::string(data,size) ) ;
 		///< }
 		///< \endcode
 
 	template <typename Tsink, typename Tmemfun>
-	void apply( Tsink sink_p , Tmemfun sink_memfun , const char * data , size_t data_size , bool fragments = false ) ;
+	void apply( Tsink sink_p , Tmemfun sink_memfun , const char * data , std::size_t data_size , bool fragments = false ) ;
 		///< Overload that calls out to a member function.
 		///<
 		///< \code
-		///< void Foo::onData( const char * data , size_t size )
+		///< void Foo::onData( const char * data , std::size_t size )
 		///< {
 		///<   apply( this , &Foo::onLine , data , size , false ) ;
 		///< }
-		///< bool Foo::onLine( const char * data , size_t size , size_t , size_t , char )
+		///< bool Foo::onLine( const char * data , std::size_t size , std::size_t , std::size_t , char )
 		///< {
 		///<   process( std::string(data,size) ) ;
 		///< }
 		///< \endcode
 
 	template <typename Tsink, typename Tmemfun, typename Tmemfun2>
-	void apply( Tsink sink_p , Tmemfun sink_memfun , const char * data , size_t data_size , Tmemfun2 fragments_memfun ) ;
+	void apply( Tsink sink_p , Tmemfun sink_memfun , const char * data , std::size_t data_size , Tmemfun2 fragments_memfun ) ;
 		///< Overload where the 'fragments' flag comes from calling a member
 		///< function on the sink object, allowing the flag to change
 		///< dynamically as each line is delivered.
@@ -160,6 +170,7 @@ public:
 
 	bool more( bool fragments = false ) ;
 		///< Returns true if there is more data() to be had.
+		///< This advances the implied iterator.
 		///<
 		///< If the fragments parameter is true then incomplete
 		///< lines will be returned (with eolsize zero), but
@@ -172,20 +183,24 @@ public:
 		///< eolsize() bytes of line-ending.
 		///< Precondition: more()
 
-	size_t size() const ;
+	std::size_t size() const ;
 		///< Returns the size of the current data(), excluding the
 		///< line ending.
 		///< Precondition: more()
 
-	size_t eolsize() const ;
+	bool empty() const ;
+		///< Returns state().empty().
+
+	std::size_t eolsize() const ;
 		///< Returns the size of line-ending associated with the
 		///< current data(). This will be zero for a fixed-size
-		///< block or line fragment. (It will never be zero as a
-		///< result of auto-detection because the precondition
-		///< means that auto-detection has already happened.)
+		///< block or non-terminal line fragment. (It will never
+		///< be zero as a result of auto-detection because the
+		///< precondition means that auto-detection has already
+		///< happened.)
 		///< Precondition: more()
 
-	size_t linesize() const ;
+	std::size_t linesize() const ;
 		///< Returns the current size of all the line fragments
 		///< making up the current line.
 		///< Precondition: more()
@@ -207,7 +222,7 @@ public:
 		///< line-buffer.
 
 public:
-	void extensionStart( const char * , size_t ) ;
+	void extensionStart( const char * , std::size_t ) ;
 		///< A pseudo-private method used by the implementation
 		///< of the apply() method template.
 
@@ -218,48 +233,60 @@ public:
 private:
 	struct Output
 	{
-		bool m_first ;
-		const char * m_data ;
-		size_t m_size ;
-		size_t m_eolsize ;
-		size_t m_linesize ;
-		char m_c0 ;
+		bool m_first{true} ;
+		const char * m_data{nullptr} ;
+		std::size_t m_size{0U} ;
+		std::size_t m_eolsize{0U} ;
+		std::size_t m_linesize{0U} ;
+		char m_c0{'\0'} ;
 		Output() ;
-		size_t set( LineStore & , size_t pos , size_t size , size_t eolsize ) ;
+		std::size_t set( LineStore & , std::size_t pos , std::size_t size , std::size_t eolsize ) ;
 	} ;
 	struct Extension
 	{
-		Extension( LineBuffer * , const char * , size_t ) ;
+		Extension( LineBuffer * , const char * , std::size_t ) ;
 		~Extension() ;
+		Extension( const Extension & ) = delete ;
+		Extension( Extension && ) = delete ;
+		void operator=( const Extension & ) = delete ;
+		void operator=( Extension && ) = delete ;
 		bool valid() const ;
 		LineBuffer * m_line_buffer ;
 		G::CallFrame m_call_frame ;
 	} ;
 
+public:
+	~LineBuffer() = default ;
+	LineBuffer( const LineBuffer & ) = delete ;
+	LineBuffer( LineBuffer && ) = delete ;
+	void operator=( const LineBuffer & ) = delete ;
+	void operator=( LineBuffer && ) = delete ;
+
 private:
-	LineBuffer( const LineBuffer & ) g__eq_delete ;
-	void operator=( const LineBuffer & ) g__eq_delete ;
+	friend class LineBufferState ;
 	void check( const Output & ) ;
-	void output( size_t size , size_t eolsize , bool = false ) ;
+	void output( std::size_t size , std::size_t eolsize , bool = false ) ;
 	bool detect() ;
-	bool trivial( size_t pos ) const ;
+	bool trivial( std::size_t pos ) const ;
 	bool finite() const ;
+	std::size_t insize() const ; // for LineBufferState
+	std::string head() const ; // for LineBufferState
 
 private:
 	friend struct Extension ;
 	G::CallStack m_call_stack ;
 	bool m_auto ;
 	std::string m_eol ;
-	size_t m_warn_limit ;
-	size_t m_fmin ;
-	size_t m_expect ;
+	std::size_t m_warn_limit ;
+	std::size_t m_fmin ;
+	std::size_t m_expect ;
 	bool m_warned ;
 	LineStore m_in ;
 	Output m_out ;
-	size_t m_pos ;
+	std::size_t m_pos ;
 } ;
 
-/// \class GNet::LineBufferIterator
+//| \class GNet::LineBufferIterator
 /// Syntactic sugar for calling GNet::LineBuffer iteration methods.
 ///
 class GNet::LineBufferIterator
@@ -274,37 +301,40 @@ public:
 	const char * data() const ;
 		///< See LineBuffer::data().
 
-	size_t size() const ;
+	std::size_t size() const ;
 		///< See LineBuffer::size().
 
-	size_t eolsize() const ;
+	std::size_t eolsize() const ;
 		///< See LineBuffer::eolsize().
 
 	std::string line() const ;
 		///< Returns the current line (of length size()).
 
-private:
-	LineBufferIterator( const LineBufferIterator & ) g__eq_delete ;
-	void operator=( const LineBufferIterator & ) g__eq_delete ;
+public:
+	~LineBufferIterator() = default ;
+	LineBufferIterator( const LineBufferIterator & ) = delete ;
+	LineBufferIterator( LineBufferIterator && ) = delete ;
+	void operator=( const LineBufferIterator & ) = delete ;
+	void operator=( LineBufferIterator && ) = delete ;
 
 private:
 	LineBuffer & m_line_buffer ;
 } ;
 
-/// \class GNet::LineBufferConfig
+//| \class GNet::LineBufferConfig
 /// A configuration structure for GNet::LineBuffer.
 ///
 class GNet::LineBufferConfig
 {
 public:
 	explicit LineBufferConfig( const std::string & eol = std::string(1U,'\n') ,
-		size_t warn = 0U , size_t fmin = 0U , size_t initial_expect = 0U ) ;
+		std::size_t warn = 0U , std::size_t fmin = 0U , std::size_t initial_expect = 0U ) ;
 			///< Constructor. An empty end-of-line string detects either
 			///< LF or CR-LF. The default end-of-line string is newline.
 			///< A non-zero warn-limit generates a one-shot warning when
 			///< breached. The fmin value can be used to prevent trivially
 			///< small line fragments from being returned. This is useful
-			///< for SMTP where a fagment containing a single dot character
+			///< for SMTP where a fragment containing a single dot character
 			///< and no end-of-line can cause confusion with respect to
 			///< the end-of-text marker. The initial-expect parameter
 			///< is useful for defining transparent operation.
@@ -312,13 +342,13 @@ public:
 	const std::string & eol() const ;
 		///< Returns the end-of-line string as passed to the constructor.
 
-	size_t warn() const ;
+	std::size_t warn() const ;
 		///< Returns the warn-limit, as passed to the constructor.
 
-	size_t fmin() const ;
+	std::size_t fmin() const ;
 		///< Returns the minimum fragment size, as passed to the constructor.
 
-	size_t expect() const ;
+	std::size_t expect() const ;
 		///< Returns the initial expect value, as passed to the constructor.
 
 	static LineBufferConfig transparent() ;
@@ -344,12 +374,12 @@ public:
 
 private:
 	std::string m_eol ;
-	size_t m_warn ;
-	size_t m_fmin ;
-	size_t m_expect ;
+	std::size_t m_warn ;
+	std::size_t m_fmin ;
+	std::size_t m_expect ;
 } ;
 
-/// \class GNet::LineBufferState
+//| \class GNet::LineBufferState
 /// Provides information abount the state of a line buffer.
 ///
 class GNet::LineBufferState
@@ -364,15 +394,27 @@ public:
 	std::string eol() const ;
 		///< Returns LineBuffer::eol().
 
+	std::size_t size() const ;
+		///< Returns the number of bytes currently buffered up.
+
+	bool empty() const ;
+		///< Returns true iff size() is zero.
+
+	std::string head() const ;
+		///< Returns the first bytes of buffered data up to a limit
+		///< of sixteen bytes.
+
 private:
 	bool m_transparent ;
 	std::string m_eol ;
+	std::size_t m_size ;
+	std::string m_head ;
 } ;
 
 // ==
 
 inline
-GNet::LineBuffer::Extension::Extension( LineBuffer * line_buffer , const char * data , size_t size ) :
+GNet::LineBuffer::Extension::Extension( LineBuffer * line_buffer , const char * data , std::size_t size ) :
 	m_line_buffer(line_buffer) ,
 	m_call_frame(line_buffer->m_call_stack)
 {
@@ -395,19 +437,31 @@ bool GNet::LineBuffer::Extension::valid() const
 // ==
 
 inline
-size_t GNet::LineBuffer::size() const
+std::size_t GNet::LineBuffer::size() const
 {
 	return m_out.m_size ;
 }
 
 inline
-size_t GNet::LineBuffer::eolsize() const
+std::size_t GNet::LineBuffer::insize() const
+{
+	return m_in.size() ;
+}
+
+inline
+std::string GNet::LineBuffer::head() const
+{
+	return m_in.head( 16U ) ;
+}
+
+inline
+std::size_t GNet::LineBuffer::eolsize() const
 {
 	return m_out.m_eolsize ;
 }
 
 inline
-size_t GNet::LineBuffer::linesize() const
+std::size_t GNet::LineBuffer::linesize() const
 {
 	return m_out.m_linesize ;
 }
@@ -418,44 +472,44 @@ char GNet::LineBuffer::c0() const
 	return m_out.m_c0 ;
 }
 
-namespace GNet
+template <typename Tfn>
+void GNet::LineBuffer::apply( const char * data_in , std::size_t size_in , Tfn sink_fn , bool with_fragments )
 {
-	template <typename Tfn>
-	void LineBuffer::apply( const char * data_in , size_t size_in , Tfn sink_fn , bool with_fragments )
+	Extension e( this , data_in , size_in ) ;
+	while( e.valid() && more(with_fragments) )
 	{
-		Extension e( this , data_in , size_in ) ;
-		while( e.valid() && more(with_fragments) )
-		{
-			if( !sink_fn( data() , size() , eolsize() , linesize() , c0() ) )
-				break ;
-		}
+		if( !sink_fn( data() , size() , eolsize() , linesize() , c0() ) )
+			break ;
 	}
-	template <typename Tsink, typename Tmemfun>
-	void LineBuffer::apply( Tsink sink_p , Tmemfun memfun , const char * data_in , size_t size_in , bool with_fragments )
+}
+
+template <typename Tsink, typename Tmemfun>
+void GNet::LineBuffer::apply( Tsink sink_p , Tmemfun memfun , const char * data_in , std::size_t size_in , bool with_fragments )
+{
+	Extension e( this , data_in , size_in ) ;
+	while( e.valid() && more(with_fragments) )
 	{
-		Extension e( this , data_in , size_in ) ;
-		while( e.valid() && more(with_fragments) )
-		{
-			if( !(sink_p->*memfun)( data() , size() , eolsize() , linesize() , c0() ) )
-				break ;
-		}
+		if( !(sink_p->*memfun)( data() , size() , eolsize() , linesize() , c0() ) )
+			break ;
 	}
-	template <typename Tsink, typename Tmemfun, typename Tmemfun2>
-	void LineBuffer::apply( Tsink sink_p , Tmemfun memfun , const char * data_in , size_t size_in , Tmemfun2 fragments_memfun )
+}
+
+template <typename Tsink, typename Tmemfun, typename Tmemfun2>
+void GNet::LineBuffer::apply( Tsink sink_p , Tmemfun memfun , const char * data_in , std::size_t size_in , Tmemfun2 fragments_memfun )
+{
+	Extension e( this , data_in , size_in ) ;
+	while( e.valid() && more( (sink_p->*fragments_memfun)() ) )
 	{
-		Extension e( this , data_in , size_in ) ;
-		while( e.valid() && more( (sink_p->*fragments_memfun)() ) )
-		{
-			if( !(sink_p->*memfun)( data() , size() , eolsize() , linesize() , c0() ) )
-				break ;
-		}
+		if( !(sink_p->*memfun)( data() , size() , eolsize() , linesize() , c0() ) )
+			break ;
 	}
-	template <typename T>
-	inline
-	void LineBuffer::apply( const std::string & data , T sink , bool with_fragments )
-	{
-		return apply( data.data() , data.size() , sink , with_fragments ) ;
-	}
+}
+
+template <typename T>
+inline
+void GNet::LineBuffer::apply( const std::string & data , T sink , bool with_fragments )
+{
+	return apply( data.data() , data.size() , sink , with_fragments ) ;
 }
 
 // ==
@@ -467,19 +521,19 @@ const std::string & GNet::LineBufferConfig::eol() const
 }
 
 inline
-size_t GNet::LineBufferConfig::warn() const
+std::size_t GNet::LineBufferConfig::warn() const
 {
 	return m_warn ;
 }
 
 inline
-size_t GNet::LineBufferConfig::fmin() const
+std::size_t GNet::LineBufferConfig::fmin() const
 {
 	return m_fmin ;
 }
 
 inline
-size_t GNet::LineBufferConfig::expect() const
+std::size_t GNet::LineBufferConfig::expect() const
 {
 	return m_expect ;
 }
@@ -511,13 +565,13 @@ const char * GNet::LineBufferIterator::data() const
 }
 
 inline
-size_t GNet::LineBufferIterator::size() const
+std::size_t GNet::LineBufferIterator::size() const
 {
 	return m_line_buffer.size() ;
 }
 
 inline
-size_t GNet::LineBufferIterator::eolsize() const
+std::size_t GNet::LineBufferIterator::eolsize() const
 {
 	return m_line_buffer.eolsize() ;
 }
@@ -527,7 +581,9 @@ size_t GNet::LineBufferIterator::eolsize() const
 inline
 GNet::LineBufferState::LineBufferState( const LineBuffer & line_buffer ) :
 	m_transparent(line_buffer.transparent()) ,
-	m_eol(line_buffer.eol())
+	m_eol(line_buffer.eol()) ,
+	m_size(line_buffer.insize()) ,
+	m_head(line_buffer.head())
 {
 }
 
@@ -541,6 +597,24 @@ inline
 bool GNet::LineBufferState::transparent() const
 {
 	return m_transparent ;
+}
+
+inline
+std::size_t GNet::LineBufferState::size() const
+{
+	return m_size ;
+}
+
+inline
+bool GNet::LineBufferState::empty() const
+{
+	return m_size == 0U ;
+}
+
+inline
+std::string GNet::LineBufferState::head() const
+{
+	return m_head ;
 }
 
 #endif

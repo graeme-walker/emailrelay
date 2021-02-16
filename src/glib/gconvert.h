@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,15 +28,19 @@
 namespace G
 {
 	class Convert ;
-	class ConvertImp ;
 }
 
-/// \class G::Convert
+//| \class G::Convert
 /// A static class which provides string encoding conversion functions. Supported
-/// encodings are "ANSI" (CP-1252/ISO-8859-1) char, UTF-16 wchar, and UTF-8
-/// multi-byte char. Conversions that can fail take a ThrowOnError parameter
-/// which is used to add context information to the G::Convert::Error exception
-/// that is thrown.
+/// encodings are ISO-8859-15 eight-bit char, UTF-16 wchar, and UTF-8 multi-byte char.
+///
+/// On Windows the eight-bit char encoding uses the 'active code page', typically
+/// CP-1252, rather than ISO-8859-15. Note that the active code page is also used
+/// by the Win32 API "A()" functions when they have to convert from 'ansi' to UTF-16
+/// (UCS-2) wide characters (see GetACP()).
+///
+/// Conversions that can fail take a ThrowOnError parameter which is used to add
+/// context information to the G::Convert::Error exception that is thrown.
 ///
 /// Eg:
 /// \code
@@ -57,19 +61,19 @@ namespace G
 class G::Convert
 {
 public:
-	G_EXCEPTION_CLASS( Error , "string conversion error" ) ;
-	typedef std::basic_string<TCHAR> tstring ;
+	G_EXCEPTION_CLASS( Error , "string character-set conversion error" ) ;
+	using tstring = std::basic_string<TCHAR> ;
 
 	struct utf8 /// A string wrapper that indicates UTF-8 encoding.
 	{
-		utf8() {}
+		utf8() = default;
 		explicit utf8( const std::string & s_ ) : s(s_) {}
 		std::string s ;
 	} ;
 
 	struct ThrowOnError /// Holds context information which convert() adds to the exception when it fails.
 	{
-		ThrowOnError() {}
+		ThrowOnError() = default;
 		explicit ThrowOnError( const std::string & context_ ) : context(context_) {}
 		std::string context ;
 	} ;
@@ -108,15 +112,21 @@ public:
 
 	static void convert( std::wstring & wide_out , const std::wstring & wide_in ) ;
 		///< Converts between string types/encodings:
-		///< utf8 to utf16.
+		///< utf16 to utf16.
 
 	static void convert( std::string & ansi_out , const std::string & in_ , const ThrowOnError & ) ;
-		///< An overload for TCHAR shenanigans on windows.
+		///< An overload for TCHAR shenanigans on windows. Note that
+		///< a TCHAR can sometimes be a char, depending on the build
+		///< options, so this three-parameter overload allows for the
+		///< input to be a basic_string<TCHAR>, whatever the build.
+		///<
 		///< Converts between string types/encodings:
 		///< ansi to ansi.
 
+public:
+	Convert() = delete ;
+
 private:
-	Convert() g__eq_delete ;
 	static std::string narrow( const std::wstring & s , bool is_utf8 , const std::string & = std::string() ) ;
 	static std::wstring widen( const std::string & s , bool is_utf8 , const std::string & = std::string() ) ;
 } ;

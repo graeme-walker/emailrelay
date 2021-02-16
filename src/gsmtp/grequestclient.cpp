@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,24 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// grequestclient.cpp
-//
+///
+/// \file grequestclient.cpp
+///
 
 #include "gdef.h"
 #include "gstr.h"
 #include "grequestclient.h"
-
-namespace
-{
-	GNet::Client::Config netConfig( unsigned int connection_timeout , unsigned int response_timeout )
-	{
-		GNet::Client::Config net_config( GNet::LineBufferConfig::newline() ) ;
-		net_config.connection_timeout = connection_timeout ;
-		net_config.response_timeout = response_timeout ;
-		return net_config ;
-	}
-}
 
 GSmtp::RequestClient::RequestClient( GNet::ExceptionSink es , const std::string & key , const std::string & ok ,
 	const GNet::Location & location , unsigned int connect_timeout , unsigned int response_timeout ) :
@@ -43,6 +32,14 @@ GSmtp::RequestClient::RequestClient( GNet::ExceptionSink es , const std::string 
 {
 	G_DEBUG( "GSmtp::RequestClient::ctor: " << location.displayString() << ": "
 		<< connect_timeout << " " << response_timeout ) ;
+}
+
+GNet::Client::Config GSmtp::RequestClient::netConfig( unsigned int connection_timeout , unsigned int response_timeout )
+{
+	GNet::Client::Config net_config( GNet::LineBufferConfig::newline() ) ;
+	net_config.connection_timeout = connection_timeout ;
+	net_config.response_timeout = response_timeout ;
+	return net_config ;
 }
 
 void GSmtp::RequestClient::onConnect()
@@ -84,18 +81,19 @@ void GSmtp::RequestClient::onDelete( const std::string & reason )
 		G_WARNING( "GSmtp::RequestClient::onDelete: error: " << reason ) ;
 }
 
-void GSmtp::RequestClient::onSecure( const std::string & , const std::string & )
+void GSmtp::RequestClient::onSecure( const std::string & , const std::string & , const std::string & )
 {
 }
 
-bool GSmtp::RequestClient::onReceive( const char * line_data , size_t line_size , size_t , size_t , char )
+bool GSmtp::RequestClient::onReceive( const char * line_data , std::size_t line_size , std::size_t ,
+	std::size_t , char )
 {
 	std::string line( line_data , line_size ) ;
 	G_DEBUG( "GSmtp::RequestClient::onReceive: [" << G::Str::printable(line) << "]" ) ;
 	if( busy() )
 	{
 		m_request.erase() ;
-		eventSignal().emit( m_key , result(line) , std::string() ) ; // empty string if matching m_ok
+		eventSignal().emit( std::string(m_key) , result(line) , std::string() ) ; // empty string if matching m_ok
 		return false ;
 	}
 	else
@@ -119,4 +117,3 @@ std::string GSmtp::RequestClient::result( std::string line ) const
 	return !m_ok.empty() && line.find(m_ok) == 0U ? std::string() : line ;
 }
 
-/// \file grequestclient.cpp

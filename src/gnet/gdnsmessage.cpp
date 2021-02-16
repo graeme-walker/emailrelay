@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,14 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gdnsmessage.cpp
-//
+///
+/// \file gdnsmessage.cpp
+///
 
 #include "gdef.h"
 #include "gdnsmessage.h"
+#include "gassert.h"
 #include "gstr.h"
-#include <map>
+#include "gstringview.h"
+#include <array>
 #include <vector>
 #include <iomanip>
 #include <sstream>
@@ -29,6 +31,7 @@
 GNet::DnsMessageRequest::DnsMessageRequest( const std::string & type , const std::string & hostname , unsigned int id )
 {
 	// header section
+	G_ASSERT( id < 0xffffU ) ;
 	q( (id>>8U)&0xff ) ; q( id&0xff ) ; // ID=id - arbitrary identifier to link query with response
 	q( 0x01 ) ; // flags - QR=0 (ie. query) and RD=1 (ie. recursion desired)
 	q( 0x00 ) ; // RA=0 (recursion available) and Z=0 (zero bits, but see RFC-2671) and RCODE=0 (response code)
@@ -38,18 +41,18 @@ GNet::DnsMessageRequest::DnsMessageRequest( const std::string & type , const std
 	q( 0x00 ) ; q( 0x00 ) ; // ARCOUNT=0 (ie. no additional sections)
 
 	// question section
-	q( hostname , "." ) ; // QNAME
+	q( hostname , '.' ) ; // QNAME
 	q( 0x00 ) ; q( DnsMessageRecordType::value(type) ) ; // eg. QTYPE=A
 	q( 0x00 ) ; q( 0x01 ) ; // QCLASS=IN(ternet)
 }
 
-void GNet::DnsMessageRequest::q( const std::string & domain , const std::string & seps )
+void GNet::DnsMessageRequest::q( const std::string & domain , char sep )
 {
 	G::StringArray parts ;
-	G::Str::splitIntoFields( domain , parts , seps ) ;
-	for( G::StringArray::iterator part = parts.begin() ; part != parts.end() ; ++part )
+	G::Str::splitIntoFields( domain , parts , {&sep,1U} ) ;
+	for( const auto & part : parts )
 	{
-		q( *part ) ;
+		q( part ) ;
 	}
 	q( std::string() ) ;
 }
@@ -76,7 +79,7 @@ const char * GNet::DnsMessageRequest::p() const
 	return m_data.data() ;
 }
 
-size_t GNet::DnsMessageRequest::n() const
+std::size_t GNet::DnsMessageRequest::n() const
 {
 	return m_data.size() ;
 }
@@ -84,8 +87,7 @@ size_t GNet::DnsMessageRequest::n() const
 // ==
 
 GNet::DnsMessage::DnsMessage()
-{
-}
+= default;
 
 GNet::DnsMessage::DnsMessage( const std::vector<char> & buffer ) :
 	m_buffer(buffer)
@@ -94,7 +96,7 @@ GNet::DnsMessage::DnsMessage( const std::vector<char> & buffer ) :
 		throw Error( "truncated response" ) ;
 }
 
-GNet::DnsMessage::DnsMessage( const char * p , size_t n ) :
+GNet::DnsMessage::DnsMessage( const char * p , std::size_t n ) :
 	m_buffer(p,p+n)
 {
 }
@@ -104,7 +106,7 @@ const char * GNet::DnsMessage::p() const
 	return &m_buffer[0] ;
 }
 
-size_t GNet::DnsMessage::n() const
+std::size_t GNet::DnsMessage::n() const
 {
 	return m_buffer.size() ;
 }
@@ -125,7 +127,7 @@ std::vector<GNet::Address> GNet::DnsMessage::addresses() const
 	std::vector<Address> list ;
 	for( unsigned int i = QDCOUNT() ; i < (QDCOUNT()+ANCOUNT()) ; i++ )
 	{
-		list.push_back( rr(i).address() ) ;
+		list.push_back( rrAddress(i) ) ;
 	}
 	return list ;
 }
@@ -255,6 +257,11 @@ GNet::DnsMessageRR GNet::DnsMessage::rr( unsigned int record_index ) const
 			offset += RR(*this,offset).size() ;
 	}
 	return RR( *this , offset ) ;
+}
+
+GNet::Address GNet::DnsMessage::rrAddress( unsigned int record_index ) const
+{
+	return rr(record_index).address() ;
 }
 
 // ==
@@ -437,60 +444,64 @@ GNet::Address GNet::DnsMessageRR::address() const
 
 // ==
 
-std::map<unsigned int,std::string> GNet::DnsMessageRecordType::m_map ;
-
-const std::map<unsigned int,std::string> & GNet::DnsMessageRecordType::map()
+namespace GNet
 {
-	if( m_map.empty() )
+	//| \namespace GNet::DnsMessageRecordTypeImp
+	/// A private implementation namespace for GNet::DnsMessage.
+	namespace DnsMessageRecordTypeImp
 	{
-		add( 1 , "A" ) ; // a host address
-		add( 2 , "NS" ) ; // an authoritative name server
-		add( 3 , "MD" ) ; // a mail destination (Obsolete - use MX)
-		add( 4 , "MF" ) ; // a mail forwarder (Obsolete - use MX)
-		add( 5 , "CNAME" ) ; // the canonical name for an alias
-		add( 6 , "SOA" ) ; // marks the start of a zone of authority
-		add( 7 , "MB" ) ; // a mailbox domain name (EXPERIMENTAL)
-		add( 8 , "MG" ) ; // a mail group member (EXPERIMENTAL)
-		add( 9 , "MR" ) ; // a mail rename domain name (EXPERIMENTAL)
-		add( 10 , "NULL_" ) ; // a null RR (EXPERIMENTAL)
-		add( 11 , "WKS" ) ; // a well known service description
-		add( 12 , "PTR" ) ; // a domain name pointer
-		add( 13 , "HINFO" ) ; // host information
-		add( 14 , "MINFO" ) ; // mailbox or mail list information
-		add( 15 , "MX" ) ; // mail exchange
-		add( 16 , "TXT" ) ; // text strings
-		add( 28 , "AAAA" ) ; // IPv6 -- RFC-3596
-		add( 33 , "SRV" ) ; // service pointer -- RFC-2782
-		add( 41 , "OPT" ) ; // extended options -- EDNS0 -- RFC-2671
-		add( 43 , "DS" ) ; // delegation signer -- DNSSEC -- RFC-4034
-		add( 46 , "RRSIG" ) ; // resource record signature -- DNSSEC -- RFC-4034
-		add( 47 , "NSEC" ) ; // next secure -- DNSSEC -- RFC-4034
-		add( 48 , "DNSKEY" ) ; // dns public key -- DNSSEC -- RFC-4034
+		struct Pair /// A std::pair-like structure used in GNet::DnsMessage, needed for gcc 4.2.1
+		{
+			unsigned int first ;
+			const char * second ;
+		} ;
+		constexpr std::array<Pair,23U> map = {{
+			{ 1 , "A" } , // a host address
+			{ 2 , "NS" } , // an authoritative name server
+			{ 3 , "MD" } , // a mail destination (Obsolete - use MX)
+			{ 4 , "MF" } , // a mail forwarder (Obsolete - use MX)
+			{ 5 , "CNAME" } , // the canonical name for an alias
+			{ 6 , "SOA" } , // marks the start of a zone of authority
+			{ 7 , "MB" } , // a mailbox domain name (EXPERIMENTAL)
+			{ 8 , "MG" } , // a mail group member (EXPERIMENTAL)
+			{ 9 , "MR" } , // a mail rename domain name (EXPERIMENTAL)
+			{ 10 , "NULL_" } , // a null RR (EXPERIMENTAL)
+			{ 11 , "WKS" } , // a well known service description
+			{ 12 , "PTR" } , // a domain name pointer
+			{ 13 , "HINFO" } , // host information
+			{ 14 , "MINFO" } , // mailbox or mail list information
+			{ 15 , "MX" } , // mail exchange
+			{ 16 , "TXT" } , // text strings
+			{ 28 , "AAAA" } , // IPv6 -- RFC-3596
+			{ 33 , "SRV" } , // service pointer -- RFC-2782
+			{ 41 , "OPT" } , // extended options -- EDNS0 -- RFC-2671
+			{ 43 , "DS" } , // delegation signer -- DNSSEC -- RFC-4034
+			{ 46 , "RRSIG" } , // resource record signature -- DNSSEC -- RFC-4034
+			{ 47 , "NSEC" } , // next secure -- DNSSEC -- RFC-4034
+			{ 48 , "DNSKEY" } // dns public key -- DNSSEC -- RFC-4034
+		}} ;
 	}
-	return m_map ;
-}
-
-void GNet::DnsMessageRecordType::add( unsigned int value , const std::string & name )
-{
-	m_map.insert( Map::value_type(value,name) ) ;
 }
 
 unsigned int GNet::DnsMessageRecordType::value( const std::string & type_name )
 {
-	for( Map::const_iterator p = map().begin() ; p != map().end() ; ++p )
+	namespace imp = DnsMessageRecordTypeImp ;
+	for( const auto & item : imp::map )
 	{
-		if( (*p).second == type_name )
-			return (*p).first ;
+		if( type_name == item.second )
+			return item.first ;
 	}
 	throw DnsMessage::Error( "invalid rr type name" ) ;
 }
 
 std::string GNet::DnsMessageRecordType::name( unsigned int type_value )
 {
-	Map::const_iterator p = map().find( type_value ) ;
-	if( p == map().end() )
-		throw DnsMessage::Error( "invalid rr type value" ) ;
-	return (*p).second ;
+	namespace imp = DnsMessageRecordTypeImp ;
+	for( const auto & item : imp::map )
+	{
+		if( item.first == type_value )
+			return item.second ;
+	}
+	throw DnsMessage::Error( "invalid rr type value" ) ;
 }
 
-/// \file gdnsmessage.cpp

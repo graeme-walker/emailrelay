@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gexceptionsink.h
 ///
 
-#ifndef G_NET_EXCEPTION_SINK__H
-#define G_NET_EXCEPTION_SINK__H
+#ifndef G_NET_EXCEPTION_SINK_H
+#define G_NET_EXCEPTION_SINK_H
 
 #include "gdef.h"
 #include "gexceptionhandler.h"
@@ -33,7 +33,7 @@ namespace GNet
 	class ExceptionSinkUnbound ;
 }
 
-/// \class GNet::ExceptionSink
+//| \class GNet::ExceptionSink
 /// A tuple containing an ExceptionHandler interface pointer and
 /// a bound 'exception source' pointer.
 ///
@@ -67,7 +67,7 @@ namespace GNet
 ///
 /// The ExceptionSinkUnbound class is used as syntactic sugar
 /// to force factory methods to supply an ExceptionSource
-/// pointer.
+/// pointer that points to the most-derived ServerPeer class.
 ///
 /// \code
 /// class FooServerPeer : public ServerPeer
@@ -99,28 +99,31 @@ namespace GNet
 class GNet::ExceptionSink
 {
 public:
-	g__enum(Type)
+	enum class Type
 	{
 		Null , // eh() is nullptr, call() does nothing
 		Rethrow , // rethrows
 		Log // logs an error with G_ERROR
-	} ; g__enum_end(Type)
+	} ;
 
-	explicit ExceptionSink( Type = Type::Rethrow , ExceptionSource * source = nullptr ) ;
+	explicit ExceptionSink( Type = Type::Rethrow , ExceptionSource * source = nullptr ) noexcept ;
 		///< Constructor.
 
-	ExceptionSink( ExceptionHandler & eh , ExceptionSource * source ) ;
+	ExceptionSink( ExceptionHandler & eh , ExceptionSource * source ) noexcept ;
 		///< Constructor. The ExceptionHandler reference must
 		///< remain valid as the ExceptionSink is copied around.
 
-	ExceptionSink( ExceptionHandler * eh , ExceptionSource * source ) ;
+	ExceptionSink( ExceptionHandler * eh , ExceptionSource * source ) noexcept ;
 		///< Constructor. The ExceptionHandler pointer must
 		///< remain valid as the ExceptionSink is copied around.
 
-	ExceptionHandler * eh() const ;
+	ExceptionSink( std::nullptr_t , ExceptionSource * ) = delete ;
+		///< Deleted override to prohibit a null ExceptionHandler.
+
+	ExceptionHandler * eh() const noexcept ;
 		///< Returns the exception handler pointer.
 
-	ExceptionSource * esrc() const ;
+	ExceptionSource * esrc() const noexcept ;
 		///< Returns the exception source pointer.
 
 	void call( std::exception & e , bool done ) ;
@@ -129,18 +132,18 @@ public:
 		///< thrown out of the onException() implementation are
 		///< allowed to propagate.
 
-	void reset() ;
+	void reset() noexcept ;
 		///< Resets the pointers.
 
-	bool set() const ;
+	bool set() const noexcept ;
 		///< Returns true if eh() is not null.
 
 private:
 	ExceptionHandler * m_eh ;
-	ExceptionSource * m_esrc ;
+	ExceptionSource * m_esrc{nullptr} ;
 } ;
 
-/// \class GNet::ExceptionSinkUnbound
+//| \class GNet::ExceptionSinkUnbound
 /// A potential ExceptionSink that is realised by bind()ing an
 /// exception source pointer. This is used in factory functions
 /// such as GNet::Server::newPeer() where the container that

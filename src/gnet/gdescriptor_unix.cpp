@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,25 +14,24 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gdescriptor_unix.cpp
-//
+///
+/// \file gdescriptor_unix.cpp
+///
 
 #include "gdef.h"
 #include "gdescriptor.h"
 
-GNet::Descriptor::Descriptor() :
-	m_fd(-1) ,
-	m_handle(0)
+GNet::Descriptor::Descriptor() noexcept :
+	m_fd(-1)
 {
 }
 
-bool GNet::Descriptor::valid() const
+bool GNet::Descriptor::valid() const noexcept
 {
 	return m_fd >= 0 ;
 }
 
-HANDLE GNet::Descriptor::h() const
+HANDLE GNet::Descriptor::h() const noexcept
 {
 	return 0 ;
 }
@@ -42,4 +41,3 @@ void GNet::Descriptor::streamOut( std::ostream & stream ) const
 	stream << m_fd ;
 }
 
-/// \file gdescriptor_unix.cpp

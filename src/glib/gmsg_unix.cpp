@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,44 +14,46 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gmsg_unix.cpp
-//
+///
+/// \file gmsg_unix.cpp
+///
 
 #include "gdef.h"
 #include "gmsg.h"
 #include "gprocess.h"
+#include "gassert.h"
 #include "gstr.h"
-#include <cstring> // memcpy
+#include <cstring> // std::memcpy()
+#include <cerrno> // EINTR etc
 #include <stdexcept>
-#include <errno.h>
+#include <array>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
 
-ssize_t G::Msg::send( int fd , const void * buffer , size_t size , int flags ,
-	int fd_to_send )
+ssize_t G::Msg::send( int fd , const void * buffer , std::size_t size , int flags ,
+	int fd_to_send ) noexcept
 {
 	return sendto( fd , buffer , size , flags , nullptr , 0 , fd_to_send ) ;
 }
 
-ssize_t G::Msg::sendto( int fd , const void * buffer , size_t size , int flags ,
-	const sockaddr * address_p , socklen_t address_n , int fd_to_send )
+ssize_t G::Msg::sendto( int fd , const void * buffer , std::size_t size , int flags ,
+	const sockaddr * address_p , socklen_t address_n , int fd_to_send ) noexcept
 {
-	static struct ::msghdr msg_zero ;
-	struct ::msghdr msg = msg_zero ;
+	struct ::msghdr msg {} ;
 
 	msg.msg_name = const_cast<sockaddr*>(address_p) ;
 	msg.msg_namelen = address_n ;
 
-	static struct ::iovec io_zero ;
-	struct ::iovec io = io_zero ;
+	struct ::iovec io {} ;
 	io.iov_base = const_cast<void*>(buffer) ;
 	io.iov_len = size ;
 	msg.msg_iov = &io ;
 	msg.msg_iovlen = 1 ;
 
-	char control_buffer[CMSG_SPACE(sizeof(int))] ;
+	constexpr std::size_t space = CMSG_SPACE( sizeof(int) ) ;
+	static_assert( space != 0U , "" ) ;
+	std::array<char,space> control_buffer {} ;
 	if( fd_to_send == -1 )
 	{
 		msg.msg_control = nullptr ;
@@ -59,49 +61,52 @@ ssize_t G::Msg::sendto( int fd , const void * buffer , size_t size , int flags ,
 	}
 	else
 	{
-		std::memset( control_buffer , 0 , sizeof(control_buffer) ) ;
-		msg.msg_control = control_buffer ;
-		msg.msg_controllen = sizeof(control_buffer) ;
+		std::memset( &control_buffer[0] , 0 , control_buffer.size() ) ;
+		msg.msg_control = &control_buffer[0] ;
+		msg.msg_controllen = control_buffer.size() ;
 
 		struct ::cmsghdr * cmsg = CMSG_FIRSTHDR( &msg ) ;
-		cmsg->cmsg_len = CMSG_LEN( sizeof(int) ) ;
-		cmsg->cmsg_level = SOL_SOCKET ;
-		cmsg->cmsg_type = SCM_RIGHTS ;
-		std::memcpy( CMSG_DATA(cmsg) , &fd_to_send , sizeof(int) ) ;
+		G_ASSERT( cmsg != nullptr ) ;
+		if( cmsg != nullptr )
+		{
+			cmsg->cmsg_len = CMSG_LEN( sizeof(int) ) ;
+			cmsg->cmsg_level = SOL_SOCKET ;
+			cmsg->cmsg_type = SCM_RIGHTS ;
+			std::memcpy( CMSG_DATA(cmsg) , &fd_to_send , sizeof(int) ) ;
+		}
 	}
 
 	return ::sendmsg( fd , &msg , flags | MSG_NOSIGNAL ) ;
 }
 
-ssize_t G::Msg::recv( int fd , void * buffer , size_t size , int flags )
+ssize_t G::Msg::recv( int fd , void * buffer , std::size_t size , int flags )
 {
 	return ::recv( fd , buffer , size , flags ) ;
 }
 
-ssize_t G::Msg::recv( int fd , void * buffer , size_t size , int flags ,
+ssize_t G::Msg::recv( int fd , void * buffer , std::size_t size , int flags ,
 	int * fd_received_p )
 {
 	return recvfrom( fd , buffer , size , flags , nullptr , nullptr , fd_received_p ) ;
 }
 
-ssize_t G::Msg::recvfrom( int fd , void * buffer , size_t size , int flags ,
+ssize_t G::Msg::recvfrom( int fd , void * buffer , std::size_t size , int flags ,
 	sockaddr * address_p , socklen_t * address_np , int * fd_received_p )
 {
-	static struct ::msghdr msg_zero ;
-	struct ::msghdr msg = msg_zero ;
+	struct ::msghdr msg {} ;
 
 	msg.msg_name = address_p ;
 	msg.msg_namelen = address_np == nullptr ? socklen_t(0) : *address_np ;
 
-	struct ::iovec io ;
+	struct ::iovec io {} ;
 	io.iov_base = buffer ;
 	io.iov_len = size ;
 	msg.msg_iov = &io ;
 	msg.msg_iovlen = 1 ;
 
-	char control_buffer[CMSG_SPACE(sizeof(int))] ;
-	msg.msg_control = control_buffer ;
-	msg.msg_controllen = sizeof(control_buffer) ;
+	std::array<char,CMSG_SPACE(sizeof(int))> control_buffer ; // NOLINT cppcoreguidelines-pro-type-member-init
+	msg.msg_control = &control_buffer[0] ;
+	msg.msg_controllen = control_buffer.size() ;
 
 	ssize_t rc = ::recvmsg( fd , &msg , flags ) ;
 	int e = Process::errno_() ;
@@ -121,7 +126,7 @@ ssize_t G::Msg::recvfrom( int fd , void * buffer , size_t size , int flags ,
 	return rc ; // with errno
 }
 
-bool G::Msg::fatal( int error )
+bool G::Msg::fatal( int error ) noexcept
 {
 	return !(
 		error == 0 ||
@@ -133,4 +138,3 @@ bool G::Msg::fatal( int error )
 		false ) ;
 }
 
-/// \file gmsg_unix.cpp

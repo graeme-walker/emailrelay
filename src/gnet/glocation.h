@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file glocation.h
 ///
 
-#ifndef G_NET_LOCATION__H
-#define G_NET_LOCATION__H
+#ifndef G_NET_LOCATION_H
+#define G_NET_LOCATION_H
 
 #include "gdef.h"
 #include "gaddress.h"
@@ -32,7 +32,7 @@ namespace GNet
 	class Resolver ;
 }
 
-/// \class GNet::Location
+//| \class GNet::Location
 /// A class that holds a host/service name pair and the preferred address
 /// family (if any), and also the results of a name-to-address lookup, ie. the
 /// remote address and canonical host name. The actual name-to-address lookup
@@ -106,7 +106,7 @@ public:
 	std::string displayString() const ;
 		///< Returns a string representation for logging and debug.
 
-	G::EpochTime updateTime() const ;
+	G::SystemTime updateTime() const ;
 		///< Returns the time of the last update() or zero if never update()d.
 
 	unsigned int socksFarPort() const ;
@@ -131,7 +131,7 @@ private:
 	int m_family ;
 	bool m_dgram ;
 	std::string m_canonical_name ;
-	G::EpochTime m_update_time ;
+	G::SystemTime m_update_time ;
 	bool m_socks ;
 	std::string m_socks_far_host ;
 	unsigned int m_socks_far_port ;

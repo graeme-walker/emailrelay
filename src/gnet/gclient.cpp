@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gclient.cpp
-//
+///
+/// \file gclient.cpp
+///
 
 #include "gdef.h"
 #include "gaddress.h"
@@ -33,7 +33,7 @@
 #include <sstream>
 #include <cstdlib>
 
-GNet::Client::Client( ExceptionSink es , const Location & remote , Config config ) :
+GNet::Client::Client( ExceptionSink es , const Location & remote , const Config & config ) :
 	m_es(es) ,
 	m_line_buffer(config.line_buffer_config) ,
 	m_remote_location(remote) ,
@@ -62,7 +62,6 @@ GNet::Client::Client( ExceptionSink es , const Location & remote , Config config
 GNet::Client::~Client()
 {
 	Monitor::removeClient( *this ) ;
-	m_sp.reset() ;
 }
 
 void GNet::Client::disconnect()
@@ -83,7 +82,7 @@ void GNet::Client::disconnect()
 	m_resolver.reset() ;
 }
 
-G::Slot::Signal3<std::string,std::string,std::string> & GNet::Client::eventSignal()
+G::Slot::Signal<const std::string&,const std::string&,const std::string&> & GNet::Client::eventSignal() noexcept
 {
 	return m_event_signal ;
 }
@@ -95,16 +94,16 @@ GNet::Location GNet::Client::remoteLocation() const
 
 GNet::StreamSocket & GNet::Client::socket()
 {
-	if( m_socket.get() == nullptr )
+	if( m_socket == nullptr )
 		throw NotConnected() ;
-	return *m_socket.get() ;
+	return *m_socket ;
 }
 
 const GNet::StreamSocket & GNet::Client::socket() const
 {
-	if( m_socket.get() == nullptr )
+	if( m_socket == nullptr )
 		throw NotConnected() ;
-	return *m_socket.get() ;
+	return *m_socket ;
 }
 
 void GNet::Client::clearInput()
@@ -121,7 +120,8 @@ void GNet::Client::onStartTimeout()
 
 void GNet::Client::connect()
 {
-	G_DEBUG( "GNet::Client::connect: [" << m_remote_location.displayString() << "] (" << static_cast<int>(m_state) << ")" ) ;
+	G_DEBUG( "GNet::Client::connect: [" << m_remote_location.displayString() << "] "
+		<< "(" << static_cast<int>(m_state) << ")" ) ;
 	if( m_state != State::Idle )
 		throw ConnectError( "wrong state" ) ;
 
@@ -147,8 +147,11 @@ void GNet::Client::connect()
 	else
 	{
 		setState( State::Resolving ) ;
-		if( m_resolver.get() == nullptr )
-			m_resolver.reset( new Resolver(*this,m_es) ) ;
+		if( m_resolver == nullptr )
+		{
+			Resolver::Callback & resolver_callback = *this ;
+			m_resolver = std::make_unique<Resolver>( resolver_callback , m_es ) ;
+		}
 		m_resolver->start( m_remote_location ) ;
 		emit( "resolving" ) ;
 	}
@@ -175,12 +178,14 @@ void GNet::Client::startConnecting()
 	// create and open a socket
 	//
 	m_sp.reset() ;
-	m_socket.reset( new StreamSocket(m_remote_location.address().domain()) ) ;
+	m_socket = std::make_unique<StreamSocket>( m_remote_location.address().domain() ) ;
 	socket().addWriteHandler( *this , m_es ) ;
 
 	// create a socket protocol object
 	//
-	m_sp.reset( new SocketProtocol(*this,m_es,*this,*m_socket.get(),m_secure_connection_timeout) ) ;
+	EventHandler & eh = *this ;
+	SocketProtocolSink & sp_sink = *this ;
+	m_sp = std::make_unique<SocketProtocol>( eh , m_es , sp_sink , *m_socket , m_secure_connection_timeout ) ;
 
 	// bind a local address to the socket (throws on failure)
 	//
@@ -211,9 +216,9 @@ void GNet::Client::finish( bool with_socket_shutdown )
 	m_finished = true ;
 	if( with_socket_shutdown )
 	{
-		if( m_sp.get() != nullptr )
+		if( m_sp != nullptr )
 			m_sp->shutdown() ;
-		else if( m_socket.get() != nullptr )
+		else if( m_socket != nullptr )
 			m_socket->shutdown() ;
 	}
 }
@@ -235,7 +240,7 @@ void GNet::Client::doOnDelete( const std::string & reason , bool done )
 
 void GNet::Client::emit( const std::string & action )
 {
-	m_event_signal.emit( action , m_remote_location.displayString() , std::string() ) ;
+	m_event_signal.emit( std::string(action) , m_remote_location.displayString() , std::string() ) ;
 }
 
 void GNet::Client::onConnectTimeout()
@@ -249,7 +254,7 @@ void GNet::Client::onConnectTimeout()
 void GNet::Client::onResponseTimeout()
 {
 	std::ostringstream ss ;
-	ss << "no response after " << m_response_timeout << " while connected to " << m_remote_location ;
+	ss << "no response after " << m_response_timeout << "s while connected to " << m_remote_location ;
 	G_DEBUG( "GNet::Client::onResponseTimeout: response timeout: " << ss.str() ) ;
 	throw ResponseTimeout( ss.str() ) ;
 }
@@ -289,7 +294,7 @@ void GNet::Client::onWriteable()
 	else if( m_state == State::Connecting && socket().hasPeer() && m_remote_location.socks() )
 	{
 		setState( State::Socksing ) ;
-		m_socks.reset( new Socks(m_remote_location) ) ;
+		m_socks = std::make_unique<Socks>( m_remote_location ) ;
 		if( m_socks->send( socket() ) )
 		{
 			socket().addOtherHandler( *this , m_es ) ;
@@ -319,7 +324,7 @@ void GNet::Client::onWriteable()
 	}
 	else if( m_state == State::Socksing )
 	{
-		G_ASSERT( m_socks.get() != nullptr ) ;
+		G_ASSERT( m_socks != nullptr ) ;
 		if( m_socks->send( socket() ) )
 		{
 			socket().dropWriteHandler() ;
@@ -345,7 +350,7 @@ void GNet::Client::doOnConnect()
 
 void GNet::Client::otherEvent( EventHandler::Reason reason )
 {
-	if( m_state == State::Socksing || m_sp.get() == nullptr )
+	if( m_state == State::Socksing || m_sp == nullptr )
 		EventHandler::otherEvent( reason ) ; // default implementation
 	else
 		m_sp->otherEvent( reason ) ;
@@ -353,10 +358,10 @@ void GNet::Client::otherEvent( EventHandler::Reason reason )
 
 void GNet::Client::readEvent()
 {
-	G_ASSERT( m_sp.get() != nullptr ) ;
+	G_ASSERT( m_sp != nullptr ) ;
 	if( m_state == State::Socksing )
 	{
-		G_ASSERT( m_socks.get() != nullptr ) ;
+		G_ASSERT( m_socks != nullptr ) ;
 		bool complete = m_socks->read( socket() ) ;
 		if( complete )
 		{
@@ -366,12 +371,12 @@ void GNet::Client::readEvent()
 	}
 	else
 	{
-		if( m_sp.get() != nullptr )
+		if( m_sp != nullptr )
 			m_sp->readEvent() ;
 	}
 }
 
-void GNet::Client::onData( const char * data , size_t size )
+void GNet::Client::onData( const char * data , std::size_t size )
 {
 	if( m_response_timeout && m_line_buffer.transparent() ) // anything will do
 		m_response_timer.cancelTimer() ;
@@ -383,7 +388,8 @@ void GNet::Client::onData( const char * data , size_t size )
 	m_line_buffer.apply( this , &Client::onDataImp , data , size , fragments ) ;
 }
 
-bool GNet::Client::onDataImp( const char * data , size_t size , size_t eolsize , size_t linesize , char c0 )
+bool GNet::Client::onDataImp( const char * data , std::size_t size , std::size_t eolsize ,
+	std::size_t linesize , char c0 )
 {
 	if( m_response_timeout && eolsize ) // end of a complete line
 		m_response_timer.cancelTimer() ;
@@ -425,7 +431,7 @@ void GNet::Client::setState( State new_state )
 std::pair<bool,GNet::Address> GNet::Client::localAddress() const
 {
 	return
-		m_socket.get() != nullptr ?
+		m_socket != nullptr ?
 			socket().getLocalAddress() :
 			std::make_pair(false,GNet::Address::defaultAddress()) ;
 }
@@ -433,7 +439,7 @@ std::pair<bool,GNet::Address> GNet::Client::localAddress() const
 std::pair<bool,GNet::Address> GNet::Client::peerAddress() const
 {
 	return
-		m_socket.get() != nullptr ?
+		m_socket != nullptr ?
 			socket().getPeerAddress() :
 			std::make_pair(false,GNet::Address::defaultAddress()) ;
 }
@@ -441,7 +447,7 @@ std::pair<bool,GNet::Address> GNet::Client::peerAddress() const
 std::string GNet::Client::connectionState() const
 {
 	std::pair<bool,Address> pair =
-		m_socket.get() != nullptr ?
+		m_socket != nullptr ?
 			socket().getPeerAddress() :
 			std::make_pair(false,GNet::Address::defaultAddress()) ;
 
@@ -458,12 +464,19 @@ std::string GNet::Client::peerCertificate() const
 
 void GNet::Client::secureConnect()
 {
-	if( m_sp.get() == nullptr )
+	if( m_sp == nullptr )
 		throw NotConnected( "for secure-connect" ) ;
 	m_sp->secureConnect() ;
 }
 
-bool GNet::Client::send( const std::string & data , size_t offset )
+bool GNet::Client::send( const std::string & data , std::size_t offset )
+{
+	if( m_response_timeout && data.size() > offset )
+		m_response_timer.startTimer( m_response_timeout ) ;
+	return m_sp->send( data , offset ) ;
+}
+
+bool GNet::Client::send( const std::vector<G::string_view> & data , std::size_t offset )
 {
 	if( m_response_timeout && data.size() > offset )
 		m_response_timer.startTimer( m_response_timeout ) ;
@@ -477,71 +490,58 @@ GNet::LineBufferState GNet::Client::lineBuffer() const
 
 // ==
 
-namespace
+namespace GNet
 {
-	bool sync_default()
+	namespace ClientImp
 	{
-		if( G::Test::enabled("client-dns-asynchronous") ) return false ;
-		if( G::Test::enabled("client-dns-synchronous") ) return true ;
-		return false ;
+		bool sync_default()
+		{
+			if( G::Test::enabled("client-dns-asynchronous") ) return false ;
+			if( G::Test::enabled("client-dns-synchronous") ) return true ;
+			return false ;
+		}
 	}
 }
 
 GNet::Client::Config::Config() :
-	sync_dns(sync_default()) ,
-	auto_start(true) ,
-	bind_local_address(false) ,
 	local_address(Address::defaultAddress()) ,
-	connection_timeout(0U) ,
-	secure_connection_timeout(0U) ,
-	response_timeout(0U) ,
-	idle_timeout(0U) ,
-	line_buffer_config(LineBufferConfig::transparent())
+	line_buffer_config(LineBufferConfig::transparent()) ,
+	sync_dns(ClientImp::sync_default())
 {
 }
 
-GNet::Client::Config::Config( LineBufferConfig lbc ) :
-	sync_dns(sync_default()) ,
-	auto_start(true) ,
-	bind_local_address(false) ,
+GNet::Client::Config::Config( const LineBufferConfig & lbc ) :
 	local_address(Address::defaultAddress()) ,
-	connection_timeout(0U) ,
-	secure_connection_timeout(0U) ,
-	response_timeout(0U) ,
-	idle_timeout(0U) ,
-	line_buffer_config(lbc)
+	line_buffer_config(lbc) ,
+	sync_dns(ClientImp::sync_default())
 {
 }
 
-GNet::Client::Config::Config( LineBufferConfig lbc , unsigned int all_timeouts ) :
-	sync_dns(sync_default()) ,
-	auto_start(true) ,
-	bind_local_address(false) ,
-	local_address(Address::defaultAddress()) ,
-	connection_timeout(all_timeouts) ,
-	secure_connection_timeout(all_timeouts) ,
-	response_timeout(all_timeouts) ,
-	idle_timeout(all_timeouts*2U) ,
-	line_buffer_config(lbc)
-{
-}
-
-GNet::Client::Config::Config( LineBufferConfig lbc , unsigned int connection_timeout_in ,
+GNet::Client::Config::Config( const LineBufferConfig & lbc , unsigned int connection_timeout_in ,
 	unsigned int secure_connection_timeout_in , unsigned int response_timeout_in ,
 	unsigned int idle_timeout_in ) :
-		sync_dns(sync_default()) ,
-		auto_start(true) ,
-		bind_local_address(false) ,
 		local_address(Address::defaultAddress()) ,
+		line_buffer_config(lbc) ,
+		sync_dns(ClientImp::sync_default()) ,
 		connection_timeout(connection_timeout_in) ,
 		secure_connection_timeout(secure_connection_timeout_in) ,
 		response_timeout(response_timeout_in) ,
-		idle_timeout(idle_timeout_in) ,
-		line_buffer_config(lbc)
+		idle_timeout(idle_timeout_in)
 {
 }
 
-GNet::Client::Config & GNet::Client::Config::setTimeouts( unsigned int all_timeouts )
+GNet::Client::Config::Config( const LineBufferConfig & lbc , unsigned int all_timeouts ) :
+	local_address(Address::defaultAddress()) ,
+	line_buffer_config(lbc) ,
+	sync_dns(ClientImp::sync_default()) ,
+	connection_timeout(all_timeouts) ,
+	secure_connection_timeout(all_timeouts) ,
+	response_timeout(all_timeouts) ,
+	idle_timeout(all_timeouts*2U)
+{
+}
+
+GNet::Client::Config & GNet::Client::Config::set_all_timeouts( unsigned int all_timeouts )
 {
 	connection_timeout = all_timeouts ;
 	secure_connection_timeout = all_timeouts ;
@@ -550,10 +550,3 @@ GNet::Client::Config & GNet::Client::Config::setTimeouts( unsigned int all_timeo
 	return *this ;
 }
 
-GNet::Client::Config & GNet::Client::Config::setAutoStart( bool auto_start_in )
-{
-	auto_start = auto_start_in ;
-	return *this ;
-}
-
-/// \file gclient.cpp

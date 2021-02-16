@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gappbase.h
 ///
 
-#ifndef G_APPBASE_H
-#define G_APPBASE_H
+#ifndef G_GUI_APPBASE_H
+#define G_GUI_APPBASE_H
 
 #include "gdef.h"
 #include "gwindow.h"
@@ -31,7 +31,7 @@ namespace GGui
 	class ApplicationBase ;
 }
 
-/// \class GGui::ApplicationBase
+//| \class GGui::ApplicationBase
 /// The ApplicationBase class is a convienient GGui::Window for
 /// the application's main window.
 ///
@@ -109,10 +109,10 @@ public:
 protected:
 	bool firstInstance() const ;
 		///< Returns true if the constructor's 'previous'
-		///< parameter was NULL.
+		///< parameter was null.
 
 	virtual void beep() const ;
-		///< Calls ::MessageBeep().
+		///< Calls MessageBeep().
 		///<
 		///< Overridable as a simple way to keep an application
 		///< silent or change the type of beep.
@@ -143,9 +143,13 @@ protected:
 		///< If overridden then this base class implementation must
 		///< be called first.
 
+public:
+	ApplicationBase( const ApplicationBase & ) = delete ;
+	ApplicationBase( ApplicationBase && ) = delete ;
+	void operator=( const ApplicationBase & ) = delete ;
+	void operator=( ApplicationBase && ) = delete ;
+
 private:
-	ApplicationBase( const ApplicationBase & ) g__eq_delete ;
-	void operator=( const ApplicationBase & ) g__eq_delete ;
 	static bool messageBoxCore( HWND , unsigned int , const std::string & , const std::string & ) ;
 	HWND messageBoxHandle() const ;
 	static unsigned int messageBoxType(HWND,unsigned int) ;

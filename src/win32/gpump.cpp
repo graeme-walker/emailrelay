@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gpump.cpp
-//
+///
+/// \file gpump.cpp
+///
 
 #include "gdef.h"
 #include "gpump.h"
@@ -62,12 +62,12 @@ bool GGui::Pump::getMessage( MSG * msg_p , bool block )
 {
 	BOOL rc =
 		block ?
-			::GetMessage( msg_p , NULL , 0 , 0 ) :
-			::PeekMessage( msg_p , NULL , 0 , 0 , PM_REMOVE ) ;
+			GetMessage( msg_p , HNULL , 0 , 0 ) :
+			PeekMessage( msg_p , HNULL , 0 , 0 , PM_REMOVE ) ;
 	return rc != -1 && rc != 0 ; // sic
 }
 
-namespace
+namespace GGui
 {
 	struct ScopeEndIncrement
 	{
@@ -77,7 +77,8 @@ namespace
 	} ;
 }
 
-std::pair<bool,std::string> GGui::Pump::runImp( bool send_idle_messages , HWND hwnd_idle , unsigned int wm_idle , bool run_to_empty )
+std::pair<bool,std::string> GGui::Pump::runImp( bool send_idle_messages , HWND hwnd_idle ,
+	unsigned int wm_idle , bool run_to_empty )
 {
 	ScopeEndIncrement inc( m_run_id ) ; // enable quit() for this run or the next
 	MSG msg ;
@@ -141,7 +142,6 @@ std::pair<bool,std::string> GGui::Pump::runImp( bool send_idle_messages , HWND h
 bool GGui::Pump::sendIdle( HWND hwnd_idle , unsigned int wm_idle )
 {
 	G_ASSERT( hwnd_idle != 0 ) ;
-	return 1 == ::SendMessage( hwnd_idle , wm_idle , 0 , 0 ) ;
+	return 1 == SendMessage( hwnd_idle , wm_idle , 0 , 0 ) ;
 }
 
-/// \file gpump.cpp

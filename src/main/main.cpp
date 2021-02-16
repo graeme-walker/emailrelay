@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,15 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// main.cpp
-//
+///
+/// \file main.cpp
+///
 
 #include "gdef.h"
 #include "gstr.h"
 #include "garg.h"
 #include "run.h"
-#include "options.h"
 #include "commandline.h"
 #include <exception>
 #include <cstdlib>
@@ -32,30 +31,26 @@ namespace Main
 	class App ;
 }
 
-/// \class Main::App
-/// An implementation of the Main::Output abstract interface
-/// for command-line output. An App instance is passed to Main::Run.
-/// \see Main::Run
-///
 class Main::App : public Main::Output
 {
-	virtual void output( const std::string & text , bool e ) override ;
-	virtual G::Options::Layout layout() const override ;
-	virtual bool simpleOutput() const override ;
+private: // overrides
+	void output( const std::string & text , bool e , bool ) override ;
+	G::Options::Layout outputLayout( bool verbose ) const override ;
+	bool outputSimple() const override ;
 } ;
 
-void Main::App::output( const std::string & text , bool e )
+void Main::App::output( const std::string & text , bool e , bool )
 {
 	std::ostream & s = e ? std::cerr : std::cout ;
 	s << text << std::flush ;
 }
 
-G::Options::Layout Main::App::layout() const
+G::Options::Layout Main::App::outputLayout( bool ) const
 {
-	return G::Options::Layout( 38U ) ;
+	return {} ;
 }
 
-bool Main::App::simpleOutput() const
+bool Main::App::outputSimple() const
 {
 	return true ;
 }
@@ -67,7 +62,7 @@ int main( int argc , char * argv [] )
 	{
 		G::Arg arg( argc , argv ) ;
 		Main::App app ;
-		Main::Run run( app , arg , Main::Options::spec(false) , false ) ;
+		Main::Run run( app , arg , G::is_windows() ) ;
 		run.configure() ;
 		if( run.runnable() )
 		{
@@ -81,7 +76,7 @@ int main( int argc , char * argv [] )
 	}
 	catch(...)
 	{
-		std::cerr << G::Arg::prefix(argv) << ": unrecognised exception" << std::endl ;
+		std::cerr << G::Arg::prefix(argv) << ": fatal exception" << std::endl ;
 	}
 	return ok ? EXIT_SUCCESS : EXIT_FAILURE ;
 }

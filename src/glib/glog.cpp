@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// glog.cpp
-//
+///
+/// \file glog.cpp
+///
 
 #include "gdef.h"
 #include "glog.h"
@@ -25,7 +25,8 @@
 G::Log::Log( Severity severity , const char * file , int line ) :
 	m_severity(severity) ,
 	m_file(file) ,
-	m_line(line)
+	m_line(line) ,
+	m_ostream(LogOutput::start(m_severity,m_file,m_line))
 {
 }
 
@@ -33,7 +34,7 @@ G::Log::~Log()
 {
 	try
 	{
-		flush() ;
+		LogOutput::output( m_ostream ) ;
 	}
 	catch(...)
 	{
@@ -42,43 +43,18 @@ G::Log::~Log()
 
 bool G::Log::at( Severity s )
 {
-	LogOutput * output = LogOutput::instance() ;
-	return output != nullptr && output->at(s) ;
-}
-
-bool G::Log::active()
-{
-	LogOutput * output = LogOutput::instance() ;
-	if( output == nullptr )
-	{
-		return false ;
-	}
-	else
-	{
-		// (enable it just to get the original state, then restore it)
-		bool a = output->enable(true) ;
-		output->enable(a) ;
-		return a ;
-	}
-}
-
-void G::Log::flush()
-{
-	if( active() )
-	{
-		LogOutput::output( m_severity , m_file , m_line , m_ss.str() ) ;
-	}
+	const LogOutput * log_output = LogOutput::instance() ;
+	return log_output && log_output->at( s ) ;
 }
 
 std::ostream & G::Log::operator<<( const char * s )
 {
 	s = s ? s : "" ;
-	return m_ss << s ;
+	return m_ostream << s ;
 }
 
 std::ostream & G::Log::operator<<( const std::string & s )
 {
-	return m_ss << s ;
+	return m_ostream << s ;
 }
 
-/// \file glog.cpp

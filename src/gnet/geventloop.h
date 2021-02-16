@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file geventloop.h
 ///
 
-#ifndef G_NET_EVENT_LOOP__H
-#define G_NET_EVENT_LOOP__H
+#ifndef G_NET_EVENT_LOOP_H
+#define G_NET_EVENT_LOOP_H
 
 #include "gdef.h"
 #include "geventhandler.h"
@@ -35,7 +35,7 @@ namespace GNet
 	class EventLoop ;
 }
 
-/// \class GNet::EventLoop
+//| \class GNet::EventLoop
 /// An abstract base class for a singleton that keeps track of open sockets
 /// and their associated handlers. Derived classes are used to implement
 /// different event loops, such as select() or WaitForMultipleObjects().
@@ -59,15 +59,8 @@ protected:
 	EventLoop() ;
 		///< Constructor.
 
-	struct Running /// RAII class that sets a boolean, for implementations of run()/running().
-	{
-		explicit Running( bool & bref ) ;
-		~Running() ;
-		bool & m_bref ;
-	} ;
-
 public:
-	static EventLoop * create() ;
+	static std::unique_ptr<EventLoop> create() ;
 		///< A factory method which creates an instance of a derived
 		///< class on the heap. Throws on error.
 
@@ -75,6 +68,10 @@ public:
 		///< Returns a reference to an instance of the class,
 		///< if any. Throws if none. Does not do any instantiation
 		///< itself.
+
+	static EventLoop * ptr() noexcept ;
+		///< Returns a pointer to an instance of the class, if any.
+		///< Returns the null pointer if none.
 
 	static bool exists() ;
 		///< Returns true if an instance exists.
@@ -115,17 +112,17 @@ public:
 		///< handler to the exception list.
 		///< See also Socket::addOtherHandler().
 
-	virtual void dropRead( Descriptor fd ) = 0 ;
+	virtual void dropRead( Descriptor fd ) noexcept = 0 ;
 		///< Removes the given event source descriptor from the
 		///< list of read sources.
 		///< See also Socket::dropReadHandler().
 
-	virtual void dropWrite( Descriptor fd ) = 0 ;
+	virtual void dropWrite( Descriptor fd ) noexcept = 0 ;
 		///< Removes the given event source descriptor from the
 		///< list of write sources.
 		///< See also Socket::dropWriteHandler().
 
-	virtual void dropOther( Descriptor fd ) = 0 ;
+	virtual void dropOther( Descriptor fd ) noexcept = 0 ;
 		///< Removes the given event source descriptor from the
 		///< list of exception sources.
 		///< See also Socket::dropOtherHandler().
@@ -134,30 +131,19 @@ public:
 		///< Returns a line of text reporting the status of the event loop.
 		///< Used in debugging and diagnostics.
 
-	virtual void disarm( ExceptionHandler * ) = 0 ;
+	virtual void disarm( ExceptionHandler * ) noexcept = 0 ;
 		///< Used to prevent the given interface from being used,
 		///< typically called from the ExceptionHandler
 		///< destructor.
 
-private:
-	EventLoop( const EventLoop & ) g__eq_delete ;
-	void operator=( const EventLoop & ) g__eq_delete ;
+public:
+	EventLoop( const EventLoop & ) = delete ;
+	EventLoop( EventLoop && ) = delete ;
+	void operator=( const EventLoop & ) = delete ;
+	void operator=( EventLoop && ) = delete ;
 
 private:
 	static EventLoop * m_this ;
 } ;
-
-inline
-GNet::EventLoop::Running::Running( bool & bref ) :
-	m_bref(bref)
-{
-	m_bref = true ;
-}
-
-inline
-GNet::EventLoop::Running::~Running()
-{
-	m_bref = false ;
-}
 
 #endif

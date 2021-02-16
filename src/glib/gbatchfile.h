@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,13 +28,14 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <new>
 
 namespace G
 {
 	class BatchFile ;
 }
 
-/// \class G::BatchFile
+//| \class G::BatchFile
 /// A class for reading and writing windows-style startup batch files
 /// containing a single command-line, optionally using "start".
 ///
@@ -42,13 +43,11 @@ class G::BatchFile
 {
 public:
 	G_EXCEPTION( Error , "batch file error" ) ;
-	struct NoThrow /// Overload discriminator for G::BatchFile.
-		{} ;
 
 	explicit BatchFile( const G::Path & ) ;
 		///< Constructor that reads from a file.
 
-	BatchFile( const G::Path & , NoThrow ) ;
+	BatchFile( const G::Path & , std::nothrow_t ) ;
 		///< Constructor that reads from a file that might be missing
 		///< or empty.
 
@@ -66,6 +65,9 @@ public:
 		///< Returns the startup command-line broken up into de-quoted pieces.
 		///< The first item in the list will be the executable.
 
+	std::size_t lineArgsPos() const ;
+		///< Returns the position in line() where the arguments start.
+
 	static void write( const G::Path & , const StringArray & args ,
 		const std::string & start_window_name = std::string() ) ;
 			///< Writes a startup batch file, including a "start" prefix.
@@ -73,8 +75,6 @@ public:
 			///< derived from the command-line.
 
 private:
-	BatchFile( const BatchFile & ) g__eq_delete ;
-	void operator=( const BatchFile & ) g__eq_delete ;
 	static std::string quote( const std::string & ) ;
 	static std::string percents( const std::string & ) ;
 	static void dequote( std::string & ) ;

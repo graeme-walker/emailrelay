@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ namespace G
 	class Test ;
 }
 
-/// \class G::Test
+//| \class G::Test
 /// A static interface for enabling test features at run-time. Typically does
 /// nothing in a release build. Test are enabled by a specification string
 /// that is a comma-separated list of test names. The test specification
@@ -52,11 +52,14 @@ public:
 	static void set( const std::string & ) ;
 		///< Sets the test specification string.
 
-	static bool enabled() ;
+	static bool enabled() noexcept ;
 		///< Returns true if test features are enabled.
 
 	static bool enabled( const char * name ) ;
 		///< Returns true if the specified test feature is enabled.
+
+public:
+	Test() = delete ;
 } ;
 
 #if defined(_DEBUG) || defined(G_TEST_ENABLED)

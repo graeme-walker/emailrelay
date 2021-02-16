@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gssl_none.cpp
-//
+///
+/// \file gssl_none.cpp
+///
 
 #include "gdef.h"
 #include "gssl.h"
@@ -49,6 +49,16 @@ bool GSsl::Library::real()
 std::string GSsl::Library::id() const
 {
 	return ids() ;
+}
+
+bool GSsl::Library::generateKeyAvailable() const
+{
+	return false ;
+}
+
+std::string GSsl::Library::generateKey( const std::string & ) const
+{
+	return std::string() ;
 }
 
 GSsl::Library * GSsl::Library::instance()
@@ -109,8 +119,7 @@ GSsl::Protocol::Protocol( const Profile & , const std::string & , const std::str
 }
 
 GSsl::Protocol::~Protocol()
-{
-}
+= default;
 
 GSsl::Protocol::Result GSsl::Protocol::connect( G::ReadWrite & )
 {
@@ -127,12 +136,12 @@ GSsl::Protocol::Result GSsl::Protocol::shutdown()
 	return Result::error ;
 }
 
-GSsl::Protocol::Result GSsl::Protocol::read( char * , size_t , ssize_t & )
+GSsl::Protocol::Result GSsl::Protocol::read( char * , std::size_t , ssize_t & )
 {
 	return Result::error ;
 }
 
-GSsl::Protocol::Result GSsl::Protocol::write( const char * , size_t , ssize_t & )
+GSsl::Protocol::Result GSsl::Protocol::write( const char * , std::size_t , ssize_t & )
 {
 	return Result::error ;
 }
@@ -152,6 +161,11 @@ std::string GSsl::Protocol::peerCertificateChain() const
 	return std::string() ;
 }
 
+std::string GSsl::Protocol::protocol() const
+{
+	return std::string() ;
+}
+
 std::string GSsl::Protocol::cipher() const
 {
 	return std::string() ;
@@ -164,8 +178,8 @@ bool GSsl::Protocol::verified() const
 
 // ==
 
-GSsl::Digester::Digester( DigesterImpBase * p ) :
-	m_imp(p)
+GSsl::Digester::Digester( std::unique_ptr<DigesterImpBase> p ) :
+	m_imp(p.release())
 {
 }
 
@@ -183,19 +197,18 @@ std::string GSsl::Digester::state()
 	return std::string() ;
 }
 
-size_t GSsl::Digester::blocksize() const
+std::size_t GSsl::Digester::blocksize() const
 {
 	return 1U ;
 }
 
-size_t GSsl::Digester::valuesize() const
+std::size_t GSsl::Digester::valuesize() const
 {
 	return 1U ;
 }
 
-size_t GSsl::Digester::statesize() const
+std::size_t GSsl::Digester::statesize() const
 {
 	return 0U ;
 }
 
-/// \file gssl_none.cpp

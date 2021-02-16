@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gsize.h
 ///
 
-#ifndef G_SIZE_H
-#define G_SIZE_H
+#ifndef G_GUI_SIZE_H
+#define G_GUI_SIZE_H
 
 #include "gdef.h"
 #include <iostream>
@@ -29,7 +29,7 @@ namespace GGui
 	class Size ;
 }
 
-/// \class GGui::Size
+//| \class GGui::Size
 /// A structure representing the size of a rectangle (typically
 /// a GUI window).
 ///

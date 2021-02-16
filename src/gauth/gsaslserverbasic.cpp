@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gsaslserverbasic.cpp
-//
+///
+/// \file gsaslserverbasic.cpp
+///
 
 #include "gdef.h"
 #include "gsaslserverbasic.h"
@@ -27,19 +27,14 @@
 #include "gstr.h"
 #include "gtest.h"
 #include "gdatetime.h"
+#include "grandom.h"
 #include "glog.h"
 #include "gassert.h"
 #include <sstream>
 #include <algorithm>
 #include <functional>
 
-namespace
-{
-	const char * login_challenge_1 = "Username:" ;
-	const char * login_challenge_2 = "Password:" ;
-}
-
-/// \class GAuth::SaslServerBasicImp
+//| \class GAuth::SaslServerBasicImp
 /// A private pimple-pattern implementation class used by GAuth::SaslServerBasic.
 ///
 class GAuth::SaslServerBasicImp
@@ -67,7 +62,12 @@ private:
 	bool m_authenticated ;
 	std::string m_id ;
 	std::string m_trustee ;
+	static const char * login_challenge_1 ;
+	static const char * login_challenge_2 ;
 } ;
+
+const char * GAuth::SaslServerBasicImp::login_challenge_1 = "Username:" ;
+const char * GAuth::SaslServerBasicImp::login_challenge_2 = "Password:" ;
 
 // ===
 
@@ -114,7 +114,7 @@ bool GAuth::SaslServerBasicImp::init( const std::string & mechanism_in )
 	if( m_allow_apop && mechanism == "APOP" )
 	{
 		m_mechanism = mechanism ;
-		m_challenge = Cram::challenge() ;
+		m_challenge = Cram::challenge( G::Random::rand() ) ;
 		return true ;
 	}
 	else if( std::find(m_mechanisms.begin(),m_mechanisms.end(),mechanism) == m_mechanisms.end() )
@@ -125,7 +125,7 @@ bool GAuth::SaslServerBasicImp::init( const std::string & mechanism_in )
 	else if( mechanism.find("CRAM-") == 0U )
 	{
 		m_mechanism = mechanism ;
-		m_challenge = Cram::challenge() ;
+		m_challenge = Cram::challenge( G::Random::rand() ) ;
 		return true ;
 	}
 	else
@@ -259,13 +259,9 @@ std::string GAuth::SaslServerBasicImp::apply( const std::string & response , boo
 bool GAuth::SaslServerBasicImp::trusted( const GNet::Address & address ) const
 {
 	G_DEBUG( "GAuth::SaslServerBasicImp::trusted: \"" << address.hostPartString() << "\"" ) ;
-	G::StringArray wc = address.wildcards() ;
-	for( G::StringArray::iterator p = wc.begin() ; p != wc.end() ; ++p )
-	{
-		if( trustedCore(*p,address) )
-			return true ;
-	}
-	return false ;
+	G::StringArray wildcards = address.wildcards() ;
+	return std::any_of( wildcards.cbegin() , wildcards.cend() ,
+		[&](const std::string &wca){return trustedCore(wca,address);} ) ;
 }
 
 bool GAuth::SaslServerBasicImp::trustedCore( const std::string & address_wildcard , const GNet::Address & address ) const
@@ -309,14 +305,12 @@ bool GAuth::SaslServerBasicImp::authenticated() const
 // ===
 
 GAuth::SaslServerBasic::SaslServerBasic( const SaslServerSecrets & secrets , const std::string & config , bool allow_apop ) :
-	m_imp(new SaslServerBasicImp(secrets,config,allow_apop))
+	m_imp(std::make_unique<SaslServerBasicImp>(secrets,config,allow_apop))
 {
 }
 
 GAuth::SaslServerBasic::~SaslServerBasic()
-{
-	delete m_imp ;
-}
+= default ;
 
 std::string GAuth::SaslServerBasic::mechanisms( char c ) const
 {

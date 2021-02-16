@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #define G_MAIN_OPTIONS_H
 
 #include "gdef.h"
+#include "goptions.h"
 #include <string>
 
 namespace Main
@@ -29,18 +30,18 @@ namespace Main
 	class Options ;
 }
 
-/// \class Main::Options
+//| \class Main::Options
 /// Provides the emailrelay command-line options specification string.
 /// \see G::OptionParser
 ///
 class Main::Options
 {
 public:
-	static std::string spec( bool is_windows ) ;
-		///< Returns an o/s-specific G::OptionParser specification string.
+	static G::Options spec( bool is_windows ) ;
+		///< Returns an o/s-specific G::OptionParser specification.
 
-private:
-	Options() g__eq_delete ;
+public:
+	Options() = delete ;
 } ;
 
 #endif

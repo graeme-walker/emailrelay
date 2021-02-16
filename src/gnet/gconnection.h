@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gconnection.h
 ///
 
-#ifndef G_NET_CONNECTION__H
-#define G_NET_CONNECTION__H
+#ifndef G_NET_CONNECTION_H
+#define G_NET_CONNECTION_H
 
 #include "gdef.h"
 #include "gaddress.h"
@@ -29,7 +29,7 @@ namespace GNet
 	class Connection ;
 }
 
-/// \class GNet::Connection
+//| \class GNet::Connection
 /// An abstract interface which provides address information for a network
 /// connection.
 /// \see GNet::Client, GNet::ServerPeer
@@ -37,7 +37,7 @@ namespace GNet
 class GNet::Connection
 {
 public:
-	virtual ~Connection() ;
+	virtual ~Connection() = default ;
 		///< Destructor.
 
 	virtual std::pair<bool,Address> localAddress() const = 0 ;

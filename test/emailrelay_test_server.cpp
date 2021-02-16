@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// emailrelay_test_server.cpp
-//
+///
+/// \file emailrelay_test_server.cpp
+///
 // A dummy smtp server for testing purposes.
 //
 // usage: emailrelay-test-server [--quiet] [--tls] [--auth-foo-bar] [--auth-cram] [--auth-login] [--auth-plain]
@@ -24,6 +24,7 @@
 //
 
 #include "gdef.h"
+#include "gfile.h"
 #include "geventloop.h"
 #include "gtimerlist.h"
 #include "gnetdone.h"
@@ -96,10 +97,10 @@ class Peer : public GNet::ServerPeer
 {
 public:
 	Peer( GNet::ExceptionSinkUnbound , GNet::ServerPeerInfo , Config ) ;
-	virtual void onDelete( const std::string & ) override ;
-	virtual void onSendComplete() override ;
-	virtual bool onReceive( const char * , size_t , size_t , size_t , char ) override ;
-	virtual void onSecure( const std::string & , const std::string & ) override ;
+	void onDelete( const std::string & ) override ;
+	void onSendComplete() override ;
+	bool onReceive( const char * , std::size_t , std::size_t , std::size_t , char ) override ;
+	void onSecure( const std::string & , const std::string & , const std::string & ) override ;
 	void tx( const std::string & ) ;
 
 private:
@@ -119,8 +120,8 @@ class Server : public GNet::Server
 {
 public:
 	Server( GNet::ExceptionSink , Config c ) ;
-	~Server() ;
-	virtual unique_ptr<GNet::ServerPeer> newPeer( GNet::ExceptionSinkUnbound , GNet::ServerPeerInfo ) override ;
+	~Server() override ;
+	std::unique_ptr<GNet::ServerPeer> newPeer( GNet::ExceptionSinkUnbound , GNet::ServerPeerInfo ) override ;
 	Config m_config ;
 } ;
 
@@ -137,17 +138,17 @@ Server::~Server()
 	serverCleanup() ; // base class early cleanup
 }
 
-unique_ptr<GNet::ServerPeer> Server::newPeer( GNet::ExceptionSinkUnbound esu , GNet::ServerPeerInfo info )
+std::unique_ptr<GNet::ServerPeer> Server::newPeer( GNet::ExceptionSinkUnbound esu , GNet::ServerPeerInfo info )
 {
 	try
 	{
 		G_LOG_S( "Server::newPeer: new connection from " << info.m_address.displayString() ) ;
-		return unique_ptr<GNet::ServerPeer>( new Peer( esu , info , m_config ) ) ;
+		return std::unique_ptr<GNet::ServerPeer>( new Peer( esu , info , m_config ) ) ;
 	}
 	catch( std::exception & e )
 	{
 		G_WARNING( "Server::newPeer: new connection error: " << e.what() ) ;
-		return unique_ptr<GNet::ServerPeer>() ;
+		return std::unique_ptr<GNet::ServerPeer>() ;
 	}
 }
 
@@ -183,11 +184,11 @@ void Peer::onSendComplete()
 {
 }
 
-void Peer::onSecure( const std::string & , const std::string & )
+void Peer::onSecure( const std::string & , const std::string & , const std::string & )
 {
 }
 
-bool Peer::onReceive( const char * line_data , size_t line_size , size_t , size_t , char )
+bool Peer::onReceive( const char * line_data , std::size_t line_size , std::size_t , std::size_t , char )
 {
 	std::string line( line_data , line_size ) ;
 	if( !m_config.m_quiet )
@@ -331,7 +332,7 @@ int main( int argc , char * argv [] )
 			"s!slow!slow responses!!0!!1" "|"
 			"t!tls!enable tls!!0!!1" "|"
 			"q!quiet!less logging!!0!!1" "|"
-			"f!fail-at!fail the n'th message! (zero-based index)!1!n!1" "|"
+			"f!fail-at!fail from the n'th message! of the session (zero-based index)!1!n!1" "|"
 			"d!drop!drop the connection when content has DROP or when failing!!0!!1" "|"
 			"i!idle-timeout!idle timeout!!1!<seconds>!1" "|"
 			"P!port!port number!!1!port!1" "|"
@@ -345,7 +346,7 @@ int main( int argc , char * argv [] )
 		}
 		if( opt.contains("help") )
 		{
-			opt.options().showUsage( std::cout , arg.prefix() ) ;
+			opt.options().showUsage( {} , std::cout , arg.prefix() ) ;
 			return 0 ;
 		}
 
@@ -366,18 +367,25 @@ int main( int argc , char * argv [] )
 		G::Path argv0 = G::Path(arg.v(0)).withoutExtension().basename() ;
 		std::string pid_file_name = opt.value( "pid-file" , "."+argv0.str()+".pid" ) ;
 
-		G::LogOutput log( "" , !quiet , !quiet , false , false , true , false , true , false ) ;
+		G::LogOutput log( "" ,
+			G::LogOutput::Config()
+				.set_output_enabled(!quiet)
+				.set_summary_info(!quiet)
+				.set_with_level(true)
+				.set_strip(true) ) ;
+
 		G_LOG_S( "pid=[" << G::Process::Id() << "]" ) ;
 		G_LOG_S( "pidfile=[" << pid_file_name << "]" ) ;
 		G_LOG_S( "port=[" << port << "]" ) ;
 		G_LOG_S( "fail-at=[" << fail_at << "]" ) ;
 
 		{
-			std::ofstream pid_file( pid_file_name.c_str() ) ;
+			std::ofstream pid_file ;
+			G::File::open( pid_file , pid_file_name , G::File::Text() ) ;
 			pid_file << G::Process::Id().str() << std::endl ;
 		}
 
-		GNet::EventLoop * event_loop = GNet::EventLoop::create() ;
+		std::unique_ptr<GNet::EventLoop> event_loop = GNet::EventLoop::create() ;
 		GNet::ExceptionSink es ;
 		GNet::TimerList timer_list ;
 		Server server( es , Config(ipv6,port,auth_foo_bar,auth_cram,auth_login,auth_plain,auth_ok,slow,fail_at,drop,tls,quiet,idle_timeout) ) ;
@@ -393,4 +401,3 @@ int main( int argc , char * argv [] )
 	return 1 ;
 }
 
-/// \file emailrelay_test_server.cpp

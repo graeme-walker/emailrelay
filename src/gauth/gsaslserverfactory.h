@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,17 +31,17 @@ namespace GAuth
 	class SaslServerFactory ;
 }
 
-/// \class GAuth::SaslServerFactory
+//| \class GAuth::SaslServerFactory
 /// Provides a factory function for SaslServer instances.
 ///
 class GAuth::SaslServerFactory
 {
 public:
-	static unique_ptr<SaslServer> newSaslServer( const SaslServerSecrets & , const std::string & config , bool allow_apop ) ;
+	static std::unique_ptr<SaslServer> newSaslServer( const SaslServerSecrets & , const std::string & config , bool allow_apop ) ;
 		///< A factory function for a SaslServer.
 
-private:
-	SaslServerFactory() ;
+public:
+	SaslServerFactory() = delete ;
 } ;
 
 #endif

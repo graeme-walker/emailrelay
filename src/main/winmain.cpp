@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// winmain.cpp
-//
+///
+/// \file winmain.cpp
+///
 
 #include "gdef.h"
 #include "garg.h"
@@ -33,13 +33,15 @@ int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous , LPSTR command_lin
 {
 	try
 	{
-		::setlocale( LC_ALL , "" ) ; // set the locale from the environment
+		// set the C locale from the environment
+		// (has no effect on the msvc run-time)
+		::setlocale( LC_ALL , "" ) ;
 
 		G::Arg arg ;
 		arg.parse( hinstance , command_line ) ;
 
 		Main::WinApp app( hinstance , previous , "E-MailRelay" ) ;
-		Main::Run run( app , arg , Main::Options::spec(true) , true ) ;
+		Main::Run run( app , arg , true , true ) ;
 		try
 		{
 			run.configure() ;
@@ -69,4 +71,3 @@ int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous , LPSTR command_lin
 	return 1 ;
 }
 
-/// \file winmain.cpp

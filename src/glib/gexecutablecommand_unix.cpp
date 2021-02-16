@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,22 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gexecutablecommand_unix.cpp
-//
+///
+/// \file gexecutablecommand_unix.cpp
+///
 
 #include "gdef.h"
 #include "gexecutablecommand.h"
 #include "gstr.h"
 #include <algorithm>
-
-G::StringArray G::ExecutableCommand::osSplit( const std::string & s )
-{
-	StringArray parts ;
-	Str::splitIntoFields( Str::dequote(s) , parts , " " , '\\' ) ;
-	parts.erase( std::remove( parts.begin() , parts.end() , std::string() ) , parts.end() ) ;
-	return parts ;
-}
 
 bool G::ExecutableCommand::osNativelyRunnable() const
 {
@@ -40,4 +32,3 @@ void G::ExecutableCommand::osAddWrapper()
 {
 }
 
-/// \file gexecutablecommand_unix.cpp

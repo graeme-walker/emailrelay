@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,10 +17,9 @@
 ///
 /// \file gaddress4.h
 ///
-/// This file is formatted for side-by-side comparison with gaddress6.h.
 
-#ifndef G_NET_ADDRESS4__H
-#define G_NET_ADDRESS4__H
+#ifndef G_NET_ADDRESS4_H
+#define G_NET_ADDRESS4_H
 
 #include "gdef.h"
 #include "gaddress.h"
@@ -31,17 +30,14 @@ namespace GNet
 	class Address4 ;
 }
 
-/// \class GNet::Address4
+//| \class GNet::Address4
 /// A 'sockaddr' wrapper class for IPv4 addresses.
 ///
 class GNet::Address4
 {
 public:
-	typedef sockaddr general_type ;
-	typedef sockaddr_in specific_type ;
-	typedef sockaddr storage_type ;
-	union union_type /// Used by GNet::Address4 to cast between sockaddr and sockaddr_in.
-		{ specific_type specific ; general_type general ; storage_type storage ; } ;
+	using sockaddr_type = sockaddr_in ;
+	using storage_type = sockaddr_storage ;
 
 	explicit Address4( unsigned int ) ;
 	explicit Address4( const std::string & ) ;
@@ -49,13 +45,12 @@ public:
 	Address4( const std::string & , unsigned int ) ;
 	Address4( unsigned int port , int /*for overload resolution*/ ) ; // canonical loopback address
 	Address4( const sockaddr * addr , socklen_t len ) ;
-	Address4( const Address4 & other ) ;
 
 	static int domain() ;
 	static unsigned short family() ;
 	const sockaddr * address() const ;
 	sockaddr * address() ;
-	static socklen_t length() ;
+	static socklen_t length() noexcept ;
 
 	unsigned int port() const ;
 	void setPort( unsigned int port ) ;
@@ -69,7 +64,9 @@ public:
 	bool sameHostPart( const Address4 & other ) const ;
 	bool isLoopback() const ;
 	bool isLocal( std::string & ) const ;
-	bool isPrivate() const ;
+	bool isLinkLocal() const ;
+	bool isUniqueLocal() const ;
+	bool isAny() const ;
 	unsigned int bits() const ;
 	std::string displayString() const ;
 	std::string hostPartString() const ;
@@ -78,17 +75,17 @@ public:
 	static bool format( std::string ) ;
 
 private:
-	void init() ;
-	static const char * setAddress( union_type & , const std::string & ) ;
-	static const char * setHostAddress( union_type & , const std::string & ) ;
-	static const char * setPort( union_type & , unsigned int ) ;
-	static const char * setPort( union_type & , const std::string & ) ;
+	explicit Address4( std::nullptr_t ) ;
+	static const char * setAddress( sockaddr_type & , const std::string & ) ;
+	static const char * setHostAddress( sockaddr_type & , const std::string & ) ;
+	static const char * setPort( sockaddr_type & , unsigned int ) ;
+	static const char * setPort( sockaddr_type & , const std::string & ) ;
 	static bool sameAddr( const ::in_addr & a , const ::in_addr & b ) ;
 	static void add( G::StringArray & , const std::string & , unsigned int , const char * ) ;
 	static void add( G::StringArray & , const std::string & , const char * ) ;
 
 private:
-	union_type m_inet ;
+	sockaddr_type m_inet ;
 } ;
 
 #endif

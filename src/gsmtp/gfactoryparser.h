@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gfactoryparser.h
 ///
 
-#ifndef G_SMTP_FACTORY_PARSER__H
-#define G_SMTP_FACTORY_PARSER__H
+#ifndef G_SMTP_FACTORY_PARSER_H
+#define G_SMTP_FACTORY_PARSER_H
 
 #include "gdef.h"
 #include <utility>
@@ -30,7 +30,7 @@ namespace GSmtp
 	class FactoryParser ;
 }
 
-/// \class GSmtp::FactoryParser
+//| \class GSmtp::FactoryParser
 /// A simple static class to parse identifiers that can be a
 /// program in the file system or a network address. Used by
 /// the filter factory and the address-verifier factory.
@@ -43,23 +43,24 @@ public:
 		Result() ;
 		Result( const std::string & , const std::string & ) ;
 		Result( const std::string & , const std::string & , int ) ;
-		std::string first ;
-		std::string second ;
-		int third ;
+		std::string first ; // eg. "file", "net", "spam"
+		std::string second ; // eg. "localhost:99"
+		int third{0} ; // eg. 1 for spam-edit
 	} ;
 
 	static Result parse( const std::string & identifier , bool allow_spam ) ;
 		///< Parses an identifier like "/usr/bin/foo" or "net:127.0.0.1:99"
 		///< returning the type and the specification in a result tuple, eg.
-		///< ("file","/usr/bin/foo") or ("net","127.0.0.1:99").
+		///< ("file","/usr/bin/foo") or ("net","127.0.0.1:99"). Returns
+		///< a default-constructed Result if not parsable.
 
 	static std::string check( const std::string & identifier , bool allow_spam ) ;
 		///< Parses and checks an identifier. Returns a diagnostic if
 		///< the identifier is invalid, or the empty string if valid
 		///< or empty.
 
-private:
-	FactoryParser() g__eq_delete ;
+public:
+	FactoryParser() = delete ;
 } ;
 
 #endif

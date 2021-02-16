@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gappinst.h
 ///
 
-#ifndef G_APPINST_H
-#define G_APPINST_H
+#ifndef G_GUI_APPINST_H
+#define G_GUI_APPINST_H
 
 #include "gdef.h"
 
@@ -28,7 +28,7 @@ namespace GGui
 	class ApplicationInstance ;
 }
 
-/// \class GGui::ApplicationInstance
+//| \class GGui::ApplicationInstance
 /// A class for storing the application's instance handle, as
 /// obtained from WinMain().
 ///

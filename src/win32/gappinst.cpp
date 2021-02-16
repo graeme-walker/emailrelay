@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gappinst.cpp
-//
+///
+/// \file gappinst.cpp
+///
 
 #include "gdef.h"
 #include "gappinst.h"
@@ -43,4 +43,3 @@ HINSTANCE GGui::ApplicationInstance::hinstance()
 	return m_hinstance ;
 }
 
-/// \file gappinst.cpp

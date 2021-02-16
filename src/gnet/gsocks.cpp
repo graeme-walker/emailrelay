@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,13 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gsocks.cpp
-//
+///
+/// \file gsocks.cpp
+///
 
 #include "gdef.h"
 #include "gsocks.h"
 #include "gassert.h"
+#include <array>
+#include <algorithm>
 
 GNet::Socks::Socks( const Location & location ) :
 	m_request_offset(0U)
@@ -44,6 +46,7 @@ std::string GNet::Socks::buildPdu( const std::string & far_host , unsigned int f
 
 	std::string userid ; // TODO - socks userid
 	std::string data ;
+	data.reserve( far_host.size() + 10U ) ;
 	data.append( 1U , 4 ) ; // version 4
 	data.append( 1U , 1 ) ; // connect request
 	data.append( 1U , static_cast<char>(far_port_lo) ) ;
@@ -66,16 +69,16 @@ bool GNet::Socks::send( G::ReadWrite & io )
 		return true ;
 
 	const char * p = m_request.data() + m_request_offset ;
-	size_t n = m_request.size() - m_request_offset ;
+	std::size_t n = m_request.size() - m_request_offset ;
 
 	ssize_t rc = io.write( p , n ) ;
 	if( rc < 0 && !io.eWouldBlock() )
 	{
 		throw SocksError( "socket write error" ) ;
 	}
-	else if( rc < 0 || static_cast<size_t>(rc) < n )
+	else if( rc < 0 || static_cast<std::size_t>(rc) < n )
 	{
-		size_t nsent = rc < 0 ? size_t(0U) : static_cast<size_t>(rc) ;
+		std::size_t nsent = rc < 0 ? std::size_t(0U) : static_cast<std::size_t>(rc) ;
 		m_request_offset += nsent ;
 		return false ;
 	}
@@ -88,8 +91,8 @@ bool GNet::Socks::send( G::ReadWrite & io )
 
 bool GNet::Socks::read( G::ReadWrite & io )
 {
-	char buffer[8] ;
-	ssize_t rc = io.read( buffer , sizeof(buffer) ) ;
+	std::array<char,8U> buffer {} ;
+	ssize_t rc = io.read( &buffer[0] , buffer.size() ) ;
 	if( rc == 0 )
 	{
 		throw SocksError( "disconnected" ) ;
@@ -105,7 +108,8 @@ bool GNet::Socks::read( G::ReadWrite & io )
 	else
 	{
 		G_ASSERT( rc >= 1 && rc <= 8 ) ;
-		m_response.append( buffer , static_cast<size_t>(rc) ) ;
+		std::size_t n = std::min( buffer.size() , static_cast<std::size_t>(rc) ) ;
+		m_response.append( &buffer[0] , n ) ;
 	}
 
 	if( m_response.size() >= 8U )
@@ -127,4 +131,3 @@ bool GNet::Socks::read( G::ReadWrite & io )
 	}
 }
 
-/// \file gsocks.cpp

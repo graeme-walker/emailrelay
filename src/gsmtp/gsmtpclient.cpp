@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gsmtpclient.cpp
-//
+///
+/// \file gsmtpclient.cpp
+///
 
 #include "gdef.h"
 #include "glocal.h"
@@ -30,21 +30,6 @@
 #include "gresolver.h"
 #include "gassert.h"
 #include "glog.h"
-
-namespace
-{
-	GNet::Client::Config netConfig( GSmtp::Client::Config smtp_config )
-	{
-		GNet::Client::Config net_config( GNet::LineBufferConfig::smtp() ) ;
-        net_config.bind_local_address = smtp_config.bind_local_address ;
-        net_config.local_address = smtp_config.local_address ;
-        net_config.connection_timeout = smtp_config.connection_timeout ;
-        net_config.secure_connection_timeout = smtp_config.secure_connection_timeout ;
-		//net_config.response_timeout = 0U ; // the protocol class does this
-		//net_config.idle_timeout = 0U ; // not needed
-		return net_config ;
-	}
-}
 
 GSmtp::Client::Client( GNet::ExceptionSink es , const GNet::Location & remote ,
 	const GAuth::Secrets & secrets , const Config & config ) :
@@ -67,29 +52,34 @@ GSmtp::Client::~Client()
 	m_filter->doneSignal().disconnect() ;
 }
 
-shared_ptr<GSmtp::StoredMessage> GSmtp::Client::message()
+GNet::Client::Config GSmtp::Client::netConfig( const Config & smtp_config )
 {
-	G_ASSERT( m_message.get() != nullptr ) ;
-	if( m_message.get() == nullptr )
-		m_message.reset( new StoredMessageStub ) ;
-
-	return m_message ;
+	GNet::Client::Config net_config( GNet::LineBufferConfig::smtp() ) ;
+	net_config.bind_local_address = smtp_config.bind_local_address ;
+	net_config.local_address = smtp_config.local_address ;
+	net_config.connection_timeout = smtp_config.connection_timeout ;
+	net_config.secure_connection_timeout = smtp_config.secure_connection_timeout ;
+	//net_config.response_timeout = 0U ; // the protocol class does this
+	//net_config.idle_timeout = 0U ; // not needed
+	return net_config ;
 }
 
-G::Slot::Signal1<std::string> & GSmtp::Client::messageDoneSignal()
+G::Slot::Signal<const std::string&> & GSmtp::Client::messageDoneSignal()
 {
 	return m_message_done_signal ;
 }
 
 void GSmtp::Client::sendMessagesFrom( MessageStore & store )
 {
+	G_ASSERT( m_store == nullptr ) ;
 	G_ASSERT( !connected() ) ; // ie. immediately after construction
 	m_store = &store ;
 }
 
-void GSmtp::Client::sendMessage( unique_ptr<StoredMessage> message )
+void GSmtp::Client::sendMessage( std::unique_ptr<StoredMessage> message )
 {
-	if( message )
+	G_ASSERT( message && message->toCount() ) ;
+	if( message && message->toCount() )
 	{
 		m_message.reset( message.release() ) ;
 		if( connected() )
@@ -97,86 +87,20 @@ void GSmtp::Client::sendMessage( unique_ptr<StoredMessage> message )
 	}
 }
 
-bool GSmtp::Client::protocolSend( const std::string & line , size_t offset , bool go_secure )
-{
-	bool rc = send( line , offset ) ; // GNet::Client::send()
-	if( go_secure )
-		secureConnect() ; // GNet::Client -> GNet::SocketProtocol
-	return rc ;
-}
-
-void GSmtp::Client::filterStart()
-{
-	if( !m_filter->simple() )
-	{
-		G_LOG( "GSmtp::Client::filterStart: client filter: [" << m_filter->id() << "]" ) ;
-		message()->close() ; // allow external editing
-	}
-	m_filter->start( message()->location() ) ;
-}
-
-void GSmtp::Client::filterDone( int filter_result )
-{
-	const bool ok = filter_result == 0 ;
-	const bool abandon = filter_result == 1 ;
-	const bool stop_scanning = m_filter->special() ;
-	G_ASSERT( m_filter->reason().empty() == (ok || abandon) ) ;
-
-	if( stop_scanning )
-	{
-		G_DEBUG( "GSmtp::Client::filterDone: making this the last message" ) ;
-		m_iter.last() ; // so next next() returns nothing
-	}
-
-	std::string reopen_error ;
-	if( !m_filter->simple() )
-	{
-		G_LOG( "GSmtp::Client::filterDone: client filter done: " << m_filter->str(false) ) ;
-		if( ok && !abandon )
-			reopen_error = message()->reopen() ;
-	}
-
-	// pass the event on to the client protocol
-	if( ok && reopen_error.empty() )
-	{
-		m_protocol.filterDone( true , std::string() , std::string() ) ;
-	}
-	else if( abandon )
-	{
-		m_protocol.filterDone( false , std::string() , std::string() ) ; // protocolDone(-1)
-	}
-	else if( !reopen_error.empty() )
-	{
-		m_protocol.filterDone( false , "failed" , reopen_error ) ; // protocolDone(-2)
-	}
-	else
-	{
-		m_protocol.filterDone( false , m_filter->response() , m_filter->reason() ) ; // protocolDone(-2)
-	}
-}
-
-void GSmtp::Client::onSecure( const std::string & /*certificate*/ , const std::string & /*cipher*/ )
-{
-	if( m_secure_tunnel )
-	{
-		startSending() ;
-	}
-	else
-	{
-		m_protocol.secure() ;
-	}
-}
-
 void GSmtp::Client::onConnect()
 {
 	if( m_secure_tunnel )
-	{
 		secureConnect() ; // GNet::SocketProtocol
-	}
 	else
-	{
 		startSending() ;
-	}
+}
+
+void GSmtp::Client::onSecure( const std::string & , const std::string & , const std::string & )
+{
+	if( m_secure_tunnel )
+		startSending() ;
+	else
+		m_protocol.secure() ; // tell the protocol that STARTTLS is done
 }
 
 void GSmtp::Client::startSending()
@@ -208,8 +132,8 @@ bool GSmtp::Client::sendNext()
 
 	// fetch the next message from the store, or return false if none
 	{
-		unique_ptr<StoredMessage> message( m_iter.next() ) ;
-		if( message.get() == nullptr )
+		std::unique_ptr<StoredMessage> message( ++m_iter ) ;
+		if( message == nullptr )
 		{
 			if( m_message_count != 0U )
 				G_LOG( "GSmtp::Client: no more messages to send" ) ;
@@ -225,16 +149,85 @@ bool GSmtp::Client::sendNext()
 
 void GSmtp::Client::start()
 {
+	G_ASSERT( message()->toCount() != 0U ) ;
 	m_message_count++ ;
 
 	G::CallFrame this_( m_stack ) ;
 	eventSignal().emit( "sending" , message()->name() , std::string() ) ;
 	if( this_.deleted() ) return ;
 
-	m_protocol.start( weak_ptr<StoredMessage>(message()) ) ;
+	m_protocol.start( std::weak_ptr<StoredMessage>(message()) ) ;
 }
 
-void GSmtp::Client::protocolDone( int response_code , std::string response_in , std::string reason_in )
+std::shared_ptr<GSmtp::StoredMessage> GSmtp::Client::message()
+{
+	G_ASSERT( m_message != nullptr ) ;
+	if( m_message == nullptr )
+		m_message = std::make_shared<StoredMessageStub>() ;
+
+	return m_message ;
+}
+
+bool GSmtp::Client::protocolSend( const std::string & line , std::size_t offset , bool go_secure )
+{
+	bool rc = send( line , offset ) ; // GNet::Client::send()
+	if( go_secure )
+		secureConnect() ; // GNet::Client -> GNet::SocketProtocol
+	return rc ;
+}
+
+void GSmtp::Client::filterStart()
+{
+	if( !m_filter->simple() )
+	{
+		G_LOG( "GSmtp::Client::filterStart: client filter: [" << m_filter->id() << "]" ) ;
+		message()->close() ; // allow external editing
+	}
+	m_filter->start( message()->location() ) ;
+}
+
+void GSmtp::Client::filterDone( int filter_result )
+{
+	const bool ok = filter_result == 0 ;
+	const bool abandon = filter_result == 1 ;
+	const bool stop_scanning = m_filter->special() ;
+	G_ASSERT( m_filter->reason().empty() == (ok || abandon) ) ;
+
+	if( stop_scanning )
+	{
+		G_DEBUG( "GSmtp::Client::filterDone: making this the last message" ) ;
+		m_iter.reset() ; // so next iterNext() returns nothing
+	}
+
+	std::string reopen_error ;
+	if( !m_filter->simple() )
+	{
+		G_LOG( "GSmtp::Client::filterDone: client filter done: " << m_filter->str(false) ) ;
+		if( ok && !abandon )
+			reopen_error = message()->reopen() ;
+	}
+
+	// pass the event on to the client protocol
+	if( ok && reopen_error.empty() )
+	{
+		m_protocol.filterDone( true , std::string() , std::string() ) ;
+	}
+	else if( abandon )
+	{
+		m_protocol.filterDone( false , std::string() , std::string() ) ; // protocolDone(-1)
+	}
+	else if( !reopen_error.empty() )
+	{
+		m_protocol.filterDone( false , "failed" , reopen_error ) ; // protocolDone(-2)
+	}
+	else
+	{
+		m_protocol.filterDone( false , m_filter->response() , m_filter->reason() ) ; // protocolDone(-2)
+	}
+}
+
+void GSmtp::Client::protocolDone( int response_code , const std::string & response_in ,
+	const std::string & reason_in , const G::StringArray & rejectees )
 {
 	G_DEBUG( "GSmtp::Client::protocolDone: \"" << response_in << "\"" ) ;
 
@@ -255,13 +248,21 @@ void GSmtp::Client::protocolDone( int response_code , std::string response_in , 
 	}
 	else if( response.empty() )
 	{
-		// forwarded ok, so delete our copy
+		// forwarded ok to all, so delete our copy
 		messageDestroy() ;
+	}
+	else if( rejectees.empty() )
+	{
+		// eg. rejected by the server, so fail the message
+		G_ASSERT( !reason.empty() ) ;
+		m_filter->cancel() ;
+		messageFail( response_code , reason ) ;
 	}
 	else
 	{
-		// eg. rejected by the server, so fail the message
+		// some recipients rejected by the server, so update the to-list and fail the message
 		m_filter->cancel() ;
+		message()->edit( rejectees ) ;
 		messageFail( response_code , reason ) ;
 	}
 
@@ -302,7 +303,7 @@ void GSmtp::Client::messageFail( int response_code , const std::string & reason 
 	m_message.reset() ;
 }
 
-bool GSmtp::Client::onReceive( const char * line_data , size_t line_size , size_t , size_t , char )
+bool GSmtp::Client::onReceive( const char * line_data , std::size_t line_size , std::size_t , std::size_t , char )
 {
 	std::string line( line_data , line_size ) ;
 	G_DEBUG( "GSmtp::Client::onReceive: [" << G::Str::printable(line) << "]" ) ;
@@ -338,16 +339,21 @@ void GSmtp::Client::onSendComplete()
 
 // ==
 
-GSmtp::Client::Config::Config( std::string filter_address_ , unsigned int filter_timeout_ ,
-	bool bind_local_address , const GNet::Address & local_address ,
-	const ClientProtocol::Config & protocol_config , unsigned int connection_timeout_ ,
+GSmtp::Client::Config::Config() :
+	local_address(GNet::Address::defaultAddress())
+{
+}
+
+GSmtp::Client::Config::Config( const std::string & filter_address_ , unsigned int filter_timeout_ ,
+	bool bind_local_address_ , const GNet::Address & local_address_ ,
+	const ClientProtocol::Config & protocol_config_ , unsigned int connection_timeout_ ,
 	unsigned int secure_connection_timeout_ , bool secure_tunnel_ ,
 	const std::string & sasl_client_config_ ) :
 		filter_address(filter_address_) ,
 		filter_timeout(filter_timeout_) ,
-		bind_local_address(bind_local_address) ,
-		local_address(local_address) ,
-		client_protocol_config(protocol_config) ,
+		bind_local_address(bind_local_address_) ,
+		local_address(local_address_) ,
+		client_protocol_config(protocol_config_) ,
 		connection_timeout(connection_timeout_) ,
 		secure_connection_timeout(secure_connection_timeout_) ,
 		secure_tunnel(secure_tunnel_) ,
@@ -355,4 +361,3 @@ GSmtp::Client::Config::Config( std::string filter_address_ , unsigned int filter
 {
 }
 
-/// \file gsmtpclient.cpp

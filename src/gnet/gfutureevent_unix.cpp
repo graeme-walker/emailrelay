@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,56 +14,65 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gfutureevent_unix.cpp
-//
+///
+/// \file gfutureevent_unix.cpp
+///
 
 #include "gdef.h"
 #include "gfutureevent.h"
 #include "gmsg.h"
 #include "geventloop.h"
+#include <array>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
-/// \class GNet::FutureEventImp
+//| \class GNet::FutureEventImp
 /// A pimple-pattern implementation class used by GNet::FutureEvent.
 ///
 class GNet::FutureEventImp : public EventHandler
 {
 public:
-	typedef FutureEvent::handle_type handle_type ;
+	using handle_type = FutureEvent::handle_type ;
 
 	FutureEventImp( FutureEventHandler & , ExceptionSink ) ;
 		// Constructor.
 
-	virtual ~FutureEventImp() ;
+	~FutureEventImp() override ;
 		// Destructor.
 
-	static bool send( handle_type ) g__noexcept ;
+	static bool send( handle_type , bool ) noexcept ;
 		// Writes to the write socket.
 
 	void receive() ;
 		// Reads from the socket to clear the event.
 
-	handle_type handle() ;
-		// Returns the socket fd as a handle.
+	handle_type handle() noexcept ;
+		// Extracts the socket fd as a handle.
+
+public:
+	FutureEventImp( const FutureEventImp & ) = delete ;
+	FutureEventImp( FutureEventImp && ) = delete ;
+	void operator=( const FutureEventImp & ) = delete ;
+	void operator=( FutureEventImp && ) = delete ;
+
+private: // overrides
+	void readEvent() override ; // Override from GNet::EventHandler.
 
 private:
-	FutureEventImp( const FutureEventImp & ) g__eq_delete ;
-	void operator=( const FutureEventImp & ) g__eq_delete ;
 	static int init( int ) ;
-	virtual void readEvent() ; // Override from GNet::EventHandler.
 
 private:
 	struct Fd
 	{
-		Fd() : fd(-1) {}
+		Fd() = default;
 		~Fd() { if(fd!=-1) ::close(fd) ; }
-		void operator=( int fd_ ) { fd = fd_ ; }
-		int fd ;
-		private: Fd( const Fd & ) g__eq_delete ;
-		private: void operator=( const Fd & ) g__eq_delete ;
+		Fd &  operator=( int fd_ ) { fd = fd_ ; return *this ; }
+		int fd{-1} ;
+		Fd( const Fd & ) = delete ;
+		Fd( Fd && ) = delete ;
+		void operator=( const Fd & ) = delete ;
+		void operator=( Fd && ) = delete ;
 	} ;
 
 private:
@@ -77,8 +86,8 @@ GNet::FutureEventImp::FutureEventImp( FutureEventHandler & handler , ExceptionSi
 	m_handler(handler) ,
 	m_triggered(false)
 {
-	int fds[2] = { -1 , -1 } ;
-	int rc = ::socketpair( AF_UNIX , SOCK_DGRAM , 0 , fds ) ;
+	std::array<int,2U> fds {{ -1 , -1 }} ;
+	int rc = ::socketpair( AF_UNIX , SOCK_DGRAM , 0 , &fds[0] ) ;
 	if( rc != 0 )
 		throw FutureEvent::Error( "socketpair" ) ;
 	m_read = init( fds[0] ) ;
@@ -88,7 +97,7 @@ GNet::FutureEventImp::FutureEventImp( FutureEventHandler & handler , ExceptionSi
 
 int GNet::FutureEventImp::init( int fd )
 {
-	int rc = ::fcntl( fd , F_SETFL , ::fcntl(fd,F_GETFL) | O_NONBLOCK ) ; G_IGNORE_VARIABLE(int,rc) ;
+	GDEF_IGNORE_RETURN ::fcntl( fd , F_SETFL , ::fcntl(fd,F_GETFL) | O_NONBLOCK ) ;
 	return fd ;
 }
 
@@ -101,7 +110,7 @@ GNet::FutureEventImp::~FutureEventImp()
 	}
 }
 
-GNet::FutureEventImp::handle_type GNet::FutureEventImp::handle()
+GNet::FutureEventImp::handle_type GNet::FutureEventImp::handle() noexcept
 {
 	int fd = -1 ;
 	std::swap( m_write.fd , fd ) ;
@@ -111,15 +120,16 @@ GNet::FutureEventImp::handle_type GNet::FutureEventImp::handle()
 void GNet::FutureEventImp::receive()
 {
 	char c = '\0' ;
-	ssize_t rc = ::recv( m_read.fd , &c , 1 , 0 ) ; G_IGNORE_VARIABLE(ssize_t,rc) ;
+	GDEF_IGNORE_RETURN ::recv( m_read.fd , &c , 1 , 0 ) ;
 }
 
-bool GNet::FutureEventImp::send( handle_type handle ) g__noexcept
+bool GNet::FutureEventImp::send( handle_type handle , bool close ) noexcept
 {
 	int fd = static_cast<int>(handle) ;
 	char c = '\0' ;
 	ssize_t rc = G::Msg::send( fd , &c , 1 , 0 ) ;
-	::close( fd ) ; // sic
+	if( close )
+		::close( fd ) ; // just after send() is okay
 	const bool ok = rc == 1 ;
 	return ok ;
 }
@@ -137,27 +147,20 @@ void GNet::FutureEventImp::readEvent()
 // ==
 
 GNet::FutureEvent::FutureEvent( FutureEventHandler & handler , ExceptionSink es ) :
-	m_imp(new FutureEventImp(handler,es))
+	m_imp(std::make_unique<FutureEventImp>(handler,es))
 {
 }
 
 GNet::FutureEvent::~FutureEvent()
+= default ;
+
+bool GNet::FutureEvent::send( handle_type handle , bool close ) noexcept
 {
+	return FutureEventImp::send( handle , close ) ;
 }
 
-bool GNet::FutureEvent::send( handle_type handle ) g__noexcept
-{
-	return FutureEventImp::send( handle ) ;
-}
-
-GNet::FutureEvent::handle_type GNet::FutureEvent::handle()
+GNet::FutureEvent::handle_type GNet::FutureEvent::handle() noexcept
 {
 	return m_imp->handle() ;
-}
-
-// ==
-
-GNet::FutureEventHandler::~FutureEventHandler()
-{
 }
 

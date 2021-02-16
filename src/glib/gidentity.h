@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,14 +26,14 @@
 #include "gsignalsafe.h"
 #include <string>
 #include <iostream>
+#include <new>
 
 namespace G
 {
 	class Identity ;
-	class IdentityUser ;
 }
 
-/// \class G::Identity
+//| \class G::Identity
 /// A combination of user-id and group-id, with a very low-level interface
 /// to the get/set/e/uid/gid functions. Uses getpwnam() to do username
 /// lookups.
@@ -43,109 +43,71 @@ class G::Identity
 {
 public:
 	G_EXCEPTION( NoSuchUser , "no such user" ) ;
+	G_EXCEPTION( NoSuchGroup , "no such group" ) ;
 	G_EXCEPTION( Error , "cannot read user database" ) ;
-	G_EXCEPTION( UidError , "cannot set uid" ) ;
-	G_EXCEPTION( GidError , "cannot set gid" ) ;
 
-	explicit Identity( const std::string & login_name ) ;
-		///< Constructor for the named identity.
-		///< Throws if NoSuchUser.
+	explicit Identity( const std::string & username ,
+		const std::string & group_name_override = std::string() ) ;
+			///< Constructor for the named identity.
+			///< Throws NoSuchUser on error.
 
-	static Identity effective() ;
+	static Identity effective() noexcept ;
 		///< Returns the current effective identity.
 
-	static Identity real() ;
+	static Identity real( bool with_cache = true ) noexcept ;
 		///< Returns the calling process's real identity.
 
-	static Identity root() ;
+	static Identity root() noexcept ;
 		///< Returns the superuser identity.
 
-	static Identity invalid() ;
+	static Identity invalid() noexcept ;
 		///< Returns an invalid identity.
 
-	static Identity invalid( SignalSafe ) ;
+	static Identity invalid( SignalSafe ) noexcept ;
 		///< Returns an invalid identity, with a
 		///< signal-safe guarantee.
 
-	bool isRoot() const ;
+	bool isRoot() const noexcept ;
 		///< Returns true if the userid is zero.
 
 	std::string str() const ;
 		///< Returns a string representation.
 
-	void setRealUser( bool do_throw = true ) ;
-		///< Sets the real userid.
+	uid_t userid() const noexcept ;
+		///< Returns the user part.
 
-	void setEffectiveUser( bool do_throw = true ) ;
-		///< Sets the effective userid.
+	gid_t groupid() const noexcept ;
+		///< Returns the group part.
 
-	void setEffectiveUser( SignalSafe ) ;
-		///< Sets the effective userid.
-		///< A signal-safe, reentrant overload.
-
-	void setRealGroup( bool do_throw = true ) ;
-		///< Sets the real group id.
-
-	void setEffectiveGroup( bool do_throw = true ) ;
-		///< Sets the effective group id.
-
-	void setEffectiveGroup( SignalSafe ) ;
-		///< Sets the effective group id.
-		///< A signal-safe, reentrant overload.
-
-	bool operator==( const Identity & ) const ;
+	bool operator==( const Identity & ) const noexcept ;
 		///< Comparison operator.
 
-	bool operator!=( const Identity & ) const ;
+	bool operator!=( const Identity & ) const noexcept ;
 		///< Comparison operator.
+
+	static std::pair<uid_t,gid_t> lookupUser( const std::string & user ) ;
+		///< Does a username lookup. Throws on error.
+
+	static gid_t lookupGroup( const std::string & group ) ;
+		///< Does a groupname lookup. Throws on error.
 
 private:
-	Identity() ; // no throw
-	explicit Identity( SignalSafe ) ; // no throw
+	Identity() noexcept ;
+	explicit Identity( SignalSafe ) noexcept ;
 
 private:
 	uid_t m_uid ;
 	gid_t m_gid ;
-	HANDLE m_h ; // windows
-} ;
-
-/// \class G::IdentityUser
-/// A convenience class which, when used as a private base, can improve
-/// readability when calling Identity 'set' methods.
-///
-class G::IdentityUser
-{
-protected:
-	static void setRealUserTo( Identity , bool do_throw = true ) ;
-		///< Sets the real userid.
-
-	static void setEffectiveUserTo( Identity , bool do_throw = true ) ;
-		///< Sets the effective userid.
-
-	static void setEffectiveUserTo( SignalSafe , Identity ) ;
-		///< Sets the effective userid.
-
-	static void setRealGroupTo( Identity , bool do_throw = true ) ;
-		///< Sets the real group id.
-
-	static void setEffectiveGroupTo( Identity , bool do_throw = true ) ;
-		///< Sets the effective group id.
-
-	static void setEffectiveGroupTo( SignalSafe , Identity ) ;
-		///< Sets the effective group id.
-
-private:
-	IdentityUser() g__eq_delete ;
+	HANDLE m_h{0} ; // windows
 } ;
 
 namespace G
 {
 	inline
-	std::ostream & operator<<( std::ostream & stream , const G::Identity & identity )
+	std::ostream & operator<<( std::ostream & stream , const Identity & identity )
 	{
 		return stream << identity.str() ;
 	}
 }
 
 #endif
-

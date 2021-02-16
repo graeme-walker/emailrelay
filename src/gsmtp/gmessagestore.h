@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gmessagestore.h
 ///
 
-#ifndef G_SMTP_MESSAGE_STORE__H
-#define G_SMTP_MESSAGE_STORE__H
+#ifndef G_SMTP_MESSAGE_STORE_H
+#define G_SMTP_MESSAGE_STORE_H
 
 #include "gdef.h"
 #include "gnewmessage.h"
@@ -34,7 +34,7 @@ namespace GSmtp
 	class MessageStore ;
 }
 
-/// \class GSmtp::MessageStore
+//| \class GSmtp::MessageStore
 /// A class which allows SMTP messages to be stored and retrieved.
 ///
 /// \see GSmtp::NewMessage, GSmtp::StoredMessage, GSmtp::ProtocolMessage
@@ -42,74 +42,55 @@ namespace GSmtp
 class GSmtp::MessageStore
 {
 public:
-	class IteratorImp /// A base class for MessageStore::Iterator implementations.
+	struct Iterator /// A base class for GSmtp::MessageStore iterators.
 	{
-	public:
-		IteratorImp() ;
-		virtual unique_ptr<StoredMessage> next() = 0 ;
-		virtual ~IteratorImp() ;
+		virtual std::unique_ptr<StoredMessage> next() = 0 ;
+			///< Returns the next stored message or a null pointer.
+			///< See also GSmtp::operator++(std::shared_ptr<Iterator>).
 
-	public:
-		unsigned long m_ref_count ;
-
-	private:
-		IteratorImp( const IteratorImp & ) g__eq_delete ;
-		void operator=( const IteratorImp & ) g__eq_delete ;
-	} ;
-
-	class Iterator /// An iterator class for GSmtp::MessageStore.
-	{
-	public:
-		Iterator() ;
-		explicit Iterator( IteratorImp * ) ;
-		~Iterator() ;
-		Iterator( const Iterator & ) ;
-		Iterator & operator=( const Iterator & ) ;
-		unique_ptr<StoredMessage> next() ;
-		void last() ;
-
-	private:
-		IteratorImp * m_imp ;
+		virtual ~Iterator() = default ;
+			///< Destructor.
 	} ;
 
 	static G::Path defaultDirectory() ;
 		///< Returns a default spool directory, such as "/var/spool/emailrelay".
 		///< (Typically with an os-specific implementation.)
 
-	virtual ~MessageStore() ;
+	virtual ~MessageStore() = default ;
 		///< Destructor.
 
-	virtual unique_ptr<NewMessage> newMessage( const std::string & from ,
+	virtual std::unique_ptr<NewMessage> newMessage( const std::string & from ,
 		const std::string & from_auth_in , const std::string & from_auth_out ) = 0 ;
 			///< Creates a new message.
 
 	virtual bool empty() const = 0 ;
 		///< Returns true if the message store is empty.
 
-	virtual unique_ptr<StoredMessage> get( unsigned long id ) = 0 ;
-		///< Pulls the specified message out of the store.
-		///< Throws execptions on error.
+	virtual std::unique_ptr<StoredMessage> get( unsigned long id ) = 0 ;
+		///< Pulls the specified message out of the store. Throws
+		///< execptions on error.
 		///<
 		///< See also NewMessage::id().
 		///<
 		///< As a side effect some stored messages may be marked as bad,
 		///< or deleted (if they have no recipients).
 
-	virtual Iterator iterator( bool lock ) = 0 ;
-		///< Returns an iterator for stored messages. (Note that copies
-		///< of iterators share state. For independent iterators call
-		///< iterator() for each.)
+	virtual std::shared_ptr<Iterator> iterator( bool lock ) = 0 ;
+		///< Returns an iterator for stored messages.
 		///<
 		///< If 'lock' is true then stored messages returned by the
-		///< iterator are locked. Normally they are then processed
-		///< (using StoredMessage::extractContentStream()) and then
-		///< deleted (by StoredMessage::destroy()).
+		///< iterator are locked. They can then be deleted by
+		///< StoredMessage::destroy() once they have been fully
+		///< processed.
 		///<
-		///< As a side effect of iteration when 'lock' is true some
+		///< If 'lock' is true invalid messages having no receipients
+		///< are not returned by the iterator.
+		///<
+		///< If 'lock' is true then as a side effect of iteration some
 		///< stored messages may be marked as bad, or get deleted
-		///< (if they have no recipients).
+		///< if they have no recipients.
 
-	virtual Iterator failures() = 0 ;
+	virtual std::shared_ptr<Iterator> failures() = 0 ;
 		///< Returns an iterator for failed messages.
 
 	virtual void unfailAll() = 0 ;
@@ -123,13 +104,21 @@ public:
 		///< store has changed. Implementations must cause the
 		///< messageStoreUpdateSignal() signal to be emitted.
 
-	virtual G::Slot::Signal0 & messageStoreUpdateSignal() = 0 ;
+	virtual G::Slot::Signal<> & messageStoreUpdateSignal() = 0 ;
 		///< Provides a signal which is when something might
 		///< have changed in the store.
 
-	virtual G::Slot::Signal0 & messageStoreRescanSignal() = 0 ;
+	virtual G::Slot::Signal<> & messageStoreRescanSignal() = 0 ;
 		///< Provides a signal which is emitted when rescan()
 		///< is called.
 } ;
+
+namespace GSmtp
+{
+	inline std::unique_ptr<StoredMessage> operator++( std::shared_ptr<MessageStore::Iterator> & iter )
+	{
+		return iter.get() ? iter->next() : std::unique_ptr<StoredMessage>() ;
+	}
+}
 
 #endif

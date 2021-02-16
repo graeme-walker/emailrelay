@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+   Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -19,8 +19,8 @@
 // gstrmacros.h
 //
 
-#ifndef G_STR_MACROS__H
-#define G_STR_MACROS__H
+#ifndef G_STR_MACROS_H
+#define G_STR_MACROS_H
 
 #ifdef G_STR_IMP
 #undef G_STR_IMP

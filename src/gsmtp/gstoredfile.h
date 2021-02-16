@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,12 +18,13 @@
 /// \file gstoredfile.h
 ///
 
-#ifndef G_SMTP_STORED_FILE__H
-#define G_SMTP_STORED_FILE__H
+#ifndef G_SMTP_STORED_FILE_H
+#define G_SMTP_STORED_FILE_H
 
 #include "gdef.h"
-#include "gmessagestore.h"
+#include "gfilestore.h"
 #include "gstoredmessage.h"
+#include "genvelope.h"
 #include "gexception.h"
 #include "gpath.h"
 #include "gstrings.h"
@@ -35,7 +36,7 @@ namespace GSmtp
 	class StoredFile ;
 }
 
-/// \class GSmtp::StoredFile
+//| \class GSmtp::StoredFile
 /// A concete derived class implementing the
 /// StoredMessage interface.
 ///
@@ -45,11 +46,12 @@ public:
 	G_EXCEPTION( FormatError , "invalid envelope file" ) ;
 	G_EXCEPTION( FilenameError , "invalid envelope filename" ) ;
 	G_EXCEPTION( ReadError , "cannot read envelope file" ) ;
+	G_EXCEPTION( EditError , "cannot update envelope file" ) ;
 
 	StoredFile( FileStore & store , const G::Path & envelope_path ) ;
 		///< Constructor.
 
-	virtual ~StoredFile() ;
+	~StoredFile() override ;
 		///< Destructor. Unlocks the file if it has been lock()ed
 		///< but not destroy()ed or fail()ed.
 
@@ -65,72 +67,51 @@ public:
 		///< Opens the content file. Returns false on error.
 		///< Used by FileStore and FileIterator.
 
-	virtual std::string name() const override ;
+	std::string name() const override ;
 		///< Override from GSmtp::StoredMessage.
 
-	virtual void fail( const std::string & reason , int reason_code ) override ;
+	void edit( const G::StringArray & ) override ;
+		///< Override from GSmtp::StoredMessage.
+
+	void fail( const std::string & reason , int reason_code ) override ;
 		///< Override from GSmtp::StoredMessage.
 
 private: // overrides
-	virtual std::string location() const override ; // Override from GSmtp::StoredMessage.
-	virtual int eightBit() const override ; // Override from GSmtp::StoredMessage.
-	virtual std::string from() const override ; // Override from GSmtp::StoredMessage.
-	virtual std::string to( size_t ) const override ; // Override from GSmtp::StoredMessage.
-	virtual size_t toCount() const override ; // Override from GSmtp::StoredMessage.
-	virtual std::string authentication() const override ; // Override from GSmtp::StoredMessage.
-	virtual std::string fromAuthIn() const override ; // Override from GSmtp::StoredMessage.
-	virtual std::string fromAuthOut() const override ; // Override from GSmtp::StoredMessage.
-	virtual void close() override ; // Override from GSmtp::StoredMessage.
-	virtual std::string reopen() override ; // Override from GSmtp::StoredMessage.
-	virtual void destroy() override ; // Override from GSmtp::StoredMessage.
-	virtual void unfail() override ; // Override from GSmtp::StoredMessage.
-	virtual std::istream & contentStream() override ; // Override from GSmtp::StoredMessage.
-	virtual size_t errorCount() const override ; // Override from GSmtp::StoredMessage.
+	std::string location() const override ; // Override from GSmtp::StoredMessage.
+	int eightBit() const override ; // Override from GSmtp::StoredMessage.
+	std::string from() const override ; // Override from GSmtp::StoredMessage.
+	std::string to( std::size_t ) const override ; // Override from GSmtp::StoredMessage.
+	std::size_t toCount() const override ; // Override from GSmtp::StoredMessage.
+	std::string authentication() const override ; // Override from GSmtp::StoredMessage.
+	std::string fromAuthIn() const override ; // Override from GSmtp::StoredMessage.
+	std::string fromAuthOut() const override ; // Override from GSmtp::StoredMessage.
+	void close() override ; // Override from GSmtp::StoredMessage.
+	std::string reopen() override ; // Override from GSmtp::StoredMessage.
+	void destroy() override ; // Override from GSmtp::StoredMessage.
+	void unfail() override ; // Override from GSmtp::StoredMessage.
+	std::istream & contentStream() override ; // Override from GSmtp::StoredMessage.
+
+public:
+	StoredFile( const StoredFile & ) = delete ;
+	StoredFile( StoredFile && ) = delete ;
+	void operator=( const StoredFile & ) = delete ;
+	void operator=( StoredFile && ) = delete ;
 
 private:
-	StoredFile( const StoredFile & ) g__eq_delete ;
-	void operator=( const StoredFile & ) g__eq_delete ;
+	void readEnvelopeCore( bool check_recipients ) ;
 	const std::string & eol() const ;
 	G::Path contentPath() const ;
-	std::string readLine( std::istream & ) ;
-	std::string readValue( std::istream & , const std::string & key ) ;
-	std::string value( const std::string & ) const ;
-	void readFormat( std::istream & stream ) ;
-	void readFlag( std::istream & stream ) ;
-	void readFrom( std::istream & stream ) ;
-	void readFromAuthIn( std::istream & stream ) ;
-	void readFromAuthOut( std::istream & stream ) ;
-	void readToList( std::istream & stream ) ;
-	void readEnd( std::istream & stream ) ;
-	void readReasons( std::istream & stream ) ;
-	void readAuthentication( std::istream & stream ) ;
-	void readClientSocketAddress( std::istream & stream ) ;
-	void readClientSocketName( std::istream & stream ) ;
-	void readClientCertificate( std::istream & stream ) ;
-	void readEnvelopeCore( bool ) ;
 	void addReason( const G::Path & path , const std::string & , int ) const ;
 	static G::Path badPath( const G::Path & ) ;
 
 private:
 	FileStore & m_store ;
-	unique_ptr<std::istream> m_content ;
-	G::StringArray m_to_local ;
-	G::StringArray m_to_remote ;
-	std::string m_from ;
-	std::string m_from_auth_in ;
-	std::string m_from_auth_out ;
+	std::unique_ptr<std::istream> m_content ;
 	G::Path m_envelope_path ;
 	G::Path m_old_envelope_path ;
 	std::string m_name ;
-	int m_eight_bit ;
-	std::string m_authentication ;
-	std::string m_format ;
-	std::string m_client_socket_address ;
-	std::string m_client_socket_name ;
-	std::string m_client_certificate ;
-	size_t m_errors ;
+	Envelope m_env ;
 	bool m_locked ;
-	bool m_crlf ;
 } ;
 
 #endif

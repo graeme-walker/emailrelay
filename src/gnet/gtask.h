@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,11 +18,13 @@
 /// \file gtask.h
 ///
 
-#ifndef G_NET_TASK__H
-#define G_NET_TASK__H
+#ifndef G_NET_TASK_H
+#define G_NET_TASK_H
 
 #include "gdef.h"
 #include "geventhandler.h"
+#include "genvironment.h"
+#include "gnewprocess.h"
 #include "gexceptionsink.h"
 #include "gidentity.h"
 #include "gexecutablecommand.h"
@@ -35,7 +37,7 @@ namespace GNet
 	class TaskCallback ;
 }
 
-/// \class GNet::Task
+//| \class GNet::Task
 /// A class for running an exectuable in a separate process with an asychronous
 /// completion callback.
 ///
@@ -47,8 +49,9 @@ public:
 	Task( TaskCallback & , ExceptionSink es ,
 		const std::string & exec_error_format = std::string() ,
 		const G::Identity & = G::Identity::invalid() ) ;
-			///< Constructor for a start()able object. The two trailing
-			///< parameters are passed to the G::NewProcess class.
+			///< Constructor for an object that can be start()ed or run().
+			///< The two trailing parameters are passed to the G::NewProcess
+			///< class.
 
 	~Task() ;
 		///< Destructor. Kills the spawned process and waits for it to
@@ -58,22 +61,44 @@ public:
 		///< Starts the task by spawning a new process with the given
 		///< command-line and also starting a thread to wait for it. The
 		///< wait thread signals completion of the child process via the
-		///< event loop and the TaskCallback interface. Throws Busy if
-		///< still busy from a prior call to start().
+		///< event loop and the TaskCallback interface. Standard
+		///< output goes to the pipe and standard error is discarded.
+		///< Throws Busy if still busy from a prior call to start().
+
+	void start( const G::ExecutableCommand & commandline , const G::Environment & env ,
+		G::NewProcess::Fd fd_stdin = G::NewProcess::Fd::devnull() ,
+		G::NewProcess::Fd fd_stdout = G::NewProcess::Fd::pipe() ,
+		G::NewProcess::Fd fd_stderr = G::NewProcess::Fd::devnull() ,
+		const G::Path & cd = G::Path() ) ;
+			///< Overload with more control over the execution
+			///< environment. See also G::NewProcess.
 
 	void stop() ;
-		///< Attempts to kill the spawned process and waits for it
-		///< to terminate. No task-done callback will be triggered.
+		///< Attempts to kill the spawned process. No task-done
+		///< callback will be triggered.
+
+	std::pair<int,std::string> run( const G::ExecutableCommand & commandline , const G::Environment & env ,
+		G::NewProcess::Fd fd_stdin = G::NewProcess::Fd::devnull() ,
+		G::NewProcess::Fd fd_stdout = G::NewProcess::Fd::pipe() ,
+		G::NewProcess::Fd fd_stderr = G::NewProcess::Fd::devnull() ,
+		const G::Path & cd = G::Path() ) ;
+			///< Runs the task synchronously and returns the exit code
+			///< and pipe output. Throws if killed. The callback interface
+			///< is not used.
+
+public:
+	Task( const Task & ) = delete ;
+	Task( Task && ) = delete ;
+	void operator=( const Task & ) = delete ;
+	void operator=( Task && ) = delete ;
 
 private:
-	Task( const Task & ) g__eq_delete ;
-	void operator=( const Task & ) g__eq_delete ;
 	friend class GNet::TaskImp ;
-	void done( int exit_code , std::string output ) ;
+	void done( int exit_code , const std::string & output ) ;
 	void exception( std::exception & ) ;
 
 private:
-	unique_ptr<TaskImp> m_imp ;
+	std::unique_ptr<TaskImp> m_imp ;
 	TaskCallback & m_callback ;
 	ExceptionSink m_es ;
 	std::string m_exec_error_format ;
@@ -81,16 +106,16 @@ private:
 	bool m_busy ;
 } ;
 
-/// \class GNet::TaskCallback
+//| \class GNet::TaskCallback
 /// An abstract interface for callbacks from GNet::Task.
 ///
 class GNet::TaskCallback
 {
 public:
-	virtual ~TaskCallback() ;
+	virtual ~TaskCallback() = default ;
 		///< Destructor.
 
-	virtual void onTaskDone( int exit_status , const std::string & output ) = 0 ;
+	virtual void onTaskDone( int exit_status , const std::string & pipe_output ) = 0 ;
 		///< Callback function to signal task completion.
 } ;
 

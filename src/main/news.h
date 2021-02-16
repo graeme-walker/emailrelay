@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file news.h
 ///
 
-#ifndef NEWS_H
-#define NEWS_H
+#ifndef G_MAIN_NEWS_H
+#define G_MAIN_NEWS_H
 
 #include "gdef.h"
 #include <string>
@@ -29,7 +29,7 @@ namespace Main
 	class News ;
 }
 
-/// \class Main::News
+//| \class Main::News
 /// A static class providing some news text.
 ///
 class Main::News
@@ -38,8 +38,8 @@ public:
 	static std::string text( const std::string & eol ) ;
 		///< Returns some 'news' text.
 
-private:
-	News() g__eq_delete ;
+public:
+	News() = delete ;
 } ;
 
 #endif

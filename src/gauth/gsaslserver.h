@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -36,12 +36,10 @@ namespace GAuth
 	class SaslServerImp ;
 }
 
-/// \class GAuth::SaslServer
+//| \class GAuth::SaslServer
 /// An interface for implementing the server-side SASL challenge/response
-/// concept. Third-party libraries could be plumbed in at this interface in order
-/// to get support for more exotic authentication mechanisms. In practice there is
-/// one derived class for basic authentication mechanisms using a secrets file,
-/// and another for PAM.
+/// concept. In practice there is one derived class for basic authentication
+/// mechanisms using a secrets file, and another for PAM.
 ///
 /// Usage:
 /// \code
@@ -55,9 +53,7 @@ namespace GAuth
 ///     sasl.apply(peer.initialResponse(),done) : sasl.initialChallenge() ;
 ///   while( !done )
 ///   {
-/// \endcode
-/// peer.send( challenge ) ;
-/// \code
+///     peer.send( challenge ) ;
 ///     string response = peer.receive() ;
 ///     challenge = sasl.apply( response , done ) ;
 ///   }
@@ -70,7 +66,7 @@ namespace GAuth
 class GAuth::SaslServer
 {
 public:
-	virtual ~SaslServer() ;
+	virtual ~SaslServer() = default ;
 		///< Destructor.
 
 	virtual bool requiresEncryption() const = 0 ;

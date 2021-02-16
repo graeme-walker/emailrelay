@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gexceptionhandler.h
 ///
 
-#ifndef G_NET_EXCEPTION_HANDLER__H
-#define G_NET_EXCEPTION_HANDLER__H
+#ifndef G_NET_EXCEPTION_HANDLER_H
+#define G_NET_EXCEPTION_HANDLER_H
 
 #include "gdef.h"
 #include "gexceptionsource.h"
@@ -31,7 +31,7 @@ namespace GNet
 	class EventHandler ;
 }
 
-/// \class GNet::ExceptionHandler
+//| \class GNet::ExceptionHandler
 /// An abstract interface for handling exceptions thrown out of
 /// event-loop callbacks (socket/future events and timer events).
 /// If the handler just rethrows then the event loop will terminate.
@@ -63,6 +63,13 @@ public:
 		///<
 		///< The 'done' parameter indicates whether the exception
 		///< was of type GNet::Done.
+
+public:
+	ExceptionHandler() = default ;
+	ExceptionHandler( const ExceptionHandler & ) = delete ;
+	ExceptionHandler( ExceptionHandler && ) = delete ;
+	void operator=( const ExceptionHandler & ) = delete ;
+	void operator=( ExceptionHandler && ) = delete ;
 } ;
 
 #endif

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// ghostname_unix.cpp
-//
+///
+/// \file ghostname_unix.cpp
+///
 
 #include "gdef.h"
 #include "ghostname.h"
@@ -26,13 +26,13 @@
 
 std::string G::hostname()
 {
-	struct utsname info ;
+	struct utsname info {} ;
 	int rc = ::uname( &info ) ;
 	if( rc == -1 )
 		return std::string() ;
 
-	std::string name = std::string(info.nodename) ;
-	std::string::size_type pos = name.find('.') ;
+	std::string name = std::string( info.nodename ) ;
+	std::string::size_type pos = name.find( '.' ) ;
 	if( pos != std::string::npos )
 		name = name.substr( 0U , pos ) ;
 
@@ -42,10 +42,9 @@ std::string G::hostname()
 	//
 	if( name.empty() )
 	{
-		name = Str::toPrintableAscii( Environment::get("HOSTNAME",std::string()) , '_' ) ;
+		name = Str::printable( Environment::get("HOSTNAME",std::string()) , '_' ) ;
 	}
 
 	return name ;
 }
 
-/// \file ghostname_unix.cpp

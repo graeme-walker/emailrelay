@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gaddress_ipv4.cpp
-//
+///
+/// \file gaddress_ipv4.cpp
+///
 
 #include "gdef.h"
 #include "gaddress4.h"
@@ -31,14 +31,13 @@ namespace GNet
 	class Address6
 	{
 	} ;
-}
-
-namespace
-{
-	void check( GNet::Address::Family f )
+	namespace AddressImp
 	{
-		if( !GNet::Address::supports(f) )
-			throw GNet::Address::BadFamily() ;
+		void check( GNet::Address::Family f )
+		{
+			if( !Address::supports(f) )
+				throw Address::BadFamily() ;
+		}
 	}
 }
 
@@ -47,60 +46,65 @@ bool GNet::Address::supports( Family f )
 	return f == Family::ipv4 ;
 }
 
+bool GNet::Address::supports( int af , int )
+{
+	return af == AF_INET ;
+}
+
 GNet::Address GNet::Address::defaultAddress()
 {
 	return Address( Family::ipv4 , 0U ) ;
 }
 
-#if GCONFIG_HAVE_CXX_MOVE
-GNet::Address::Address( Address && other ) g__noexcept :
-	m_4imp(other.m_4imp.release())
-{
-}
-#endif
-
 GNet::Address::Address( Family f , unsigned int port ) :
-	m_4imp( new Address4(port) )
+	m_4imp(std::make_unique<Address4>(port))
 {
-	check( f ) ;
+	AddressImp::check( f ) ;
 }
 
 GNet::Address::Address( const AddressStorage & storage ) :
-	m_4imp( new Address4(storage.p(),storage.n()) )
+	m_4imp(std::make_unique<Address4>(storage.p(),storage.n()))
 {
 }
 
 GNet::Address::Address( const sockaddr * addr , socklen_t len ) :
-	m_4imp( new Address4(addr,len) )
+	m_4imp(std::make_unique<Address4>(addr,len))
+{
+}
+
+GNet::Address::Address( const sockaddr * addr , socklen_t len , bool ) :
+	m_4imp(std::make_unique<Address4>(addr,len))
 {
 }
 
 GNet::Address::Address( const std::string & s ) :
-	m_4imp( new Address4(s) )
+	m_4imp(std::make_unique<Address4>(s))
 {
 }
 
 GNet::Address::Address( const std::string & s , unsigned int port ) :
-	m_4imp( new Address4(s,port) )
-{
-}
-
-GNet::Address::Address( const Address & other ) :
-	m_4imp( new Address4(*other.m_4imp) )
+	m_4imp(std::make_unique<Address4>(s,port))
 {
 }
 
 GNet::Address::Address( Family f , unsigned int port , int loopback_overload ) :
-	m_4imp( new Address4(port,loopback_overload) )
+	m_4imp(std::make_unique<Address4>(port,loopback_overload))
 {
-	check( f ) ;
+	AddressImp::check( f ) ;
 }
+
+GNet::Address::Address( const Address & other ) :
+	m_4imp(std::make_unique<Address4>(*other.m_4imp))
+{
+}
+
+GNet::Address::Address( Address && other ) noexcept
+=default ;
 
 GNet::Address::~Address()
-{
-}
+= default;
 
-void GNet::Address::swap( Address & other ) g__noexcept
+void GNet::Address::swap( Address & other ) noexcept
 {
 	using std::swap ;
 	swap( m_4imp , other.m_4imp ) ;
@@ -112,22 +116,28 @@ GNet::Address & GNet::Address::operator=( const Address & other )
 	return *this ;
 }
 
-#if GCONFIG_HAVE_CXX_MOVE
-GNet::Address & GNet::Address::operator=( Address && other ) g__noexcept
-{
-	Address(std::move(other)).swap( *this ) ;
-	return *this ;
-}
-#endif
+GNet::Address & GNet::Address::operator=( Address && other ) noexcept
+= default ;
 
 GNet::Address GNet::Address::loopback( Family f , unsigned int port )
 {
 	return Address( f , port , 1 ) ;
 }
 
-void GNet::Address::setPort( unsigned int port )
+GNet::Address & GNet::Address::setPort( unsigned int port )
 {
 	m_4imp->setPort( port ) ;
+	return *this ;
+}
+
+GNet::Address & GNet::Address::setScopeId( unsigned long )
+{
+	return *this ; // not relevant for ipv4
+}
+
+bool GNet::Address::setZone( const std::string & )
+{
+	return true ; // not relevant for ipv4
 }
 
 unsigned int GNet::Address::bits() const
@@ -145,14 +155,39 @@ bool GNet::Address::isLocal( std::string & reason ) const
 	return m_4imp->isLocal( reason ) ;
 }
 
-bool GNet::Address::isPrivate() const
+bool GNet::Address::isLinkLocal() const
 {
-	return m_4imp->isPrivate() ;
+	return m_4imp->isLinkLocal() ;
+}
+
+bool GNet::Address::isUniqueLocal() const
+{
+	return m_4imp->isUniqueLocal() ;
+}
+
+bool GNet::Address::isAny() const
+{
+	return m_4imp->isAny() ;
+}
+
+bool GNet::Address::is4() const
+{
+	return true ;
+}
+
+bool GNet::Address::is6() const
+{
+	return false ;
+}
+
+bool GNet::Address::same( const Address & other , bool ) const
+{
+	return m_4imp->same( *other.m_4imp ) ;
 }
 
 bool GNet::Address::operator==( const Address & other ) const
 {
-	return m_4imp->same(*other.m_4imp) ;
+	return m_4imp->same( *other.m_4imp ) ;
 }
 
 bool GNet::Address::operator!=( const Address & other ) const
@@ -165,7 +200,7 @@ bool GNet::Address::sameHostPart( const Address & other ) const
 	return m_4imp->sameHostPart(*other.m_4imp) ;
 }
 
-std::string GNet::Address::displayString() const
+std::string GNet::Address::displayString( bool ) const
 {
 	return m_4imp->displayString() ;
 }
@@ -247,32 +282,32 @@ G::StringArray GNet::Address::wildcards() const
 
 // ==
 
-/// \class GNet::AddressStorageImp
+//| \class GNet::AddressStorageImp
 /// A pimple-pattern implementation class used by GNet::AddressStorage.
 ///
 class GNet::AddressStorageImp
 {
 public:
-	Address4::union_type u ;
+	Address4::storage_type u ;
 	socklen_t n ;
 } ;
 
 // ==
 
 GNet::AddressStorage::AddressStorage() :
-	m_imp(new AddressStorageImp)
+	m_imp(std::make_unique<AddressStorageImp>())
 {
-	G_ASSERT( sizeof(Address4::union_type) == sizeof(Address4::storage_type) ) ;
-	m_imp->n = sizeof(Address4::union_type) ;
+	static_assert( sizeof(Address4::sockaddr_type) <= sizeof(Address4::storage_type) , "" ) ;
+	static_assert( alignof(Address4::sockaddr_type) <= alignof(Address4::storage_type) , "" ) ;
+	m_imp->n = sizeof( Address4::storage_type ) ;
 }
 
 GNet::AddressStorage::~AddressStorage()
-{
-}
+= default;
 
 sockaddr * GNet::AddressStorage::p1()
 {
-	return &(m_imp->u.general) ;
+	return reinterpret_cast<sockaddr*>(&(m_imp->u)) ;
 }
 
 socklen_t * GNet::AddressStorage::p2()
@@ -282,7 +317,7 @@ socklen_t * GNet::AddressStorage::p2()
 
 const sockaddr * GNet::AddressStorage::p() const
 {
-	return &m_imp->u.general ;
+	return reinterpret_cast<const sockaddr*>(&(m_imp->u)) ;
 }
 
 socklen_t GNet::AddressStorage::n() const
@@ -302,11 +337,10 @@ int GNet::inet_pton_imp( int f , const char * p , void * result )
 	}
 	else if( f == AF_INET )
 	{
-		static sockaddr_in sa_zero ;
-		sockaddr_in sa = sa_zero ;
+		sockaddr_in sa {} ;
 		sa.sin_family = AF_INET ;
 		sa.sin_addr.s_addr = inet_addr( p ) ;
-		*reinterpret_cast<struct in_addr*>(result) = sa.sin_addr ;
+		std::memcpy( result , &sa.sin_addr , sizeof(sa.sin_addr) ) ;
 		return 1 ;
 	}
 	else
@@ -318,12 +352,13 @@ int GNet::inet_pton_imp( int f , const char * p , void * result )
 
 #if ! GCONFIG_HAVE_INET_NTOP
 // fallback implementation for inet_ntop() -- see gdef.h
-const char * GNet::inet_ntop_imp( int f , void * ap , char * buffer , size_t n )
+const char * GNet::inet_ntop_imp( int f , void * ap , char * buffer , std::size_t n )
 {
 	if( f == AF_INET )
 	{
 		std::ostringstream ss ;
-		struct in_addr a = *reinterpret_cast<struct in_addr*>(ap) ;
+		struct in_addr a ;
+		std::memcpy( &a , ap , sizeof(a) ) ;
 		ss << inet_ntoa( a ) ; // ignore warnings - this is not used if inet_ntop is available
 		if( n <= ss.str().length() ) return nullptr ;
 		std::strncpy( buffer , ss.str().c_str() , n ) ;

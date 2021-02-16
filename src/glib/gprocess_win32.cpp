@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gprocess_win32.cpp
-//
+///
+/// \file gprocess_win32.cpp
+///
 
 #include "gdef.h"
 #include "gprocess.h"
@@ -35,35 +35,9 @@
 #include <fcntl.h>
 #include <direct.h> // _getcwd()
 
-class G::Process::IdImp
-{
-public:
-	unsigned int m_pid ;
-} ;
-
-class G::Process::UmaskImp
-{
-} ;
-
-G::Process::Id::Id()
+G::Process::Id::Id() noexcept
 {
 	m_pid = static_cast<unsigned int>(::_getpid()) ; // or ::GetCurrentProcessId()
-}
-
-G::Process::Id::Id( SignalSafe , const char * path ) :
-	m_pid(0)
-{
-	std::ifstream file( path ? path : "" ) ;
-	file >> m_pid ;
-	if( !file.good() )
-		m_pid = 0 ;
-}
-
-G::Process::Id::Id( std::istream & stream )
-{
-	stream >> m_pid ;
-	if( !stream.good() )
-		throw Process::InvalidId() ;
 }
 
 std::string G::Process::Id::str() const
@@ -73,13 +47,15 @@ std::string G::Process::Id::str() const
 	return ss.str() ;
 }
 
-bool G::Process::Id::operator==( const Id & rhs ) const
+bool G::Process::Id::operator==( const Id & rhs ) const noexcept
 {
 	return m_pid == rhs.m_pid ;
 }
 
-// not implemented...
-//G::Process::Id::Id( const char * pid_file_path ) {}
+bool G::Process::Id::operator!=( const Id & rhs ) const noexcept
+{
+	return m_pid != rhs.m_pid ;
+}
 
 // ===
 
@@ -89,9 +65,8 @@ void G::Process::closeFiles( bool keep_stderr )
 	std::cerr << std::flush ;
 }
 
-void G::Process::closeFilesExcept( int , int )
+void G::Process::closeOtherFiles( int )
 {
-	// old versions of this code closed files but it's not really needed
 }
 
 void G::Process::closeStderr()
@@ -100,24 +75,27 @@ void G::Process::closeStderr()
 
 void G::Process::cd( const Path & dir )
 {
-	if( !cd(dir,NoThrow()) )
+	if( !cd(dir,std::nothrow) )
 		throw CannotChangeDirectory( dir.str() ) ;
 }
 
-bool G::Process::cd( const Path & dir , NoThrow )
+bool G::Process::cd( const Path & dir , std::nothrow_t )
 {
-	return 0 == ::_chdir( dir.str().c_str() ) ;
+	return 0 == ::_chdir( dir.cstr() ) ;
 }
 
-int G::Process::errno_( const G::SignalSafe & )
+int G::Process::errno_( const SignalSafe & ) noexcept
 {
-	return errno ;
+	int e = EINVAL ;
+	if( _get_errno( &e ) )
+		e = EINVAL ;
+	return e ;
 }
 
-int G::Process::errno_( const G::SignalSafe & , int e )
+int G::Process::errno_( const SignalSafe & signal_safe , int e ) noexcept
 {
-	int old = errno ;
-	errno = e ;
+	int old = errno_( SignalSafe() ) ;
+	_set_errno( e ) ;
 	return old ;
 }
 
@@ -127,34 +105,40 @@ std::string G::Process::strerror( int errno_ )
 	if( strerror_s( &buffer[0] , buffer.size()-1U , errno_ ) || buffer.at(0U) == '\0' )
 		return "unknown error" ;
 	std::string s( &buffer[0] ) ;
-	return G::Str::isPrintableAscii(s) ? G::Str::lower(s) : s ;
+	return Str::isPrintableAscii(s) ? Str::lower(s) : s ;
 }
 
-G::Identity G::Process::beOrdinary( Identity identity , bool )
+void G::Process::beOrdinary( Identity , bool )
 {
 	// not implemented -- see also ImpersonateLoggedOnUser()
-	return identity ;
 }
 
-G::Identity G::Process::beOrdinary( SignalSafe , Identity identity , bool )
+G::Identity G::Process::beOrdinaryAtStartup( Identity identity , bool )
 {
-	// not implemented -- see also ImpersonateLoggedOnUser()
 	return identity ;
 }
 
-G::Identity G::Process::beSpecial( Identity identity , bool )
+void G::Process::beOrdinaryForExec( Identity ) noexcept
 {
-	// not implemented -- see also RevertToSelf()
-	return identity ;
+	// not implemented
 }
 
-G::Identity G::Process::beSpecial( SignalSafe , Identity identity , bool )
+void G::Process::beSpecial( Identity identity , bool )
 {
 	// not implemented -- see also RevertToSelf()
-	return identity ;
 }
 
-void G::Process::revokeExtraGroups()
+void G::Process::beSpecialForExit( SignalSafe , Identity ) noexcept
+{
+	// not implemented
+}
+
+void G::Process::setEffectiveUser( Identity )
+{
+	// not implemented
+}
+
+void G::Process::setEffectiveGroup( Identity )
 {
 	// not implemented
 }
@@ -163,12 +147,12 @@ std::string G::Process::exe()
 {
 	// same code is in G::LogOutput...
 	std::vector<char> buffer ;
-	size_t sizes[] = { 80U , 1024U , 32768U , 0U } ; // documented limit of 32k
-	for( size_t * size_p = sizes ; *size_p ; ++size_p )
+	std::size_t sizes[] = { 80U , 1024U , 32768U , 0U } ; // documented limit of 32k
+	for( std::size_t * size_p = sizes ; *size_p ; ++size_p )
 	{
 		buffer.resize( *size_p+1U , '\0' ) ;
 		DWORD size = static_cast<DWORD>( buffer.size() ) ;
-		HINSTANCE hinstance = NULL ;
+		HINSTANCE hinstance = HNULL ;
 		DWORD rc = ::GetModuleFileNameA( hinstance , &buffer[0] , size ) ;
 		if( rc == 0 ) break ;
 		if( rc < size )
@@ -189,31 +173,26 @@ std::string G::Process::cwd( bool no_throw )
 	else
 	{
 		std::string result( p ) ;
-		free( p ) ;
+		std::free( p ) ;
 		return result ;
 	}
 }
 
-// not implemented...
-// Who G::Process::fork() {}
-// Who G::Process::fork( Id & child ) {}
-// void G::Process::exec( const Path & exe , const std::string & arg ) {}
-// int G::Process::wait( const Id & child ) {}
-// int G::Process::wait( const Id & child , int error_return ) {}
-
 // ===
 
-G::Process::Umask::Umask( G::Process::Umask::Mode )
+class G::Process::UmaskImp
+{
+} ;
+
+G::Process::Umask::Umask( Process::Umask::Mode )
 {
 }
 
 G::Process::Umask::~Umask()
-{
-}
+= default ;
 
-void G::Process::Umask::set( G::Process::Umask::Mode )
+void G::Process::Umask::set( Process::Umask::Mode )
 {
 	// not implemented
 }
 
-/// \file gprocess_win32.cpp

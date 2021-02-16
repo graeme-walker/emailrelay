@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ namespace G
 	class Root ;
 }
 
-/// \class G::Root
+//| \class G::Root
 /// A class which acquires the process's special privileges on construction
 /// and releases them on destruction. Despite the name of the class the special
 /// privileges are not necessarily root privileges; they can be suid privileges.
@@ -40,9 +40,11 @@ namespace G
 /// The effect of this class depends on whether the process's real-id is root
 /// or not. If the real-id is root then the effective-id is switched to
 /// some named 'ordinary' user's id at startup, and then back to what it
-/// was (ie. root or the suid id) for the critical sections.  Otherwise,
-/// the effective-id is switched to the real-id at startup and switched back
-/// to what it was for the critical sections.
+/// was (ie. root or the suid-id) for the critical sections. Otherwise,
+/// in the case of a suid binary not run by root, the privileged effective-id
+/// is switched to the real-id at startup and switched back for the critical
+/// sections (although the switching back does rely on the saved-suid-id
+/// mechanism, POSIX_SAVED_IDS).
 ///
 /// The implementation uses G::Process and G::Identity.
 ///
@@ -64,39 +66,41 @@ public:
 
 	~Root() ;
 		///< Desctructor. Releases special privileges if this instance acquired them.
-		///<
-		///< The implementation uses G::Process::beOrdinary().
+		///< The implementation uses G::Process::beOrdinary(). Errors from seteuid()
+		///< will call Process::terminate().
 
-	static void init( const std::string & non_root , bool default_change_group = true ) ;
+	static void init( const std::string & nobody , bool fixed_group = false ) ;
 		///< Initialises this class on process start-up by releasing root (or suid)
-		///< privileges.
+		///< privileges. Throws on error.
 		///<
 		///< The string parameter gives a non-privileged username which is used if the
 		///< real user-id is root.
-		///<
-		///< The group-id behaviour of the default constructor is modified by the
-		///< boolean parameter.
 
 	static Identity nobody() ;
 		///< Returns the 'nobody' identity corresponding to the init() user name.
 		///< Precondition: init() called
 
-	static Identity start( SignalSafe ) ;
-		///< A signal-safe alternative to construction.
+	static void atExit() noexcept ;
+		///< Re-acquires special privileges just before process exit.
 
-	static void stop( SignalSafe , Identity ) ;
-		///< A signal-safe alternative to destruction.
+	static void atExit( SignalSafe ) noexcept ;
+		///< Re-acquires special privileges just before process exit.
+
+public:
+	Root( const Root & ) = delete ;
+	Root( Root && ) = delete ;
+	void operator=( const Root & ) = delete ;
+	void operator=( Root && ) = delete ;
 
 private:
-	Root( const Root & ) g__eq_delete ;
-	void operator=( const Root & ) g__eq_delete ;
+	void check() ;
 
 private:
 	static Root * m_this ;
 	static bool m_initialised ;
-	static bool m_default_change_group ;
-	static Identity m_special ;
-	static Identity m_ordinary ;
+	static bool m_fixed_group ;
+	static Identity m_nobody ;
+	static Identity m_startup ;
 	bool m_change_group ;
 } ;
 

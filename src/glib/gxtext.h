@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ namespace G
 	class Xtext ;
 }
 
-/// \class G::Xtext
+//| \class G::Xtext
 /// An xtext codec class, encoding space as "+20" etc.
 /// \see RFC-1891 section 5
 ///
@@ -49,8 +49,8 @@ public:
 		///< then 'equals' and 'space' are disallowed and
 		///< hex characters must be uppercase (eg. "+1A").
 
-private:
-	Xtext() g__eq_delete ;
+public:
+	Xtext() = delete ;
 } ;
 
 #endif

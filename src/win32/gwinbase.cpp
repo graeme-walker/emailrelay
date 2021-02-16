@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gwinbase.cpp
-//
+///
+/// \file gwinbase.cpp
+///
 
 #include "gdef.h"
 #include "gstr.h"
@@ -44,7 +44,7 @@ void GGui::WindowBase::setHandle( HWND hwnd )
 GGui::Size GGui::WindowBase::internalSize() const
 {
 	RECT rect ;
-	if( ::GetClientRect( m_hwnd , &rect ) )
+	if( GetClientRect( m_hwnd , &rect ) )
 	{
 		G_ASSERT( rect.left == 0 ) ;
 		G_ASSERT( rect.top == 0 ) ;
@@ -59,7 +59,7 @@ GGui::Size GGui::WindowBase::internalSize() const
 GGui::Size GGui::WindowBase::externalSize() const
 {
 	RECT rect ;
-	if( ::GetWindowRect( m_hwnd , &rect ) )
+	if( GetWindowRect( m_hwnd , &rect ) )
 	{
 		G_ASSERT( rect.right >= rect.left ) ;
 		G_ASSERT( rect.bottom >= rect.top ) ;
@@ -75,7 +75,7 @@ std::string GGui::WindowBase::windowClass() const
 {
 	std::vector<char> buffer( 257U ) ; // atom size limit
 	buffer[0U] = '\0' ;
-	::GetClassNameA( m_hwnd , &buffer[0] , static_cast<int>(buffer.size()-1U) ) ;
+	GetClassNameA( m_hwnd , &buffer[0] , static_cast<int>(buffer.size()-1U) ) ;
 	buffer[buffer.size()-1U] = '\0' ;
 
 	if( (std::strlen(&buffer[0])+1U) == buffer.size() )
@@ -89,7 +89,6 @@ std::string GGui::WindowBase::windowClass() const
 
 HINSTANCE GGui::WindowBase::windowInstanceHandle() const
 {
-	return reinterpret_cast<HINSTANCE>(::GetWindowLongPtr(m_hwnd,GWLP_HINSTANCE)) ;
+	return reinterpret_cast<HINSTANCE>(GetWindowLongPtr(m_hwnd,GWLP_HINSTANCE)) ;
 }
 
-/// \file gwinbase.cpp

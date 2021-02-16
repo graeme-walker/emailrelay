@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,19 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// winmenu.cpp
-//
+///
+/// \file winmenu.cpp
+///
 
 #include "gdef.h"
 #include "gappinst.h"
 #include "winmenu.h"
 #include "glog.h"
 
-namespace
+namespace Main
 {
 	const int open_pos = 0 ;
 	const int close_pos = 1 ;
+	struct ScopeZero
+	{
+		ScopeZero( HMENU h ) : m_h(h) {}
+		~ScopeZero() { m_h = 0 ; }
+		HMENU & m_h ;
+	} ;
 }
 
 Main::WinMenu::WinMenu( unsigned int id ) :
@@ -36,16 +42,6 @@ Main::WinMenu::WinMenu( unsigned int id ) :
 	m_hmenu = ::LoadMenu( hinstance , MAKEINTRESOURCE(id) ) ;
 	if( m_hmenu == nullptr )
 		throw Error() ;
-}
-
-namespace
-{
-	struct ScopeZero
-	{
-		ScopeZero( HMENU h ) : m_h(h) {}
-		~ScopeZero() { m_h = 0 ; }
-		HMENU & m_h ;
-	} ;
 }
 
 int Main::WinMenu::popup( const GGui::WindowBase & w , bool set_foreground , bool with_open , bool with_close )
@@ -74,7 +70,8 @@ int Main::WinMenu::popup( const GGui::WindowBase & w , bool set_foreground , boo
 	// display the menu
 	//
 	G_DEBUG( "Main::WinMenu::popup: tracking start" ) ;
-	int rc = static_cast<int>( ::TrackPopupMenuEx( m_hmenu_popup , TPM_RETURNCMD , p.x , p.y , w.handle() , nullptr ) ) ;
+	int rc = static_cast<int>( ::TrackPopupMenuEx( m_hmenu_popup , TPM_RETURNCMD ,
+		p.x , p.y , w.handle() , nullptr ) ) ;
 	G_DEBUG( "Main::WinMenu::popup: tracking end: " << rc ) ;
 
 	// (from the TrackPopupMenu() documentation (not TrackPopupMenuEx()))
@@ -85,7 +82,8 @@ int Main::WinMenu::popup( const GGui::WindowBase & w , bool set_foreground , boo
 
 void Main::WinMenu::update( bool with_open , bool with_close )
 {
-	G_DEBUG( "Main::WinMenu::update: with-open=" << with_open << " with-close=" << with_close << " hmenu=" << m_hmenu_popup ) ;
+	G_DEBUG( "Main::WinMenu::update: with-open=" << with_open << " "
+		<< "with-close=" << with_close << " hmenu=" << m_hmenu_popup ) ;
 	if( m_hmenu_popup )
 	{
 		::EnableMenuItem( m_hmenu_popup , open_pos , MF_BYPOSITION | (with_open?0:MF_GRAYED) ) ;
@@ -99,4 +97,3 @@ Main::WinMenu::~WinMenu()
 		::DestroyMenu( m_hmenu ) ;
 }
 
-/// \file winmenu.cpp

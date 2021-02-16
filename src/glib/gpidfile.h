@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include "gdef.h"
 #include "gexception.h"
 #include "gsignalsafe.h"
+#include "gprocess.h"
 #include "gpath.h"
 #include <sys/types.h>
 #include <string>
@@ -34,7 +35,7 @@ namespace G
 	class Daemon ;
 }
 
-/// \class G::PidFile
+//| \class G::PidFile
 /// A class for creating pid files. Works with G::Root and G::Daemon so that
 /// the pid file can get created very late in a daemon startup sequence.
 /// Installs a signal handler so that the pid file gets deleted on process
@@ -57,10 +58,10 @@ class G::PidFile
 public:
 	G_EXCEPTION( Error , "invalid pid file" ) ;
 
-	static void cleanup( SignalSafe , const char * path ) ;
+	static bool cleanup( SignalSafe , const char * path ) noexcept ;
 		///< Deletes the specified pid file if it contains this
-		///< process's id. Claims root privilege to read
-		///< and delete the pid file (see G::Root).
+		///< process's id. Claims root privilege to read and
+		///< delete the pid file (see G::Root::atExit()).
 		///<
 		///< This is not normally needed by client code since it
 		///< is installed as a signal handler (see G::Cleanup)
@@ -109,17 +110,21 @@ public:
 		///< Returns the path as supplied to the constructor
 		///< or init().
 
+public:
+	PidFile( const PidFile & ) = delete ;
+	PidFile( PidFile && ) = delete ;
+	void operator=( const PidFile & ) = delete ;
+	void operator=( PidFile && ) = delete ;
+
 private:
-	PidFile( const PidFile & ) g__eq_delete ;
-	void operator=( const PidFile & ) g__eq_delete ;
-	static bool mine( SignalSafe , const char * path ) ; // reentrant
 	static void create( const Path & pid_file ) ;
 	static std::string * new_string_ignore_leak( const std::string & ) ;
+	static Process::Id read( SignalSafe , const char * path ) noexcept ;
 	bool valid() const ;
 
 private:
 	Path m_path ;
-	bool m_committed ;
+	bool m_committed{false} ;
 } ;
 
 #endif

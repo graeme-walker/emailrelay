@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gcontrol.cpp
-//
+///
+/// \file gcontrol.cpp
+///
 
 #include "gdef.h"
 #include "gdialog.h"
@@ -24,6 +24,7 @@
 #include "glog.h"
 #include "gassert.h"
 #include "gdc.h"
+#include <vector>
 #include <commctrl.h>
 #include <prsht.h> // PropertySheet
 
@@ -31,23 +32,23 @@ LRESULT CALLBACK gcontrol_wndproc_export( HWND hwnd , UINT message , WPARAM wpar
 
 GGui::Control::Control( const Dialog & dialog , int id ) :
 	m_dialog(&dialog) ,
-	m_hdialog(NULL) ,
+	m_hdialog(HNULL) ,
 	m_valid(true) ,
 	m_id(id) ,
-	m_hwnd(NULL) ,
+	m_hwnd(HNULL) ,
 	m_no_redraw_count(0)
 {
 }
 
 GGui::Control::Control( HWND hdialog , int id , HWND hcontrol ) :
-	m_dialog(NULL) ,
+	m_dialog(nullptr) ,
 	m_hdialog(hdialog) ,
 	m_valid(true) ,
 	m_id(id) ,
 	m_hwnd(hcontrol) ,
 	m_no_redraw_count(0)
 {
-	G_ASSERT( m_hdialog != NULL ) ;
+	G_ASSERT( m_hdialog != HNULL ) ;
 }
 
 void GGui::Control::load()
@@ -57,11 +58,8 @@ void GGui::Control::load()
 
 void GGui::Control::load( DWORD types )
 {
- #ifdef G_MINGW
-	::InitCommonControls() ;
- #else
-	static INITCOMMONCONTROLSEX controls_zero ;
-	INITCOMMONCONTROLSEX controls = controls_zero ;
+ #if GCONFIG_HAVE_WINDOWS_INIT_COMMON_CONTROLS_EX
+	INITCOMMONCONTROLSEX controls{} ;
 	controls.dwSize = sizeof(controls) ;
 	controls.dwICC = types ; // ICC_LISTVIEW_CLASSES | ICC_STANDARD_CLASSES ;
 	if( ! ::InitCommonControlsEx( &controls ) )
@@ -69,12 +67,14 @@ void GGui::Control::load( DWORD types )
 		G_ERROR( "GGui::Control::load: InitCommonControlsEx() failed: " << types ) ;
 		//throw std::runtime_error( "InitCommonControlsEx() failed" ) ;
 	}
+ #else
+	::InitCommonControls() ;
  #endif
 }
 
 HWND GGui::Control::hdialog() const
 {
-	G_ASSERT( m_hdialog != NULL || m_dialog != NULL ) ;
+	G_ASSERT( m_hdialog != HNULL || m_dialog != nullptr ) ;
 	return m_hdialog ? m_hdialog : m_dialog->handle() ; // WindowBase::handle()
 }
 
@@ -105,7 +105,7 @@ HWND GGui::Control::handle() const
 		HWND hdialog_ = hdialog() ;
 		const_cast<Control*>(this)->m_hwnd = ::GetDlgItem( hdialog_ , m_id ) ;
 		G_DEBUG( "GGui::Control::handle: GetDlgItem(" << m_id << ") -> " << m_hwnd ) ;
-		if( m_hwnd == NULL )
+		if( m_hwnd == HNULL )
 		{
 			std::ostringstream ss ;
 			ss << "dialog box error: no window for control id " << m_id << " in " << hdialog_ ;
@@ -150,36 +150,43 @@ LRESULT GGui::Control::onMessage( unsigned int , WPARAM , LPARAM , WNDPROC , boo
 
 LRESULT CALLBACK gcontrol_wndproc_export( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam )
 {
-	// get the dialog box window handle
-	HWND hwnd_dialog = ::GetParent(hwnd) ;
-	if( hwnd_dialog == NULL )
+	try
 	{
-		G_ASSERT( false ) ;
+		// get the dialog box window handle
+		HWND hwnd_dialog = GetParent( hwnd ) ;
+		if( hwnd_dialog == HNULL )
+		{
+			G_ASSERT( false ) ;
+			return ::DefWindowProc( hwnd , message , wparam , lparam ) ;
+		}
+
+		// find the dialog box object
+		GGui::Dialog * dialog = reinterpret_cast<GGui::Dialog*>( ::GetWindowLongPtr( hwnd_dialog , DWLP_USER ) ) ;
+		if( dialog == nullptr )
+		{
+			G_ASSERT( false ) ;
+			return ::DefWindowProc( hwnd , message , wparam , lparam ) ;
+		}
+		G_ASSERT( dialog->isValid() ) ;
+
+		// find the control object and the super-class window procedure
+		void * context = nullptr ;
+		auto super_class = reinterpret_cast<GGui::SubClassMap::Proc>( dialog->map().find(hwnd,&context) ) ;
+		GGui::Control * control = static_cast<GGui::Control*>(context) ;
+		G_ASSERT( control != nullptr ) ;
+		G_ASSERT( control->handle() == hwnd ) ;
+		G_ASSERT( control->id() == ::GetDlgCtrlID(hwnd) ) ;
+
+		// remove the control from the map if it is being destroyed
+		if( message == WM_NCDESTROY )
+			dialog->map().remove( hwnd ) ;
+
+		return control->wndProc( message , wparam , lparam , super_class ) ;
+	}
+	catch(...) // callback
+	{
 		return ::DefWindowProc( hwnd , message , wparam , lparam ) ;
 	}
-
-	// find the dialog box object
-	GGui::Dialog * dialog = reinterpret_cast<GGui::Dialog*>( ::GetWindowLongPtr( hwnd_dialog , DWLP_USER ) ) ;
-	if( dialog == NULL )
-	{
-		G_ASSERT( false ) ;
-		return ::DefWindowProc( hwnd , message , wparam , lparam ) ;
-	}
-	G_ASSERT( dialog->isValid() ) ;
-
-	// find the control object and the super-class window procedure
-	void * context = NULL ;
-	GGui::SubClassMap::Proc super_class = reinterpret_cast<GGui::SubClassMap::Proc>(dialog->map().find(hwnd,&context)) ;
-	GGui::Control * control = static_cast<GGui::Control*>(context) ;
-	G_ASSERT( control != NULL ) ;
-	G_ASSERT( control->handle() == hwnd ) ;
-	G_ASSERT( control->id() == ::GetDlgCtrlID(hwnd) ) ;
-
-	// remove the control from the map if it is being destroyed
-	if( message == WM_NCDESTROY )
-		dialog->map().remove( hwnd ) ;
-
-	return control->wndProc( message , wparam , lparam , super_class ) ;
 }
 
 // ==
@@ -249,19 +256,14 @@ std::string GGui::ListBox::getItem( int index ) const
 	G_ASSERT( index >= 0 ) ;
 
 	LRESULT rc = sendMessage( LB_GETTEXTLEN , static_cast<WPARAM>(index) ) ;
-	if( rc == LB_ERR || rc > 0xfff0 )
+	if( rc == LB_ERR || rc > 0xfff0 || rc <= 0 )
 		return std::string() ;
 
-	char *buffer = new char[rc+2] ;
-	G_ASSERT( buffer != NULL ) ;
-	if( buffer == NULL )
-		return std::string() ;
-
+	std::vector<char> buffer( static_cast<std::size_t>(rc+2) ) ;
 	buffer[0] = '\0' ;
-	sendMessage( LB_GETTEXT , static_cast<WPARAM>(index) , reinterpret_cast<LPARAM>(static_cast<LPCSTR>(buffer)) ) ;
-	std::string s( buffer ) ;
-	delete [] buffer ;
-	return s ;
+	sendMessage( LB_GETTEXT , static_cast<WPARAM>(index) , reinterpret_cast<LPARAM>(static_cast<LPCSTR>(&buffer[0])) ) ;
+	buffer[buffer.size()-1U] = '\0' ;
+	return std::string( &buffer[0] ) ;
 }
 
 unsigned int GGui::ListBox::entries() const
@@ -302,7 +304,7 @@ LPTSTR GGui::ListView::ptext( const std::string & s )
 void GGui::ListView::set( const G::StringArray & list , unsigned int columns , unsigned int width )
 {
 	NoRedraw no_redraw( *this ) ;
-	size_t i = 0U ;
+	std::size_t i = 0U ;
 	for( unsigned int c = 0U ; c < columns ; c++ )
 	{
 		LVCOLUMN column ;
@@ -320,11 +322,11 @@ void GGui::ListView::set( const G::StringArray & list , unsigned int columns , u
 void GGui::ListView::update( const G::StringArray & list , unsigned int columns )
 {
 	G_ASSERT( columns != 0U ) ;
-	G_ASSERT( list.size() >= static_cast<size_t>(columns) ) ;
+	G_ASSERT( list.size() >= static_cast<std::size_t>(columns) ) ;
 	NoRedraw no_redraw( *this ) ;
 	sendMessage( LVM_DELETEALLITEMS ) ;
 	sendMessage( LVM_SETITEMCOUNT , (list.size()-columns)/columns ) ;
-	size_t i = columns ;
+	std::size_t i = columns ;
 	for( unsigned int item = 0U ; i < list.size() ; item++ )
 	{
 		for( unsigned int c = 0U ; c < columns ; c++ )
@@ -416,19 +418,17 @@ void GGui::EditBox::scrollBack( int lines )
 void GGui::EditBox::scrollToEnd()
 {
 	// (add ten just to make sure)
-	sendMessage( EM_LINESCROLL , 0 , lines() + 10 ) ;
+	sendMessage( EM_LINESCROLL , 0 , lines() + 10U ) ;
 }
 
 std::string GGui::EditBox::get() const
 {
-	int length = ::GetWindowTextLength( handle() ) ;
-	char *buffer = new char[length+2] ;
-	G_ASSERT( buffer != NULL ) ;
-	::GetWindowTextA( handle() , buffer , length+1 ) ;
-	buffer[length+1] = '\0' ;
-	std::string s( buffer ) ;
-	delete [] buffer ;
-	return s ;
+	int length = GetWindowTextLength( handle() ) ;
+	if( length <= 0 ) return std::string() ;
+	std::vector<char> buffer( static_cast<std::size_t>(length+2) ) ;
+	GetWindowTextA( handle() , &buffer[0] , length+1 ) ;
+	buffer[buffer.size()-1U] = '\0' ;
+	return std::string( &buffer[0] ) ;
 }
 
 unsigned int GGui::EditBox::scrollPosition()
@@ -532,4 +532,3 @@ void GGui::Button::disable()
 	::EnableWindow( handle() , false ) ;
 }
 
-/// \file gcontrol.cpp

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gfactoryparser.cpp
-//
+///
+/// \file gfactoryparser.cpp
+///
 
 #include "gdef.h"
 #include "gfactoryparser.h"
@@ -70,11 +70,11 @@ std::string GSmtp::FactoryParser::check( const std::string & identifier , bool a
 	else if( p.first == "file" )
 	{
 		G::Path exe = p.second ;
-		if( ! G::File::exists(exe,G::File::NoThrow()) )
+		if( !G::File::exists(exe,std::nothrow) )
 			return "no such file" ;
-		else if( ! G::File::executable(exe) )
+		else if( !G::is_windows() && !G::File::isExecutable(exe,std::nothrow) )
 			return "probably not executable" ;
-		else if( ! exe.isAbsolute() )
+		else if( !exe.isAbsolute() )
 			return "not an absolute path" ;
 		else
 			return std::string() ;
@@ -92,15 +92,12 @@ std::string GSmtp::FactoryParser::check( const std::string & identifier , bool a
 	}
 }
 
-GSmtp::FactoryParser::Result::Result() :
-	third(0)
-{
-}
+GSmtp::FactoryParser::Result::Result()
+= default ;
 
 GSmtp::FactoryParser::Result::Result( const std::string & first_ , const std::string & second_ ) :
 	first(first_) ,
-	second(second_) ,
-	third(0)
+	second(second_)
 {
 }
 
@@ -111,4 +108,3 @@ GSmtp::FactoryParser::Result::Result( const std::string & first_ , const std::st
 {
 }
 
-/// \file gfactoryparser.cpp

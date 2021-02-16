@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ namespace G
 	class PamImp ;
 }
 
-/// \class G::Pam
+//| \class G::Pam
 /// A thin interface to the system PAM library, with two pure
 /// virtual methods that derived classes should implement: the
 /// converse() method supplies passwords etc. and delay()
@@ -71,7 +71,7 @@ public:
 		Error( const std::string & op , int pam_error ) ;
 		Error( const std::string & op , int pam_error , const char * ) ;
 	} ;
-	typedef std::vector<Item> ItemArray ;
+	using ItemArray = std::vector<Item> ;
 
 	Pam( const std::string & app , const std::string & user , bool silent ) ;
 		///< Constructor.
@@ -149,12 +149,14 @@ public:
 		///< initiating any new authentication while the timer
 		///< is running.
 
-private:
-	Pam( const Pam & ) g__eq_delete ;
-	void operator=( const Pam & ) g__eq_delete ;
+public:
+	Pam( const Pam & ) = delete ;
+	Pam( Pam && ) = delete ;
+	void operator=( const Pam & ) = delete ;
+	void operator=( Pam && ) = delete ;
 
 private:
-	unique_ptr<PamImp> m_imp ;
+	std::unique_ptr<PamImp> m_imp ;
 } ;
 
 inline

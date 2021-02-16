@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// ghostname_win32.cpp
-//
+///
+/// \file ghostname_win32.cpp
+///
 
 #include "gdef.h"
 #include "ghostname.h"
@@ -26,15 +26,14 @@
 std::string G::hostname()
 {
 	std::vector<char> buffer( 257U , '\0' ) ; // documented hostname limit of 256
-	if( 0 == ::gethostname( &buffer[0] , static_cast<int>(buffer.size()-1U) ) && buffer.at(0U) != '\0' ) // winsock2.h
+	if( 0 == ::gethostname( &buffer[0] , static_cast<int>(buffer.size()-1U) ) && buffer.at(0U) != '\0' )
 	{
+		buffer[buffer.size()-1U] = '\0' ;
 		return std::string( &buffer[0] ) ;
 	}
 	else
 	{
-		return Str::toPrintableAscii(
-			Environment::get("COMPUTERNAME",std::string()) , '_' ) ;
+		return Str::printable( Environment::get("COMPUTERNAME",std::string()) , '_' ) ;
 	}
 }
 
-/// \file ghostname_win32.cpp

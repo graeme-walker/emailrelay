@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,11 +25,12 @@
 #include "gexception.h"
 #include "gidentity.h"
 #include "gpath.h"
+#include "gstr.h"
 #include "gstrings.h"
 #include "gsignalsafe.h"
 #include <iostream>
-#include <sys/types.h>
 #include <string>
+#include <new>
 
 namespace G
 {
@@ -37,77 +38,44 @@ namespace G
 	class NewProcess ;
 }
 
-/// \class G::Process
+//| \class G::Process
 /// A static interface for doing things with processes.
 /// \see G::Identity
 ///
-class G::Process : private G::IdentityUser
+class G::Process
 {
 public:
-	G_EXCEPTION( CannotChangeDirectory , "cannot cd()" ) ;
+	G_EXCEPTION( CannotChangeDirectory , "cannot change directory" ) ;
 	G_EXCEPTION( InvalidId , "invalid process-id string" ) ;
-
-	class IdImp ;
+	G_EXCEPTION( UidError , "cannot set uid" ) ;
+	G_EXCEPTION( GidError , "cannot set gid" ) ;
+	class Id ;
+	class Umask ;
 	class UmaskImp ;
 
-	class Id /// Process-id class.
-	{
-	public:
-		Id() ;
-		explicit Id( std::istream & ) ;
-		Id( SignalSafe , const char * pid_file_path ) ; // (ctor for signal-handler)
-		std::string str() const ;
-		bool operator==( const Id & ) const ;
-
-	private:
-		friend class NewProcess ;
-		friend class Process ;
-		pid_t m_pid ;
-	} ;
-
-	class Umask /// Used to temporarily modify the process umask.
-	{
-	public:
-		g__enum(Mode) { Readable , Tighter , Tightest , GroupOpen } ; g__enum_end(Mode)
-		explicit Umask( Mode ) ;
-		~Umask() ;
-		static void set( Mode ) ;
-		static void tighten() ; // no "other" access, user and group unchanged
-
-	private:
-		Umask( const Umask & ) g__eq_delete ;
-		void operator=( const Umask & ) g__eq_delete ;
-		unique_ptr<UmaskImp> m_imp ;
-	} ;
-
-	class NoThrow /// An overload discriminator for Process.
-		{} ;
-
 	static void closeFiles( bool keep_stderr = false ) ;
-		///< Closes all open file descriptors, but optionally not stderr.
-		///< Stdin, stdout, and possibly stderr are reopened to the
-		///< null device.
-
-	static void closeFilesExcept( int fd_1 , int fd_2 = -1 ) ;
-		///< Closes all open file descriptors except the given ones.
-		///< If stdin, stdout, or stderr are closed then they are
-		///< reopened to the null device.
+		///< Closes all open file descriptors and reopen stdin,
+		///< stdout and possibly stderr to the null device.
 
 	static void closeStderr() ;
 		///< Closes stderr and reopens it to the null device.
 
+	static void closeOtherFiles( int fd_keep = -1 ) ;
+		///< Closes all open file descriptors except the three
+		///< standard ones and possibly one other.
+
 	static void cd( const Path & dir ) ;
 		///< Changes directory.
 
-	static bool cd( const Path & dir , NoThrow ) ;
+	static bool cd( const Path & dir , std::nothrow_t ) ;
 		///< Changes directory. Returns false on error.
 
-	static int errno_( const SignalSafe & = G::SignalSafe() ) ;
+	static int errno_( const SignalSafe & = G::SignalSafe() ) noexcept ;
 		///< Returns the process's current 'errno' value.
 		///< (Beware of destructors of c++ temporaries disrupting
 		///< the global errno value.)
 
-	static int errno_( const SignalSafe & , int e_new ) ;
+	static int errno_( const SignalSafe & , int e_new ) noexcept ;
 		///< Sets the process's 'errno' value. Returns the old
 		///< value. Used in signal handlers.
 
@@ -115,39 +83,49 @@ public:
 		///< Translates an 'errno' value into a meaningful diagnostic string.
 		///< The returned string is non-empty, even for a zero errno.
 
-	static void revokeExtraGroups() ;
-		///< Revokes secondary group memberships if really root
-		///< or if suid.
+	static Identity beOrdinaryAtStartup( Identity ordinary_id , bool change_group ) ;
+		///< Revokes special privileges (root or suid), possibly including
+		///< extra group membership.
 
-	static Identity beOrdinary( Identity ordinary_id , bool change_group = true ) ;
-		///< Revokes special privileges (root or suid).
+	static void beOrdinary( Identity ordinary_id , bool change_group ) ;
+		///< Releases special privileges.
 		///<
 		///< If the real-id is root then the effective id is changed to whatever
-		///< is passed in. Otherwise the effective id is changed to the real id,
-		///< and the parameter is ignored.
+		///< is passed in. Otherwise the effective id is changed to the real id
+		///< (optionally including the group), and the identity parameter is
+		///< ignored.
 		///<
 		///< Returns the old effective-id, which can be passed to beSpecial().
 		///<
+		///< Logs an error message and throws on failure, resulting in a call
+		///< to std::terminate() when called from a destructor (see G::Root).
+		///<
+		///< This affects all threads in the calling processes, with signal hacks
+		///< used in some implementations to do the synchronisation. This can
+		///< lead to surprising interruptions of sleep(), select() etc.
+		///<
 		///< See also class G::Root.
 
-	static Identity beSpecial( Identity special_id , bool change_group = true ) ;
+	static void beSpecial( Identity special_id , bool change_group = true ) ;
 		///< Re-acquires special privileges (either root or suid). The
-		///< parameter must have come from a previous call to beOrdinary().
-		///<
-		///< Returns the old effective-id (which is normally ignored).
+		///< parameter must have come from a previous call to beOrdinary()
+		///< and use the same change_group value.
 		///<
 		///< See also class G::Root.
 
-	static Identity beOrdinary( SignalSafe , Identity ordinary_id , bool change_group = true ) ;
-		///< A signal-safe overload.
+	static void beSpecialForExit( SignalSafe , Identity special_id ) noexcept ;
+		///< A signal-safe version of beSpecial() that should only be used
+		///< just before process exit.
 
-	static Identity beSpecial( SignalSafe , Identity special_id , bool change_group = true ) ;
-		///< A signal-safe overload.
-
-	static void beOrdinaryForExec( Identity run_as_id ) ;
+	static void beOrdinaryForExec( Identity run_as_id ) noexcept ;
 		///< Sets the real and effective user and group ids to those
-		///< given. Errors are ignored. This should only be used in
-		///< a forked child process prior to doing an exec().
+		///< given, on a best-effort basis. Errors are ignored.
+
+	static void setEffectiveUser( Identity ) ;
+		///< Sets the effective user. Throws on error.
+
+	static void setEffectiveGroup( Identity ) ;
+		///< Sets the effective group. Throws on error.
 
 	static std::string cwd( bool no_throw = false ) ;
 		///< Returns the current working directory. Throws on error
@@ -158,9 +136,65 @@ public:
 		///< independent of the argv array passed to main(). Returns
 		///< the empty string if unknown.
 
-private:
-	Process() g__eq_delete ;
+	class Id /// Process-id class.
+	{
+	public:
+		Id() noexcept ;
+		explicit Id( const char * , const char * end ) noexcept ;
+		explicit Id( int ) noexcept ;
+		explicit Id( std::istream & ) ;
+		static Id invalid() noexcept ;
+		std::string str() const ;
+		bool operator==( const Id & ) const noexcept ;
+		bool operator!=( const Id & ) const noexcept ;
+
+	private:
+		friend class NewProcess ;
+		friend class Process ;
+		pid_t m_pid{0} ;
+	} ;
+
+	class Umask /// Used to temporarily modify the process umask.
+	{
+	public:
+		enum class Mode { Readable , Tighter , Tightest , GroupOpen } ;
+		explicit Umask( Mode ) ;
+		~Umask() ;
+		static void set( Mode ) ;
+		static void tighten() ; // no "other" access, user and group unchanged
+		Umask( const Umask & ) = delete ;
+		Umask( Umask && ) = delete ;
+		void operator=( const Umask & ) = delete ;
+		void operator=( Umask && ) = delete ;
+		private: std::unique_ptr<UmaskImp> m_imp ;
+	} ;
+
+public:
+	Process() = delete ;
 } ;
+
+inline G::Process::Id::Id( int n ) noexcept :
+	m_pid(static_cast<pid_t>(n))
+{
+}
+
+inline G::Process::Id::Id( std::istream & stream )
+{
+	stream >> m_pid ;
+}
+
+inline G::Process::Id::Id( const char * p , const char * end ) noexcept
+{
+	bool overflow = false ;
+	m_pid = G::Str::toUnsigned<pid_t>( p , end , overflow ) ;
+	if( overflow )
+		m_pid = static_cast<pid_t>(-1) ;
+}
+
+inline G::Process::Id G::Process::Id::invalid() noexcept
+{
+	return Id(-1) ;
+}
 
 namespace G
 {
@@ -168,13 +202,6 @@ namespace G
 	std::ostream & operator<<( std::ostream & stream , const G::Process::Id & id )
 	{
 		return stream << id.str() ;
-	}
-
-	inline
-	std::istream & operator>>( std::istream & stream , G::Process::Id & id )
-	{
-		id = G::Process::Id( stream ) ;
-		return stream ;
 	}
 }
 

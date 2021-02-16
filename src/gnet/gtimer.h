@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gtimer.h
 ///
 
-#ifndef G_NET_TIMER__H
-#define G_NET_TIMER__H
+#ifndef G_NET_TIMER_H
+#define G_NET_TIMER_H
 
 #include "gdef.h"
 #include "gdatetime.h"
@@ -32,7 +32,7 @@ namespace GNet
 	class TimerBase ;
 }
 
-/// \class GNet::TimerBase
+//| \class GNet::TimerBase
 /// An interface used by GNet::TimerList to keep track of pending timeouts
 /// and to deliver timeout events. The public methods to start and cancel
 /// the timer are normally used via GNet::Timer<>.
@@ -52,10 +52,14 @@ public:
 		///< Starts or restarts the timer so that it expires
 		///< after the given interval.
 
+	void startTimer( const G::TimeInterval & ) ;
+		///< Starts or restarts the timer so that it expires
+		///< after the given interval.
+
 	void cancelTimer() ;
 		///< Cancels the timer. Does nothing if not running.
 
-	bool active() const g__noexcept ;
+	bool active() const noexcept ;
 		///< Returns true if the timer is started and not cancelled.
 
 	bool immediate() const ;
@@ -65,7 +69,7 @@ public:
 	void doTimeout() ;
 		///< Used by TimerList to execute the onTimeout() callback.
 
-	G::EpochTime t() const ;
+	G::TimerTime t() const ;
 		///< Used by TimerList to get the expiry epoch time. Zero-length
 		///< timers return a value corresponding to some time in ancient
 		///< history (1970).
@@ -75,7 +79,7 @@ public:
 		///< time of immediate() timers so that t() is ordered by
 		///< startTimer() time.
 
-	bool expired( G::EpochTime & ) const ;
+	bool expired( G::TimerTime & ) const ;
 		///< Used by TimerList. Returns true if expired when compared
 		///< to the given epoch time.
 
@@ -83,25 +87,28 @@ protected:
 	virtual void onTimeout() = 0 ;
 		///< Called when the timer expires (or soon after).
 
-private:
-	TimerBase( const TimerBase & ) g__eq_delete ;
-	void operator=( const TimerBase & ) g__eq_delete ;
-	static G::EpochTime history() ;
+public:
+	TimerBase( const TimerBase & ) = delete ;
+	TimerBase( TimerBase && ) = delete ;
+	void operator=( const TimerBase & ) = delete ;
+	void operator=( TimerBase && ) = delete ;
 
 private:
-	G::EpochTime m_time ;
+	static G::TimerTime history() ;
+
+private:
+	G::TimerTime m_time ;
 } ;
 
-inline
-bool GNet::TimerBase::active() const g__noexcept
+inline bool GNet::TimerBase::active() const noexcept
 {
-	return m_time.s != 0 ; // sic
+	return !m_time.isZero() ;
 }
 
 namespace GNet
 {
 
-/// \class Timer
+//| \class Timer
 /// A timer class template in which the timeout is delivered to the specified
 /// method. Any exception thrown out of the timeout handler is delivered to
 /// the specified ExceptionHandler interface so that it can be handled or
@@ -121,7 +128,7 @@ template <typename T>
 class Timer : private TimerBase
 {
 public:
-	typedef void (T::*method_type)() ;
+	using method_type = void (T::*)() ;
 
 	Timer( T & t , method_type m , ExceptionSink ) ;
 		///< Constructor.
@@ -137,15 +144,18 @@ public:
 	void cancelTimer() ;
 		///< Cancels the timer. Does nothing if not running.
 
-	bool active() const g__noexcept ;
+	bool active() const noexcept ;
 		///< Returns true if the timer is running.
 
-private: // overrides
-	virtual void onTimeout() override ; // Override from GNet::TimerBase.
+public:
+	~Timer() override = default ;
+	Timer( const Timer<T> & ) = delete ;
+	Timer( Timer<T> && ) = delete ;
+	void operator=( const Timer<T> & ) = delete ;
+	void operator=( Timer<T> && ) = delete ;
 
-private:
-	Timer( const Timer<T> & ) g__eq_delete ;
-	void operator=( const Timer<T> & ) g__eq_delete ;
+private: // overrides
+	void onTimeout() override ; // Override from GNet::TimerBase.
 
 private:
 	T & m_t ; // callback target object
@@ -169,7 +179,7 @@ void Timer<T>::startTimer( unsigned int s , unsigned int us )
 template <typename T>
 void Timer<T>::startTimer( const G::TimeInterval & i )
 {
-	TimerBase::startTimer( i.s , i.us ) ;
+	TimerBase::startTimer( i ) ;
 }
 
 template <typename T>
@@ -179,7 +189,7 @@ void Timer<T>::cancelTimer()
 }
 
 template <typename T>
-bool Timer<T>::active() const g__noexcept
+bool Timer<T>::active() const noexcept
 {
 	return TimerBase::active() ;
 }

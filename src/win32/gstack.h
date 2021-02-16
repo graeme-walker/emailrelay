@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gstack.h
 ///
 
-#ifndef G_GUI_STACK__H
-#define G_GUI_STACK__H
+#ifndef G_GUI_STACK_H
+#define G_GUI_STACK_H
 
 #include "gdef.h"
 #include "gstr.h"
@@ -33,10 +33,9 @@ namespace GGui
 {
 	class StackPageCallback ;
 	class Stack ;
-	class StackImp ;
 }
 
-/// \class GGui::StackPageCallback
+//| \class GGui::StackPageCallback
 /// A callback interface for GGui::Stack.
 ///
 class GGui::StackPageCallback
@@ -66,7 +65,7 @@ public:
 	virtual ~StackPageCallback() ;
 } ;
 
-/// \class GGui::Stack
+//| \class GGui::Stack
 /// A property sheet class that manages a set of property sheet pages,
 /// with a 'close' button and a disabled 'cancel' button. Each property
 /// sheet page is a dialog box.
@@ -99,12 +98,19 @@ public:
 		///< similarly to GGui::Dialog::dialogMessage(). Returns true
 		///< if a stack message.
 
-private:
-	friend class StackImp ;
 	static int sheetProc( HWND hwnd , UINT message , LPARAM lparam ) ;
+		///< Implementation window procedure.
+
 	static unsigned int pageProc( HWND hwnd , UINT message , PROPSHEETPAGE * page ) ;
+		///< Implementation window procedure.
+
 	static bool dlgProc( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam ) ;
+		///< Implementation window procedure.
+
 	static LRESULT wndProc( HWND , UINT , WPARAM , LPARAM ) ;
+		///< Implementation window procedure.
+
+private:
 	static Stack * getObjectPointer( HWND hwnd ) ;
 	LRESULT wndProc( UINT , WPARAM , LPARAM , bool & ) ;
 	void hook( HWND ) ;
@@ -112,13 +118,15 @@ private:
 	void doOnApply( HWND ) ;
 	void postNotifyMessage( WPARAM , LPARAM = 0 ) ;
 
-private:
-	Stack( const Stack & ) g__eq_delete ;
-	void operator=( const Stack & ) g__eq_delete ;
+public:
+	Stack( const Stack & ) = delete ;
+	Stack( Stack && ) = delete ;
+	void operator=( const Stack & ) = delete ;
+	void operator=( Stack && ) = delete ;
 
 private:
-	typedef std::pair<Stack*,int> PageInfo ;
-	G_CONSTANT( int , MAGIC , 24938 ) ;
+	using PageInfo = std::pair<Stack*,int> ;
+	static constexpr int MAGIC = 24938 ;
 	int m_magic ;
 	HINSTANCE m_hinstance ;
 	StackPageCallback & m_callback ;

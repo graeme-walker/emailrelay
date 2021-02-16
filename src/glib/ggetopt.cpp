@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// ggetopt.cpp
-//
+///
+/// \file ggetopt.cpp
+///
 
 #include "gdef.h"
 #include "ggetopt.h"
@@ -30,39 +30,50 @@
 #include <fstream>
 #include <algorithm>
 
-G::GetOpt::GetOpt( const Arg & args_in , const std::string & spec ) :
+G::GetOpt::GetOpt( const Arg & args_in , const std::string & spec , std::size_t ignore_non_options ) :
 	m_spec(spec) ,
-	m_args(args_in) ,
-	m_parser(m_spec,m_map,m_errors)
+	m_args(args_in)
 {
-	parseArgs( m_args ) ;
+	parseArgs( ignore_non_options ) ;
 }
 
-G::GetOpt::GetOpt( const G::StringArray & args_in , const std::string & spec ) :
+G::GetOpt::GetOpt( const Arg & args_in , const Options & spec , std::size_t ignore_non_options ) :
 	m_spec(spec) ,
-	m_args(args_in) ,
-	m_parser(m_spec,m_map,m_errors)
+	m_args(args_in)
 {
-	parseArgs( m_args ) ;
+	parseArgs( ignore_non_options ) ;
 }
 
-void G::GetOpt::reload( const G::StringArray & args_in )
+G::GetOpt::GetOpt( const G::StringArray & args_in , const std::string & spec , std::size_t ignore_non_options ) :
+	m_spec(spec) ,
+	m_args(args_in)
+{
+	parseArgs( ignore_non_options ) ;
+}
+
+G::GetOpt::GetOpt( const G::StringArray & args_in , const Options & spec , std::size_t ignore_non_options ) :
+	m_spec(spec) ,
+	m_args(args_in)
+{
+	parseArgs( ignore_non_options ) ;
+}
+
+void G::GetOpt::reload( const G::StringArray & args_in , std::size_t ignore_non_options )
 {
 	m_map.clear() ;
 	m_errors.clear() ;
 	m_args = Arg( args_in ) ;
-
-	parseArgs( m_args ) ;
+	parseArgs( ignore_non_options ) ;
 }
 
-void G::GetOpt::parseArgs( Arg & args )
+void G::GetOpt::parseArgs( std::size_t ignore_non_options )
 {
-	size_t pos = m_parser.parse( args.array() ) ;
-	if( pos > 1U )
-		m_args.removeAt( 1U , pos-2U ) ;
+	StringArray new_args = OptionParser::parse( m_args.array() , m_spec , m_map , &m_errors , 1U , ignore_non_options ) ;
+	new_args.insert( new_args.begin() , m_args.v(0U) ) ;
+	m_args = Arg( new_args ) ;
 }
 
-void G::GetOpt::addOptionsFromFile( size_t n )
+void G::GetOpt::addOptionsFromFile( std::size_t n , const std::string & varkey , const std::string & varvalue )
 {
 	if( n < m_args.c() )
 	{
@@ -70,34 +81,33 @@ void G::GetOpt::addOptionsFromFile( size_t n )
 		m_args.removeAt( n ) ;
 
 		if( !filename.empty() )
+		{
+			if( !varkey.empty() && !varvalue.empty() && filename.find(varkey) == 0 )
+				G::Str::replace( filename , varkey , varvalue ) ;
 			addOptionsFromFile( filename ) ;
+		}
 	}
 }
 
-G::StringArray G::GetOpt::optionsFromFile( const G::Path & filename ) const
+G::StringArray G::GetOpt::optionsFromFile( const Options & spec , const Path & filename )
 {
 	StringArray result ;
-	StringMap map = MapFile(filename).map() ;
-	for( StringMap::const_iterator p = map.begin() ; p != map.end() ; ++p )
+	StringMap map = MapFile(filename,"config").map() ;
+	for( const auto & map_item : map )
 	{
-		std::string key = (*p).first ;
-		std::string value = (*p).second ;
-		if( m_spec.valued(key) )
-		{
-			result.push_back( "--" + key ) ;
-			result.push_back( value ) ;
-		}
+		const std::string & key = map_item.first ;
+		const std::string & value = map_item.second ;
+		if( spec.valued(key) )
+			result.push_back( std::string("--").append(key).append(1U,'=').append(value) ) ;
 		else
-		{
-			result.push_back( "--" + key + "=" + value ) ;
-		}
+			result.push_back( std::string("--").append(key) ) ;
 	}
 	return result ;
 }
 
 void G::GetOpt::addOptionsFromFile( const G::Path & filename )
 {
-	m_parser.parse( optionsFromFile(filename) , 0U ) ;
+	OptionParser::parse( optionsFromFile(m_spec,filename) , m_spec , m_map , &m_errors , 0U ) ;
 }
 
 const G::Options & G::GetOpt::options() const
@@ -125,9 +135,9 @@ bool G::GetOpt::contains( const std::string & name ) const
 	return m_map.contains( name ) ;
 }
 
-size_t G::GetOpt::count( const std::string & name ) const
+std::size_t G::GetOpt::count( const std::string & name ) const
 {
-	return m_map.count(name) ;
+	return m_map.count( name ) ;
 }
 
 std::string G::GetOpt::value( char c , const std::string & default_ ) const
@@ -138,7 +148,7 @@ std::string G::GetOpt::value( char c , const std::string & default_ ) const
 
 std::string G::GetOpt::value( const std::string & name , const std::string & default_ ) const
 {
-	return m_map.contains(name) ? m_map.value(name) : default_ ;
+	return m_map.value( name , default_ ) ;
 }
 
 G::Arg G::GetOpt::args() const
@@ -148,7 +158,7 @@ G::Arg G::GetOpt::args() const
 
 bool G::GetOpt::hasErrors() const
 {
-	return m_errors.size() != 0U ;
+	return !m_errors.empty() ;
 }
 
 void G::GetOpt::showErrors( std::ostream & stream ) const
@@ -158,23 +168,9 @@ void G::GetOpt::showErrors( std::ostream & stream ) const
 
 void G::GetOpt::showErrors( std::ostream & stream , const std::string & prefix_1 , const std::string & prefix_2 ) const
 {
-	for( StringArray::const_iterator p = m_errors.begin() ; p != m_errors.end() ; ++p )
+	for( const auto & error : m_errors )
 	{
-		stream << prefix_1 << prefix_2 << *p << std::endl ;
+		stream << prefix_1 << prefix_2 << error << std::endl ;
 	}
 }
 
-void G::GetOpt::collapse( const std::string & name )
-{
-	G::StringArray values = G::Str::splitIntoFields( value(name) , "," ) ;
-	if( values.size() > 1U )
-	{
-		size_t n = static_cast<size_t>( std::count( values.begin() , values.end() , *values.begin() ) ) ;
-		if( n == values.size() )
-			m_map.replace( name , *values.begin() ) ;
-		else
-			m_parser.errorDuplicate( name ) ; // duplicates but with different values
-	}
-}
-
-/// \file ggetopt.cpp

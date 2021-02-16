@@ -4,9 +4,9 @@
 @rem
 @rem Runs "perl %1" and checks for an output file %2.
 @rem
-@rem The perl program is located using "ftype" or the PATH. This is
-@rem likely to be ActiveState perl rather than MSYS or Cygwin, and
-@rem for ActiveState the perl script sees a $^O value of "MSWin32".
+@rem The perl program is located using "ftype" or the PATH. Using ftype
+@rem is more likely to find ActiveState perl rather than MSYS or Cygwin.
+@rem For ActiveState the perl script sees a $^O value of "MSWin32".
 @rem
 
 @rem find perl using ftype
@@ -44,7 +44,7 @@ goto end
 
 @rem error if no touchfile
 :fail_no_touchfile
-echo error: perl command failed to create an output file
+echo error: perl command failed: no output file created
 goto end
 
 :end

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gconvert.cpp
-//
+///
+/// \file gconvert.cpp
+///
 
 #include "gdef.h"
 #include "gconvert.h"
@@ -71,4 +71,3 @@ void G::Convert::convert( std::wstring & out_ , const G::Convert::utf8 & s )
 	out_ = widen(s.s,true) ;
 }
 
-/// \file gconvert.cpp

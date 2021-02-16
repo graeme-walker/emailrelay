@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,26 +14,55 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// genvironment_win32.cpp
-//
+///
+/// \file genvironment_win32.cpp
+///
 
 #include "gdef.h"
 #include "genvironment.h"
-#include <cstdlib>
+#include <cstdlib> // _environ
+#include <cstring>
 #include <vector>
+#include <cerrno>
+
+#if ! GCONFIG_HAVE_GETENV_S
+inline errno_t getenv_s( std::size_t * n_out , char * buffer , std::size_t n_in , const char * name )
+{
+	if( n_out == nullptr || name == nullptr || (!buffer&&n_in) )
+		return EINVAL ;
+
+	const char * p = ::getenv( name ) ;
+	if( p == nullptr )
+	{
+		*n_out = 0 ;
+		return 0 ;
+	}
+
+	size_t n = std::strlen( p ) ;
+	*n_out = n + 1U ;
+
+	if( n >= n_in )
+		return ERANGE ;
+
+	if( buffer )
+	{
+		for( ++n ; n ; n-- )
+			*buffer++ = *p++ ;
+	}
+
+	return 0 ;
+}
+#endif
 
 std::string G::Environment::get( const std::string & name , const std::string & default_ )
 {
-	// (do no logging here)
-
-	size_t n = 0U ;
-	errno_t rc = ::getenv_s( &n , NULL , 0U , name.c_str() ) ;
+	std::size_t n = 0U ;
+	errno_t rc = getenv_s( &n , nullptr , 0U , name.c_str() ) ;
 	if( n == 0U ) // rc will be ERANGE if the environment variable exists
 		return default_ ;
 
 	std::vector<char> buffer( n ) ;
-	rc = ::getenv_s( &n , &buffer[0] , n , name.c_str() ) ;
+	rc = getenv_s( &n , &buffer[0] , n , name.c_str() ) ;
 	if( rc != 0 || n == 0U )
 		return default_ ;
 
@@ -41,4 +70,19 @@ std::string G::Environment::get( const std::string & name , const std::string & 
 	return std::string( &buffer[0] ) ;
 }
 
-/// \file genvironment_win32.cpp
+G::Environment G::Environment::minimal()
+{
+	// could copy from _environ, but for now just act like inherit()
+	//char ** e = ::_environ ;
+	return Environment() ; // ie. inherit()
+}
+
+void G::Environment::put( const std::string & name , const std::string & value )
+{
+	// dont use _putenv_s() here in order to maintain compatibility
+	// with ancient run-times
+	std::string s = name + "=" + value ;
+	char * deliberately_leaky_copy = _strdup( s.c_str() ) ;
+	GDEF_IGNORE_RETURN _putenv( deliberately_leaky_copy ) ;
+}
+

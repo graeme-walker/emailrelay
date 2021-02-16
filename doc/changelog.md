@@ -1,6 +1,23 @@
 E-MailRelay Change Log
 ======================
 
+2.1 -> 2.2
+----------
+
+* Connections from IPv4 'private use' addresses are allowed by default (see `--remote-clients`).
+* Interface names can be used with `--interface` (eg. `--interface=eth0`).
+* New `--server-tls-connection` option for server-side implicit [TLS][].
+* New `--forward-to-some` option to permit some message recipients to be rejected.
+* New `--log-address` option to aid adaptive firewalling.
+* Dynamic log file rolling when using `--log-file=%d`.
+* Choice of syslog 'facility' on Linux with `--syslog=local0` etc.
+* Pipelined [SMTP][] QUIT commands sent by broken clients are tolerated.
+* Better handling of overly-verbose or unkillable `--filter` scripts.
+* Optional epoll event loop on Linux (`configure --enable-epoll`).
+* Some internationalisation support (see NEWS file).
+* Support for Windows XP restored when built with mingw-w64.
+* C++ 2011 compiler is required.
+
 2.0.1 -> 2.1
 ------------
 
@@ -15,7 +32,7 @@ E-MailRelay Change Log
 * New `--show` option on windows to better control the user interface style.
 * The `--pop` option always requires `--pop-auth`.
 * No message is spooled if all its envelope recipients are local-mailboxes.
-* [TLS][] cipher name added to `Received` line as per [RFC-8314][] 4.3.
+* TLS cipher name added to `Received` line as per [RFC-8314][] 4.3.
 * Certificate contents are not logged.
 * Timestamp parts of spool filenames no longer limited to six digits.
 
@@ -36,7 +53,7 @@ E-MailRelay Change Log
 * The `--tls-config` option works differently (see NEWS file).
 * New `--client-tls-server-name` option for server name identification (SNI).
 * New `--client-tls-required` option to force client connections to use TLS.
-* New `--server-tls-required` option to force remote [SMTP][] clients to use STARTTLS.
+* New `--server-tls-required` option to force remote SMTP clients to use STARTTLS.
 * New `--forward-on-disconnect` option replaces `--poll=0`.
 * The `--anonymous` option now suppresses the `Received` line, whatever the `--domain`.
 * The second field in the secrets file indicates the password encoding, not AUTH mechanism.

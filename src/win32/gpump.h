@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gpump.h
 ///
 
-#ifndef G_PUMP_H
-#define G_PUMP_H
+#ifndef G_GUI_PUMP_H
+#define G_GUI_PUMP_H
 
 #include "gdef.h"
 #include <string>
@@ -30,7 +30,7 @@ namespace GGui
 	class Pump ;
 }
 
-/// \class GGui::Pump
+//| \class GGui::Pump
 /// A static class which implements a Windows GetMessage/DispatchMessage
 /// message pump. While the pump is run()ning it pulls messages out
 /// of the message queue and dispatches them to the relevant window
@@ -77,8 +77,10 @@ public:
 		///< has unwound, or sets the return value for
 		///< runToEmpty().
 
+public:
+	Pump() = delete ;
+
 private:
-	Pump() g__eq_delete ;
 	static bool getMessage( MSG * , bool ) ;
 	static bool empty() ;
 	static bool sendIdle( HWND , unsigned int ) ;

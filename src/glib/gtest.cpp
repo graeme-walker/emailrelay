@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gtest.cpp
-//
+///
+/// \file gtest.cpp
+///
 
 #include "gdef.h"
 #include "gtest.h"
@@ -26,27 +26,37 @@
 #include <set>
 
 #if defined(_DEBUG) || defined(G_TEST_ENABLED)
-namespace
+namespace G
 {
-	bool done = false ;
-	std::string spec ;
+	namespace TestImp
+	{
+		bool spec_set = false ;
+		std::string spec( bool set = false , const std::string & s = std::string() ) ;
+	}
+}
+std::string G::TestImp::spec( bool set , const std::string & s_in )
+{
+	static std::string s ;
+	if( set )
+	{
+		if( !s_in.empty() )
+			s = "," + s_in + "," ;
+		spec_set = true ;
+	}
+	return s ;
 }
 void G::Test::set( const std::string & s )
 {
-	done = true ;
-	spec = s ;
+	TestImp::spec( true , s ) ;
 }
 bool G::Test::enabled( const char * name )
 {
-	if( !done )
+	if( !TestImp::spec_set )
 	{
-		spec = Environment::get("G_TEST",std::string()) ;
-		if( !spec.empty() )
-			spec = "," + spec + "," ;
+		TestImp::spec( true , Environment::get("G_TEST",std::string()) ) ;
 	}
-	done = true ;
 
-	bool result = spec.empty() ? false : ( spec.find(","+std::string(name)+",") != std::string::npos ) ;
+	bool result = TestImp::spec().empty() ? false : ( TestImp::spec().find(","+std::string(name)+",") != std::string::npos ) ;
 	if( result )
 	{
 		static std::set<std::string> warned ;
@@ -58,7 +68,7 @@ bool G::Test::enabled( const char * name )
 	}
 	return result ;
 }
-bool G::Test::enabled()
+bool G::Test::enabled() noexcept
 {
 	return true ;
 }
@@ -66,9 +76,8 @@ bool G::Test::enabled()
 void G::Test::set( const std::string & )
 {
 }
-bool G::Test::enabled()
+bool G::Test::enabled() noexcept
 {
 	return false ;
 }
 #endif
-/// \file gtest.cpp

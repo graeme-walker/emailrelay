@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ namespace G
 	class SignalSafe ;
 }
 
-/// \class G::SignalSafe
+//| \class G::SignalSafe
 /// An empty structure that is used to indicate a signal-safe, reentrant implementation.
 /// Any function with SignalSafe in its signature should be kept small and simple,
 /// with no exceptions, no logging and no blocking system calls.

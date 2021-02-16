@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gdescriptor.h
 ///
 
-#ifndef G_NET_DESCRIPTOR__H
-#define G_NET_DESCRIPTOR__H
+#ifndef G_NET_DESCRIPTOR_H
+#define G_NET_DESCRIPTOR_H
 
 #include "gdef.h"
 #include <iostream>
@@ -29,85 +29,85 @@ namespace GNet
 	class Descriptor ;
 }
 
-/// \class GNet::Descriptor
+//| \class GNet::Descriptor
 /// A class that encapsulates a network socket file descriptor and
 /// an associated windows event handle.
 ///
 class GNet::Descriptor
 {
 public:
-	Descriptor() ;
+	Descriptor() noexcept ;
 		///< Default constructor.
 
-	explicit Descriptor( SOCKET , HANDLE = 0 ) ;
+	explicit Descriptor( SOCKET , HANDLE = HNULL ) noexcept ;
 		///< Constructor.
 
-	bool valid() const ;
+	bool valid() const noexcept ;
 		///< Returns true if the socket part is valid, ignoring
 		///< the handle.
 
-	static Descriptor invalid() ;
+	static Descriptor invalid() noexcept ;
 		///< Returns a descriptor with an invalid socket part and
 		///< a zero handle.
 
-	SOCKET fd() const ;
+	SOCKET fd() const noexcept ;
 		///< Returns the socket part.
 
-	HANDLE h() const ;
+	HANDLE h() const noexcept ;
 		///< Returns the handle part.
 
-	bool operator==( const Descriptor & other ) const ;
+	bool operator==( const Descriptor & other ) const noexcept ;
 		///< Comparison operator.
 
-	bool operator!=( const Descriptor & other ) const ;
+	bool operator!=( const Descriptor & other ) const noexcept ;
 		///< Comparison operator.
 
-	bool operator<( const Descriptor & other ) const ;
+	bool operator<( const Descriptor & other ) const noexcept ;
 		///< Comparison operator.
 
 	void streamOut( std::ostream & ) const ;
 		///< Used by op<<().
 
 private:
-	SOCKET m_fd ;
-	HANDLE m_handle ;
+	SOCKET m_fd ; // NOLINT
+	HANDLE m_handle{0} ;
 } ;
 
 inline
-GNet::Descriptor::Descriptor( SOCKET fd , HANDLE h ) :
+GNet::Descriptor::Descriptor( SOCKET fd , HANDLE h ) noexcept :
 	m_fd(fd) ,
 	m_handle(h)
 {
 }
 
 inline
-SOCKET GNet::Descriptor::fd() const
+SOCKET GNet::Descriptor::fd() const noexcept
 {
 	return m_fd ;
 }
 
 inline
-bool GNet::Descriptor::operator==( const Descriptor & other ) const
+bool GNet::Descriptor::operator==( const Descriptor & other ) const noexcept
 {
 	return m_fd == other.m_fd && m_handle == other.m_handle ;
 }
 
 inline
-bool GNet::Descriptor::operator!=( const Descriptor & other ) const
+bool GNet::Descriptor::operator!=( const Descriptor & other ) const noexcept
 {
 	return !(*this == other) ;
 }
 
 inline
-bool GNet::Descriptor::operator<( const Descriptor & other ) const
+bool GNet::Descriptor::operator<( const Descriptor & other ) const noexcept
 {
 	return m_fd == other.m_fd ? ( m_handle < other.m_handle ) : ( m_fd < other.m_fd ) ;
 }
 
 inline
-GNet::Descriptor GNet::Descriptor::invalid()
+GNet::Descriptor GNet::Descriptor::invalid() noexcept
 {
-	return Descriptor() ;
+	return {} ;
 }
 
 namespace GNet

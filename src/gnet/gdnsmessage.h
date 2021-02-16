@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,14 +18,14 @@
 /// \file gdnsmessage.h
 ///
 
-#ifndef G_NET_DNS_MESSAGE__H
-#define G_NET_DNS_MESSAGE__H
+#ifndef G_NET_DNS_MESSAGE_H
+#define G_NET_DNS_MESSAGE_H
 
 #include "gdef.h"
 #include "gexception.h"
 #include "gaddress.h"
-#include <ostream>
 #include <vector>
+#include <utility>
 #include <string>
 #include <map>
 
@@ -40,7 +40,7 @@ namespace GNet
 	class DnsMessageDumper ;
 }
 
-/// \class GNet::DnsMessage
+//| \class GNet::DnsMessage
 /// A DNS message parser, with static factory functions for message composition.
 /// A DnsMessage contains a Header and four sections: Question, Answer, Authority
 /// and Additional. The Question section contains Question records (DnsMessageQuestion)
@@ -52,13 +52,13 @@ class GNet::DnsMessage
 {
 public:
 	G_EXCEPTION( Error , "dns message error" ) ;
-	typedef DnsMessageQuestion Question ;
-	typedef DnsMessageRR RR ;
+	using Question = DnsMessageQuestion ;
+	using RR = DnsMessageRR ;
 
 	explicit DnsMessage( const std::vector<char> & buffer ) ;
 		///< Constructor.
 
-	DnsMessage( const char * , size_t ) ;
+	DnsMessage( const char * , std::size_t ) ;
 		///< Constructor.
 
 	std::vector<Address> addresses() const ;
@@ -112,13 +112,18 @@ public:
 		///< Precondition: n < QDCOUNT()
 
 	RR rr( unsigned int n ) const ;
-		///< Returns the n'th record as a RR record.
+		///< Returns the n'th record as a RR record. The returned
+		///< object retains a reference to this DnsMessage, so
+		///< prefer rrAddress().
 		///< Precondition: n >= QDCOUNT() && n < (QDCOUNT()+ANCOUNT()+NSCOUNT()+ARCOUNT())
+
+	Address rrAddress( unsigned int n ) const ;
+		///< Returns the address in the n'th record treated as a RR record.
 
 	const char * p() const ;
 		///< Returns the raw data.
 
-	size_t n() const ;
+	std::size_t n() const ;
 		///< Returns the raw data size.
 
 	unsigned int byte( unsigned int byte_index ) const ;
@@ -144,6 +149,7 @@ public:
 		///< throw, except n() will return zero.
 
 private:
+	friend class DnsMessageDumper ;
 	DnsMessage() ;
 	void reject( unsigned int rcode ) ;
 
@@ -151,9 +157,9 @@ private:
 	std::vector<char> m_buffer ;
 } ;
 
-/// \class GNet::DnsMessageRecordType
-/// A static class for mapping between a RR type name, such
-/// as "AAAA", and its corresponding numeric value.
+//| \class GNet::DnsMessageRecordType
+/// A static class for mapping between a RR type name, such as "AAAA",
+/// and its corresponding numeric value.
 ///
 class GNet::DnsMessageRecordType
 {
@@ -164,27 +170,22 @@ public:
 	static std::string name( unsigned int type_value ) ;
 		///< Returns the type name for the given type value.
 
-private:
-	typedef std::map<unsigned int,std::string> Map ;
-	DnsMessageRecordType() g__eq_delete ;
-	static void add( unsigned int , const std::string & ) ;
-	static const Map & map() ;
-
-private:
-	static Map m_map ;
+public:
+	DnsMessageRecordType() = delete ;
 } ;
 
-/// \class GNet::DnsMessageRR
+//| \class GNet::DnsMessageRR
 /// Represents DNS response record.
 ///
 class GNet::DnsMessageRR
 {
 public:
-	typedef DnsMessageRR RR ;
+	using RR = DnsMessageRR ;
 
 public:
 	DnsMessageRR( const DnsMessage & , unsigned int offset ) ;
-		///< Constructor.
+		///< Constructor. Keeps the reference, which is then passed
+		///< to copies.
 
 	bool isa( const std::string & ) const ;
 		///< Returns true if the type() has the given name().
@@ -223,7 +224,7 @@ private:
 	std::string m_name ;
 } ;
 
-/// \class GNet::DnsMessageQuestion
+//| \class GNet::DnsMessageQuestion
 /// Represents DNS question record.
 ///
 class GNet::DnsMessageQuestion
@@ -243,7 +244,7 @@ private:
 	std::string m_qname ;
 } ;
 
-/// \class GNet::DnsMessageNameParser
+//| \class GNet::DnsMessageNameParser
 /// An implementation class used by GNet::DnsMessage to parse
 /// compressed domain names.
 ///
@@ -257,17 +258,17 @@ public:
 		///< Returns the decompressed name, made up of the
 		///< labels with dots inbetween.
 
-private:
-	static std::string read_imp( const DnsMessage & , std::vector<char>::const_iterator ) ;
+public:
+	DnsMessageNameParser() = delete ;
 } ;
 
-/// \class GNet::DnsMessageRequest
+//| \class GNet::DnsMessageRequest
 /// Represents a DNS query message.
 ///
 class GNet::DnsMessageRequest
 {
 public:
-	typedef DnsMessageRR RR ;
+	using RR = DnsMessageRR ;
 
 	DnsMessageRequest( const std::string & type , const std::string & hostname , unsigned int id = 0U ) ;
 		///< Constructor.
@@ -275,11 +276,11 @@ public:
 	const char * p() const ;
 		///< Returns a pointer to the message data.
 
-	size_t n() const ;
+	std::size_t n() const ;
 		///< Returns message size.
 
 private:
-	void q( const std::string & domain , const std::string & seps ) ;
+	void q( const std::string & domain , char ) ;
 	void q( const std::string & ) ;
 	void q( unsigned int ) ;
 	void q( int ) ;

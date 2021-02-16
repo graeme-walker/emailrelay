@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,36 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gexecutablecommand_win32.cpp
-//
+///
+/// \file gexecutablecommand_win32.cpp
+///
 
 #include "gdef.h"
 #include "gexecutablecommand.h"
 #include "gstr.h"
 #include <stdexcept>
 #include <algorithm>
-
-G::StringArray G::ExecutableCommand::osSplit( const std::string & s_in )
-{
-	std::string s( s_in ) ;
-
-	// mark escaped spaces using nul -- assume no directory name starts with a space
-	const std::string null( 1U , '\0' ) ;
-	Str::replaceAll( s , "\\ " , null ) ;
-
-	// split up on (unescaped) spaces
-	StringArray parts ;
-	Str::splitIntoTokens( s , parts , " " ) ;
-
-	// replace the escaped spaces
-	for( StringArray::iterator p = parts.begin() ; p != parts.end() ; ++p )
-	{
-		Str::replaceAll( *p , null , " " ) ;
-	}
-
-	return parts ;
-}
+#include <vector>
 
 bool G::ExecutableCommand::osNativelyRunnable() const
 {
@@ -60,11 +40,12 @@ void G::ExecutableCommand::osAddWrapper()
 
 	std::string windows ;
 	{
-		char buffer[MAX_PATH] = { 0 } ;
-		unsigned int n = ::GetWindowsDirectoryA( buffer , MAX_PATH ) ;
+		std::vector<char> buffer( MAX_PATH+1 ) ;
+		buffer.at(0) = '\0' ;
+		unsigned int n = ::GetWindowsDirectoryA( &buffer[0] , MAX_PATH ) ;
 		if( n == 0 || n > MAX_PATH )
 			throw std::runtime_error( "cannot determine the windows directory" ) ;
-		windows = std::string( buffer , n ) ;
+		windows = std::string( &buffer[0] , n ) ;
 	}
 
 	// m_exe=<exe>, m_args=[<arg> ...]
@@ -81,4 +62,3 @@ void G::ExecutableCommand::osAddWrapper()
 	m_exe = Path( windows , "system32" , "cscript.exe" ) ;
 }
 
-/// \file gexecutablecommand_win32.cpp

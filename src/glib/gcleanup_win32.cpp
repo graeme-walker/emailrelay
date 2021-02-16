@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gcleanup_win32.cpp
-//
+///
+/// \file gcleanup_win32.cpp
+///
 
 #include "gdef.h"
 #include "gcleanup.h"
@@ -26,7 +26,7 @@ void G::Cleanup::init()
 	// no-op
 }
 
-void G::Cleanup::add( void (*)(SignalSafe,const char*) , const char * )
+void G::Cleanup::add( bool (*)(SignalSafe,const char*) , const char * )
 {
 	// not implemented
 }
@@ -36,4 +36,13 @@ void G::Cleanup::atexit( bool )
 	// not implemented
 }
 
-/// \file gcleanup_win32.cpp
+void G::Cleanup::block() noexcept
+{
+	// not implemented
+}
+
+void G::Cleanup::release() noexcept
+{
+	// not implemented
+}
+

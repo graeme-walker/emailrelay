@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gwinbase.h
 ///
 
-#ifndef G_WINBASE_H
-#define G_WINBASE_H
+#ifndef G_GUI_WINBASE_H
+#define G_GUI_WINBASE_H
 
 #include "gdef.h"
 #include "gsize.h"
@@ -29,7 +29,7 @@ namespace GGui
 	class WindowBase ;
 }
 
-/// \class GGui::WindowBase
+//| \class GGui::WindowBase
 /// A low-level window class that encapsulates a window handle
 /// and provides methods to retrieve basic window attributes.
 /// Knows nothing about window messages.
@@ -65,9 +65,11 @@ protected:
 	void setHandle( HWND hwnd ) ;
 		///< Sets the window handle.
 
-private:
-	WindowBase( const WindowBase & other ) g__eq_delete ;
-	void operator=( const WindowBase &other ) g__eq_delete ;
+public:
+	WindowBase( const WindowBase & ) = delete ;
+	WindowBase( WindowBase && ) = delete ;
+	void operator=( const WindowBase & ) = delete ;
+	void operator=( WindowBase && ) = delete ;
 
 private:
 	HWND m_hwnd ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gexecutablefilter.cpp
-//
+///
+/// \file gexecutablefilter.cpp
+///
 
 #include "gdef.h"
 #include "gprocess.h"
@@ -27,6 +27,7 @@
 #include "groot.h"
 #include "glog.h"
 #include "gassert.h"
+#include <tuple>
 
 GSmtp::ExecutableFilter::ExecutableFilter( GNet::ExceptionSink es ,
 	bool server_side , const std::string & path ) :
@@ -39,8 +40,7 @@ GSmtp::ExecutableFilter::ExecutableFilter( GNet::ExceptionSink es ,
 }
 
 GSmtp::ExecutableFilter::~ExecutableFilter()
-{
-}
+= default;
 
 bool GSmtp::ExecutableFilter::simple() const
 {
@@ -94,9 +94,7 @@ void GSmtp::ExecutableFilter::start( const std::string & location )
 void GSmtp::ExecutableFilter::onTaskDone( int exit_code , const std::string & output )
 {
 	// search the output for diagnostics
-	std::pair<std::string,std::string> pair = parseOutput( output , "rejected" ) ;
-	m_response = pair.first ;
-	m_reason = pair.second ;
+	std::tie(m_response,m_reason) = parseOutput( output , "rejected" ) ;
 	if( m_response.find("filter exec error") == 0U ) // see ctor
 	{
 		m_reason = m_response ;
@@ -107,14 +105,15 @@ void GSmtp::ExecutableFilter::onTaskDone( int exit_code , const std::string & ou
 	if( !m_exit.ok() )
 	{
 		G_WARNING( "GSmtp::ExecutableFilter::onTaskDone: " << m_prefix << " failed: "
-			<< "exit code " << exit_code << " [" << m_response << "]" ) ;
+			<< "exit code " << exit_code << ": [" << m_response << "]" ) ;
 	}
 
 	// callback
 	m_done_signal.emit( static_cast<int>(m_exit.result) ) ;
 }
 
-std::pair<std::string,std::string> GSmtp::ExecutableFilter::parseOutput( std::string s , const std::string & default_ ) const
+std::pair<std::string,std::string> GSmtp::ExecutableFilter::parseOutput( std::string s ,
+	const std::string & default_ ) const
 {
 	G_DEBUG( "GSmtp::ExecutableFilter::parseOutput: in: \"" << G::Str::printable(s) << "\"" ) ;
 
@@ -124,15 +123,15 @@ std::pair<std::string,std::string> GSmtp::ExecutableFilter::parseOutput( std::st
 	const std::string end_2("]]") ;
 
 	G::StringArray lines ;
-	while( G::Str::replaceAll( s , "\r\n" , "\n" ) ) ;
+	while( G::Str::replaceAll( s , "\r\n" , "\n" ) ) {;}
 	G::Str::replaceAll( s , "\r" , "\n" ) ;
 	G::Str::splitIntoFields( s , lines , "\n" ) ;
 
-	for( G::StringArray::iterator p = lines.begin() ; p != lines.end() ; )
+	for( auto p = lines.begin() ; p != lines.end() ; )
 	{
 		std::string line = *p ;
-		size_t pos_start = line.find(start_1) ;
-		size_t pos_end = line.find(end_1) ;
+		std::size_t pos_start = line.find(start_1) ;
+		std::size_t pos_end = line.find(end_1) ;
 		if( pos_start != 0U )
 		{
 			pos_start = line.find(start_2) ;
@@ -155,7 +154,7 @@ std::pair<std::string,std::string> GSmtp::ExecutableFilter::parseOutput( std::st
 	return std::make_pair( response , reason ) ;
 }
 
-G::Slot::Signal1<int> & GSmtp::ExecutableFilter::doneSignal()
+G::Slot::Signal<int> & GSmtp::ExecutableFilter::doneSignal()
 {
 	return m_done_signal ;
 }
@@ -170,4 +169,3 @@ bool GSmtp::ExecutableFilter::abandoned() const
 	return m_exit.abandon() ;
 }
 
-/// \file gexecutablefilter.cpp

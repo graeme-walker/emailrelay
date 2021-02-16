@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gdialog.h
 ///
 
-#ifndef G_DIALOG_H
-#define G_DIALOG_H
+#ifndef G_GUI_DIALOG_H
+#define G_GUI_DIALOG_H
 
 #include "gdef.h"
 #include "gwinbase.h"
@@ -33,18 +33,18 @@ namespace GGui
 	class Dialog ;
 }
 
-/// \class GGui::DialogHandle
+//| \class GGui::DialogHandle
 /// A private implementation class used by GGui::Dialog.
 ///
 class GGui::DialogHandle
 {
 public:
 	HWND h ;
-	explicit DialogHandle(HWND h_) ;
+	explicit DialogHandle( HWND ) ;
 	bool operator==( const DialogHandle & rhs ) const ;
 } ;
 
-/// \class GGui::Dialog
+//| \class GGui::Dialog
 /// A dialog box class for modal and modeless operation.
 /// \see GGui::Control
 ///
@@ -55,7 +55,7 @@ public:
 		///< Constructor. After contruction just call run() or
 		///< runModeless() with the appropriate dialog resource
 		///< id or name. The hdialog returned by WindowBase::handle()
-		///< will be NULL until the dialog box is run()ning.
+		///< will be HNULL until the dialog box is run()ning.
 
 	explicit Dialog( const GGui::ApplicationBase & app , bool top_level = false ) ;
 		///< Contructor for a dialog box which takes some
@@ -101,14 +101,14 @@ public:
 		///< resource id.
 
 	static BOOL dlgProc( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam ) ;
-			///< Called directly from the exported dialog procedure.
+		///< Called directly from the exported dialog procedure.
 
 	void setFocus( int control ) ;
 		///< Sets focus to the specified control.
 
 	LRESULT sendMessage( int control , unsigned message ,
 		WPARAM wparam = 0 , LPARAM lparam = 0 ) const ;
-		///< Sends a message to the specified control.
+			///< Sends a message to the specified control.
 
 	SubClassMap & map() ;
 		///< Used by GGui::Control. (The sub-class map allows the Control
@@ -172,10 +172,14 @@ protected:
 		///< message. The override may do a "delete this" if
 		///< necessary.
 
+public:
+	Dialog( const Dialog & ) = delete ;
+	Dialog( Dialog && ) = delete ;
+	void operator=( const Dialog & ) = delete ;
+	void operator=( Dialog && ) = delete ;
+
 private:
-	typedef std::list<DialogHandle> DialogList ;
-	Dialog( const Dialog &other ) g__eq_delete ;
-	void operator=( const Dialog &other ) g__eq_delete ;
+	using DialogList = std::list<DialogHandle> ;
 	BOOL dlgProc( UINT message , WPARAM wparam , LPARAM lparam ) ;
 	void privateInit( HWND hwnd ) ;
 	void privateEnd( int n ) ;
@@ -196,7 +200,7 @@ private:
 	bool runModelessEnd( HWND , bool ) ;
 
 private:
-	G_CONSTANT( int , Magic , 4567 ) ;
+	static constexpr int Magic = 4567 ;
 	std::string m_name ;
 	std::string m_title ;
 	bool m_modal ;

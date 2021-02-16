@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include "goptionmap.h"
 #include "gpath.h"
 #include "gstrings.h"
+#include "glogoutput.h"
 #include <string>
 
 namespace Main
@@ -35,7 +36,7 @@ namespace Main
 	class CommandLine ;
 }
 
-/// \class Main::Configuration
+//| \class Main::Configuration
 /// An interface for returning application configuration information. In
 /// practice this is a thin wrapper around the command-line options
 /// passed in to the constructor.
@@ -46,7 +47,7 @@ public:
 	Configuration( const G::Options & , const G::OptionMap & , const G::Path & app_dir , const G::Path & base_dir ) ;
 		///< Constructor. The app-dir path is used as a substitution
 		///< value, and the base-dir path is used to turn relative paths
-		///< into absolute ones.
+		///< into absolute ones when daemon() is true.
 
 	std::string semanticError() const ;
 		///< Returns a non-empty string if there is a fatal semantic conflict
@@ -90,8 +91,17 @@ public:
 	bool useSyslog() const ;
 		///< Returns true if generating syslog events.
 
+	G::LogOutput::SyslogFacility syslogFacility() const ;
+		///< Returns the syslog facility enum.
+
+	std::string validSyslogFacilities() const ;
+		///< Returns help text for the valid syslog facility names.
+
 	bool logTimestamp() const ;
 		///< Returns true if logging output should be timestamped.
+
+	bool logAddress() const ;
+		///< Returns true if logging output should have remote addresses.
 
 	bool daemon() const ;
 		///< Returns true if running in the background.
@@ -101,6 +111,9 @@ public:
 
 	bool forwardOnStartup() const ;
 		///< Returns true if running as a client.
+
+	bool forwardToSome() const ;
+		///< Returns true if some envelope addressees can be rejected.
 
 	bool doServing() const ;
 		///< Returns true if running as a server (smtp, pop, admin).
@@ -187,6 +200,11 @@ public:
 	std::string smtpSaslServerConfig() const ;
 		///< Returns the SMTP server-side SASL configuration string.
 
+	bool smtpPipelining() const ;
+		///< Returns true if the SMTP server protocol should allow some
+		///< limited SMTP command pipelining from broken clients, esp.
+		///< QUIT in the same network packet as the DATA EOM dot.
+
 	G::Path popSecretsFile() const ;
 		///< Returns the pop-server autentication secrets (password) file.
 		///< Returns the empty string if not defined.
@@ -194,7 +212,7 @@ public:
 	std::string popSaslServerConfig() const ;
 		///< Returns the POP SASL configuration string.
 
-	std::string networkName( std::string default_ = std::string() ) const ;
+	std::string networkName( const std::string & default_ = std::string() ) const ;
 		///< Returns an override for local host's canonical network name.
 
 	std::string user() const ;
@@ -252,7 +270,10 @@ public:
 		///< (as opposed to using STARTTLS).
 
 	bool serverTls() const ;
-		///< Returns true if the server protocol should support TLS.
+		///< Returns true if the server protocol should support negotiated TLS.
+
+	bool serverTlsConnection() const ;
+		///< Returns true if the server protocol should support implicit TLS.
 
 	bool serverTlsRequired() const ;
 		///< Returns true if the SMTP server requires TLS before authentication.
@@ -306,6 +327,7 @@ private:
 	bool verifyType( const std::string & ) const ;
 	bool specialVerifyValue( const std::string & ) const ;
 	G::StringArray semantics( bool ) const ;
+	bool validSyslogFacility() const ;
 
 private:
 	G::Options m_options ;

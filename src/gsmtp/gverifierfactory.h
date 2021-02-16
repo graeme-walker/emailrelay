@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gverifierfactory.h
 ///
 
-#ifndef G_SMTP_VERIFIER_FACTORY__H
-#define G_SMTP_VERIFIER_FACTORY__H
+#ifndef G_SMTP_VERIFIER_FACTORY_H
+#define G_SMTP_VERIFIER_FACTORY_H
 
 #include "gdef.h"
 #include "gverifier.h"
@@ -32,13 +32,13 @@ namespace GSmtp
 	class VerifierFactory ;
 }
 
-/// \class GSmtp::VerifierFactory
+//| \class GSmtp::VerifierFactory
 /// A factory for addresss verifiers.
 ///
 class GSmtp::VerifierFactory
 {
 public:
-	static unique_ptr<Verifier> newVerifier( GNet::ExceptionSink ,
+	static std::unique_ptr<Verifier> newVerifier( GNet::ExceptionSink ,
 		const std::string & identifier , unsigned int timeout ) ;
 			///< Returns a Verifier on the heap. The identifier
 			///< is normally prefixed with a verifier type, or it
@@ -48,8 +48,8 @@ public:
 		///< Checks an identifier. Returns an empty string if okay,
 		///< or a diagnostic reason string.
 
-private:
-	VerifierFactory() g__eq_delete ;
+public:
+	VerifierFactory() = delete ;
 } ;
 
 #endif

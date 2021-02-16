@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,14 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gnewprocess_win32.cpp
-//
+///
+/// \file gnewprocess_win32.cpp
+///
 
 #include "gdef.h"
 #include "gnewprocess.h"
 #include "gexception.h"
 #include "gstr.h"
+#include "gpath.h"
+#include "gtest.h"
 #include "glog.h"
 #include <sstream>
 #include <sys/types.h>
@@ -30,16 +32,9 @@
 #include <io.h>
 #include <algorithm> // std::swap()
 #include <utility> // std::swap()
+#include <array>
 
-namespace
-{
-	bool valid( HANDLE h ) g__noexcept
-	{
-		return h != NULL && h != INVALID_HANDLE_VALUE ;
-	}
-}
-
-/// \class G::Pipe
+//| \class G::Pipe
 /// A private implementation class used by G::NewProcess to manage a
 /// windows pipe.
 ///
@@ -50,12 +45,16 @@ public:
 	~Pipe() ;
 	HANDLE hread() const ;
 	HANDLE hwrite() const ;
-	static size_t read( const SignalSafe & , HANDLE read , char * buffer , size_t buffer_size ) ;
+	static std::size_t read( HANDLE read , char * buffer , std::size_t buffer_size ) noexcept ;
 	void close() ;
 
+public:
+	Pipe( const Pipe & ) = delete ;
+	Pipe( Pipe && ) = delete ;
+	void operator=( const Pipe & ) = delete ;
+	void operator=( Pipe && ) = delete ;
+
 private:
-	Pipe( const Pipe & ) g__eq_delete ;
-	void operator=( const Pipe & ) g__eq_delete ;
 	static void create( HANDLE & read , HANDLE & write ) ;
 	static void uninherited( HANDLE h ) ;
 
@@ -64,51 +63,61 @@ private:
 	HANDLE m_write ;
 } ;
 
-/// \class G::NewProcessImp
+//| \class G::NewProcessImp
 /// A pimple-pattern implementation class used by G::NewProcess.
 ///
 class G::NewProcessImp
 {
 public:
-	NewProcessImp( const Path & exe , const StringArray & args , int capture_stdxxx ) ;
-		// Constructor. Spawns the new process.
+	using Fd = NewProcess::Fd ;
+
+	NewProcessImp( const Path & exe , const StringArray & args , const Environment & ,
+		Fd fd_stdin , Fd fd_stdout , Fd fd_stderr , const G::Path & cd ) ;
+			// Constructor. Spawns the new process.
 
 	~NewProcessImp() ;
 		// Destructor. Kills the process if it is still running.
 
-	NewProcessWaitFuture & wait() ;
-		// Returns a reference to the WaitFuture sub-object to allow
+	NewProcessWaitable & waitable() noexcept ;
+		// Returns a reference to the Waitable sub-object to allow
 		// the caller to wait for the process to finish.
 
-	void kill() g__noexcept ;
+	void kill() noexcept ;
 		// Tries to kill the spawned process.
 
-	int id() const g__noexcept ;
+	int id() const noexcept ;
 		// Returns the process id.
 
+	static bool valid( HANDLE h ) noexcept ;
+		// Returns true if a valid handle.
+
+public:
+	NewProcessImp( const NewProcessImp & ) = delete ;
+	NewProcessImp( NewProcessImp && ) = delete ;
+	void operator=( const NewProcessImp & ) = delete ;
+	void operator=( NewProcessImp && ) = delete ;
+
 private:
-	NewProcessImp( const NewProcessImp & ) g__eq_delete ;
-	void operator=( const NewProcessImp & ) g__eq_delete ;
 	static std::string commandLine( const std::string & exe , const StringArray & args ) ;
 	static std::pair<HANDLE,DWORD> createProcess( const std::string & exe , const std::string & command_line ,
-		HANDLE hstdout , int capture_stdxxx ) ;
+		const Environment & , HANDLE hpipe , Fd fd_stdout , Fd fd_stderr , const char * cd ) ;
 
 private:
 	HANDLE m_hprocess ;
 	DWORD m_pid ;
 	bool m_killed ;
 	Pipe m_pipe ;
-	NewProcessWaitFuture m_wait_future ;
+	NewProcessWaitable m_waitable ;
 } ;
 
 // ===
 
-G::NewProcess::NewProcess( const Path & exe , const StringArray & args ,
-	int capture_stdxxx , bool clean , bool strict_path ,
-	Identity run_as_id , bool strict_id ,
+G::NewProcess::NewProcess( const Path & exe , const StringArray & args , const Environment & env ,
+	Fd fd_stdin , Fd fd_stdout , Fd fd_stderr , const G::Path & cd ,
+	bool strict_path , Identity run_as_id , bool strict_id ,
 	int exec_error_exit , const std::string & exec_error_format ,
 	std::string (*exec_error_format_fn)(std::string,int) ) :
-		m_imp(new NewProcessImp(exe,args,capture_stdxxx) )
+		m_imp(std::make_unique<NewProcessImp>(exe,args,env,fd_stdin,fd_stdout,fd_stderr,cd))
 {
 }
 
@@ -116,17 +125,22 @@ G::NewProcess::~NewProcess()
 {
 }
 
-G::NewProcessWaitFuture & G::NewProcess::wait()
+G::NewProcessWaitable & G::NewProcess::waitable() noexcept
 {
-	return m_imp->wait() ;
+	return m_imp->waitable() ;
 }
 
-int G::NewProcess::id() const g__noexcept
+int G::NewProcess::id() const noexcept
 {
 	return m_imp->id() ;
 }
 
-void G::NewProcess::kill( bool yield ) g__noexcept
+bool G::NewProcessImp::valid( HANDLE h ) noexcept
+{
+	return h != HNULL && h != INVALID_HANDLE_VALUE ;
+}
+
+void G::NewProcess::kill( bool yield ) noexcept
 {
 	m_imp->kill() ;
 	if( yield )
@@ -138,75 +152,86 @@ void G::NewProcess::kill( bool yield ) g__noexcept
 
 // ===
 
-G::NewProcessImp::NewProcessImp( const Path & exe_path , const StringArray & args , int capture_stdxxx ) :
-	m_hprocess(0) ,
-	m_killed(false) ,
-	m_wait_future(NULL,NULL,0)
+G::NewProcessImp::NewProcessImp( const Path & exe_path , const StringArray & args , const Environment & env ,
+	Fd fd_stdin , Fd fd_stdout , Fd fd_stderr , const G::Path & cd ) :
+		m_hprocess(0) ,
+		m_killed(false) ,
+		m_waitable(HNULL,HNULL,0)
 {
 	G_DEBUG( "G::NewProcess::spawn: running [" << exe_path << "]: [" << Str::join("],[",args) << "]" ) ;
 
+	// only support Fd::devnull() and Fd::pipe() here
+	if( fd_stdin != Fd::devnull() ||
+		( fd_stdout != Fd::devnull() && fd_stdout != Fd::pipe() ) ||
+		( fd_stderr != Fd::devnull() && fd_stderr != Fd::pipe() ) ||
+		( fd_stdout == Fd::pipe() && fd_stderr == Fd::pipe() ) )
+	{
+		throw NewProcess::Error( "invalid parameters" ) ;
+	}
+
 	std::string command_line = commandLine( exe_path.str() , args ) ;
-	std::pair<HANDLE,DWORD> pair = createProcess( exe_path.str() , command_line , m_pipe.hwrite() , capture_stdxxx ) ;
+	std::pair<HANDLE,DWORD> pair = createProcess( exe_path.str() , command_line , env ,
+		m_pipe.hwrite() , fd_stdout , fd_stderr ,
+		cd.empty() ? nullptr : cd.cstr() ) ;
+
 	m_hprocess = pair.first ;
 	m_pid = pair.second ;
 
 	m_pipe.close() ; // close write end, now used by child process
-	m_wait_future.assign( m_hprocess , m_pipe.hread() , 0 ) ;
+	m_waitable.assign( m_hprocess , m_pipe.hread() , 0 ) ;
 }
 
-void G::NewProcessImp::kill() g__noexcept
+void G::NewProcessImp::kill() noexcept
 {
 	if( !m_killed && valid(m_hprocess) )
-		::TerminateProcess( m_hprocess , 127 ) ;
+		TerminateProcess( m_hprocess , 127 ) ;
 	m_killed = true ;
 }
 
 G::NewProcessImp::~NewProcessImp()
 {
-	if( m_hprocess != 0 )
-		::CloseHandle( m_hprocess ) ;
+	if( m_hprocess != HNULL )
+		CloseHandle( m_hprocess ) ;
 }
 
-G::NewProcessWaitFuture & G::NewProcessImp::wait()
+G::NewProcessWaitable & G::NewProcessImp::waitable() noexcept
 {
-	return m_wait_future ;
+	return m_waitable ;
 }
 
-int G::NewProcessImp::id() const g__noexcept
+int G::NewProcessImp::id() const noexcept
 {
 	return static_cast<int>(m_pid) ;
 }
 
 std::pair<HANDLE,DWORD> G::NewProcessImp::createProcess( const std::string & exe , const std::string & command_line ,
-	HANDLE hout , int capture_stdxxx )
+	const Environment & env , HANDLE hpipe , Fd fd_stdout , Fd fd_stderr , const char * cd )
 {
 	// redirect stdout or stderr onto the read end of our pipe
-	static STARTUPINFOA zero_start ;
-	STARTUPINFOA start(zero_start) ;
+	STARTUPINFOA start {} ;
 	start.cb = sizeof(start) ;
 	start.dwFlags = STARTF_USESTDHANDLES ;
 	start.hStdInput = INVALID_HANDLE_VALUE ;
-	start.hStdOutput = capture_stdxxx == 1 ? hout : INVALID_HANDLE_VALUE ;
-	start.hStdError = capture_stdxxx == 2 ? hout : INVALID_HANDLE_VALUE ;
+	start.hStdOutput = fd_stdout == Fd::pipe() ? hpipe : INVALID_HANDLE_VALUE ;
+	start.hStdError = fd_stderr == Fd::pipe() ? hpipe : INVALID_HANDLE_VALUE ;
 
 	BOOL inherit = TRUE ;
 	DWORD flags = CREATE_NO_WINDOW ;
-	LPVOID env = NULL ;
-	LPCSTR cwd = NULL ;
-	SECURITY_ATTRIBUTES * process_attributes = NULL ;
-	SECURITY_ATTRIBUTES * thread_attributes = NULL ;
+	LPVOID envp = env.empty() ? nullptr : static_cast<LPVOID>(const_cast<char*>(env.ptr())) ;
+	LPCSTR cwd = cd ;
+	SECURITY_ATTRIBUTES * process_attributes = nullptr ;
+	SECURITY_ATTRIBUTES * thread_attributes = nullptr ;
 
-	static PROCESS_INFORMATION zero_info ;
-	PROCESS_INFORMATION info( zero_info ) ;
+	PROCESS_INFORMATION info {} ;
 
-	BOOL rc = ::CreateProcessA( exe.c_str() ,
+	BOOL rc = CreateProcessA( exe.c_str() ,
 		const_cast<char*>(command_line.c_str()) ,
 		process_attributes , thread_attributes , inherit ,
-		flags , env , cwd , &start , &info ) ;
+		flags , envp , cwd , &start , &info ) ;
 
 	if( rc == 0 || !valid(info.hProcess) )
 	{
-		DWORD e = ::GetLastError() ;
+		DWORD e = GetLastError() ;
 		std::ostringstream ss ;
 		ss << "error " << e << ": [" << command_line << "]" ;
 		throw NewProcess::CreateProcessError( ss.str() ) ;
@@ -217,14 +242,14 @@ std::pair<HANDLE,DWORD> G::NewProcessImp::createProcess( const std::string & exe
 	G_DEBUG( "G::NewProcessImp::createProcess: hthread=" << info.hThread ) ;
 	G_DEBUG( "G::NewProcessImp::createProcess: thread-id=" << info.dwThreadId ) ;
 
-	::CloseHandle( info.hThread ) ;
+	CloseHandle( info.hThread ) ;
 	return std::make_pair( info.hProcess , info.dwProcessId ) ;
 }
 
 std::string G::NewProcessImp::commandLine( const std::string & exe , const StringArray & args )
 {
-	// returns quoted exe followed by args -- args are quoted iff they have a
-	// space and no quotes
+	// returns quoted exe followed by args -- each part is quoted iff it has one
+	// or more spaces and no quotes
 
 	char q = '\"' ;
 	const std::string quote = std::string(1U,q) ;
@@ -247,8 +272,8 @@ std::string G::NewProcessImp::commandLine( const std::string & exe , const Strin
 // ===
 
 G::Pipe::Pipe() :
-	m_read(NULL) ,
-	m_write(NULL)
+	m_read(HNULL) ,
+	m_write(HNULL)
 {
 	create( m_read , m_write ) ;
 	uninherited( m_read ) ;
@@ -256,25 +281,24 @@ G::Pipe::Pipe() :
 
 G::Pipe::~Pipe()
 {
-	if( m_read != NULL ) ::CloseHandle( m_read ) ;
-	if( m_write != NULL ) ::CloseHandle( m_write ) ;
+	if( m_read != HNULL ) CloseHandle( m_read ) ;
+	if( m_write != HNULL ) CloseHandle( m_write ) ;
 }
 
 void G::Pipe::create( HANDLE & h_read , HANDLE & h_write )
 {
-	static SECURITY_ATTRIBUTES zero_attributes ;
-	SECURITY_ATTRIBUTES attributes( zero_attributes ) ;
+	SECURITY_ATTRIBUTES attributes {} ;
 	attributes.nLength = sizeof(attributes) ;
-	attributes.lpSecurityDescriptor = NULL ;
+	attributes.lpSecurityDescriptor = nullptr ;
 	attributes.bInheritHandle = TRUE ;
 
-	h_read = NULL ;
-	h_write = NULL ;
+	h_read = HNULL ;
+	h_write = HNULL ;
 	DWORD buffer_size_hint = 0 ;
-	BOOL rc = ::CreatePipe( &h_read , &h_write , &attributes , buffer_size_hint ) ;
+	BOOL rc = CreatePipe( &h_read , &h_write , &attributes , buffer_size_hint ) ;
 	if( rc == 0 )
 	{
-		DWORD error = ::GetLastError() ;
+		DWORD error = GetLastError() ;
 		G_ERROR( "G::Pipe::create: pipe error: create: " << error ) ;
 		throw NewProcess::PipeError( "create" ) ;
 	}
@@ -284,8 +308,8 @@ void G::Pipe::uninherited( HANDLE h )
 {
 	if( ! SetHandleInformation( h , HANDLE_FLAG_INHERIT , 0 ) )
 	{
-		DWORD error = ::GetLastError() ;
-		::CloseHandle( h ) ;
+		DWORD error = GetLastError() ;
+		CloseHandle( h ) ;
 		G_ERROR( "G::Pipe::uninherited: uninherited error " << error ) ;
 		throw NewProcess::PipeError( "uninherited" ) ;
 	}
@@ -303,48 +327,52 @@ HANDLE G::Pipe::hread() const
 
 void G::Pipe::close()
 {
-	if( m_write != NULL )
-		::CloseHandle( m_write ) ;
-	m_write = NULL ;
+	if( m_write != HNULL )
+		CloseHandle( m_write ) ;
+	m_write = HNULL ;
 }
 
-size_t G::Pipe::read( const SignalSafe & signal_safe , HANDLE hread , char * buffer , size_t buffer_size_in )
+std::size_t G::Pipe::read( HANDLE hread , char * buffer , std::size_t buffer_size_in ) noexcept
 {
 	// (worker thread - keep it simple)
+	if( hread == HNULL ) return 0U ;
 	DWORD buffer_size = static_cast<DWORD>(buffer_size_in) ;
 	DWORD nread = 0U ;
-	BOOL ok = ::ReadFile( hread , buffer , buffer_size , &nread , NULL ) ;
-	//DWORD error = ::GetLastError() ;
+	BOOL ok = ReadFile( hread , buffer , buffer_size , &nread , nullptr ) ;
+	//DWORD error = GetLastError() ;
 	nread = ok ? std::min( nread , buffer_size ) : DWORD(0) ;
-	return static_cast<size_t>(nread) ;
+	return static_cast<std::size_t>(nread) ;
 }
 
 // ==
 
-G::NewProcessWaitFuture::NewProcessWaitFuture() :
-	m_hprocess(NULL),
-	m_hpipe(NULL) ,
+G::NewProcessWaitable::NewProcessWaitable() :
+	m_hprocess(HNULL),
+	m_hpipe(HNULL) ,
 	m_pid(0),
 	m_rc(0),
 	m_status(0),
-	m_error(0)
+	m_error(0) ,
+	m_test_mode(G::Test::enabled("waitpid-slow"))
 {
 }
 
-G::NewProcessWaitFuture::NewProcessWaitFuture( HANDLE hprocess , HANDLE hpipe , int ) :
+G::NewProcessWaitable::NewProcessWaitable( HANDLE hprocess , HANDLE hpipe , int ) :
 	m_buffer(1024U) ,
 	m_hprocess(hprocess),
 	m_hpipe(hpipe),
 	m_pid(0),
 	m_rc(0),
 	m_status(0),
-	m_error(0)
+	m_error(0) ,
+	m_test_mode(G::Test::enabled("waitpid-slow"))
 {
 }
 
-void G::NewProcessWaitFuture::assign( HANDLE hprocess , HANDLE hpipe , int )
+void G::NewProcessWaitable::assign( HANDLE hprocess , HANDLE hpipe , int )
 {
 	m_buffer.resize( 1024U ) ;
+	m_data_size = 0U ;
 	m_hprocess = hprocess ;
 	m_hpipe = hpipe ;
 	m_pid = 0 ;
@@ -353,33 +381,87 @@ void G::NewProcessWaitFuture::assign( HANDLE hprocess , HANDLE hpipe , int )
 	m_error = 0 ;
 }
 
-G::NewProcessWaitFuture & G::NewProcessWaitFuture::run()
+void G::NewProcessWaitable::waitp( std::promise<std::pair<int,std::string>> p ) noexcept
+{
+	try
+	{
+		wait() ;
+		p.set_value( std::make_pair(get(),output()) ) ;
+	}
+	catch(...)
+	{
+		try { p.set_exception( std::current_exception() ) ; } catch(...) {}
+	}
+}
+
+G::NewProcessWaitable & G::NewProcessWaitable::wait()
 {
 	// (worker thread - keep it simple)
-	if( valid(m_hprocess) )
+	m_data_size = 0U ;
+	m_error = 0 ;
+	std::array<char,64U> discard_buffer ;
+	char * discard = &discard_buffer[0] ;
+	std::size_t discard_size = discard_buffer.size() ;
+	char * read_p = &m_buffer[0] ;
+	std::size_t space = m_buffer.size() ;
+	for(;;)
 	{
-		DWORD exit_code = 1 ;
-		bool ok = ::WaitForSingleObject( m_hprocess , INFINITE ) == WAIT_OBJECT_0 ; G_IGNORE_VARIABLE(bool,ok) ;
-		::GetExitCodeProcess( m_hprocess , &exit_code ) ;
-		m_status = static_cast<int>(exit_code) ;
-		m_hprocess = NULL ;
+		HANDLE handles[2] ;
+		DWORD nhandles = 0 ;
+		if( NewProcessImp::valid(m_hprocess) )
+			handles[nhandles++] = m_hprocess ;
+		if( m_hpipe != HNULL )
+			handles[nhandles++] = m_hpipe ;
+		if( nhandles == 0 )
+			break ;
+
+		// wait on both handles to avoid the pipe-writer from blocking if the pipe fills
+		DWORD rc = WaitForMultipleObjects( nhandles , handles , FALSE , INFINITE ) ;
+		HANDLE h = rc == WAIT_OBJECT_0 ? handles[0] : (rc==(WAIT_OBJECT_0+1)?handles[1]:HNULL) ;
+		if( h == m_hprocess && m_hprocess )
+		{
+			DWORD exit_code = 127 ;
+			GetExitCodeProcess( m_hprocess , &exit_code ) ;
+			m_status = static_cast<int>(exit_code) ;
+			m_hprocess = HNULL ;
+		}
+		else if( h == m_hpipe && m_hpipe )
+		{
+			std::size_t nread = Pipe::read( m_hpipe , space?read_p:discard , space?space:discard_size ) ;
+			if( space && nread <= space )
+			{
+				read_p += nread ;
+				space -= nread ;
+				m_data_size += nread ;
+			}
+			if( nread == 0U )
+				m_hpipe = HNULL ;
+		}
+		else
+		{
+			m_error = 1 ;
+			break ;
+		}
 	}
-	if( m_hpipe != NULL )
-	{
-		size_t nread = Pipe::read( SignalSafe() , m_hpipe , &m_buffer[0] , m_buffer.size() ) ;
-		m_buffer.resize( nread ) ;
-		m_hpipe = NULL ;
-	}
+	if( m_test_mode )
+		Sleep( 10000U ) ;
 	return *this ;
 }
 
-int G::NewProcessWaitFuture::get()
+int G::NewProcessWaitable::get() const
 {
+	if( m_error )
+		throw NewProcess::WaitError() ;
 	return m_status ;
 }
 
-std::string G::NewProcessWaitFuture::output()
+int G::NewProcessWaitable::get( std::nothrow_t , int ec ) const
 {
-	return m_buffer.size() ? std::string(&m_buffer[0],m_buffer.size()) : std::string() ;
+	return m_error ? ec : m_status ;
+}
+
+std::string G::NewProcessWaitable::output() const
+{
+	return m_buffer.size() ? std::string(&m_buffer[0],m_data_size) : std::string() ;
 }
 

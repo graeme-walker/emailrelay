@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gsocks.h
 ///
 
-#ifndef G_NET_SOCKS__H
-#define G_NET_SOCKS__H
+#ifndef G_NET_SOCKS_H
+#define G_NET_SOCKS_H
 
 #include "gdef.h"
 #include "greadwrite.h"
@@ -32,7 +32,7 @@ namespace GNet
 	class Socks ;
 }
 
-/// \class GNet::Socks
+//| \class GNet::Socks
 /// Implements the SOCKS4a proxy connection protocol.
 ///
 class GNet::Socks
@@ -44,21 +44,19 @@ public:
 		///< Constructor.
 
 	bool send( G::ReadWrite & ) ;
-		///< Sends the connect-request pdu. Returns true if fully sent.
+		///< Sends the connect-request pdu using the given
+		///< file descriptor. Returns true if fully sent.
 
 	bool read( G::ReadWrite & ) ;
-		///< Reads the response. Returns true if fully received
-		///< and positive. Throws if the response is negative.
+		///< Reads the response using the given file descriptor.
+		///< Returns true if fully received and positive.
+		///< Throws if the response is negative.
 
 	static std::string buildPdu( const std::string & far_host , unsigned int far_port ) ;
 		///< Builds a SOCKS4a connect request pdu.
 
 private:
-	Socks( const Socks & ) g__eq_delete ;
-	void operator=( const Socks & ) g__eq_delete ;
-
-private:
-	size_t m_request_offset ;
+	std::size_t m_request_offset ;
 	std::string m_request ;
 	std::string m_response ;
 } ;

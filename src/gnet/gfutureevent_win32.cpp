@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gfutureevent_win32.cpp
-//
+///
+/// \file gfutureevent_win32.cpp
+///
 
 #include "gdef.h"
 #include "gfutureevent.h"
@@ -40,38 +40,44 @@ HANDLE CreateEventEx( LPSECURITY_ATTRIBUTES sec , LPCTSTR name , DWORD flags , D
 class GNet::FutureEventImp : public EventHandler
 {
 public:
-	typedef FutureEvent::handle_type handle_type ;
+	using handle_type = FutureEvent::handle_type ;
 
 	FutureEventImp( FutureEventHandler & handler , ExceptionSink es ) ;
 		// Constructor.
 
-	virtual ~FutureEventImp() ;
+	~FutureEventImp() override ;
 		// Destructor.
 
-	static bool send( handle_type hwnd ) g__noexcept ;
+	static bool send( handle_type , bool ) noexcept ;
 		// Raises an event.
 
-	handle_type handle() ;
-		// Returns the event-object handle.
+	handle_type handle() noexcept ;
+		// Extracts the event-object handle.
 
 private: // overrides
-	virtual void readEvent() override ; // GNet::EventHandler
+	void readEvent() override ; // GNet::EventHandler
+
+public:
+	FutureEventImp( const FutureEventImp & ) = delete ;
+	FutureEventImp( FutureEventImp && ) = delete ;
+	void operator=( const FutureEventImp & ) = delete ;
+	void operator=( FutureEventImp && ) = delete ;
 
 private:
-	FutureEventImp( const FutureEventImp & ) g__eq_delete ;
-	void operator=( const FutureEventImp & ) g__eq_delete ;
 	HANDLE dup() ;
 
 private:
 	struct Handle
 	{
-		Handle() : h(0) {}
+		Handle() = default ;
 		~Handle() { if(h) ::CloseHandle(h) ; }
 		void operator=( HANDLE h_ ) { h = h_ ; }
 		bool operator==( HANDLE h_ ) const { return h == h_ ; }
-		HANDLE h ;
-		private: Handle( const Handle & ) g__eq_delete ;
-		private: void operator=( const Handle & ) g__eq_delete ;
+		Handle( const Handle & ) = delete ;
+		Handle( Handle && ) = delete ;
+		void operator=( const Handle & ) = delete ;
+		void operator=( Handle && ) = delete ;
+		HANDLE h{0} ;
 	} ;
 
 private:
@@ -85,8 +91,9 @@ GNet::FutureEventImp::FutureEventImp( FutureEventHandler & handler , ExceptionSi
 	m_handler(handler) ,
 	m_es(es)
 {
-	// (the event loop requires manual-reset because it re-tests the state of the handles after WFMO has been released)
-	m_h = ::CreateEventEx( NULL , NULL , CREATE_EVENT_MANUAL_RESET , DELETE | SYNCHRONIZE | EVENT_MODIFY_STATE | PROCESS_DUP_HANDLE ) ;
+	// (the event loop requires manual-reset because it re-tests the handle state after WFMO has been released)
+	const DWORD access = DELETE | SYNCHRONIZE | EVENT_MODIFY_STATE | PROCESS_DUP_HANDLE ;
+	m_h = CreateEventEx( nullptr , nullptr , CREATE_EVENT_MANUAL_RESET , access ) ;
 	if( m_h == 0 )
 		throw FutureEvent::Error( "CreateEventEx" ) ;
 
@@ -120,17 +127,18 @@ HANDLE GNet::FutureEventImp::dup()
 	return h ;
 }
 
-GNet::FutureEventImp::handle_type GNet::FutureEventImp::handle()
+GNet::FutureEventImp::handle_type GNet::FutureEventImp::handle() noexcept
 {
 	HANDLE h2 = 0 ;
 	std::swap( h2 , m_h2.h ) ;
 	return h2 ;
 }
 
-bool GNet::FutureEventImp::send( handle_type handle ) g__noexcept
+bool GNet::FutureEventImp::send( handle_type handle , bool close ) noexcept
 {
 	bool ok = ::SetEvent( handle ) != 0 ;
-	::CloseHandle( handle ) ; // kernel event-object still open
+	if( close )
+		::CloseHandle( handle ) ; // kernel event-object still open
 	return ok ;
 }
 
@@ -143,28 +151,20 @@ void GNet::FutureEventImp::readEvent()
 // ==
 
 GNet::FutureEvent::FutureEvent( FutureEventHandler & handler , ExceptionSink es ) :
-	m_imp(new FutureEventImp(handler,es))
+	m_imp(std::make_unique<FutureEventImp>(handler,es))
 {
 }
 
 GNet::FutureEvent::~FutureEvent()
+= default ;
+
+bool GNet::FutureEvent::send( handle_type handle , bool close ) noexcept
 {
+	return FutureEventImp::send( handle , close ) ;
 }
 
-bool GNet::FutureEvent::send( handle_type handle ) g__noexcept
-{
-	return FutureEventImp::send( handle ) ;
-}
-
-GNet::FutureEvent::handle_type GNet::FutureEvent::handle()
+GNet::FutureEvent::handle_type GNet::FutureEvent::handle() noexcept
 {
 	return m_imp->handle() ;
 }
 
-// ==
-
-GNet::FutureEventHandler::~FutureEventHandler()
-{
-}
-
-/// \file gfutureevent_win32.cpp

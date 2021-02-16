@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file winmenu.h
 ///
 
-#ifndef WIN_MENU_H
-#define WIN_MENU_H
+#ifndef G_MAIN_WIN_MENU_H
+#define G_MAIN_WIN_MENU_H
 
 #include "gdef.h"
 #include "gexception.h"
@@ -30,7 +30,7 @@ namespace Main
 	class WinMenu ;
 }
 
-/// \class Main::WinMenu
+//| \class Main::WinMenu
 /// Implements the small pop-up menu for the system tray icon.
 ///
 class Main::WinMenu
@@ -53,9 +53,11 @@ public:
 		///< Updates the menu, even while popup() is
 		///< still running.
 
-private:
-	WinMenu( const WinMenu & ) g__eq_delete ;
-	void operator=( const WinMenu & ) g__eq_delete ;
+public:
+	WinMenu( const WinMenu & ) = delete ;
+	WinMenu( WinMenu && ) = delete ;
+	void operator=( const WinMenu & ) = delete ;
+	void operator=( WinMenu && ) = delete ;
 
 private:
 	HMENU m_hmenu ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file glocal.h
 ///
 
-#ifndef G_NET_LOCAL__H
-#define G_NET_LOCAL__H
+#ifndef G_NET_LOCAL_H
+#define G_NET_LOCAL_H
 
 #include "gdef.h"
 #include "gaddress.h"
@@ -31,7 +31,7 @@ namespace GNet
 	class Local ;
 }
 
-/// \class GNet::Local
+//| \class GNet::Local
 /// A static class for getting information about the local machine's network
 /// name and address.
 ///
@@ -56,8 +56,10 @@ public:
 	static bool isLocal( const Address & ) ;
 		///< Overload without an explanation.
 
+public:
+	Local() = delete ;
+
 private:
-	Local() g__eq_delete ;
 	static std::string resolvedHostname() ;
 
 private:

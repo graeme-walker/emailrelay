@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ namespace GGui
 	class Tray ;
 } ;
 
-/// \class GGui::Tray
+//| \class GGui::Tray
 /// Manages an icon within the system tray.
 ///
 class GGui::Tray
@@ -52,9 +52,11 @@ public:
 	~Tray() ;
 		///< Destructor. Removes the icon from the system tray.
 
-private:
-	void operator=( const Tray & ) g__eq_delete ;
-	Tray( const Tray & ) g__eq_delete ;
+public:
+	void operator=( const Tray & ) = delete ;
+	void operator=( Tray && ) = delete ;
+	Tray( const Tray & ) = delete ;
+	Tray( Tray && ) = delete ;
 
 private:
 	NOTIFYICONDATAA m_info ;

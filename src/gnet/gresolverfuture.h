@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gresolverfuture.h
 ///
 
-#ifndef G_NET_RESOLVER_FUTURE__H
-#define G_NET_RESOLVER_FUTURE__H
+#ifndef G_NET_RESOLVER_FUTURE_H
+#define G_NET_RESOLVER_FUTURE_H
 
 #include "gdef.h"
 #include "gaddress.h"
@@ -32,15 +32,15 @@ namespace GNet
 	class ResolverFuture ;
 }
 
-/// \class GNet::ResolverFuture
-/// A 'future' object for asynchronous name resolution, in practice holding
-/// just enough state for a single call to getaddrinfo().
+//| \class GNet::ResolverFuture
+/// A 'future' shared-state class for asynchronous name resolution that
+/// holds parameters and results of a call to getaddrinfo(), as performed
+/// by the run() method.
 ///
 /// The run() method can be called from a worker thread and the results
-/// collected by the main thread with get() once the run() has finished.
-///
-/// Signalling completion from worker thread to main thread is out of scope
-/// for this class; see GNet::FutureEvent.
+/// collected by the main thread using get() once the worker thread has
+/// signalled that it has finished. The signalling mechanism is outside
+/// the scope of this class (see GNet::FutureEvent).
 ///
 /// Eg:
 /// \code
@@ -56,8 +56,8 @@ namespace GNet
 class GNet::ResolverFuture
 {
 public:
-	typedef std::pair<Address,std::string> Pair ;
-	typedef std::vector<Address> List ;
+	using Pair = std::pair<Address,std::string> ;
+	using List = std::vector<Address> ;
 
 	ResolverFuture( const std::string & host , const std::string & service ,
 		int family , bool dgram , bool for_async_hint = false ) ;
@@ -66,14 +66,17 @@ public:
 	~ResolverFuture() ;
 		///< Destructor.
 
-	void run() ;
-		///< Does the name resolution.
+	ResolverFuture & run() noexcept ;
+		///< Does the synchronous name resolution and stores the result.
+		///< Returns *this.
 
 	Pair get() ;
-		///< Returns the resolved address/name pair.
+		///< Returns the resolved address/name pair after run() has completed.
+		///< Returns default values if an error().
 
 	void get( List & ) ;
-		///< Returns the list of resolved addresses.
+		///< Returns the resolved addresses after run() has completed by
+		///< appending to the given list. Appends nothing if an error().
 
 	bool error() const ;
 		///< Returns true if name resolution failed or no suitable
@@ -83,9 +86,13 @@ public:
 		///< Returns the reason for the error().
 		///< Precondition: error()
 
+public:
+	ResolverFuture( const ResolverFuture & ) = delete ;
+	ResolverFuture( ResolverFuture && ) = delete ;
+	void operator=( const ResolverFuture & ) = delete ;
+	void operator=( ResolverFuture && ) = delete ;
+
 private:
-	ResolverFuture( const ResolverFuture & ) g__eq_delete ;
-	void operator=( const ResolverFuture & ) g__eq_delete ;
 	std::string failure() const ;
 	bool fetch( List & ) const ;
 	bool fetch( Pair & ) const ;
@@ -101,7 +108,7 @@ private:
 	std::string m_service ;
 	const char * m_service_p ;
 	int m_family ;
-	struct addrinfo m_ai_hint ;
+	struct addrinfo m_ai_hint {} ;
 	bool m_test_mode ;
 	int m_rc ;
 	struct addrinfo * m_ai ;

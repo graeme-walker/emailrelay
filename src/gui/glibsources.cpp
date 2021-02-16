@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,24 +14,35 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// glibsources.cpp
-//
+///
+/// \file glibsources.cpp
+///
 // These are the source files that are shared between the gui and the
 // other executables, so this file can be compiled with Qt-friendly
 // compiler flags without affecting the rest of the build.
 //
+
 #include "gdef.h"
+
+#ifdef G_WINDOWS
+#include "genvironment.cpp"
+#include "genvironment_win32.cpp"
+#include "gdatetime.cpp"
+#else
+#include "genvironment.cpp"
+#include "genvironment_unix.cpp"
+#include "gdatetime.cpp"
+#endif
+
 #include "garg.cpp"
 #include "gbase64.cpp"
 #include "gbatchfile.cpp"
-#include "gconvert.cpp"
 #include "gdate.cpp"
-#include "gdatetime.cpp"
 #include "gdirectory.cpp"
 #include "gexception.cpp"
 #include "gexecutablecommand.cpp"
 #include "gfile.cpp"
+#include "gformat.cpp"
 #include "ggetopt.cpp"
 #include "ghash.cpp"
 #include "glog.cpp"
@@ -42,34 +53,33 @@
 #include "goptions.cpp"
 #include "goptionmap.cpp"
 #include "gpath.cpp"
+#include "groot.cpp"
 #include "gstr.cpp"
+#include "gstringwrap.cpp"
 #include "gtest.cpp"
 #include "gtime.cpp"
 #include "gxtext.cpp"
 #include "options.cpp"
-#include "service_install.cpp"
-#include "service_remove.cpp"
 #ifdef G_WINDOWS
+#include "gcleanup_win32.cpp"
+#include "gconvert.cpp"
 #include "gconvert_win32.cpp"
-#include "gdatetime_win32.cpp"
 #include "gdirectory_win32.cpp"
-#include "genvironment_win32.cpp"
 #include "gexecutablecommand_win32.cpp"
 #include "gfile_win32.cpp"
 #include "gidentity_win32.cpp"
 #include "glogoutput_win32.cpp"
 #include "gnewprocess_win32.cpp"
 #include "gprocess_win32.cpp"
+#include "servicecontrol_win32.cpp"
 #else
-#include "gconvert_unix.cpp"
-#include "gdatetime_unix.cpp"
+#include "gcleanup_unix.cpp"
 #include "gdirectory_unix.cpp"
-#include "genvironment_unix.cpp"
 #include "gexecutablecommand_unix.cpp"
 #include "gfile_unix.cpp"
 #include "gidentity_unix.cpp"
 #include "glogoutput_unix.cpp"
 #include "gnewprocess_unix.cpp"
 #include "gprocess_unix.cpp"
+#include "servicecontrol_unix.cpp"
 #endif
-/// \file glibsources.cpp

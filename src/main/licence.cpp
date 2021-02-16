@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
+///
+/// \file licence.cpp
+///
 const char * licence[] = {
 "                    GNU GENERAL PUBLIC LICENSE" ,
 "                       Version 3, 29 June 2007" ,
@@ -689,6 +692,5 @@ const char * licence[] = {
 "the library.  If this is what you want to do, use the GNU Lesser General" ,
 "Public License instead of this License.  But first, please read" ,
 "<http://www.gnu.org/philosophy/why-not-lgpl.html>." ,
-0
+nullptr
 } ;
-/// \file licence.cpp

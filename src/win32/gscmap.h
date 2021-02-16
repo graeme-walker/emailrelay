@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gscmap.h
 ///
 
-#ifndef G_SCMAP_H
-#define G_SCMAP_H
+#ifndef G_GUI_SCMAP_H
+#define G_GUI_SCMAP_H
 
 #include "gdef.h"
 #include <vector>
@@ -29,7 +29,7 @@ namespace GGui
 	class SubClassMap ;
 }
 
-/// \class GGui::SubClassMap
+//| \class GGui::SubClassMap
 /// A class for mapping sub-classed window handles to their old
 /// window procedures. Note that a sub-class map is only required
 /// for standard windows such as standard controls or standard
@@ -40,7 +40,7 @@ namespace GGui
 class GGui::SubClassMap
 {
 public:
-	typedef WNDPROC Proc ; // see CallWindowProc
+	using Proc = WNDPROC ; // see CallWindowProc
 
 	SubClassMap() ;
 		///< Constructor.
@@ -57,9 +57,11 @@ public:
 		///< Removes the given entry from the map. Typically
 		///< called when processing a WM_NCDESTROY message.
 
-private:
-	SubClassMap( const SubClassMap &other ) g__eq_delete ;
-	void operator=( const SubClassMap &other ) g__eq_delete ;
+public:
+	SubClassMap( const SubClassMap & ) = delete ;
+	SubClassMap( SubClassMap && ) = delete ;
+	void operator=( const SubClassMap & ) = delete ;
+	void operator=( SubClassMap && ) = delete ;
 
 private:
 	struct Slot

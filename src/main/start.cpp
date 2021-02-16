@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// start.cpp
-//
+///
+/// \file start.cpp
+///
 // A simple wrapper that runs the main emailrelay binary with a
 // command-line assembled from the main configuration file (as used
 // by the init.d startup script). Always adds "--as-server".
@@ -45,7 +45,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include <errno.h>
+#include <cerrno>
 
 static bool exists( std::string path )
 {
@@ -91,12 +91,12 @@ static std::list<std::string> gui_candidates( std::string base )
 
 static std::string find( std::list<std::string> list )
 {
-	for( std::list<std::string>::iterator p = list.begin() ; p != list.end() ; ++p )
+	for( const auto & path : list )
 	{
-		if( exists(*p) )
+		if( exists(path) )
 		{
-			std::cout << "found [" << *p << "]" << std::endl ;
-			return *p ;
+			std::cout << "found [" << path << "]" << std::endl ;
+			return path ;
 		}
 	}
 	std::cout << "not found ...\n " ;
@@ -131,7 +131,7 @@ static void trim( std::string & s )
 
 static void remove( std::string & s , char c )
 {
-	s.erase( std::remove_if( s.begin() , s.end() , std::bind1st(std::equal_to<char>(),c) ) , s.end() ) ;
+	s.erase( std::remove_if( s.begin() , s.end() , [=](char x){return c == x;} ) , s.end() ) ;
 }
 
 static void sanitise( std::string & s )
@@ -178,8 +178,7 @@ static void exec( std::string exe , std::list<std::string> args )
 {
 	char ** argv = new char* [args.size()+2U] ;
 	int i = 1 ;
-	for( std::list<std::string>::iterator p = args.begin() ;
-		p != args.end() ; ++p , i++ )
+	for( auto p = args.cbegin() ; p != args.cend() ; ++p , i++ )
 	{
 		argv[i] = const_cast<char*>((*p).c_str()) ;
 	}
@@ -242,10 +241,9 @@ static void run( std::string exe , std::list<std::string> args )
 
 std::string join( const std::list<std::string> & list )
 {
-	typedef std::list<std::string> List ;
 	std::ostringstream ss ;
 	const char * sep = "" ;
-	for( List::const_iterator p = list.begin() ; p != list.end() ; ++p , sep = " " )
+	for( auto p = list.begin() ; p != list.end() ; ++p , sep = " " )
 	{
 		ss << sep << *p ;
 	}
@@ -287,10 +285,9 @@ int main( int , char * argv [] )
 		{
 			std::stringstream ss ;
 			ss << gui << " --message " << sanitised(e.what()) ;
-			int rc = ::system( ss.str().c_str() ) ; G_IGNORE_VARIABLE(int,rc) ;
+			GDEF_IGNORE_RETURN ::system( ss.str().c_str() ) ;
 		}
 	}
 	return 1 ;
 }
 
-/// \file start.cpp

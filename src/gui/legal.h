@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,29 +18,30 @@
 /// \file legal.h
 ///
 
-#ifndef G_LEGAL_H
-#define G_LEGAL_H
+#ifndef G_MAIN_GUI_LEGAL_H
+#define G_MAIN_GUI_LEGAL_H
 
 #include "gdef.h"
-#include "qt.h"
+#include <string>
+#include <vector>
 
-/// \class Legal
+//| \class Legal
 /// A static class providing warranty and copyright text.
 ///
 class Legal
 {
 public:
-	static QString text() ;
+	static const char * text() ;
 		///< Returns the introductory legal text.
 
-	static QString license() ;
+	static const char * license() ;
 		///< Returns the license text.
 
-	static QString credit() ;
-		///< Returns the OpenSSL credit text.
+	static std::vector<std::string> credits() ;
+		///< Returns the third-party library credits.
 
-private:
-	Legal() ;
+public:
+	Legal() = delete ;
 } ;
 
 #endif

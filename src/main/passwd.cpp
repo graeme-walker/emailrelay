@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// passwd.cpp
-//
+///
+/// \file passwd.cpp
+///
 // A utility which hashes a password so that it can be pasted
 // into the emailrelay secrets file(s) and used for CRAM-xxx
 // authentication.
@@ -42,7 +42,7 @@
 
 static std::string as_dotted( const std::string & ) ;
 
-namespace imp
+namespace PasswdImp
 {
 	std::string hash_function ;
 	std::string predigest( const std::string & padded_key )
@@ -58,7 +58,7 @@ namespace imp
 		d.add( data_2 ) ;
 		return d.value() ;
 	}
-	size_t blocksize()
+	std::size_t blocksize()
 	{
 		GSsl::Digester d( GSsl::Library::instance()->digester(hash_function) ) ;
 		return d.blocksize() ;
@@ -109,8 +109,11 @@ int main( int argc , char * argv [] )
 		}
 		if( opt.contains("help") )
 		{
-			opt.options().showUsage( std::cout , arg.prefix() , std::string() , G::Options::introducerDefault() ,
-				opt.contains("verbose")?G::Options::Level(99):G::Options::Level(1) ) ;
+			G::OptionsLayout layout ;
+			if( !opt.contains("verbose") )
+				layout.set_level( 1U ) ;
+
+			opt.options().showUsage( layout , std::cout , arg.prefix() ) ;
 
 			std::cout
 				<< "\n"
@@ -154,7 +157,7 @@ int main( int argc , char * argv [] )
 		if( !opt.contains("password") )
 		{
 			password = G::Str::readLineFrom( std::cin ) ;
-			G::Str::trim( password , " \t\n\r" ) ;
+			G::Str::trim( password , {" \t\n\r",4U} ) ;
 		}
 		if( password.empty() )
 		{
@@ -162,7 +165,7 @@ int main( int argc , char * argv [] )
 			return EXIT_FAILURE ;
 		}
 		if( opt.contains("base64") )
-			password = G::Base64::decode( password , /*throw=*/true ) ;
+			password = G::Base64::decode( password , /*throw_on_invalid=*/true ) ;
 
 		std::string result ;
 		if( dotted )
@@ -179,6 +182,7 @@ int main( int argc , char * argv [] )
 		}
 		else
 		{
+			namespace imp = PasswdImp ;
 			imp::hash_function = hash_function ;
 			result = G::Base64::encode( G::Hash::mask(imp::predigest,imp::digest2,imp::blocksize(),password) ) ;
 		}
@@ -216,4 +220,3 @@ std::string as_dotted( const std::string & masked_key )
 	return ss.str() ;
 }
 
-/// \file passwd.cpp

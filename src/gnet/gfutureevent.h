@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gfutureevent.h
 ///
 
-#ifndef G_NET_FUTURE_EVENT__H
-#define G_NET_FUTURE_EVENT__H
+#ifndef G_NET_FUTURE_EVENT_H
+#define G_NET_FUTURE_EVENT_H
 
 #include "gdef.h"
 #include "gexceptionsink.h"
@@ -32,10 +32,13 @@ namespace GNet
 	class FutureEventImp ;
 }
 
-/// \class GNet::FutureEvent
-/// An object that hooks into the event loop and calls back to the client
-/// code. The trigger function send() is typically called from a
-/// "future/promise" worker thread just before it finishes.
+//| \class GNet::FutureEvent
+/// A FutureEvent object can be used to send a one-shot event via the
+/// event loop to the relevant event handler. Used in the implementation
+/// of 'future' classes.
+///
+/// The thread-safe trigger function send() is typically called from
+/// a 'future' worker thread just before it finishes.
 ///
 /// Eg:
 /// \code
@@ -56,15 +59,20 @@ namespace GNet
 /// void Foo::run( FutureEvent::handle_type h )
 /// {
 ///   m_result = ... ; // do blocking work in worker thread
-///   FutureEvent::send( h ) ;
+///   FutureEvent::send( h ) ; // raise 'work complete' event
 /// }
 /// \endcode
+///
+/// The typical implementation uses a socketpair, with the read socket's
+/// file descriptor registered with the event loop in the normal way
+/// and the socket event handler delegating to the future-event
+/// handler.
 ///
 class GNet::FutureEvent
 {
 public:
 	G_EXCEPTION( Error , "FutureEvent error" ) ;
-	typedef HANDLE handle_type ;
+	using handle_type = HANDLE ;
 
 	FutureEvent( FutureEventHandler & , ExceptionSink ) ;
 		///< Constructor. Installs itself in the event loop.
@@ -72,36 +80,39 @@ public:
 	~FutureEvent() ;
 		///< Destructor.
 
-	handle_type handle() ;
-		///< Returns a handle that can be passed between threads
-		///< and used in send(). This should be called once.
+	handle_type handle() noexcept ;
+		///< Extracts a handle that can be passed between threads
+		///< and used in send(). This should be called once,
+		///< typically as the worker thread is created.
 
-	static bool send( handle_type handle ) g__noexcept ;
+	static bool send( handle_type handle , bool close = true ) noexcept ;
 		///< Pokes an event into the main event loop so that the
 		///< FutureEventHandler callback is called asynchronously.
 		///<
-		///< Should be called exactly once if handle() has been
-		///< called.
+		///< Should be called exactly once with 'close' true
+		///< if handle() has been called, typically just before
+		///< the worker thread finishes.
 		///<
 		///< This is safe even if the FutureEvent object has been
 		///< deleted. Returns true on success.
 
-private:
-	FutureEvent( const FutureEvent & ) g__eq_delete ;
-	void operator=( const FutureEvent & ) g__eq_delete ;
+public:
+	FutureEvent( const FutureEvent & ) = delete ;
+	FutureEvent( FutureEvent && ) = delete ;
+	void operator=( const FutureEvent & ) = delete ;
+	void operator=( FutureEvent && ) = delete ;
 
 private:
-	friend class FutureEventImp ;
-	unique_ptr<FutureEventImp> m_imp ;
+	std::unique_ptr<FutureEventImp> m_imp ;
 } ;
 
-/// \class GNet::FutureEventHandler
+//| \class GNet::FutureEventHandler
 /// A callback interface for GNet::FutureEvent.
 ///
 class GNet::FutureEventHandler
 {
 public:
-	virtual ~FutureEventHandler() ;
+	virtual ~FutureEventHandler() = default ;
 		///< Destructor.
 
 	virtual void onFutureEvent() = 0 ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,25 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gdescriptor_win32.cpp
-//
+///
+/// \file gdescriptor_win32.cpp
+///
 
 #include "gdef.h"
 #include "gdescriptor.h"
 
-GNet::Descriptor::Descriptor() :
+GNet::Descriptor::Descriptor() noexcept :
 	m_fd(INVALID_SOCKET) ,
-	m_handle(NULL)
+	m_handle(HNULL)
 {
 }
 
-bool GNet::Descriptor::valid() const
+bool GNet::Descriptor::valid() const noexcept
 {
 	return m_fd != INVALID_SOCKET ;
 }
 
-HANDLE GNet::Descriptor::h() const
+HANDLE GNet::Descriptor::h() const noexcept
 {
 	return m_handle ;
 }
@@ -47,4 +47,3 @@ void GNet::Descriptor::streamOut( std::ostream & stream ) const
 	stream << "," << m_handle ;
 }
 
-/// \file gdescriptor_win32.cpp

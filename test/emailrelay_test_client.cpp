@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// emailrelay_test_client.cpp
-//
+///
+/// \file emailrelay_test_client.cpp
+///
 // A bare-bones smtp client for testing purposes, using blocking
 // socket i/o and no event-loop.
 //
@@ -24,8 +24,11 @@
 // of email messages on each one in turn.
 //
 // usage:
-//		emailrelay-test-client [-v [-v]] [<port>]
-//		emailrelay-test-client [-v [-v]] <addr-ipv4> <port> [<connections> [<iterations> [<lines> [<line-length> [<messages>]]]]]
+//      emailrelay-test-client [-qQ] [-v [-v]] [<port>]
+//      emailrelay-test-client [-qQ] [-v [-v]] <addr-ipv4> <port> [<connections> [<iterations> [<lines> [<line-length> [<messages>]]]]]
+//         -v -- verbose logging
+//         -q -- send "."&"QUIT" instead of "."
+//         -Q -- send "."&"QUIT" and immediately disconnect
 //
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
@@ -37,22 +40,24 @@
 #include <exception>
 #include <vector>
 #include <algorithm>
-#include <cstring>
-#include <stdlib.h>
+#include <cstring> // std::strtoul()
+#include <cstdlib>
 #ifndef _WIN32
-#include <sys/signal.h>
+#include <csignal>
 #endif
 
 int cfg_verbosity = 0 ;
+bool cfg_eager_quit = false ;
+bool cfg_eager_quit_disconnect = false ;
 
 #ifdef _WIN32
-typedef int read_size_type ;
-typedef int connect_size_type ;
-typedef int send_size_type ;
+using read_size_type = int ;
+using connect_size_type = int ;
+using send_size_type = int ;
 #else
-typedef ssize_t read_size_type ;
-typedef std::size_t connect_size_type ;
-typedef std::size_t send_size_type ;
+using read_size_type = ssize_t ;
+using connect_size_type = std::size_t ;
+using send_size_type = std::size_t ;
 const int INVALID_SOCKET = -1 ;
 #endif
 
@@ -69,6 +74,8 @@ struct Address
 		specific = zero ;
 		specific.sin_family = AF_INET ;
 		specific.sin_addr.s_addr = inet_addr( address ) ;
+		if( specific.sin_addr.s_addr == INADDR_NONE )
+			throw std::runtime_error( std::string("invalid ipv4 address: ") + address ) ;
 		specific.sin_port = htons( port ) ;
 	}
 	explicit Address( int port )
@@ -99,23 +106,18 @@ private:
 	void send( const char * , std::size_t ) ;
 	void waitline() ;
 	void waitline( const char * ) ;
-	void sendMessage( int , int ) ;
+	void sendMessage( int , int , bool ) ;
 	static void close_( SOCKET fd ) ;
 	static void shutdown( SOCKET fd ) ;
 	SOCKET m_fd ;
-	int m_messages ;
-	int m_lines ;
-	int m_line_length ;
-	int m_state ;
-	bool m_done ;
+	int m_messages{0} ;
+	int m_lines{0} ;
+	int m_line_length{0} ;
+	int m_state{0} ;
+	bool m_done{false} ;
 } ;
 
-Test::Test() :
-	m_messages(0) ,
-	m_lines(0) ,
-	m_line_length(0) ,
-	m_state(0) ,
-	m_done(false)
+Test::Test()
 {
 	m_fd = ::socket( PF_INET , SOCK_STREAM , 0 ) ;
 	if( m_fd == INVALID_SOCKET )
@@ -158,7 +160,7 @@ bool Test::runSome()
 	}
 	else if( m_state > 1 && m_state < (m_messages+2) )
 	{
-		sendMessage( m_lines , m_line_length ) ;
+		sendMessage( m_lines , m_line_length , m_state == (m_messages+1) ) ;
 		m_state++ ;
 	}
 	else
@@ -170,7 +172,7 @@ bool Test::runSome()
 	return m_done ;
 }
 
-void Test::sendMessage( int lines , int length )
+void Test::sendMessage( int lines , int length , bool last )
 {
 	send( "MAIL FROM:<test>\r\n" ) ;
 	waitline() ;
@@ -186,8 +188,22 @@ void Test::sendMessage( int lines , int length )
 	for( int i = 0 ; i < lines ; i++ )
 		send( &buffer[0] , buffer.size() ) ;
 
-	send( ".\r\n" ) ;
-	waitline() ;
+	if( last && cfg_eager_quit )
+	{
+		send( ".\r\nQUIT\r\n" ) ;
+		if( cfg_eager_quit_disconnect )
+		{
+			close() ;
+			return ;
+		}
+		waitline() ;
+		waitline() ; // again
+	}
+	else
+	{
+		send( ".\r\n" ) ;
+		waitline() ;
+	}
 }
 
 void Test::waitline()
@@ -263,7 +279,7 @@ static int to_int( const char * p )
 {
 	if( *p == '\0' ) return 0 ;
 	if( *p == '-' ) return -1 ;
-	return static_cast<int>( ::strtoul(p,nullptr,10) ) ;
+	return static_cast<int>( std::strtoul(p,nullptr,10) ) ;
 }
 
 int main( int argc , char * argv [] )
@@ -283,14 +299,18 @@ int main( int argc , char * argv [] )
 			return 0 ;
 		}
 
-        while( argc > 1 && argv[1][0] == '-' && argv[1][1] == 'v' )
-        {
-            cfg_verbosity++ ;
-            for( int i = 1 ; (i+1) <= argc ; i++ )
-                argv[i] = argv[i+1] ;
-            argc-- ;
+		while( argc > 1 && argv[1][0] == '-' && (argv[1][1] == 'v' || argv[1][1] == 'q' || argv[1][1] == 'Q') )
+		{
+			char c = argv[1][1] ;
+			if( c == 'v' ) cfg_verbosity++ ;
+			if( c == 'q' ) cfg_eager_quit = true ;
+			if( c == 'Q' ) cfg_eager_quit = cfg_eager_quit_disconnect = true ;
+			for( int i = 1 ; (i+1) <= argc ; i++ )
+				argv[i] = argv[i+1] ;
+			argc-- ;
 		}
 
+		// by default loop forever with one connection sending two large messages
 		const char * arg_address = nullptr ;
 		const char * arg_port = "10025" ;
 		const char * arg_connections = "1" ;
@@ -298,6 +318,7 @@ int main( int argc , char * argv [] )
 		const char * arg_lines = "1000" ;
 		const char * arg_line_length = "998" ;
 		const char * arg_messages = "2" ;
+
 		if( argc == 2 ) arg_port = argv[1] ;
 		if( argc > 2 ) arg_address = argv[1] , arg_port = argv[2] ;
 		if( argc > 3 ) arg_connections = argv[3] ;
@@ -312,8 +333,13 @@ int main( int argc , char * argv [] )
 		int line_length = to_int( arg_line_length ) ;
 		int messages = to_int( arg_messages ) ;
 
+		init() ;
+
+		Address a = arg_address ? Address(arg_address,port) : Address(port) ;
+
 		if( cfg_verbosity )
 		{
+			std::cout << "address: " << (arg_address?arg_address:"<default>") << std::endl ;
 			std::cout << "port: " << port << std::endl ;
 			std::cout << "connections-in-parallel: " << connections << std::endl ;
 			std::cout << "iterations: " << iterations << std::endl ;
@@ -322,23 +348,25 @@ int main( int argc , char * argv [] )
 			std::cout << "messages-per-connection: " << messages << std::endl ;
 		}
 
-		init() ;
-
-		Address a = arg_address ? Address(arg_address,port) : Address(port) ;
-
 		for( int i = 0 ; iterations < 0 || i < iterations ; i++ )
 		{
 			std::vector<Test> test( connections ) ;
-			{ for( size_t t = 0 ; t < test.size() ; t++ ) test[t].init( a , messages , lines , line_length ) ; }
+			for( auto & t : test )
+			{
+				t.init( a , messages , lines , line_length ) ;
+			}
 			for( unsigned done_count = 0 ; done_count < test.size() ; )
 			{
-				for( size_t t = 0 ; t < test.size() ; t++ )
+				for( auto & t : test )
 				{
-					if( !test[t].done() && test[t].runSome() )
+					if( !t.done() && t.runSome() )
 						done_count++ ;
 				}
 			}
-			{ for( size_t t = 0 ; t < test.size() ; t++ ) test[t].close() ; }
+			for( auto & t : test )
+			{
+				t.close() ;
+			}
 		}
 
 		return 0 ;
@@ -350,4 +378,3 @@ int main( int argc , char * argv [] )
 	return 1 ;
 }
 
-/// \file emailrelay_test_client.cpp

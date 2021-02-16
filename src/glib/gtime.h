@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ namespace G
 	class Time ;
 }
 
-/// \class G::Time
+//| \class G::Time
 /// A simple time-of-day (hh/mm/ss) class.
 /// \see G::Date, G::DateTime
 ///
@@ -49,13 +49,13 @@ public:
 		///< clamped, with leap seconds allowed only just before
 		///< midnight.
 
-	explicit Time( const G::DateTime::BrokenDownTime & tm ) ;
+	explicit Time( const BrokenDownTime & tm ) ;
 		///< Constructor for the given broken-down time.
 
-	explicit Time( G::EpochTime t ) ;
+	explicit Time( SystemTime t ) ;
 		///< Constructor for the given epoch time, using UTC.
 
-	Time( G::EpochTime t , const LocalTime & ) ;
+	Time( SystemTime t , const LocalTime & ) ;
 		///< Constructor for the given epoch time, using the local timezone.
 
 	explicit Time( const LocalTime & ) ;

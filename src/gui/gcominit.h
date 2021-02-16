@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,16 +18,20 @@
 /// \file gcominit.h
 ///
 
-#ifndef G_COM_INIT_H
-#define G_COM_INIT_H
+#ifndef G_MAIN_GUI_COM_INIT_H
+#define G_MAIN_GUI_COM_INIT_H
 
 #include "gdef.h"
 #ifdef G_WINDOWS
 #include <objbase.h>
 struct GComInit
 {
-	GComInit() { HRESULT h = CoInitializeEx(0,0) ; (void)h ; }
+	GComInit() { GDEF_UNUSED HRESULT h = CoInitializeEx(0,0) ; }
 	~GComInit() { CoUninitialize() ; }
+	GComInit( const GComInit & ) = delete ;
+	GComInit( GComInit && ) = delete ;
+	void operator=( const GComInit & ) = delete ;
+	void operator=( GComInit && ) = delete ;
 } ;
 #else
 struct GComInit

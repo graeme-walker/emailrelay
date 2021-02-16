@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gcontrol.h
 ///
 
-#ifndef G_CONTROL_H
-#define G_CONTROL_H
+#ifndef G_GUI_CONTROL_H
+#define G_GUI_CONTROL_H
 
 #include "gdef.h"
 #include "gdialog.h"
@@ -38,7 +38,7 @@ namespace GGui
 	class Button ;
 }
 
-/// \class GGui::Control
+//| \class GGui::Control
 /// A base class for dialog box control objects. Normally a dialog
 /// box object (derived from Dialog) will have Control-derived
 /// objects embedded within it to represent some of the dialog
@@ -136,9 +136,13 @@ protected:
 	static void load( DWORD ) ;
 		///< Loads common-control library code for the given control types.
 
+public:
+	Control( const Control & ) = delete ;
+	Control( Control && ) = delete ;
+	void operator=( const Control & ) = delete ;
+	void operator=( Control && ) = delete ;
+
 private:
-	Control( const Control & ) g__eq_delete ;
-	void operator=( const Control & ) g__eq_delete ;
 	static void load() ;
 
 private:
@@ -151,7 +155,7 @@ private:
 	unsigned m_no_redraw_count ;
 } ;
 
-/// \class GGui::ListBox
+//| \class GGui::ListBox
 /// A list box class.
 ///
 class GGui::ListBox : public Control
@@ -180,12 +184,14 @@ public:
 	unsigned entries() const ;
 		///< Returns the number of list box entries.
 
-private:
-	ListBox( const ListBox & ) g__eq_delete ;
-	void operator=( const ListBox & ) g__eq_delete ;
+public:
+	ListBox( const ListBox & ) = delete ;
+	ListBox( ListBox && ) = delete ;
+	void operator=( const ListBox & ) = delete ;
+	void operator=( ListBox && ) = delete ;
 } ;
 
-/// \class GGui::ListView
+//| \class GGui::ListView
 /// A simple write-only list-view class. The list-view resource
 /// is expected to use "report" mode so that a multi-column list
 /// box is displayed.
@@ -196,7 +202,7 @@ public:
 	ListView( Dialog & dialog , int id ) ;
 		///< Constructor.
 
-	ListView( HWND hdialog , int id , HWND hcontrol = NULL ) ;
+	ListView( HWND hdialog , int id , HWND hcontrol = HNULL ) ;
 		///< Constructor overload for property sheets.
 
 	virtual ~ListView() ;
@@ -211,13 +217,17 @@ public:
 		///< Updates the grid contents, ignoring the column headers
 		///< that start the list.
 
+public:
+	ListView( const ListView & ) = delete ;
+	ListView( ListView && ) = delete ;
+	void operator=( const ListView & ) = delete ;
+	void operator=( ListView && ) = delete ;
+
 private:
-	ListView( const ListView & ) g__eq_delete ;
-	void operator=( const ListView & ) g__eq_delete ;
 	static LPTSTR ptext( const std::string & s ) ;
 } ;
 
-/// \class GGui::EditBox
+//| \class GGui::EditBox
 /// An edit box class.
 ///
 class GGui::EditBox : public Control
@@ -273,9 +283,13 @@ public:
 		///< Sets tab stop positions, measured in "dialog box
 		///< template units" (the default being 32).
 
+public:
+	EditBox( const EditBox & ) = delete ;
+	EditBox( EditBox && ) = delete ;
+	void operator=( const EditBox & ) = delete ;
+	void operator=( EditBox && ) = delete ;
+
 private:
-	EditBox( const EditBox & ) g__eq_delete ;
-	void operator=( const EditBox & ) g__eq_delete ;
 	unsigned windowHeight() ; // not const
 	unsigned characterHeight() ; // not const
 
@@ -283,7 +297,7 @@ private:
 	unsigned m_character_height ;
 } ;
 
-/// \class GGui::CheckBox
+//| \class GGui::CheckBox
 /// A check box class.
 ///
 class GGui::CheckBox : public Control
@@ -301,12 +315,14 @@ public:
 	void set( bool b ) ;
 		///< Sets the state of a boolean check box.
 
-private:
-	CheckBox( const CheckBox & ) g__eq_delete ;
-	void operator=( const CheckBox ) g__eq_delete ;
+public:
+	CheckBox( const CheckBox & ) = delete ;
+	CheckBox( CheckBox && ) = delete ;
+	void operator=( const CheckBox & ) = delete ;
+	void operator=( CheckBox && ) = delete ;
 } ;
 
-/// \class GGui::Button
+//| \class GGui::Button
 /// A button class.
 ///
 class GGui::Button : public Control
@@ -328,9 +344,11 @@ public:
 	void disable() ;
 		///< Disables the button, greying it.
 
-private:
-	Button( const Button & ) g__eq_delete ;
-	void operator=( const Button & ) g__eq_delete ;
+public:
+	Button( const Button & ) = delete ;
+	Button( Button && ) = delete ;
+	void operator=( const Button & ) = delete ;
+	void operator=( Button && ) = delete ;
 } ;
 
 #endif

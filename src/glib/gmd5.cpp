@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gmd5.cpp
-//
+///
+/// \file gmd5.cpp
+///
 
 #include "gdef.h"
 #include "gmd5.h"
@@ -25,29 +25,30 @@
 #include "gassert.h"
 #include <string> // std::string
 #include <cstdlib> // std::size_t
+#include <array>
 
-/// \namespace md5
-/// An implementation namespace for G::Md5.
-///
-namespace md5
+namespace G
 {
-	typedef G::Md5::digest_state digest_state ;
-	typedef G::Md5::small_t small_t ;
-	typedef G::Md5::big_t big_t ;
-	class digest ;
-	class format ;
-	class block ;
+	namespace Md5Imp /// An implementation namespace for G::Md5.
+	{
+		using digest_state = G::Md5::digest_state ;
+		using small_t = G::Md5::small_t ;
+		using big_t = G::Md5::big_t ;
+		class digest ;
+		class format ;
+		class block ;
+	}
 }
 
-/// \class md5::digest
+//| \class G::Md5Imp::digest
 /// A class that calculates an md5 digest from one or more 64-byte blocks of
 /// data using the algorithm described by RFC-1321.
 ///
 /// A digest can be calculated in one go from an arbitrarily-sized block of
 /// data, or incrementally from a series of 64-byte blocks. The 64-byte
-/// blocks must be passed as md5::block objects.
+/// blocks must be passed as Md5Imp::block objects.
 ///
-class md5::digest : private G::Md5::digest_state
+class G::Md5Imp::digest : private G::Md5::digest_state
 {
 public:
 	digest() ;
@@ -68,14 +69,15 @@ public:
 
 	digest_state state() const ;
 		// Returns the internal state. Typically passed to
-		// the md5::format class.
+		// the Md5Imp::format class.
 
 	void add( const block & ) ;
 		// Adds a 64-byte block of the message.
 
 private:
-	typedef big_t (*aux_fn_t)( big_t , big_t , big_t ) ;
-	g__enum(Permutation) { ABCD , DABC , CDAB , BCDA } ; g__enum_end(Permutation)
+	using aux_fn_t = big_t (*)(big_t, big_t, big_t) ;
+	enum class Permutation { ABCD , DABC , CDAB , BCDA } ;
+	using P = Permutation ;
 
 private:
 	explicit digest( const block & ) ;
@@ -96,10 +98,10 @@ private:
 	static big_t I( big_t x , big_t y , big_t z ) ;
 } ;
 
-/// \class md5::format
+//| \class G::Md5Imp::format
 /// A thin veneer over G::HashState.
 ///
-class md5::format
+class G::Md5Imp::format
 {
 public:
 	static std::string encode( const digest_state & ) ;
@@ -114,15 +116,15 @@ public:
 		// Converts a encode() string back into a digest
 		// state and a stream-size.
 
-private:
-	format() g__eq_delete ;
+public:
+	format() = delete ;
 } ;
 
-/// \class md5::block
-/// A helper class used by the md5::digest implementation to represent a
+//| \class G::Md5Imp::block
+/// A helper class used by the Md5Imp::digest implementation to represent a
 /// 64-character data block.
 ///
-class md5::block
+class G::Md5Imp::block
 {
 public:
 	block( const std::string & s , small_t block_offset , big_t end_value ) ;
@@ -156,9 +158,14 @@ public:
 	big_t X( small_t ) const ;
 		// Returns a value from within the block. See RFC-1321.
 
+public:
+	~block() = default ;
+	block( const block & ) = delete ;
+	block( block && ) = delete ;
+	void operator=( const block & ) = delete ;
+	void operator=( block && ) = delete ;
+
 private:
-	block( const block & ) g__eq_delete ;
-	void operator=( const block & ) g__eq_delete ;
 	small_t x( small_t ) const ;
 	static small_t rounded( small_t n ) ;
 
@@ -170,12 +177,14 @@ private:
 
 // ==
 
-md5::digest::digest()
+G::Md5Imp::digest::digest() :
+	digest_state{}
 {
 	init() ;
 }
 
-md5::digest::digest( const std::string & s )
+G::Md5Imp::digest::digest( const std::string & s ) :
+	digest_state{}
 {
 	init() ;
 	small_t n = block::blocks( s.length() ) ;
@@ -186,7 +195,8 @@ md5::digest::digest( const std::string & s )
 	}
 }
 
-md5::digest::digest( digest_state d_in )
+G::Md5Imp::digest::digest( digest_state d_in ) :
+	digest_state{}
 {
 	a = d_in.a ;
 	b = d_in.b ;
@@ -194,7 +204,7 @@ md5::digest::digest( digest_state d_in )
 	d = d_in.d ;
 }
 
-void md5::digest::init()
+void G::Md5Imp::digest::init()
 {
 	a = 0x67452301UL ;
 	b = 0xefcdab89UL ;
@@ -202,7 +212,7 @@ void md5::digest::init()
 	d = 0x10325476UL ;
 }
 
-md5::digest::digest_state md5::digest::state() const
+G::Md5Imp::digest::digest_state G::Md5Imp::digest::state() const
 {
 	big_t mask = 0 ;
 	small_t thirty_two = 32U ;
@@ -216,7 +226,7 @@ md5::digest::digest_state md5::digest::state() const
 	return result ;
 }
 
-void md5::digest::add( const block & blk )
+void G::Md5Imp::digest::add( const block & blk )
 {
 	digest old( *this ) ;
 	round1( blk ) ;
@@ -226,7 +236,7 @@ void md5::digest::add( const block & blk )
 	add( old ) ;
 }
 
-void md5::digest::add( const digest & other )
+void G::Md5Imp::digest::add( const digest & other )
 {
 	a += other.a ;
 	b += other.b ;
@@ -234,62 +244,58 @@ void md5::digest::add( const digest & other )
 	d += other.d ;
 }
 
-#ifdef P
-#undef P
-#endif
-#define P(x) Permutation::x
-
-void md5::digest::round1( const block & m )
+void G::Md5Imp::digest::round1( const block & m )
 {
 	digest & r = *this ;
-	r(m,F,P(ABCD), 0, 7, 1); r(m,F,P(DABC), 1,12, 2); r(m,F,P(CDAB), 2,17, 3); r(m,F,P(BCDA), 3,22, 4);
-	r(m,F,P(ABCD), 4, 7, 5); r(m,F,P(DABC), 5,12, 6); r(m,F,P(CDAB), 6,17, 7); r(m,F,P(BCDA), 7,22, 8);
-	r(m,F,P(ABCD), 8, 7, 9); r(m,F,P(DABC), 9,12,10); r(m,F,P(CDAB),10,17,11); r(m,F,P(BCDA),11,22,12);
-	r(m,F,P(ABCD),12, 7,13); r(m,F,P(DABC),13,12,14); r(m,F,P(CDAB),14,17,15); r(m,F,P(BCDA),15,22,16);
+	r(m,F,P::ABCD, 0, 7, 1); r(m,F,P::DABC, 1,12, 2); r(m,F,P::CDAB, 2,17, 3); r(m,F,P::BCDA, 3,22, 4);
+	r(m,F,P::ABCD, 4, 7, 5); r(m,F,P::DABC, 5,12, 6); r(m,F,P::CDAB, 6,17, 7); r(m,F,P::BCDA, 7,22, 8);
+	r(m,F,P::ABCD, 8, 7, 9); r(m,F,P::DABC, 9,12,10); r(m,F,P::CDAB,10,17,11); r(m,F,P::BCDA,11,22,12);
+	r(m,F,P::ABCD,12, 7,13); r(m,F,P::DABC,13,12,14); r(m,F,P::CDAB,14,17,15); r(m,F,P::BCDA,15,22,16);
 }
 
-void md5::digest::round2( const block & m )
+void G::Md5Imp::digest::round2( const block & m )
 {
 	digest & r = *this ;
-	r(m,G,P(ABCD), 1, 5,17); r(m,G,P(DABC), 6, 9,18); r(m,G,P(CDAB),11,14,19); r(m,G,P(BCDA), 0,20,20);
-	r(m,G,P(ABCD), 5, 5,21); r(m,G,P(DABC),10, 9,22); r(m,G,P(CDAB),15,14,23); r(m,G,P(BCDA), 4,20,24);
-	r(m,G,P(ABCD), 9, 5,25); r(m,G,P(DABC),14, 9,26); r(m,G,P(CDAB), 3,14,27); r(m,G,P(BCDA), 8,20,28);
-	r(m,G,P(ABCD),13, 5,29); r(m,G,P(DABC), 2, 9,30); r(m,G,P(CDAB), 7,14,31); r(m,G,P(BCDA),12,20,32);
+	r(m,G,P::ABCD, 1, 5,17); r(m,G,P::DABC, 6, 9,18); r(m,G,P::CDAB,11,14,19); r(m,G,P::BCDA, 0,20,20);
+	r(m,G,P::ABCD, 5, 5,21); r(m,G,P::DABC,10, 9,22); r(m,G,P::CDAB,15,14,23); r(m,G,P::BCDA, 4,20,24);
+	r(m,G,P::ABCD, 9, 5,25); r(m,G,P::DABC,14, 9,26); r(m,G,P::CDAB, 3,14,27); r(m,G,P::BCDA, 8,20,28);
+	r(m,G,P::ABCD,13, 5,29); r(m,G,P::DABC, 2, 9,30); r(m,G,P::CDAB, 7,14,31); r(m,G,P::BCDA,12,20,32);
 }
 
-void md5::digest::round3( const block & m )
+void G::Md5Imp::digest::round3( const block & m )
 {
 	digest & r = *this ;
-	r(m,H,P(ABCD), 5, 4,33); r(m,H,P(DABC), 8,11,34); r(m,H,P(CDAB),11,16,35); r(m,H,P(BCDA),14,23,36);
-	r(m,H,P(ABCD), 1, 4,37); r(m,H,P(DABC), 4,11,38); r(m,H,P(CDAB), 7,16,39); r(m,H,P(BCDA),10,23,40);
-	r(m,H,P(ABCD),13, 4,41); r(m,H,P(DABC), 0,11,42); r(m,H,P(CDAB), 3,16,43); r(m,H,P(BCDA), 6,23,44);
-	r(m,H,P(ABCD), 9, 4,45); r(m,H,P(DABC),12,11,46); r(m,H,P(CDAB),15,16,47); r(m,H,P(BCDA), 2,23,48);
+	r(m,H,P::ABCD, 5, 4,33); r(m,H,P::DABC, 8,11,34); r(m,H,P::CDAB,11,16,35); r(m,H,P::BCDA,14,23,36);
+	r(m,H,P::ABCD, 1, 4,37); r(m,H,P::DABC, 4,11,38); r(m,H,P::CDAB, 7,16,39); r(m,H,P::BCDA,10,23,40);
+	r(m,H,P::ABCD,13, 4,41); r(m,H,P::DABC, 0,11,42); r(m,H,P::CDAB, 3,16,43); r(m,H,P::BCDA, 6,23,44);
+	r(m,H,P::ABCD, 9, 4,45); r(m,H,P::DABC,12,11,46); r(m,H,P::CDAB,15,16,47); r(m,H,P::BCDA, 2,23,48);
 }
 
-void md5::digest::round4( const block & m )
+void G::Md5Imp::digest::round4( const block & m )
 {
 	digest & r = *this ;
-	r(m,I,P(ABCD), 0, 6,49); r(m,I,P(DABC), 7,10,50); r(m,I,P(CDAB),14,15,51); r(m,I,P(BCDA), 5,21,52);
-	r(m,I,P(ABCD),12, 6,53); r(m,I,P(DABC), 3,10,54); r(m,I,P(CDAB),10,15,55); r(m,I,P(BCDA), 1,21,56);
-	r(m,I,P(ABCD), 8, 6,57); r(m,I,P(DABC),15,10,58); r(m,I,P(CDAB), 6,15,59); r(m,I,P(BCDA),13,21,60);
-	r(m,I,P(ABCD), 4, 6,61); r(m,I,P(DABC),11,10,62); r(m,I,P(CDAB), 2,15,63); r(m,I,P(BCDA), 9,21,64);
+	r(m,I,P::ABCD, 0, 6,49); r(m,I,P::DABC, 7,10,50); r(m,I,P::CDAB,14,15,51); r(m,I,P::BCDA, 5,21,52);
+	r(m,I,P::ABCD,12, 6,53); r(m,I,P::DABC, 3,10,54); r(m,I,P::CDAB,10,15,55); r(m,I,P::BCDA, 1,21,56);
+	r(m,I,P::ABCD, 8, 6,57); r(m,I,P::DABC,15,10,58); r(m,I,P::CDAB, 6,15,59); r(m,I,P::BCDA,13,21,60);
+	r(m,I,P::ABCD, 4, 6,61); r(m,I,P::DABC,11,10,62); r(m,I,P::CDAB, 2,15,63); r(m,I,P::BCDA, 9,21,64);
 }
 
-void md5::digest::operator()( const block & m , aux_fn_t aux , Permutation p , small_t k , small_t s , small_t i )
+void G::Md5Imp::digest::operator()( const block & m , aux_fn_t aux , Permutation p ,
+	small_t k , small_t s , small_t i )
 {
-	if( p == P(ABCD) ) a = op( m , aux , a , b , c , d , k , s , i ) ;
-	if( p == P(DABC) ) d = op( m , aux , d , a , b , c , k , s , i ) ;
-	if( p == P(CDAB) ) c = op( m , aux , c , d , a , b , k , s , i ) ;
-	if( p == P(BCDA) ) b = op( m , aux , b , c , d , a , k , s , i ) ;
+	if( p == P::ABCD ) a = op( m , aux , a , b , c , d , k , s , i ) ;
+	if( p == P::DABC ) d = op( m , aux , d , a , b , c , k , s , i ) ;
+	if( p == P::CDAB ) c = op( m , aux , c , d , a , b , k , s , i ) ;
+	if( p == P::BCDA ) b = op( m , aux , b , c , d , a , k , s , i ) ;
 }
 
-md5::big_t md5::digest::op( const block & m , aux_fn_t aux , big_t a , big_t b , big_t c , big_t d ,
+G::Md5Imp::big_t G::Md5Imp::digest::op( const block & m , aux_fn_t aux , big_t a , big_t b , big_t c , big_t d ,
 	small_t k , small_t s , small_t i )
 {
 	return b + rot32( s , ( a + (*aux)( b , c , d ) + m.X(k) + T(i) ) ) ;
 }
 
-md5::big_t md5::digest::rot32( small_t places , big_t n )
+G::Md5Imp::big_t G::Md5Imp::digest::rot32( small_t places , big_t n )
 {
 	// circular rotate of 32 LSBs, with corruption of higher bits
 	big_t overflow_mask = ( 1UL << places ) - 1UL ; // in case big_t is more than 32 bits
@@ -297,32 +303,31 @@ md5::big_t md5::digest::rot32( small_t places , big_t n )
 	return ( n << places ) | ( overflow & overflow_mask ) ;
 }
 
-md5::big_t md5::digest::F( big_t x , big_t y , big_t z )
+G::Md5Imp::big_t G::Md5Imp::digest::F( big_t x , big_t y , big_t z )
 {
 	return ( x & y ) | ( ~x & z ) ;
 }
 
-md5::big_t md5::digest::G( big_t x , big_t y , big_t z )
+G::Md5Imp::big_t G::Md5Imp::digest::G( big_t x , big_t y , big_t z )
 {
 	return ( x & z ) | ( y & ~z ) ;
 }
 
-md5::big_t md5::digest::H( big_t x , big_t y , big_t z )
+G::Md5Imp::big_t G::Md5Imp::digest::H( big_t x , big_t y , big_t z )
 {
 	return x ^ y ^ z ;
 }
 
-md5::big_t md5::digest::I( big_t x , big_t y , big_t z )
+G::Md5Imp::big_t G::Md5Imp::digest::I( big_t x , big_t y , big_t z )
 {
 	return y ^ ( x | ~z ) ;
 }
 
-md5::big_t md5::digest::T( small_t i )
+G::Md5Imp::big_t G::Md5Imp::digest::T( small_t i )
 {
 	// T = static_cast<big_t>( 4294967296.0 * std::fabs(std::sin(static_cast<double>(i))) ) for 1 <= i <= 64
 	//
-	static big_t t_map[] =
-	{
+	static std::array<big_t,64U> t_map {{
 		0xd76aa478UL ,
 		0xe8c7b756UL ,
 		0x242070dbUL ,
@@ -386,29 +391,30 @@ md5::big_t md5::digest::T( small_t i )
 		0xf7537e82UL ,
 		0xbd3af235UL ,
 		0x2ad7d2bbUL ,
-		0xeb86d391UL } ;
-	return t_map[i-1UL] ;
+		0xeb86d391UL }} ;
+	G_ASSERT( i > 0 && i <= t_map.size() ) ;
+	return t_map[i-1U] ;
 }
 
 // ===
 
-std::string md5::format::encode( const digest_state & state )
+std::string G::Md5Imp::format::encode( const digest_state & state )
 {
-	const big_t state_array[] = { state.a , state.b , state.c , state.d } ;
-	return G::HashState<16,big_t,small_t>::encode( state_array ) ;
+	const std::array<big_t,4U> state_array {{ state.a , state.b , state.c , state.d }} ;
+	return G::HashState<16,big_t,small_t>::encode( &state_array[0] ) ;
 }
 
-std::string md5::format::encode( const digest_state & state , big_t n )
+std::string G::Md5Imp::format::encode( const digest_state & state , big_t n )
 {
-	const big_t state_array[] = { state.a , state.b , state.c , state.d } ;
-	return G::HashState<16,big_t,small_t>::encode( state_array , n ) ;
+	const std::array<big_t,4U> state_array {{ state.a , state.b , state.c , state.d }} ;
+	return G::HashState<16,big_t,small_t>::encode( &state_array[0] , n ) ;
 }
 
-md5::digest_state md5::format::decode( const std::string & str , small_t & n )
+G::Md5Imp::digest_state G::Md5Imp::format::decode( const std::string & str , small_t & n )
 {
-	big_t state_array[] = { 0 , 0 , 0 , 0 } ;
-	G::HashState<16,big_t,small_t>::decode( str , state_array , n ) ;
-	digest_state result ;
+	std::array<big_t,4U> state_array {{ 0 , 0 , 0 , 0 }} ;
+	G::HashState<16,big_t,small_t>::decode( str , &state_array[0] , n ) ;
+	digest_state result = { 0 , 0 , 0 , 0 } ;
 	result.a = state_array[0] ;
 	result.b = state_array[1] ;
 	result.c = state_array[2] ;
@@ -418,33 +424,33 @@ md5::digest_state md5::format::decode( const std::string & str , small_t & n )
 
 // ===
 
-md5::block::block( const std::string & s , small_t block , big_t end_value ) :
+G::Md5Imp::block::block( const std::string & s , small_t block_in , big_t end_value ) :
 	m_s(s) ,
-	m_block(block) ,
+	m_block(block_in) ,
 	m_end_value(end_value)
 {
 }
 
-md5::big_t md5::block::end( small_t length )
+G::Md5Imp::big_t G::Md5Imp::block::end( small_t length )
 {
 	big_t result = length ;
 	result *= 8UL ;
 	return result ;
 }
 
-md5::small_t md5::block::rounded( small_t raw_byte_count )
+G::Md5Imp::small_t G::Md5Imp::block::rounded( small_t raw_byte_count )
 {
 	small_t n = raw_byte_count + 64U ;
 	return n - ( ( raw_byte_count + 8U ) % 64U ) ;
 }
 
-md5::small_t md5::block::blocks( small_t raw_byte_count )
+G::Md5Imp::small_t G::Md5Imp::block::blocks( small_t raw_byte_count )
 {
 	small_t byte_count = rounded(raw_byte_count) + 8U ;
 	return byte_count / 64UL ;
 }
 
-md5::big_t md5::block::X( small_t dword_index ) const
+G::Md5Imp::big_t G::Md5Imp::block::X( small_t dword_index ) const
 {
 	small_t byte_index = ( m_block * 64U ) + ( dword_index * 4U ) ;
 	big_t result = x( byte_index + 3U ) ;
@@ -454,7 +460,7 @@ md5::big_t md5::block::X( small_t dword_index ) const
 	return result ;
 }
 
-md5::small_t md5::block::x( small_t i ) const
+G::Md5Imp::small_t G::Md5Imp::block::x( small_t i ) const
 {
 	small_t length = m_s.length() ;
 	if( i < length )
@@ -485,33 +491,31 @@ md5::small_t md5::block::x( small_t i ) const
 // ==
 
 G::Md5::Md5() :
-	m_n(0U)
+	m_d(Md5Imp::digest().state())
 {
-	md5::digest dd ;
-	m_d = dd.state() ;
 }
 
-G::Md5::Md5( const std::string & str_state )
+G::Md5::Md5( const std::string & str_state ) :
+	m_d(Md5Imp::format::decode(str_state,m_n))
 {
 	G_ASSERT( str_state.size() == (valuesize()+4U) ) ;
-	m_d = md5::format::decode( str_state , m_n ) ;
 }
 
 std::string G::Md5::state() const
 {
-	G_ASSERT( md5::format::encode(m_d,m_n).size() == (valuesize()+4U) ) ;
-	return md5::format::encode( m_d , m_n ) ;
+	G_ASSERT( Md5Imp::format::encode(m_d,m_n).size() == (valuesize()+4U) ) ;
+	return Md5Imp::format::encode( m_d , m_n ) ;
 }
 
 void G::Md5::add( const std::string & data )
 {
 	// add complete blocks and keep the residue in m_s
-	md5::digest dd( m_d ) ;
+	Md5Imp::digest dd( m_d ) ;
 	m_s.append( data ) ; // could do better
 	m_n += data.length() ;
 	while( m_s.length() >= 64U )
 	{
-		md5::block blk( m_s , 0U , 0UL ) ;
+		Md5Imp::block blk( m_s , 0U , 0UL ) ;
 		dd.add( blk ) ;
 		m_s.erase( 0U , 64U ) ;
 	}
@@ -520,18 +524,18 @@ void G::Md5::add( const std::string & data )
 
 std::string G::Md5::value()
 {
-	md5::digest dd( m_d ) ;
-	md5::block blk( m_s , 0U , md5::block::end(m_n) ) ;
+	Md5Imp::digest dd( m_d ) ;
+	Md5Imp::block blk( m_s , 0U , Md5Imp::block::end(m_n) ) ;
 	dd.add( blk ) ;
 	m_s.erase() ;
 	m_d = dd.state() ;
-	return md5::format::encode( m_d ) ;
+	return Md5Imp::format::encode( m_d ) ;
 }
 
 std::string G::Md5::digest( const std::string & input )
 {
-	md5::digest dd( input ) ;
-	return md5::format::encode( dd.state() ) ;
+	Md5Imp::digest dd( input ) ;
+	return Md5Imp::format::encode( dd.state() ) ;
 }
 
 std::string G::Md5::digest( const std::string & input_1 , const std::string & input_2 )
@@ -573,17 +577,17 @@ std::string G::Md5::postdigest( const std::string & state_pair , const std::stri
 	return xo.value() ;
 }
 
-size_t G::Md5::blocksize()
+std::size_t G::Md5::blocksize()
 {
 	return 64U ;
 }
 
-size_t G::Md5::valuesize()
+std::size_t G::Md5::valuesize()
 {
 	return 16U ;
 }
 
-size_t G::Md5::statesize()
+std::size_t G::Md5::statesize()
 {
 	return 20U ;
 }

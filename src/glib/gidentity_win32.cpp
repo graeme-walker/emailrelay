@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,56 +14,66 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gidentity_win32.cpp
-//
+///
+/// \file gidentity_win32.cpp
+///
 
 #include "gdef.h"
 #include "gidentity.h"
 #include <sstream>
 
-G::Identity::Identity() :
+G::Identity::Identity() noexcept :
 	m_uid(0) ,
 	m_gid(0) ,
 	m_h(0)
 {
 }
 
-G::Identity::Identity( SignalSafe ) :
+G::Identity::Identity( SignalSafe ) noexcept :
 	m_uid(0) ,
 	m_gid(0) ,
 	m_h(0)
 {
 }
 
-G::Identity::Identity( const std::string & ) :
+G::Identity::Identity( const std::string & , const std::string & ) :
 	m_uid(0) ,
 	m_gid(0) ,
 	m_h(0)
 {
 }
 
-G::Identity G::Identity::effective()
+std::pair<uid_t,gid_t> G::Identity::lookupUser( const std::string & )
+{
+	return {0,0} ;
+}
+
+gid_t G::Identity::lookupGroup( const std::string & )
+{
+	return 0 ;
+}
+
+G::Identity G::Identity::effective() noexcept
 {
 	return Identity() ;
 }
 
-G::Identity G::Identity::real()
+G::Identity G::Identity::real( bool ) noexcept
 {
 	return Identity() ;
 }
 
-G::Identity G::Identity::invalid()
+G::Identity G::Identity::invalid() noexcept
 {
 	return Identity() ;
 }
 
-G::Identity G::Identity::invalid( SignalSafe safe )
+G::Identity G::Identity::invalid( SignalSafe safe ) noexcept
 {
 	return Identity(safe) ;
 }
 
-G::Identity G::Identity::root()
+G::Identity G::Identity::root() noexcept
 {
 	return Identity() ;
 }
@@ -73,69 +83,28 @@ std::string G::Identity::str() const
 	return "-1/-1" ;
 }
 
-bool G::Identity::isRoot() const
+uid_t G::Identity::userid() const noexcept
+{
+	return -1 ;
+}
+
+gid_t G::Identity::groupid() const noexcept
+{
+	return -1 ;
+}
+
+bool G::Identity::isRoot() const noexcept
 {
 	return false ;
 }
 
-bool G::Identity::operator==( const Identity & other ) const
+bool G::Identity::operator==( const Identity & other ) const noexcept
 {
 	return true ;
 }
 
-bool G::Identity::operator!=( const Identity & other ) const
+bool G::Identity::operator!=( const Identity & other ) const noexcept
 {
 	return false ;
 }
 
-void G::Identity::setEffectiveUser( SignalSafe )
-{
-}
-
-void G::Identity::setEffectiveUser( bool do_throw )
-{
-}
-
-void G::Identity::setRealUser( bool do_throw )
-{
-}
-
-void G::Identity::setEffectiveGroup( bool do_throw )
-{
-}
-
-void G::Identity::setEffectiveGroup( SignalSafe )
-{
-}
-
-void G::Identity::setRealGroup( bool do_throw )
-{
-}
-
-// ===
-
-void G::IdentityUser::setRealUserTo( Identity , bool )
-{
-}
-
-void G::IdentityUser::setEffectiveUserTo( Identity , bool )
-{
-}
-
-void G::IdentityUser::setEffectiveUserTo( SignalSafe , Identity )
-{
-}
-
-void G::IdentityUser::setRealGroupTo( Identity , bool )
-{
-}
-
-void G::IdentityUser::setEffectiveGroupTo( Identity , bool )
-{
-}
-
-void G::IdentityUser::setEffectiveGroupTo( SignalSafe , Identity )
-{
-}
-
-/// \file gidentity_win32.cpp

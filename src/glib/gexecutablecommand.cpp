@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,12 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gexecutablecommand.cpp
-//
+///
+/// \file gexecutablecommand.cpp
+///
 
 #include "gdef.h"
 #include "gexecutablecommand.h"
+#include "garg.h"
 #include "gstr.h"
 #include <algorithm>
 
@@ -27,23 +28,23 @@ G::ExecutableCommand::ExecutableCommand( const std::string & s )
 {
 	if( s.find(' ') == std::string::npos ) // optimisation
 	{
-		m_exe = Path(s) ;
+		m_exe = s ;
 	}
 	else
 	{
-		m_args = osSplit( s ) ;
-
-		// take the first part as the path to the exe
-		if( m_args.size() )
+		G::Arg arg ;
+		arg.parse( s ) ;
+		m_args = arg.array() ;
+		if( !m_args.empty() )
 		{
-			m_exe = Path( m_args.at(0U) ) ;
+			m_exe = m_args.at(0U) ;
 			std::rotate( m_args.begin() , m_args.begin()+1U , m_args.end() ) ;
 			m_args.pop_back() ; // remove exe
 		}
 	}
 
 	// do o/s-specific fixups
-	if( m_exe != Path() && !osNativelyRunnable() )
+	if( !m_exe.empty() && !osNativelyRunnable() )
 	{
 		osAddWrapper() ;
 	}
@@ -53,7 +54,7 @@ G::ExecutableCommand::ExecutableCommand( const G::Path & exe_ , const G::StringA
 	m_exe(exe_) ,
 	m_args(args_)
 {
-	if( add_wrapper && m_exe != Path() && !osNativelyRunnable() )
+	if( add_wrapper && !m_exe.empty() && !osNativelyRunnable() )
 	{
 		osAddWrapper() ;
 	}
@@ -72,9 +73,9 @@ G::StringArray G::ExecutableCommand::args() const
 std::string G::ExecutableCommand::displayString() const
 {
 	return
-		m_args.size() ?
-			std::string("[") + m_exe.str() + "] [" + Str::join("] [",m_args) + "]" :
-			std::string("[") + m_exe.str() + "]" ;
+		m_args.empty() ?
+			std::string("[") + m_exe.str() + "]" :
+			std::string("[") + m_exe.str() + "] [" + Str::join("] [",m_args) + "]" ;
 }
 
 void G::ExecutableCommand::add( const std::string & arg )
@@ -82,4 +83,3 @@ void G::ExecutableCommand::add( const std::string & arg )
 	m_args.push_back( arg ) ;
 }
 
-/// \file gexecutablecommand.cpp

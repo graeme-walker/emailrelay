@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gdc.h
 ///
 
-#ifndef G_DC_H
-#define G_DC_H
+#ifndef G_GUI_DC_H
+#define G_GUI_DC_H
 
 #include "gdef.h"
 
@@ -29,7 +29,7 @@ namespace GGui
 	class ScreenDeviceContext ;
 }
 
-/// \class GGui::DeviceContext
+//| \class GGui::DeviceContext
 /// A thin wrapper for a GDI device context corresponding to
 /// a window.
 /// \see GGui::ScreenDeviceContext
@@ -71,17 +71,19 @@ public:
 		///< "back" buffer has been filled with
 		///< a new image.
 
+public:
+	DeviceContext( const DeviceContext & ) = delete ;
+	DeviceContext( DeviceContext && ) = delete ;
+	void operator=( const DeviceContext & ) = delete ;
+	void operator=( DeviceContext && ) = delete ;
+
 private:
 	HDC m_hdc ;
 	HWND m_hwnd ;
 	bool m_do_release ;
-
-private:
-	DeviceContext( const DeviceContext & ) g__eq_delete ;
-	void operator=( const DeviceContext & ) g__eq_delete ;
 } ;
 
-/// \class GGui::ScreenDeviceContext
+//| \class GGui::ScreenDeviceContext
 /// A thin wrapper for a GDI device
 /// context corresponding to the whole screen.
 /// \see GGui::DeviceContext
@@ -116,9 +118,11 @@ public:
 	int aspecty() const ;
 		///< Returns the other part of the screen's aspect ratio.
 
-private:
-	ScreenDeviceContext( const ScreenDeviceContext & ) g__eq_delete ;
-	void operator=( const ScreenDeviceContext & ) g__eq_delete ;
+public:
+	ScreenDeviceContext( const ScreenDeviceContext & ) = delete ;
+	ScreenDeviceContext( ScreenDeviceContext && ) = delete ;
+	void operator=( const ScreenDeviceContext & ) = delete ;
+	void operator=( ScreenDeviceContext && ) = delete ;
 
 private:
 	HDC m_dc ;

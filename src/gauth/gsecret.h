@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gsecret.h
 ///
 
-#ifndef G_AUTH_SECRET__H
-#define G_AUTH_SECRET__H
+#ifndef G_AUTH_SECRET_H
+#define G_AUTH_SECRET_H
 
 #include "gdef.h"
 #include "gexception.h"
@@ -30,7 +30,7 @@ namespace GAuth
 	class Secret ;
 }
 
-/// \class GAuth::Secret
+//| \class GAuth::Secret
 /// Encapsulates a shared secret from the secrets file plus the associated
 /// userid. A secret is usually a plaintext shared key, but it may be masked
 /// by a hash function. If masked then it can only be verified by an hmac

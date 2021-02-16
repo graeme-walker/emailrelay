@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -38,16 +38,16 @@ namespace G
 	class GetOpt ;
 }
 
-/// \class G::GetOpt
+//| \class G::GetOpt
 /// A command-line option parser.
 ///
 /// Usage:
 /// \code
-///		G::Arg arg( argc , argv ) ;
-///		G::GetOpt opt( arg , "e!extra!does something! extra!1!something!1" "|" "h!help!shows help!!0!!1" ) ;
-///		if( opt.hasErrors() ) { opt.showErrors( std::cerr ) ; exit( 2 ) ; }
-///		if( opt.contains("help") ) { opt.options().showUsage( std::cout , arg.prefix() , " [<more>]" ) ; exit( 0 ) ; }
-///		run( opt.args() , opt.contains("extra") ? opt.value("extra") : std::string() ) ;
+///  G::Arg arg( argc , argv ) ;
+///  G::GetOpt opt( arg , "e!extra!does something! extra!1!something!1" "|" "h!help!shows help!!0!!1" ) ;
+///  if( opt.hasErrors() ) { opt.showErrors( std::cerr ) ; exit( 2 ) ; }
+///  if( opt.contains("help") ) { opt.options().showUsage( std::cout , arg.prefix() , " [<more>]" ) ; exit( 0 ) ; }
+///  run( opt.args() , opt.contains("extra") ? opt.value("extra") : std::string() ) ;
 /// \endcode
 ///
 /// \see G::Arg, G::Options, G::OptionMap, G::OptionParser
@@ -55,28 +55,37 @@ namespace G
 class G::GetOpt
 {
 public:
-	typedef std::string::size_type size_type ;
+	using size_type = std::string::size_type ;
 
-	GetOpt( const Arg & arg , const std::string & spec ) ;
-		///< Constructor taking a Arg reference and a G::Options specification string.
+	GetOpt( const Arg & arg , const std::string & spec , std::size_t ignore_non_options = 0U ) ;
+		///< Constructor taking a Arg object and a G::Options specification string.
 		///< Parsing errors are reported via errorList().
 
-	GetOpt( const StringArray & arg , const std::string & spec ) ;
+	GetOpt( const StringArray & arg , const std::string & spec , std::size_t ignore_non_options = 0U ) ;
 		///< An overload taking a vector of command-line arguments.
 		///< The program name in the first argument is expected but
 		///< ignored.
 
-	void reload( const StringArray & arg ) ;
+	GetOpt( const Arg & arg , const Options & spec , std::size_t ignore_non_options = 0U ) ;
+		///< A constructor overload taking an Options object.
+
+	GetOpt( const StringArray & arg , const Options & spec , std::size_t ignore_non_options = 0U ) ;
+		///< A constructor overload taking an Options object.
+
+	void reload( const StringArray & arg , std::size_t ignore_non_options = 0U ) ;
 		///< Reinitialises the object with the given command-line arguments.
 		///< The program name in the first position is expected but ignored.
 
-	void addOptionsFromFile( size_type n = 1U ) ;
-		///< Adds options from the config file named by the n'th non-option
-		///< command-line argument (zero-based and allowing for the program
-		///< name in argv0). The n'th argument is then removed. Does nothing
-		///< if the n'th argument does not exists or if it is empty. Throws
-		///< if the file is specified but cannot be opened. Parsing errors
-		///< are added to errorList().
+	void addOptionsFromFile( size_type n = 1U ,
+		const std::string & varkey = std::string() , const std::string & varvalue = std::string() ) ;
+			///< Adds options from the config file named by the n'th non-option
+			///< command-line argument (zero-based and allowing for the program
+			///< name in argv0). The n'th argument is then removed. Does nothing
+			///< if the n'th argument does not exists or if it is empty. Throws
+			///< if the file is specified but cannot be opened. Parsing errors
+			///< are added to errorList(). The optional trailing string parameters
+			///< are used to perform leading sub-string substitution on the
+			///< filename.
 
 	void addOptionsFromFile( const Path & file ) ;
 		///< Adds options from the given config file. Throws if the file
@@ -89,7 +98,7 @@ public:
 		///< Returns a reference to the OptionMap sub-object.
 
 	Arg args() const ;
-		///< Returns all the non-option command-line arguments.
+		///< Returns the G::Arg command-line, excluding options.
 
 	StringArray errorList() const ;
 		///< Returns the list of errors.
@@ -114,35 +123,37 @@ public:
 		///< Returns true if the command-line contains the option identified by its
 		///< long-form name.
 
-	size_t count( const std::string & option_name ) const ;
-		///< Returns the number of times the option was supplied.
+	std::size_t count( const std::string & option_name ) const ;
+		///< Returns the option's repeat count.
 
 	std::string value( const std::string & option_name , const std::string & default_ = std::string() ) const ;
-		///< Returns the value related to the option identified by its long-form name.
-		///< Returns a string that is a comma-separated list if multi-valued.
+		///< Returns the value for the option identified by its long-form name.
+		///< If the option is multi-valued then the returned value is a
+		///< comma-separated list. If the option-value is 'on' then
+		///< Str::positive() is returned; if the option-value is 'off'
+		///< then the given default is returned.
 
 	std::string value( char option_letter , const std::string & default_ = std::string() ) const ;
-		///< Returns the value related to the option identified by its short-form letter.
-		///< Returns a string that is a comma-separated list if multi-valued.
+		///< An overload that returns the value of the option identified
+		///< by its short-form letter.
 		///< Precondition: contains(option_letter)
 
-	void collapse( const std::string & option_name ) ;
-		///< Collapses duplicate of the given option into one if they all
-		///< have the same value, or adds a 'duplicate' error if there is
-		///< a mismatch.
+public:
+	~GetOpt() = default ;
+	GetOpt( const GetOpt & ) = delete ;
+	GetOpt( GetOpt && ) = delete ;
+	void operator=( const GetOpt & ) = delete ;
+	void operator=( GetOpt && ) = delete ;
 
 private:
-	GetOpt( const GetOpt & ) g__eq_delete ;
-	void operator=( const GetOpt & ) g__eq_delete ;
-	void parseArgs( Arg & ) ;
-	StringArray optionsFromFile( const G::Path & ) const ;
+	void parseArgs( std::size_t ) ;
+	static StringArray optionsFromFile( const Options & , const Path & ) ;
 
 private:
 	Options m_spec ;
 	Arg m_args ;
 	OptionMap m_map ;
 	StringArray m_errors ;
-	OptionParser m_parser ; // order dependency -- last
 } ;
 
 #endif

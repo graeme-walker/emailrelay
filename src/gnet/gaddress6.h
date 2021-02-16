@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,10 +17,9 @@
 ///
 /// \file gaddress6.h
 ///
-/// This file is formatted for side-by-side comparison with gaddress4.h.
 
-#ifndef G_NET_ADDRESS6__H
-#define G_NET_ADDRESS6__H
+#ifndef G_NET_ADDRESS6_H
+#define G_NET_ADDRESS6_H
 
 #include "gdef.h"
 #include "gaddress.h"
@@ -31,64 +30,61 @@ namespace GNet
 	class Address6 ;
 }
 
-/// \class GNet::Address6
+//| \class GNet::Address6
 /// A 'sockaddr' wrapper class for IPv6 addresses.
 ///
 class GNet::Address6
 {
 public:
-	typedef sockaddr general_type ;
-	typedef sockaddr_in6 specific_type ;
-	typedef sockaddr_storage storage_type ;
-	union union_type /// Used by GNet::Address6 to cast between sockaddr and sockaddr_in6.
-		{ specific_type specific ; general_type general ; storage_type storage ; } ;
+	using sockaddr_type = sockaddr_in6 ;
+	using storage_type = sockaddr_storage ;
 
 	explicit Address6( unsigned int ) ;
 	explicit Address6( const std::string & ) ;
 	Address6( const std::string & , const std::string & ) ;
 	Address6( const std::string & , unsigned int ) ;
 	Address6( unsigned int port , int /*for overload resolution*/ ) ; // canonical loopback address
-	Address6( const sockaddr * addr , socklen_t len ) ;
-	Address6( const Address6 & other ) ;
+	Address6( const sockaddr * addr , socklen_t len , bool = false ) ;
 
 	static int domain() ;
 	static unsigned short family() ;
 	const sockaddr * address() const ;
 	sockaddr * address() ;
-	static socklen_t length() ;
+	static socklen_t length() noexcept ;
 	unsigned long scopeId() const ;
 	unsigned int port() const ;
 	void setPort( unsigned int port ) ;
-
+	bool setZone( const std::string & zone_name_or_scope_id ) ;
+	void setScopeId( unsigned long ) ;
 	static bool validString( const std::string & , std::string * = nullptr ) ;
 	static bool validStrings( const std::string & , const std::string & , std::string * = nullptr ) ;
 	static bool validPort( unsigned int port ) ;
 	static bool validData( const sockaddr * addr , socklen_t len ) ;
 
-	bool same( const Address6 & other ) const ;
-	bool sameHostPart( const Address6 & other ) const ;
+	bool same( const Address6 & other , bool with_scope = false ) const ;
+	bool sameHostPart( const Address6 & other , bool with_scope = false ) const ;
 	bool isLoopback() const ;
 	bool isLocal( std::string & ) const ;
-	bool isPrivate() const ;
+	bool isLinkLocal() const ;
+	bool isUniqueLocal() const ;
+	bool isAny() const ;
 	unsigned int bits() const ;
-	std::string displayString() const ;
+	std::string displayString( bool ) const ;
 	std::string hostPartString() const ;
 	std::string queryString() const ;
 	G::StringArray wildcards() const ;
 
-
 private:
-	void init() ;
-	static const char * setAddress( union_type & , const std::string & ) ;
-	static const char * setHostAddress( union_type & , const std::string & ) ;
-	static const char * setPort( union_type & , unsigned int ) ;
-	static const char * setPort( union_type & , const std::string & ) ;
+	explicit Address6( std::nullptr_t ) ;
+	static const char * setAddress( sockaddr_type & , const std::string & ) ;
+	static const char * setHostAddress( sockaddr_type & , const std::string & ) ;
+	static const char * setPort( sockaddr_type & , unsigned int ) ;
+	static const char * setPort( sockaddr_type & , const std::string & ) ;
 	static bool sameAddr( const ::in6_addr & a , const ::in6_addr & b ) ;
-	static void setZone( union_type & , unsigned int ) ;
-
+	static bool setZone( sockaddr_type & , const std::string & ) ;
 
 private:
-	union_type m_inet ;
+	sockaddr_type m_inet ;
 } ;
 
 #endif

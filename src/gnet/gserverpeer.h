@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gserverpeer.h
 ///
 
-#ifndef G_NET_SERVER_PEER__H
-#define G_NET_SERVER_PEER__H
+#ifndef G_NET_SERVER_PEER_H
+#define G_NET_SERVER_PEER_H
 
 #include "gdef.h"
 #include "gsocket.h"
@@ -31,6 +31,7 @@
 #include "gconnection.h"
 #include "gexceptionsource.h"
 #include "gevent.h"
+#include "gstringview.h"
 #include <utility>
 #include <memory>
 #include <string>
@@ -43,17 +44,19 @@ namespace GNet
 	class ServerPeerInfo ;
 }
 
-/// \class GNet::ServerPeerConfig
+//| \class GNet::ServerPeerConfig
 /// A structure that GNet::Server uses to configure its ServerPeer objects.
 ///
 class GNet::ServerPeerConfig
 {
 public:
-	unsigned int idle_timeout ;
+	unsigned int idle_timeout{0U} ;
+	ServerPeerConfig() ;
 	explicit ServerPeerConfig( unsigned int idle_timeout ) ;
+	ServerPeerConfig & set_idle_timeout( unsigned int ) ;
 } ;
 
-/// \class GNet::ServerPeer
+//| \class GNet::ServerPeer
 /// An abstract base class for the GNet::Server's connection to a remote
 /// client. Instances are created on the heap by the Server::newPeer()
 /// override. Exceptions are delivered to the owning Server and result
@@ -66,39 +69,39 @@ class GNet::ServerPeer : private EventHandler , public Connection , private Sock
 public:
 	G_EXCEPTION( IdleTimeout , "idle timeout" ) ;
 
-	ServerPeer( ExceptionSink , ServerPeerInfo , LineBufferConfig ) ;
+	ServerPeer( ExceptionSink , const ServerPeerInfo & , const LineBufferConfig & ) ;
 		///< Constructor. This constructor is only used from within the
 		///< override of GNet::Server::newPeer(). The ExceptionSink refers
 		///< to the owning Server.
 
-	virtual ~ServerPeer() ;
+	~ServerPeer() override ;
 		///< Destructor.
 
-	bool send( const std::string & data , size_t offset = 0U ) ;
+	bool send( const std::string & data , std::size_t offset = 0U ) ;
 		///< Sends data down the socket to the peer. Returns true if completely
 		///< sent; returns false if flow control asserted (see onSendComplete()).
 		///< If flow control is asserted then there should be no new calls to
 		///< send() until onSendComplete() is triggered.
 		///< Throws on error.
 
-	bool send( const std::vector<std::pair<const char *,size_t> > & data ) ;
+	bool send( const std::vector<G::string_view> & data ) ;
 		///< Overload to send data using scatter-gather segments. If false is
 		///< returned then segment data pointers must stay valid until
 		///< onSendComplete() is triggered.
 
-	virtual std::pair<bool,Address> localAddress() const override ;
+	std::pair<bool,Address> localAddress() const override ;
 		///< Returns the local address. Pair.first is false on error.
 		///< Override from GNet::Connection.
 
-	virtual std::pair<bool,Address> peerAddress() const override ;
+	std::pair<bool,Address> peerAddress() const override ;
 		///< Returns the peer address.
 		///< Override from GNet::Connection.
 
-	virtual std::string connectionState() const override ;
+	std::string connectionState() const override ;
 		///< Returns the connection state display string.
 		///< Override from GNet::Connection.
 
-	virtual std::string peerCertificate() const override ;
+	std::string peerCertificate() const override ;
 		///< Returns the peer's TLS certificate.
 		///< Override from GNet::Connection.
 
@@ -114,7 +117,7 @@ protected:
 		///< Called after flow-control has been released and all
 		///< residual data sent.
 
-	virtual bool onReceive( const char * data , size_t size , size_t eolsize , size_t linesize , char c0 ) = 0 ;
+	virtual bool onReceive( const char * data , std::size_t size , std::size_t eolsize , std::size_t linesize , char c0 ) = 0 ;
 		///< Called on receipt of data. See GNet::LineBuffer.
 
 	virtual void onDelete( const std::string & reason ) = 0 ;
@@ -135,30 +138,40 @@ protected:
 		///< Returns a reference to the client-server connection
 		///< socket.
 
+	void expect( std::size_t ) ;
+		///< Modifies the line buffer state so that it delivers
+		///< a chunk of non-line-delimited data.
+
 private: // overrides
-	virtual void readEvent() override ; // Override from GNet::EventHandler.
-	virtual void writeEvent() override ; // Override from GNet::EventHandler.
-	virtual void otherEvent( EventHandler::Reason ) override ; // Override from GNet::EventHandler.
+	void readEvent() override ; // Override from GNet::EventHandler.
+	void writeEvent() override ; // Override from GNet::EventHandler.
+	void otherEvent( EventHandler::Reason ) override ; // Override from GNet::EventHandler.
+	std::string exceptionSourceId() const override ; // Override from GNet::ExceptionSource.
 
 protected:
-	virtual void onData( const char * , size_t ) override ;
+	void onData( const char * , std::size_t ) override ;
 		///< Override from GNet::SocketProtocolSink.
 		///< Protected to allow derived classes to ignore
 		///< incoming data for DoS prevention.
 
+public:
+	ServerPeer( const ServerPeer & ) = delete ;
+	ServerPeer( ServerPeer && ) = delete ;
+	void operator=( const ServerPeer & ) = delete ;
+	void operator=( ServerPeer && ) = delete ;
+
 private:
-	ServerPeer( const ServerPeer & ) g__eq_delete ;
-	void operator=( const ServerPeer & ) g__eq_delete ;
 	void onIdleTimeout() ;
-	bool onDataImp( const char * , size_t , size_t , size_t , char ) ;
+	bool onDataImp( const char * , std::size_t , std::size_t , std::size_t , char ) ;
 
 private:
 	Address m_address ;
-	shared_ptr<StreamSocket> m_socket ; // order dependency -- first
+	std::shared_ptr<StreamSocket> m_socket ; // order dependency -- first
 	SocketProtocol m_sp ; // order dependency -- second
 	LineBuffer m_line_buffer ;
 	ServerPeerConfig m_config ;
 	Timer<ServerPeer> m_idle_timer ;
+	mutable std::string m_exception_source_id ;
 } ;
 
 #endif

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-//
-// gpam_none.cpp
-//
+///
+/// \file gpam_none.cpp
+///
 
 #include "gdef.h"
 #include "gpam.h"
@@ -31,8 +31,7 @@ G::Pam::Pam( const std::string & , const std::string & , bool )
 }
 
 G::Pam::~Pam()
-{
-}
+= default;
 
 bool G::Pam::authenticate( bool )
 {
@@ -73,4 +72,3 @@ std::string G::Pam::name() const
 	return std::string() ;
 }
 
-/// \file gpam_none.cpp

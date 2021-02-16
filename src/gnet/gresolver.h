@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 /// \file gresolver.h
 ///
 
-#ifndef G_NET_RESOLVER__H
-#define G_NET_RESOLVER__H
+#ifndef G_NET_RESOLVER_H
+#define G_NET_RESOLVER_H
 
 #include "gdef.h"
 #include "glocation.h"
@@ -34,20 +34,21 @@ namespace GNet
 	class ResolverImp ;
 }
 
-/// \class GNet::Resolver
+//| \class GNet::Resolver
 /// A class for synchronous or asynchronous network name to address resolution.
 /// The implementation uses getaddrinfo() at its core, with std::thread used for
-/// asynchronous resolve requests, and with hooks into the GNet::EventLoop.
+/// asynchronous resolve requests, with hooks into the GNet::EventLoop via
+/// GNet::FutureEvent.
 ///
 class GNet::Resolver
 {
 public:
-	typedef std::vector<Address> AddressList ;
+	using AddressList = std::vector<Address> ;
 	G_EXCEPTION( Error , "asynchronous resolver error" ) ;
 	G_EXCEPTION( BusyError , "asynchronous resolver still busy" ) ;
 	struct Callback /// An interface used for GNet::Resolver callbacks.
 	{
-		virtual ~Callback() ;
+		virtual ~Callback() = default ;
 			///< Destructor.
 
 		virtual void onResolved( std::string error , Location ) = 0 ;
@@ -85,16 +86,20 @@ public:
 	bool busy() const ;
 		///< Returns true if there is a pending resolve request.
 
+public:
+	Resolver( const Resolver & ) = delete ;
+	Resolver( Resolver && ) = delete ;
+	void operator=( const Resolver & ) = delete ;
+	void operator=( Resolver && ) = delete ;
+
 private:
-	void operator=( const Resolver & ) g__eq_delete ;
-	Resolver( const Resolver & ) g__eq_delete ;
 	friend class GNet::ResolverImp ;
-	void done( std::string , Location ) ;
+	void done( const std::string & , const Location & ) ;
 
 private:
 	Callback & m_callback ;
 	ExceptionSink m_es ;
-	unique_ptr<ResolverImp> m_imp ;
+	std::unique_ptr<ResolverImp> m_imp ;
 } ;
 
 #endif

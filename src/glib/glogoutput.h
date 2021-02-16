@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,124 +27,213 @@
 #include <vector>
 #include <fstream>
 #include <ctime>
+#include <array>
 
 namespace G
 {
 	class LogOutput ;
 }
 
-/// \class G::LogOutput
-/// Controls and implements low-level logging output, as used by the Log
-/// interface. Applications should instantiate a LogOutput object in main() to
-/// enable log output.
+//| \class G::LogOutput
+/// Controls and implements low-level logging output, as used by G::Log.
+///
+/// Applications should instantiate a LogOutput object in main() to
+/// enable and configure log output.
+///
+/// The implementation uses a file descriptor for osoutput() rather than
+/// a stream because windows file-sharing options are not accessible
+/// when building with mingw streams, and to avoid double buffering.
+///
 /// \see G::Log
 ///
 class G::LogOutput
 {
 public:
- 	g__enum(SyslogFacility) { User , Daemon , Mail , Cron } ; g__enum_end(SyslogFacility) // etc.
+ 	enum class SyslogFacility {
+		User ,
+		Daemon ,
+		Mail ,
+		Cron ,
+		Local0 ,
+		Local1 ,
+		Local2 ,
+		Local3 ,
+		Local4 ,
+		Local5 ,
+		Local6 ,
+		Local7 } ;
 
-	LogOutput( const std::string & prefix , bool output , bool summary_logging ,
-		bool verbose_logging , bool with_debug , bool with_level ,
-		bool with_timestamp , bool strip_context , bool use_syslog ,
-		const std::string & stderr_replacement = std::string() ,
-		SyslogFacility syslog_facility = SyslogFacility::User ) ;
-			///< Constructor. If there is no LogOutput object, or if 'output'
-			///< is false, then there is no output of any sort. Otherwise at
-			///< least warning and error messages are generated.
+	struct Config /// A configuration structure for G::LogOutput.
+	{
+		bool m_output_enabled{false} ;
+		bool m_summary_info{false} ;
+		bool m_verbose_info{false} ;
+		bool m_debug{false} ;
+		bool m_with_level{false} ;
+		bool m_with_timestamp{false} ;
+		bool m_with_context{false} ;
+		bool m_strip{false} ; // strip first word
+		bool m_quiet_stderr{false} ;
+		bool m_use_syslog{false} ;
+		bool m_allow_bad_syslog{false} ;
+		SyslogFacility m_facility{SyslogFacility::User} ;
+		Config() ;
+		Config & set_output_enabled( bool value = true ) ;
+		Config & set_summary_info( bool value = true ) ;
+		Config & set_verbose_info( bool value = true ) ;
+		Config & set_debug( bool value = true ) ;
+		Config & set_with_level( bool value = true ) ;
+		Config & set_with_timestamp( bool value = true ) ;
+		Config & set_with_context( bool value = true ) ;
+		Config & set_strip( bool value = true ) ;
+		Config & set_quiet_stderr( bool value = true ) ;
+		Config & set_use_syslog( bool value = true ) ;
+		Config & set_allow_bad_syslog( bool value = true ) ;
+		Config & set_facility( SyslogFacility ) ;
+	} ;
+
+	LogOutput( const std::string & exename , const Config & config ,
+		const std::string & filename = std::string() ) ;
+			///< Constructor. If there is no LogOutput object, or if
+			///< 'config.output_enabled' is false, then there is no
+			///< output of any sort (except for assertions to stderr).
+			///< Otherwise at least warning and error messages are
+			///< generated.
 			///<
-			///< If 'summary_logging' is true then log-summary messages
-			///< are output. If 'verbose_logging' is true then log-verbose
-			///< messages are output. If 'with_debug' is true then debug
-			///< messages will also be generated (but only if compiled in).
+			///< If 'config.summary_info' is true then log-summary
+			///< messages are output. If 'config.verbose_info' is true
+			///< then log-verbose messages are output. If 'config.with_debug'
+			///< is true then debug messages will also be generated (but
+			///< only if compiled in).
+			///<
+			///< If an output filename is given it has a "%d" substitution
+			///< applied and it is then opened or created before this
+			///< constructor returns. If no filename is given then
+			///< logging is sent to the standard error stream; the user
+			///< is free to close stderr and reopen it onto /dev/null if
+			///< only syslog logging is required.
 			///<
 			///< More than one LogOutput object may be created, but only
 			///< the first one controls output.
 
-	explicit LogOutput( bool output_with_logging , bool verbose_and_debug = true ,
-		const std::string & stderr_replacement = std::string() ) ;
+	explicit LogOutput( bool output_enabled_and_summary_info ,
+		bool verbose_info_and_debug = true ,
+		const std::string & filename = std::string() ) ;
 			///< Constructor for test programs. Only generates output if the
 			///< first parameter is true. Never uses syslog.
 
 	~LogOutput() ;
 		///< Destructor.
 
-	static LogOutput * instance() ;
+	static LogOutput * instance() noexcept ;
 		///< Returns a pointer to the controlling LogOutput object. Returns
 		///< nullptr if none.
 
-	bool enable( bool enabled = true ) ;
-		///< Enables or disables output. Returns the previous setting.
+	Config config() const ;
+		///< Returns the current configuration.
 
-	void quiet( bool quiet_stderr = true ) ;
-		///< Enables or disables quiet-stderr mode, intended for daemons
-		///< that log to syslog and only want startup errors and warnings
-		///< on stderr.
+	void configure( const Config & ) ;
+		///< Updates the current configuration.
 
-	void verbose( bool verbose_log = true ) ;
-		///< Enables or disables verbose logging.
-
-	bool at( G::Log::Severity ) const ;
+	bool at( Log::Severity ) const noexcept ;
 		///< Returns true if logging should occur for the given severity level.
+		///< Returns false if there is no LogOutput instance.
 
-	bool syslog() const ;
-		///< Returns true if syslog output is enabled.
+	static void context( std::string (*fn)(void*) = nullptr , void * fn_arg = nullptr ) noexcept ;
+		///< Sets a functor that is used to provide a context string for
+		///< every log line, if configured. The functor should return
+		///< the context string with trailing punctuation, typically
+		///< colon and space.
 
-	static void output( G::Log::Severity , const char * file , int line , const std::string & ) ;
-		///< Generates output if there is an existing LogOutput object
-		///< which is enabled. Uses rawOutput().
+	static void * contextarg() noexcept ;
+		///< Returns the functor argument as set by the last call to context().
 
-	static void assertion( const char * file , int line , bool test , const char * ) ;
-		///< Makes an assertion check (regardless of any LogOutput
-		///< object). Calls output() if the 'file' parameter is not null.
+	static std::ostream & start( Log::Severity , const char * file , int line ) ;
+		///< Prepares the internal ostream for a new log line and returns a
+		///< reference to it. The caller should stream out the rest of the log
+		///< line into the ostream and then call output(). Calls to start() and
+		///< output() must be strictly in pairs. Returns a pointer to a dummy
+		///< ostream if there is no LogOutput instance.
 
-	static void assertion( const char * file , int line , void * test , const char * ) ;
-		///< Overload for pointers (motivated by the MSVC warning
-		///< message).
+	static void output( std::ostream & ) ;
+		///< Emits the current log line (see start()). Does nothing if there
+		///< is no LogOutput instance.
+
+	static void assertion( const char * file , int line , bool test , const char * test_string ) ;
+		///< Performs an assertion check.
+
+	static void assertion( const char * file , int line , void * test , const char * test_string ) ;
+		///< Performs an assertion check. This overload, using a test on a
+		///< pointer, is motivated by MSVC warnings.
+
+	static void assertionFailure( const char * file , int line , const char * test_expression ) noexcept ;
+		///< Reports an assertion failure.
+
+	static void assertionAbort() GDEF_NORETURN ;
+		///< Aborts the program when an assertion has failed.
 
 	static void register_( const std::string & exe ) ;
 		///< Registers the given executable as a source of logging.
-		///< This is called from init(), but it might also need to be
-		///< done as an installation task with the necessary
-		///< permissions.
+		///< This is called from osinit(), but it might also need to be
+		///< done as a program installation step with the necessary
+		///< process permissions.
+
+	static void translate( const std::string & info , const std::string & warning ,
+		const std::string & error , const std::string & fatal ) ;
+			///< Sets the prefix string for the various log levels
+			///< (including trailing punctuation).
+
+public:
+	LogOutput( const LogOutput & ) = delete ;
+	LogOutput( LogOutput && ) = delete ;
+	void operator=( const LogOutput & ) = delete ;
+	void operator=( LogOutput && ) = delete ;
 
 private:
-	typedef size_t size_type ;
-	LogOutput( const LogOutput & ) g__eq_delete ;
-	void operator=( const LogOutput & ) g__eq_delete ;
-	void init() ;
-	static void open( std::ofstream & , const std::string & ) ;
-	void cleanup() ;
-	void appendTimestampStringTo( std::string & ) ;
-	static std::string dateString() ;
-	void doOutput( G::Log::Severity , const std::string & ) ;
-	void doOutput( G::Log::Severity s , const char * , int , const std::string & ) ;
-	void rawOutput( std::ostream & , G::Log::Severity , const std::string & ) ;
-	static const char * levelString( Log::Severity s ) ;
-	static std::string itoa( int ) ;
-	static std::string fileAndLine( const char * , int ) ;
-	static LogOutput * & pthis() ;
-	static std::ostream & err( const std::string & ) ;
-	static void getLocalTime( time_t , struct std::tm * ) ; // dont make logging dependent on G::DateTime
+	void osinit() ;
+	void open( std::string , bool ) ;
+	std::ostream & start( Log::Severity ) ;
+	void output( std::ostream & , int ) ;
+	void osoutput( int , Log::Severity , char * , std::size_t ) ;
+	void oscleanup() const noexcept ;
+	bool updateTime() ;
+	void appendTimeTo( std::ostream & ) ;
+	static const char * levelString( Log::Severity ) noexcept ;
+	static const char * basename( const char * ) noexcept ;
 
 private:
-	std::string m_prefix ;
-	bool m_enabled ;
-	bool m_summary_log ;
-	bool m_verbose_log ;
-	bool m_quiet ;
-	bool m_debug ;
-	bool m_level ;
-	bool m_strip ;
-	bool m_syslog ;
-	std::ostream & m_std_err ;
-	SyslogFacility m_facility ;
-	time_t m_time ;
+	std::string m_exename ;
+	Config m_config ;
+	std::time_t m_time_s{0} ;
+	unsigned int m_time_us{0U} ;
 	std::vector<char> m_time_buffer ;
-	bool m_timestamp ;
-	HANDLE m_handle ; // windows
-	bool m_handle_set ;
-	std::string m_buffer ;
+	std::array<char,8U> m_date_buffer {} ;
+	HANDLE m_handle{0} ; // windows
+	std::string m_path ;
+	int m_fd{-1} ;
+	unsigned int m_depth{1U} ;
+	Log::Severity m_severity{Log::Severity::s_Debug} ;
+	std::size_t m_start_pos{0U} ;
+	std::string (*m_context_fn)(void *){nullptr} ;
+	void * m_context_fn_arg{nullptr} ;
 } ;
+
+inline void G::LogOutput::assertion( const char * file , int line , bool test , const char * test_string )
+{
+	if( !test )
+	{
+		assertionFailure( file , line , test_string ) ;
+		assertionAbort() ;
+	}
+}
+
+inline void G::LogOutput::assertion( const char * file , int line , void * test , const char * test_string )
+{
+	if( !test )
+	{
+		assertionFailure( file , line , test_string ) ;
+		assertionAbort() ;
+	}
+}
 
 #endif

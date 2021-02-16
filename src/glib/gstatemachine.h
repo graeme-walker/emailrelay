@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2019 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ namespace G
 
 G_EXCEPTION_CLASS( StateMachine_Error , "invalid state machine transition" ) ;
 
-/// \class StateMachine
+//| \class StateMachine
 /// A finite state machine class template.
 ///
 /// The finite state machine has a persistant 'state'. When an 'event' is
@@ -82,7 +82,7 @@ G_EXCEPTION_CLASS( StateMachine_Error , "invalid state machine transition" ) ;
 /// class Protocol
 /// {
 ///   struct ProtocolError {} ;
-///   enum class State { s_Any , s_Same , sFoo , sBar , sEnd } ;
+///   enum class State { s_Same , sFoo , sBar , sEnd , s_Any } ;
 ///   enum class Event { eFoo , eBar , eError } ;
 ///   typedef StateMachine<Protocol,State,Event> Fsm ;
 ///   Fsm m_fsm ;
@@ -92,8 +92,8 @@ G_EXCEPTION_CLASS( StateMachine_Error , "invalid state machine transition" ) ;
 /// public:
 ///   Protocol() : m_fsm(State::sFoo,State::sBar,State::s_Same,State::s_Any)
 ///   {
-///      m_fsm.addTransition(Event::eFoo,State::sFoo,sBar,&Protocol::doFoo) ;
-///      m_fsm.addTransition(Event::eBar,State::sBar,sEnd,&Protocol::doBar) ;
+///      m_fsm(Event::eFoo,State::sFoo,sBar,&Protocol::doFoo) ;
+///      m_fsm(Event::eBar,State::sBar,sEnd,&Protocol::doBar) ;
 ///   }
 ///   void apply( const std::string & event_string )
 ///   {
@@ -108,17 +108,17 @@ template <typename T, typename State, typename Event, typename Arg>
 class StateMachine
 {
 public:
-	typedef void (T::*Action)(Arg, bool &) ;
-	typedef StateMachine_Error Error ;
+	using Action = void (T::*)(Arg, bool &) ;
+	using Error = StateMachine_Error ;
 
 	StateMachine( State s_start , State s_end , State s_same , State s_any ) ;
 		///< Constructor.
 
-	void addTransition( Event event , State from , State to , Action action ) ;
+	void operator()( Event event , State from , State to , Action action ) ;
 		///< Adds a transition. Special semantics apply if 'from' is
 		///< 's_any', or if 'to' is 's_same'.
 
-	void addTransition( Event event , State from , State to , Action action , State alt ) ;
+	void operator()( Event event , State from , State to , Action action , State alt ) ;
 		///< An overload which adds a transition with predicate support.
 		///< The 'alt' state is taken as an alternative 'to' state
 		///< if the action's predicate is returned as false.
@@ -155,8 +155,8 @@ private:
 		Transition(State s1,State s2,Action a,State s3) :
 			from(s1) , to(s2) , alt(s3) , action(a) {}
 	} ;
-	typedef std::multimap<Event,Transition> Map ;
-	typedef typename Map::value_type Map_value_type ;
+	using Map = std::multimap<Event,Transition> ;
+	using Map_value_type = typename Map::value_type ;
 	Map m_map ;
 	State m_state ;
 	State m_end ;
@@ -174,13 +174,13 @@ StateMachine<T,State,Event,Arg>::StateMachine( State s_start , State s_end , Sta
 }
 
 template <typename T, typename State, typename Event, typename Arg>
-void StateMachine<T,State,Event,Arg>::addTransition( Event event , State from , State to , Action action )
+void StateMachine<T,State,Event,Arg>::operator()( Event event , State from , State to , Action action )
 {
-	addTransition( event , from , to , action , to ) ;
+	operator()( event , from , to , action , to ) ;
 }
 
 template <typename T, typename State, typename Event, typename Arg>
-void StateMachine<T,State,Event,Arg>::addTransition( Event event , State from , State to , Action action , State alt )
+void StateMachine<T,State,Event,Arg>::operator()( Event event , State from , State to , Action action , State alt )
 {
 	if( to == m_any || alt == m_any )
 		throw Error( "\"to any\" is invalid" ) ;
@@ -215,7 +215,7 @@ template <typename T, typename State, typename Event, typename Arg>
 State StateMachine<T,State,Event,Arg>::apply( T & t , Event event , Arg arg )
 {
 	State state = m_state ;
-	typename Map::iterator p = m_map.find(event) ; // look up in the multimap keyed on event + current-state
+	auto p = m_map.find( event ) ; // look up in the multimap keyed on event + current-state
 	for( ; p != m_map.end() && (*p).first == event ; ++p )
 	{
 		if( (*p).second.from == m_any || (*p).second.from == m_state )
