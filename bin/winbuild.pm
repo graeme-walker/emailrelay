@@ -34,6 +34,7 @@
 #  winbuild::clean_cmake_cache_files(...) ;
 #  winbuild::deltree(...) ;
 #  winbuild::run_msbuild(...) ;
+#  winbuild::translate(...) ;
 #  winbuild::create_touchfile(...) ;
 #  winbuild::read_makefiles(...) ;
 #  winbuild::read_makefiles_imp(...) ;
@@ -145,7 +146,9 @@ sub default_touchfile
 
 sub _path_dirs
 {
-	return split( ";" , $ENV{PATH} ) ;
+	my $path = $ENV{PATH} ;
+	my $sep = ( $path =~ m/;/ ) ? ";" : ":" ;
+	return split( $sep , $path ) ;
 }
 
 sub _sanepath
@@ -175,6 +178,7 @@ sub _find_under
 	my $result ;
 	for my $dir ( map {_sanepath($_)} @dirs )
 	{
+		next if !$dir ;
 		my @find_list = () ;
 		File::Find::find( sub { push @find_list , $File::Find::name if lc($_) eq $fname } , $dir ) ;
 		if( @find_list ) { $result = Cwd::realpath($find_list[0]) ; last }
@@ -323,6 +327,19 @@ sub run_msbuild
 	if( $^O eq "linux" ) { $msbuild = ("make") ; @msbuild_args = ( $target ) }
 	my $rc = system( $msbuild , @msbuild_args ) ;
 	print "msbuild-exit=[$rc]\n" ;
+	die unless $rc == 0 ;
+}
+
+sub translate
+{
+	my ( $arch , $qt_dirs , $xx_XX , $xx ) = @_ ;
+	my $dir = $qt_dirs->{$arch} ;
+	$dir = File::Basename::dirname( $dir ) ;
+	$dir = File::Basename::dirname( $dir ) ;
+	$dir = File::Basename::dirname( $dir ) ;
+	my $tool = join( "/" , $dir , "bin" , "lrelease.exe" ) ;
+	my $rc = system( $tool , "src/gui/emailrelay_tr.$xx_XX.ts" , "-qm" , "src/gui/emailrelay.$xx.qm" ) ;
+	print "lrelease-exit=[$rc]\n" ;
 	die unless $rc == 0 ;
 }
 
