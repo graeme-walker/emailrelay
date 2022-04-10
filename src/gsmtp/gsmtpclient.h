@@ -30,6 +30,7 @@
 #include "gmessagestore.h"
 #include "gstoredmessage.h"
 #include "gfilter.h"
+#include "gfilterfactory.h"
 #include "gcall.h"
 #include "gsocket.h"
 #include "gslot.h"
@@ -82,8 +83,8 @@ public:
 		Config & set_sasl_client_config( const std::string & ) ;
 	} ;
 
-	Client( GNet::ExceptionSink , const GNet::Location & remote ,
-		const GAuth::Secrets & secrets , const Config & config ) ;
+	Client( GNet::ExceptionSink , FilterFactory & , const GNet::Location & remote ,
+		const GAuth::SaslClientSecrets & client_secrets , const Config & config ) ;
 			///< Constructor. Starts connecting immediately.
 			///<
 			///< Use sendMessagesFrom() once, or use sendMessage()

@@ -19,7 +19,7 @@ dnl
 dnl Process this file with autoconf to produce a configure script.
 dnl
 
-AC_INIT([E-MailRelay],[2.2.1],[],[emailrelay])
+AC_INIT([E-MailRelay],[2.3],[],[emailrelay])
 AC_CONFIG_SRCDIR([src/glib/gdef.h])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([no-define])
@@ -90,8 +90,6 @@ AC_ARG_ENABLE([install-hook],AS_HELP_STRING([--enable-install-hook],[enable fixi
 GCONFIG_FN_ENABLE_INSTALL_HOOK
 AC_ARG_ENABLE([interface-names],AS_HELP_STRING([--enable-interface-names],[allow network interface names for defining listening addresses (default yes)]))
 GCONFIG_FN_ENABLE_INTERFACE_NAMES
-AC_ARG_ENABLE([ipv6],AS_HELP_STRING([--enable-ipv6],[enable ipv6 (default auto)]))
-GCONFIG_FN_ENABLE_IPV6
 AC_ARG_ENABLE([mac],AS_HELP_STRING([--enable-mac],[enable building for mac os x (default auto)]))
 GCONFIG_FN_ENABLE_MAC
 AC_ARG_ENABLE([std-thread],AS_HELP_STRING([--enable-std-thread],[use std::thread or not (default auto)]))

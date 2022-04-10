@@ -17,14 +17,6 @@
 
 noinst_LIBRARIES = libgnet.a
 
-if GCONFIG_IPV6
-IP46_SOURCES = gaddress_ipv6.cpp
-EXTRA_DIST_IP46 = gaddress_ipv4.cpp
-else
-IP46_SOURCES = gaddress_ipv4.cpp
-EXTRA_DIST_IP46 = gaddress_ipv6.cpp
-endif
-
 if GCONFIG_WINDOWS
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gssl -I$(top_srcdir)/src/win32
@@ -41,7 +33,6 @@ if GCONFIG_INTERFACE_NAMES
 
 EXTRA_DIST = \
 	$(EXTRA_DIST_COMMON) \
-	$(EXTRA_DIST_IP46) \
 	ginterfaces_unix.cpp \
 	ginterfaces_none.cpp
 
@@ -53,7 +44,6 @@ else
 
 EXTRA_DIST = \
 	$(EXTRA_DIST_COMMON) \
-	$(EXTRA_DIST_IP46) \
 	ginterfaces_unix.cpp \
 	ginterfaces_common.cpp \
 	ginterfaces_win32.cpp
@@ -64,13 +54,13 @@ INTERFACES_SOURCES = \
 endif
 
 libgnet_a_SOURCES = \
-	$(IP46_SOURCES) \
 	gaddresslocal_none.cpp \
 	gaddresslocal.h \
 	gaddress4.cpp \
 	gaddress4.h \
 	gaddress6.cpp \
 	gaddress6.h \
+	gaddress.cpp \
 	gaddress.h \
 	gclient.cpp \
 	gclient.h \
@@ -215,12 +205,11 @@ EXTRA_DIST = \
 	$(EXTRA_DIST_COMMON) \
 	$(EXTRA_DIST_UDS) \
 	$(EXTRA_DIST_INTERFACES) \
-	$(EXTRA_DIST_EVENTLOOP) \
-	$(EXTRA_DIST_IP46)
+	$(EXTRA_DIST_EVENTLOOP)
 
 libgnet_a_SOURCES = \
-	$(IP46_SOURCES) \
 	$(UDS_SOURCES) \
+	gaddress.cpp \
 	gaddress.h \
 	gaddresslocal.h \
 	gaddress4.h \

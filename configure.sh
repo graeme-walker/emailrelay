@@ -117,10 +117,10 @@ then
 fi
 if test -d "$MBEDTLS_DIR"
 then
-	echo "configure.sh: mbedtls directory exists: adding --with-mbedtls and CPPFLAGS=-I$MBEDTLS_DIR/include etc"
+	echo "configure.sh: mbedtls directory exists: adding --with-mbedtls and CXXFLAGS=-I$MBEDTLS_DIR/include etc"
 	with_mbedtls="--with-mbedtls"
 	make_mbedtls=1
-	export CPPFLAGS="$CPPFLAGS -I`pwd`/$MBEDTLS_DIR/include"
+	export CXXFLAGS="$CXXFLAGS -I`pwd`/$MBEDTLS_DIR/include"
 	export LDFLAGS="$LDFLAGS -L`pwd`/$MBEDTLS_DIR/library"
 fi
 
@@ -139,7 +139,7 @@ then
 	export GCONFIG_WINDMC="$TARGET-windmc"
 	export GCONFIG_WINDRES="$TARGET-windres"
 	export CXXFLAGS="$CXXFLAGS -std=c++11 -pthread"
-	#export CPPFLAGS="$CPPFLAGS -D_WIN32_WINNT=0x0501" eg. for Windows XP, otherwise whatever mingw defaults to
+	#export CXXFLAGS="$CXXFLAGS -D_WIN32_WINNT=0x0501" eg. for Windows XP, otherwise whatever mingw defaults to
 	export LDFLAGS="$LDFLAGS -pthread"
 	if test -x "`which $CXX`" ; then : ; else echo "error: no mingw c++ compiler: [$CXX]\n" ; exit 1 ; fi
 	( echo msbuild . ; echo qt-x86 . ; echo qt-x64 . ; echo cmake . ; echo msvc . ) > winbuild.cfg
@@ -184,35 +184,35 @@ then
 :
 elif test "0$opt_openwrt" -eq 1
 then
-    TARGET="mips-openwrt-linux-musl"
-    SDK_DIR="`find $HOME -maxdepth 3 -type d -iname openwrt-sdk\* 2>/dev/null | sort | head -1`"
-    SDK_TOOLCHAIN_DIR="`find \"$SDK_DIR/staging_dir\" -type d -iname toolchain-\* 2>/dev/null | sort | head -1`"
-    SDK_TARGET_DIR="`find \"$SDK_DIR/staging_dir\" -type d -iname target-\* 2>/dev/null | sort | head -1`"
-    export CC="$SDK_TOOLCHAIN_DIR/bin/$TARGET-gcc"
-    export CXX="$SDK_TOOLCHAIN_DIR/bin/$TARGET-c++"
-    export AR="$SDK_TOOLCHAIN_DIR/bin/$TARGET-ar"
-    export STRIP="$SDK_TOOLCHAIN_DIR/bin/$TARGET-strip"
-    export CXXFLAGS="-fno-rtti -fno-threadsafe-statics -Os $CXXFLAGS"
-    export CPPFLAGS="$CPPFLAGS -DG_SMALL"
+	TARGET="mips-openwrt-linux-musl"
+	SDK_DIR="`find $HOME -maxdepth 3 -type d -iname openwrt-sdk\* 2>/dev/null | sort | head -1`"
+	SDK_TOOLCHAIN_DIR="`find \"$SDK_DIR/staging_dir\" -type d -iname toolchain-\* 2>/dev/null | sort | head -1`"
+	SDK_TARGET_DIR="`find \"$SDK_DIR/staging_dir\" -type d -iname target-\* 2>/dev/null | sort | head -1`"
+	export CC="$SDK_TOOLCHAIN_DIR/bin/$TARGET-gcc"
+	export CXX="$SDK_TOOLCHAIN_DIR/bin/$TARGET-c++"
+	export AR="$SDK_TOOLCHAIN_DIR/bin/$TARGET-ar"
+	export STRIP="$SDK_TOOLCHAIN_DIR/bin/$TARGET-strip"
+	export CXXFLAGS="-fno-rtti -fno-threadsafe-statics -Os $CXXFLAGS"
+	export CXXFLAGS="$CXXFLAGS -DG_SMALL"
 	export LDFLAGS="$LDFLAGS -static"
 	export LIBS="-lgcc_eh"
 	if test -x "$CXX" ; then : ; else echo "error: no c++ compiler for target [$TARGET]: CXX=[$CXX]\n" ; exit 1 ; fi
-    $thisdir/configure $enable_debug --host $TARGET \
+	$thisdir/configure $enable_debug --host $TARGET \
 		--disable-gui --without-pam --without-doxygen \
 		$with_mbedtls --disable-std-thread \
 		--prefix=/usr --libexecdir=/usr/lib --sysconfdir=/etc \
 		--localstatedir=/var $opt_passthrough e_initdir=/etc/init.d "$@"
 	echo :
 	echo "build with..."
-    #echo "  export PATH=\"$SDK_TOOLCHAIN_DIR/bin:\$PATH\""
-    #echo "  export STAGING_DIR=\"$SDK_DIR/staging_dir\""
+	#echo "  export PATH=\"$SDK_TOOLCHAIN_DIR/bin:\$PATH\""
+	#echo "  export STAGING_DIR=\"$SDK_DIR/staging_dir\""
 	test "$make_mbedtls" -eq 1 && echo "  make -C $MBEDTLS_DIR/library CC=$CC AR=$AR"
 	echo "  make"
 	echo "  make -C src/main strip"
 :
 elif test "`uname`" = "NetBSD"
 then
-	export CPPFLAGS="$CPPFLAGS -I/usr/X11R7/include"
+	export CXXFLAGS="$CXXFLAGS -I/usr/X11R7/include"
 	export LDFLAGS="$LDFLAGS -L/usr/X11R7/lib"
 	$thisdir/configure $enable_debug $with_mbedtls \
 		--prefix=/usr --libexecdir=/usr/lib --sysconfdir=/etc \
@@ -220,7 +220,7 @@ then
 :
 elif test "`uname`" = "FreeBSD"
 then
-	export CPPFLAGS="$CPPFLAGS -I/usr/local/include -I/usr/local/include/libav"
+	export CXXFLAGS="$CXXFLAGS -I/usr/local/include -I/usr/local/include/libav"
 	export LDFLAGS="$LDFLAGS -L/usr/local/lib -L/usr/local/lib/libav"
 	$thisdir/configure $enable_debug $with_mbedtls \
 		--prefix=/usr/local --mandir=/usr/local/man \
@@ -228,7 +228,7 @@ then
 :
 elif test "`uname`" = "OpenBSD"
 then
-	export CPPFLAGS="$CPPFLAGS -I/usr/X11R6/include"
+	export CXXFLAGS="$CXXFLAGS -I/usr/X11R6/include"
 	export LDFLAGS="$LDFLAGS -L/usr/X11R6/lib"
 	$thisdir/configure $enable_debug $with_mbedtls \
 		--prefix=/usr/local --mandir=/usr/local/man \
@@ -236,14 +236,14 @@ then
 :
 elif test "`uname`" = "Darwin"
 then
-	export CPPFLAGS="$CPPFLAGS -I/opt/local/include -I/opt/X11/include"
+	export CXXFLAGS="$CXXFLAGS -I/opt/local/include -I/opt/X11/include"
 	export LDFLAGS="$LDFLAGS -L/opt/local/lib -L/opt/X11/lib"
 	$thisdir/configure $enable_debug $with_mbedtls \
 		--prefix=/opt/local --mandir=/opt/local/man $opt_passthrough "$@"
 :
 elif test "`uname`" = "Linux"
 then
-	export CPPFLAGS
+	export CXXFLAGS
 	export LDFLAGS
 	$thisdir/configure $enable_debug $with_mbedtls \
 		--prefix=/usr --libexecdir=/usr/lib --sysconfdir=/etc \
@@ -251,7 +251,7 @@ then
 		$opt_passthrough e_rundir=/run/emailrelay "$@"
 :
 else
-	export CPPFLAGS="$CPPFLAGS -I/usr/X11R7/include -I/usr/X11R6/include -I/usr/local/include -I/opt/local/include -I/opt/X11/include"
+	export CXXFLAGS="$CXXFLAGS -I/usr/X11R7/include -I/usr/X11R6/include -I/usr/local/include -I/opt/local/include -I/opt/X11/include"
 	export LDFLAGS="$LDFLAGS -L/usr/X11R7/lib -L/usr/X11R6/lib -L/usr/local/lib -L/opt/local/lib -L/opt/X11/lib"
 	$thisdir/configure $enable_debug $with_mbedtls $opt_passthrough "$@"
 fi

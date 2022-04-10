@@ -222,7 +222,7 @@ void GSmtp::AdminServerPeer::flush()
 	else
 	{
 		m_client_ptr.reset( std::make_unique<GSmtp::Client>( GNet::ExceptionSink(m_client_ptr,m_es.esrc()) ,
-			GNet::Location(m_remote_address) , m_server.clientSecrets() , m_server.clientConfig() ) ) ;
+			m_server.ff() , GNet::Location(m_remote_address) , m_server.clientSecrets() , m_server.clientConfig() ) ) ;
 
 		m_client_ptr->sendMessagesFrom( m_server.store() ) ; // once connected
 		// no sendLine() -- sends "OK" or "error:" when complete -- see AdminServerPeer::clientDone()
@@ -317,7 +317,7 @@ void GSmtp::AdminServerPeer::sendList( std::shared_ptr<MessageStore::Iterator> i
 		std::unique_ptr<StoredMessage> message( ++iter ) ;
 		if( message == nullptr ) break ;
 		if( !first ) ss << eol() ;
-		ss << message->name() ;
+		ss << message->id().str() ;
 	}
 
 	std::string result = ss.str() ;
@@ -340,9 +340,9 @@ bool GSmtp::AdminServerPeer::notifying() const
 // ===
 
 GSmtp::AdminServer::AdminServer( GNet::ExceptionSink es , MessageStore & store ,
-	G::Slot::Signal<const std::string&> & forward_request ,
+	FilterFactory & ff , G::Slot::Signal<const std::string&> & forward_request ,
 	const GNet::ServerPeerConfig & server_peer_config , const GNet::ServerConfig & server_config ,
-	const GSmtp::Client::Config & client_config , const GAuth::Secrets & client_secrets ,
+	const GSmtp::Client::Config & client_config , const GAuth::SaslClientSecrets & client_secrets ,
 	const G::StringArray & interfaces , unsigned int port , bool allow_remote ,
 	const std::string & remote_address , unsigned int connection_timeout ,
 	const G::StringMap & info_commands , const G::StringMap & config_commands ,
@@ -350,6 +350,7 @@ GSmtp::AdminServer::AdminServer( GNet::ExceptionSink es , MessageStore & store ,
 		GNet::MultiServer(es,interfaces,port,"admin",server_peer_config,server_config) ,
 		m_forward_timer(*this,&AdminServer::onForwardTimeout,es) ,
 		m_store(store) ,
+		m_ff(ff) ,
 		m_forward_request(forward_request) ,
 		m_client_config(client_config) ,
 		m_client_secrets(client_secrets) ,
@@ -436,7 +437,12 @@ GSmtp::MessageStore & GSmtp::AdminServer::store()
 	return m_store ;
 }
 
-const GAuth::Secrets & GSmtp::AdminServer::clientSecrets() const
+GSmtp::FilterFactory & GSmtp::AdminServer::ff()
+{
+	return m_ff ;
+}
+
+const GAuth::SaslClientSecrets & GSmtp::AdminServer::clientSecrets() const
 {
 	return m_client_secrets ;
 }

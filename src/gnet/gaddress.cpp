@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
-/// \file gaddress_ipv6.cpp
+/// \file gaddress.cpp
 ///
 
 #include "gdef.h"
@@ -108,7 +108,8 @@ GNet::Address::Address( const sockaddr * addr , socklen_t len , bool ipv6_scope_
 
 GNet::Address::Address( const std::string & s )
 {
-	std::string r1 , r2 ;
+	std::string r1 ;
+	std::string r2 ;
 	if( s.empty() )
 		throw Address::Error( "empty string" ) ;
 	else if( AddressLocal::af() && isFamilyLocal(s) )
@@ -123,7 +124,8 @@ GNet::Address::Address( const std::string & s )
 
 GNet::Address::Address( const std::string & s , NotLocal )
 {
-	std::string r1 , r2 ;
+	std::string r1 ;
+	std::string r2 ;
 	if( s.empty() )
 		throw Address::Error( "empty string" ) ;
 	else if( Address4::af() && Address4::validString(s,&r1) )
@@ -136,7 +138,8 @@ GNet::Address::Address( const std::string & s , NotLocal )
 
 GNet::Address::Address( const std::string & host_part , const std::string & port_part )
 {
-	std::string r1 , r2 ;
+	std::string r1 ;
+	std::string r2 ;
 	if( host_part.empty() )
 		throw Address::Error( "empty string" ) ;
 	else if( AddressLocal::af() && isFamilyLocal( host_part ) )
@@ -151,7 +154,8 @@ GNet::Address::Address( const std::string & host_part , const std::string & port
 
 GNet::Address::Address( const std::string & host_part , unsigned int port )
 {
-	std::string r1 , r2 ;
+	std::string r1 ;
+	std::string r2 ;
 	if( host_part.empty() )
 		throw Address::Error( "empty string" ) ;
 	else if( AddressLocal::af() && isFamilyLocal( host_part ) )

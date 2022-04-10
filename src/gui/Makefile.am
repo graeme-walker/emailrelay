@@ -52,6 +52,7 @@ LIB_SOURCES = \
 	boot.h \
 	dir.cpp \
 	dir.h \
+	gcominit.h \
 	glibsources.cpp \
 	glink.h \
 	installer.h \
@@ -88,8 +89,8 @@ EXTRA_DIST=\
 	$(TS_FILES) \
 	$(QM_IN_FILES) \
 	emailrelay-gui.exe.manifest \
-	gcominit.h \
 	messages.mc \
+	emailrelay-gui.pro \
 	$(OS_EXTRA_DIST)
 
 # force symbol stripping on 'make install' -- see also make 'install-strip'

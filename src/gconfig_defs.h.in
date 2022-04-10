@@ -3,9 +3,6 @@
 /* Define true to use epoll */
 #undef GCONFIG_ENABLE_EPOLL
 
-/* Define true to use IPv6 */
-#undef GCONFIG_ENABLE_IPV6
-
 /* Define true to use std::thread */
 #undef GCONFIG_ENABLE_STD_THREAD
 

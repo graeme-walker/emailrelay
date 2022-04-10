@@ -60,40 +60,29 @@ public:
 	G_EXCEPTION( InvalidDirectory , "invalid spool directory" ) ;
 	G_EXCEPTION( GetError , "error reading specific message" ) ;
 
-	FileStore( const G::Path & dir , bool optimise_empty_test ,
-		unsigned long max_size , bool test_for_eight_bit ) ;
-			///< Constructor. Throws an exception if the storage directory
-			///< is invalid.
-			///<
-			///< If the optimise flag is set then the implementation of
-			///< empty() will be efficient for an empty filestore
-			///< (ignoring failed and local-delivery messages). This
-			///< might be useful for applications in which the main
-			///< event loop is used to check for pending jobs. The
-			///< disadvantage is that this process will not be
-			///< sensititive to messages deposited into its spool
-			///< directory by other processes.
+	FileStore( const G::Path & dir , unsigned long max_size , bool test_for_eight_bit ) ;
+		///< Constructor. Throws an exception if the storage directory
+		///< is invalid.
 
-	unsigned long newSeq() ;
-		///< Hands out a new non-zero sequence number.
+	MessageId newId() ;
+		///< Hands out a new message id.
 
 	std::unique_ptr<std::ofstream> stream( const G::Path & path ) ;
 		///< Returns a stream to the given content.
 
-	G::Path contentPath( unsigned long seq ) const ;
+	G::Path contentPath( const MessageId & ) const ;
 		///< Returns the path for a content file.
 
-	G::Path envelopePath( unsigned long seq ) const ;
+	G::Path envelopePath( const MessageId & , const char * modifier = "" ) const ;
 		///< Returns the path for an envelope file.
-
-	G::Path envelopeWorkingPath( unsigned long seq ) const ;
-		///< Returns the path for an envelope file
-		///< which is in the process of being written.
 
 	bool empty() const override ;
 		///< Override from GSmtp::MessageStore.
 
-	std::unique_ptr<StoredMessage> get( unsigned long id ) override ;
+	std::string location( const MessageId & ) const override ;
+		///< Override from GSmtp::MessageStore.
+
+	std::unique_ptr<StoredMessage> get( const MessageId & ) override ;
 		///< Override from GSmtp::MessageStore.
 
 	std::shared_ptr<MessageStore::Iterator> iterator( bool lock ) override ;
@@ -152,8 +141,6 @@ private:
 private:
 	unsigned long m_seq ;
 	G::Path m_dir ;
-	bool m_optimise ;
-	mutable bool m_empty ;
 	unsigned long m_max_size ;
 	bool m_test_for_eight_bit ;
 	unsigned long m_pid_modifier ;

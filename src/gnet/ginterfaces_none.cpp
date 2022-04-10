@@ -20,6 +20,7 @@
 
 #include "gdef.h"
 #include "ginterfaces.h"
+#include "gstr.h"
 
 GNet::Interfaces::Interfaces()
 = default;

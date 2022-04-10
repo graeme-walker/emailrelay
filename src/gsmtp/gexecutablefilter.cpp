@@ -29,12 +29,15 @@
 #include "gassert.h"
 #include <tuple>
 
-GSmtp::ExecutableFilter::ExecutableFilter( GNet::ExceptionSink es ,
-	bool server_side , const std::string & path ) :
+GSmtp::ExecutableFilter::ExecutableFilter( GNet::ExceptionSink es , FileStore & file_store ,
+	bool server_side , const std::string & path , unsigned int timeout ) :
+		m_file_store(file_store) ,
 		m_server_side(server_side) ,
 		m_prefix(server_side?"filter":"client filter") ,
 		m_exit(0,server_side) ,
 		m_path(path) ,
+		m_timeout(timeout) ,
+		m_timer(*this,&ExecutableFilter::onTimeout,es) ,
 		m_task(*this,es,"<<filter exec error: __strerror__>>",G::Root::nobody())
 {
 }
@@ -75,24 +78,38 @@ std::string GSmtp::ExecutableFilter::reason() const
 		return m_reason ;
 }
 
-void GSmtp::ExecutableFilter::start( const std::string & location )
+void GSmtp::ExecutableFilter::start( const MessageId & message_id )
 {
-	// run the program
+	G::Path cpath = m_file_store.contentPath( message_id ) ;
+	G::Path epath = m_file_store.envelopePath( message_id , m_server_side ? ".new" : ".busy" ) ;
+
 	G::StringArray args ;
-	G::Path content_path( location ) ;
-	args.push_back( G::Path(content_path).str() ) ;
-	if( content_path.extension() == "content" )
-	{
-		G::Path envelope_path( content_path.withExtension("envelope") ) ;
-		args.push_back( G::Path(envelope_path).str() + (m_server_side?".new":".busy") ) ;
-	}
+	args.push_back( cpath.str() ) ;
+	args.push_back( epath.str() ) ;
+
 	G::ExecutableCommand commandline( m_path.str() , args ) ;
 	G_LOG( "GSmtp::ExecutableFilter::start: " << m_prefix << ": running " << commandline.displayString() ) ;
 	m_task.start( commandline ) ;
+
+	if( m_timeout )
+		m_timer.startTimer( m_timeout ) ;
+}
+
+void GSmtp::ExecutableFilter::onTimeout()
+{
+	G_WARNING( "GSmtp::ExecutableFilter::onTimeout: " << m_prefix << " timed out after " << m_timeout << "s" ) ;
+	m_task.stop() ;
+	m_exit = Exit( 1 , m_server_side ) ;
+	G_ASSERT( m_exit.fail() && !special() && !abandoned() ) ;
+	m_response = "error" ;
+	m_reason = "timeout" ;
+	m_done_signal.emit( static_cast<int>(m_exit.result) ) ;
 }
 
 void GSmtp::ExecutableFilter::onTaskDone( int exit_code , const std::string & output )
 {
+	m_timer.cancelTimer() ;
+
 	// search the output for diagnostics
 	std::tie(m_response,m_reason) = parseOutput( output , "rejected" ) ;
 	if( m_response.find("filter exec error") == 0U ) // see ctor
@@ -161,6 +178,7 @@ G::Slot::Signal<int> & GSmtp::ExecutableFilter::doneSignal()
 
 void GSmtp::ExecutableFilter::cancel()
 {
+	m_timer.cancelTimer() ;
 	m_task.stop() ;
 }
 

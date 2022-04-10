@@ -140,7 +140,7 @@ public:
 		///< Returns !isRelative().
 
 	bool isRelative() const ;
-		///< Returns true if the path is a relative path.
+		///< Returns true if the path is a relative path or empty().
 
 	void pathAppend( const std::string & tail ) ;
 		///< Appends a filename or a relative path to this path.

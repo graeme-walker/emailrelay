@@ -68,7 +68,7 @@ namespace { std::string localedir() { return std::string() ; } }
 
 std::string Main::Run::versionNumber()
 {
-	return "2.2.1" ;
+	return "2.3" ;
 }
 
 Main::Run::Run( Main::Output & output , const G::Arg & arg , bool is_windows , bool has_gui ) :
@@ -324,8 +324,9 @@ void Main::Run::run()
 
 	// create message store singletons
 	//
-	m_store = std::make_unique<GSmtp::FileStore>( configuration().spoolDir() , false ,
+	m_store = std::make_unique<GSmtp::FileStore>( configuration().spoolDir() ,
 		configuration().maxSize() , configuration().eightBitTest() ) ;
+	m_filter_factory = std::make_unique<GSmtp::FilterFactoryFileStore>( *m_store ) ;
 	m_store->messageStoreRescanSignal().connect( G::Slot::slot(*this,&Run::onStoreRescanEvent) ) ;
 	if( do_pop )
 	{
@@ -362,6 +363,7 @@ void Main::Run::run()
 		m_smtp_server = std::make_unique<GSmtp::Server>(
 			m_es_rethrow ,
 			*m_store ,
+			*m_filter_factory ,
 			*m_client_secrets ,
 			*m_server_secrets ,
 			smtpServerConfig() ,
@@ -394,6 +396,7 @@ void Main::Run::run()
 			m_es_rethrow ,
 			configuration() ,
 			*m_store ,
+			*m_filter_factory ,
 			m_forward_request_signal ,
 			GNet::ServerPeerConfig(0U) ,
 			netServerConfig() ,
@@ -479,31 +482,24 @@ void Main::Run::checkPort( bool check , const std::string & ip , unsigned int po
 	if( check )
 	{
 		const bool do_throw = true ;
-		try
+		if( ip.empty() )
 		{
-			if( ip.empty() )
+			if( GNet::Address::supports( GNet::Address::Family::ipv6 ) &&
+				GNet::StreamSocket::supports( GNet::Address::Family::ipv6 ) )
 			{
-				if( GNet::Address::supports( GNet::Address::Family::ipv6 ) &&
-					GNet::StreamSocket::supports( GNet::Address::Family::ipv6 ) )
-				{
-					GNet::Address address( GNet::Address::Family::ipv6 , port ) ;
-					GNet::Server::canBind( address , do_throw ) ;
-				}
-				if( GNet::Address::supports( GNet::Address::Family::ipv4 ) )
-				{
-					GNet::Address address( GNet::Address::Family::ipv4 , port ) ;
-					GNet::Server::canBind( address , do_throw ) ;
-				}
+				GNet::Address address( GNet::Address::Family::ipv6 , port ) ;
+				GNet::Server::canBind( address , do_throw ) ;
 			}
-			else if( GNet::Address::validStrings(ip,"0") )
+			if( GNet::Address::supports( GNet::Address::Family::ipv4 ) )
 			{
-				GNet::Address address = GNet::Address::parse( ip , port ) ;
+				GNet::Address address( GNet::Address::Family::ipv4 , port ) ;
 				GNet::Server::canBind( address , do_throw ) ;
 			}
 		}
-		catch( G::Exception & e )
+		else if( GNet::Address::validStrings(ip,"0") )
 		{
-			throw e.translated() ;
+			GNet::Address address = GNet::Address::parse( ip , port ) ;
+			GNet::Server::canBind( address , do_throw ) ;
 		}
 	}
 }
@@ -701,6 +697,7 @@ std::string Main::Run::startForwarding()
 			G_ASSERT( m_client_secrets != nullptr ) ;
 			m_client_ptr.reset( std::make_unique<GSmtp::Client>(
 				GNet::ExceptionSink(m_client_ptr,nullptr) ,
+				*m_filter_factory ,
 				GNet::Location(configuration().serverAddress(),resolverFamily()) ,
 				*m_client_secrets ,
 				clientConfig() ) ) ;
@@ -875,7 +872,7 @@ G::Path Main::Run::appDir() const
 }
 
 std::unique_ptr<GSmtp::AdminServer> Main::Run::newAdminServer( GNet::ExceptionSink es ,
-	const Configuration & cfg , GSmtp::MessageStore & store ,
+	const Configuration & cfg , GSmtp::MessageStore & store , GSmtp::FilterFactory & ff ,
 	G::Slot::Signal<const std::string&> & forward_request_signal ,
 	const GNet::ServerPeerConfig & server_peer_config , const GNet::ServerConfig & net_server_config ,
 	const GSmtp::Client::Config & client_config , const GAuth::Secrets & client_secrets ,
@@ -894,6 +891,7 @@ std::unique_ptr<GSmtp::AdminServer> Main::Run::newAdminServer( GNet::ExceptionSi
 	return std::make_unique<GSmtp::AdminServer>(
 			es ,
 			store ,
+			ff ,
 			forward_request_signal ,
 			server_peer_config ,
 			net_server_config ,

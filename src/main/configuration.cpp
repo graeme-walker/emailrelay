@@ -770,12 +770,6 @@ G::StringArray Main::Configuration::semantics( bool want_errors ) const
 			gettext("the --show option is ignored when using --no-daemon, --as-client or --hidden") ) ;
 	}
 
-	if( m_map.contains("dnsblock") && !m_map.contains("remote-clients") )
-	{
-		warnings.push_back(
-			gettext("the --dnsblock option should be used with --remote-clients") ) ;
-	}
-
 	return want_errors ? errors : warnings ;
 }
 

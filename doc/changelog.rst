@@ -2,12 +2,13 @@
 E-MailRelay Change Log
 **********************
 
-2.2 -> 2.2.1
-============
+2.2 -> 2.3
+==========
 
 * Unix domain sockets supported (eg. *--interface=/tmp/smtp.s*).
 * Windows event log not used for verbose logging (prefer *--log-file*).
 * New admin *forward* command to trigger forwarding without waiting.
+* Optional base64 encoding of passwords in secrets files (*plain:b*).
 * Support for MbedTLS version 3.
 
 2.1 -> 2.2

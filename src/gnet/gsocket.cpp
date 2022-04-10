@@ -31,7 +31,7 @@ namespace GNet
 {
 	namespace StreamSocketImp /// An implementation namespace for G::StreamSocket.
 	{
-		struct Options /// StreamSocket options
+		struct Options /// StreamSocket options.
 		{
 			enum class Linger { default_ , zero , nolinger } ;
 			Linger create_linger {Linger::nolinger} ;
@@ -42,7 +42,7 @@ namespace GNet
 	}
 	namespace SocketImp /// An implementation namespace for G::Socket.
 	{
-		struct Options /// Socket options
+		struct Options /// Socket options.
 		{
 			bool connect_pureipv6 {true} ;
 			bool bind_pureipv6 {true} ;

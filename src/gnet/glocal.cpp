@@ -22,7 +22,6 @@
 #include "glocal.h"
 #include "ghostname.h"
 #include "gresolver.h"
-#include "ginterfaces.h"
 #include "glog.h"
 #include <sstream>
 

@@ -103,7 +103,7 @@ std::vector<GNet::Address> GNet::Interfaces::addresses( const G::StringArray & n
 	AddressList result ;
 	for( const auto & name : names )
 	{
-		if( Address::validStrings(name,G::Str::fromUInt(port)) )
+		if( Address::validStrings( name , G::Str::fromUInt(port) ) )
 		{
 			result.push_back( Address::parse(name,port) ) ;
 		}

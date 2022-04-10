@@ -188,6 +188,12 @@ public:
 	void operator=( SecureFile && ) = delete ;
 
 private:
+	static std::size_t fileSize( std::filebuf & ) ;
+	static bool fileRead( std::filebuf & , char * , std::size_t ) ;
+	static void scrub( char * , std::size_t ) noexcept ;
+	static void clear( std::vector<char> & ) ;
+
+private:
 	std::vector<char> m_buffer ;
 } ;
 

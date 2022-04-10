@@ -188,9 +188,6 @@ public:
 		///< line ending.
 		///< Precondition: more()
 
-	bool empty() const ;
-		///< Returns state().empty().
-
 	std::size_t eolsize() const ;
 		///< Returns the size of line-ending associated with the
 		///< current data(). This will be zero for a fixed-size

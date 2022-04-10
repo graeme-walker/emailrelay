@@ -166,7 +166,7 @@ private:
 	static std::string buildConfiguration() ;
 	G::Path appDir() const ;
 	std::unique_ptr<GSmtp::AdminServer> newAdminServer( GNet::ExceptionSink ,
-		const Configuration & , GSmtp::MessageStore & ,
+		const Configuration & , GSmtp::MessageStore & , GSmtp::FilterFactory & ,
 		G::Slot::Signal<const std::string&> & ,
 		const GNet::ServerPeerConfig & ,
 		const GNet::ServerConfig & , const GSmtp::Client::Config & ,
@@ -191,6 +191,7 @@ private:
 	std::unique_ptr<GSsl::Library> m_tls_library ;
 	std::unique_ptr<GNet::Monitor> m_monitor ;
 	std::unique_ptr<GSmtp::FileStore> m_store ;
+	std::unique_ptr<GSmtp::FilterFactory> m_filter_factory ;
 	std::unique_ptr<GAuth::Secrets> m_client_secrets ;
 	std::unique_ptr<GAuth::Secrets> m_server_secrets ;
 	std::unique_ptr<GAuth::Secrets> m_pop_secrets ;

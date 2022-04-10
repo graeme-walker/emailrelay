@@ -247,7 +247,7 @@ std::string GSmtp::EnvelopeImp::readValue( std::istream & stream , const std::st
 	// RFC-2822 unfolding
 	for(;;)
 	{
-		char c = stream.peek() ;
+		int c = stream.peek() ;
 		if( c == ' ' || c == '\t' )
 		{
 			std::string next_line = readLine( stream ) ;

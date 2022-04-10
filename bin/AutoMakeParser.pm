@@ -298,7 +298,7 @@ sub simplepath
 	for my $x ( @split )
 	{
 		next if( $x eq "" || $x eq "." ) ;
-		if( $x eq ".." && scalar(@out) && @out[-1] ne ".." )
+		if( $x eq ".." && scalar(@out) && $out[-1] ne ".." )
 		{
 			pop @out ;
 		}

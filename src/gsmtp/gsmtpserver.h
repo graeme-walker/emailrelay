@@ -24,6 +24,7 @@
 #include "gdef.h"
 #include "gmultiserver.h"
 #include "gsmtpclient.h"
+#include "gfilterfactory.h"
 #include "gdnsblock.h"
 #include "glinebuffer.h"
 #include "gverifier.h"
@@ -90,8 +91,8 @@ public:
 		Config & set_dnsbl_config( const std::string & ) ;
 	} ;
 
-	Server( GNet::ExceptionSink es , MessageStore & store ,
-		const GAuth::Secrets & client_secrets , const GAuth::Secrets & server_secrets ,
+	Server( GNet::ExceptionSink es , MessageStore & store , FilterFactory & ,
+		const GAuth::SaslClientSecrets & client_secrets , const GAuth::SaslServerSecrets & server_secrets ,
 		const Config & server_config , const std::string & forward_to ,
 		const GSmtp::Client::Config & client_config ) ;
 			///< Constructor. Listens on the given port number using INET_ANY
@@ -130,12 +131,13 @@ private:
 
 private:
 	MessageStore & m_store ;
+	FilterFactory & m_ff ;
 	Config m_server_config ;
 	Client::Config m_client_config ;
-	const GAuth::Secrets & m_server_secrets ;
+	const GAuth::SaslServerSecrets & m_server_secrets ;
 	std::string m_sasl_server_config ;
 	std::string m_forward_to ;
-	const GAuth::Secrets & m_client_secrets ;
+	const GAuth::SaslClientSecrets & m_client_secrets ;
 	std::string m_sasl_client_config ;
 	G::Slot::Signal<const std::string&,const std::string&> m_event_signal ;
 } ;
@@ -150,7 +152,7 @@ public:
 	G_EXCEPTION( SendError , "failed to send smtp response" ) ;
 
 	ServerPeer( GNet::ExceptionSinkUnbound , const GNet::ServerPeerInfo & peer_info , Server & server ,
-		const GAuth::Secrets & server_secrets , const Server::Config & server_config ,
+		const GAuth::SaslServerSecrets & server_secrets , const Server::Config & server_config ,
 		std::unique_ptr<ServerProtocol::Text> ptext ) ;
 			///< Constructor.
 

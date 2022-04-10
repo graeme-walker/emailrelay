@@ -67,7 +67,7 @@ public:
 		///< Opens the content file. Returns false on error.
 		///< Used by FileStore and FileIterator.
 
-	std::string name() const override ;
+	MessageId id() const override ;
 		///< Override from GSmtp::StoredMessage.
 
 	void edit( const G::StringArray & ) override ;
@@ -98,20 +98,20 @@ public:
 	void operator=( StoredFile && ) = delete ;
 
 private:
+	enum class State { Normal , Locked , Bad } ;
+	G::Path cpath() const ;
+	G::Path epath( State ) const ;
 	void readEnvelopeCore( bool check_recipients ) ;
 	const std::string & eol() const ;
 	G::Path contentPath() const ;
 	void addReason( const G::Path & path , const std::string & , int ) const ;
-	static G::Path badPath( const G::Path & ) ;
 
 private:
 	FileStore & m_store ;
 	std::unique_ptr<std::istream> m_content ;
-	G::Path m_envelope_path ;
-	G::Path m_old_envelope_path ;
-	std::string m_name ;
+	MessageId m_id ;
 	Envelope m_env ;
-	bool m_locked ;
+	State m_state ;
 } ;
 
 #endif

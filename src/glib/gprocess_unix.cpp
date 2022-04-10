@@ -235,9 +235,9 @@ std::string G::Process::exe()
 
 // ==
 
-G::Process::Id::Id() noexcept
+G::Process::Id::Id() noexcept :
+	m_pid(::getpid())
 {
-	m_pid = ::getpid() ;
 }
 
 std::string G::Process::Id::str() const

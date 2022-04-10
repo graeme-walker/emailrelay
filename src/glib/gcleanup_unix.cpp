@@ -186,9 +186,9 @@ void G::CleanupImp::installHandler( int signum )
 bool G::CleanupImp::ignored( int signum )
 {
 	struct ::sigaction action {} ;
-	if( ::sigaction( signum , nullptr , &action ) )
+	if( ::sigaction( signum , nullptr , &action ) != 0 )
 		throw Cleanup::Error( "sigaction" ) ;
-	return action.sa_handler == SIG_IGN ;
+	return action.sa_handler == SIG_IGN ; // NOLINT
 }
 
 void G::CleanupImp::installDefault( int signum )
@@ -203,7 +203,7 @@ void G::CleanupImp::installDefault( const G::SignalSafe & , int signum )
 
 void G::CleanupImp::installIgnore( int signum )
 {
-	install( signum , SIG_IGN , true ) ;
+	install( signum , SIG_IGN , true ) ; // NOLINT
 }
 
 void G::CleanupImp::install( int signum , Handler fn , bool do_throw )
@@ -211,7 +211,7 @@ void G::CleanupImp::install( int signum , Handler fn , bool do_throw )
 	// install the given handler, or the system default if null
 	struct ::sigaction action {} ;
 	action.sa_handler = fn ;
-	if( ::sigaction( signum , &action , nullptr ) && do_throw )
+	if( ::sigaction( signum , &action , nullptr ) != 0 && do_throw )
 		throw Cleanup::Error( "sigaction" ) ;
 }
 

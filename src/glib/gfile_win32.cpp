@@ -93,7 +93,7 @@ std::filebuf * G::File::open( std::filebuf & fb , const Path & path , InOut inou
 	inout == InOut::In ?
 		FileImp::open( fb , path.cstr() , std::ios_base::in | std::ios_base::binary ) :
 		FileImp::open( fb , path.cstr() , std::ios_base::out | std::ios_base::binary ) ;
-	return &fb ;
+	return fb.is_open() ? &fb : nullptr ;
 }
 
 int G::File::open( const char * path , InOutAppend mode ) noexcept
@@ -146,12 +146,16 @@ void G::File::close( int fd ) noexcept
 int G::File::mkdirImp( const Path & dir ) noexcept
 {
 	int rc = _mkdir( dir.cstr() ) ;
-	if( rc != 0 )
+	if( rc == 0 )
 	{
-		rc = G::Process::errno_() ;
-		if( rc == 0 ) rc = EINVAL ;
+		return 0 ;
 	}
-	return rc ;
+	else
+	{
+		int e = G::Process::errno_() ;
+		if( e == 0 ) e = EINVAL ;
+		return e ;
+	}
 }
 
 G::File::Stat G::File::statImp( const char * path , bool ) noexcept

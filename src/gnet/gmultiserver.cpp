@@ -44,8 +44,8 @@ GNet::MultiServer::MultiServer( ExceptionSink es , const G::StringArray & interf
 	m_interfaces.erase( std::unique(m_interfaces.begin(),m_interfaces.end()) , m_interfaces.end() ) ;
 
 	// build a listening address list from explicit addresses and/or interface names
-	G::StringArray empty_names ; // interface names having no addresses
 	G::StringArray used_names ; // interface names having one or more addresses
+	G::StringArray empty_names ; // interface names having no addresses
 	G::StringArray bad_names ; // non-address non-interface names
 	AddressList address_list = addresses( port , used_names , empty_names , bad_names ) ;
 

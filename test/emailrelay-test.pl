@@ -1298,7 +1298,8 @@ sub testScannerTimeout
 	$smtp_client->submit_line( "send foobar" ) ;
 	$smtp_client->submit_end( 1 ) ;
 	Check::fileDoesNotContain( $server->stderr() , "452 foobar" ) ;
-	Check::fileContains( $server->stderr() , "452 .*time.*out" ) ;
+	Check::fileContains( $server->stderr() , "filter done: ok=0 response=.failed. reason=.*timeout" ) ;
+	Check::fileContains( $server->stderr() , "452 failed" ) ;
 
 	# tear down
 	$server->kill() ;

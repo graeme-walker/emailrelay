@@ -353,7 +353,8 @@ sub create_touchfile
 sub read_makefiles
 {
 	my ( $switches , $vars ) = @_ ;
-	return AutoMakeParser::readall( "." , $switches , $vars , 1 ) ;
+	my $verbose = 1 ;
+	return AutoMakeParser::readall( "." , $switches , $vars , $verbose ) ;
 }
 
 sub cache_value

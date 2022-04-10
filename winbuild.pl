@@ -69,7 +69,7 @@ my $cmake_args = {
 } ;
 
 # version
-chomp( my $version = eval { FileHandle->new("VERSION")->gets() } || "2.2.1" ) ;
+chomp( my $version = eval { FileHandle->new("VERSION")->gets() } || "2.3" ) ;
 
 # makefile conditionals
 my %switches = (

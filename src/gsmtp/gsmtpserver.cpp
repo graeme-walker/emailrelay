@@ -76,7 +76,7 @@ std::string GSmtp::AnonymousText::received( const std::string & , bool , bool ,
 
 GSmtp::ServerPeer::ServerPeer( GNet::ExceptionSinkUnbound esu ,
 	const GNet::ServerPeerInfo & peer_info , Server & server ,
-	const GAuth::Secrets & server_secrets , const Server::Config & server_config ,
+	const GAuth::SaslServerSecrets & server_secrets , const Server::Config & server_config ,
 	std::unique_ptr<ServerProtocol::Text> ptext ) :
 		GNet::ServerPeer(esu.bind(this),peer_info,GNet::LineBufferConfig::transparent()) ,
 		m_server(server) ,
@@ -88,7 +88,7 @@ GSmtp::ServerPeer::ServerPeer( GNet::ExceptionSinkUnbound esu ,
 		m_pmessage(server.newProtocolMessage(esu.bind(this))) ,
 		m_ptext(ptext.release()) ,
 		m_line_buffer(GNet::LineBufferConfig::smtp()) ,
-		m_protocol(esu.bind(this),*this,*m_verifier,*m_pmessage,server_secrets,server_config.sasl_server_config,
+		m_protocol(*this,*m_verifier,*m_pmessage,server_secrets,server_config.sasl_server_config,
 			*m_ptext,peer_info.m_address,server_config.protocol_config)
 {
 	G_LOG_S( "GSmtp::ServerPeer: smtp connection from " << peer_info.m_address.displayString() ) ;
@@ -203,12 +203,13 @@ void GSmtp::ServerPeer::onCheckTimeout()
 
 // ===
 
-GSmtp::Server::Server( GNet::ExceptionSink es , MessageStore & store ,
-	const GAuth::Secrets & client_secrets , const GAuth::Secrets & server_secrets ,
+GSmtp::Server::Server( GNet::ExceptionSink es , MessageStore & store , FilterFactory & ff ,
+	const GAuth::SaslClientSecrets & client_secrets , const GAuth::SaslServerSecrets & server_secrets ,
 	const Config & server_config , const std::string & forward_to ,
 	const GSmtp::Client::Config & client_config ) :
 		GNet::MultiServer(es,server_config.interfaces,server_config.port,"smtp",server_config.server_peer_config,server_config.server_config) ,
 		m_store(store) ,
+		m_ff(ff) ,
 		m_server_config(server_config) ,
 		m_client_config(client_config) ,
 		m_server_secrets(server_secrets) ,
@@ -272,7 +273,7 @@ std::unique_ptr<GSmtp::ServerProtocol::Text> GSmtp::Server::newProtocolText( boo
 
 std::unique_ptr<GSmtp::Filter> GSmtp::Server::newFilter( GNet::ExceptionSink es ) const
 {
-	return FilterFactory::newFilter( es , true , m_server_config.filter_address , m_server_config.filter_timeout ) ;
+	return m_ff.newFilter( es , true , m_server_config.filter_address , m_server_config.filter_timeout ) ;
 }
 
 std::unique_ptr<GSmtp::ProtocolMessage> GSmtp::Server::newProtocolMessageStore( std::unique_ptr<Filter> filter )
@@ -284,7 +285,7 @@ std::unique_ptr<GSmtp::ProtocolMessage> GSmtp::Server::newProtocolMessageForward
 	std::unique_ptr<ProtocolMessage> pm )
 {
 	// wrap the given 'store' object in a 'forward' one
-	return std::make_unique<ProtocolMessageForward>( es , m_store , std::move(pm) , m_client_config ,
+	return std::make_unique<ProtocolMessageForward>( es , m_store , m_ff , std::move(pm) , m_client_config ,
 		m_client_secrets , m_forward_to ) ; // up-cast
 }
 

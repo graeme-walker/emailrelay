@@ -28,6 +28,7 @@
 #include "greadwrite.h"
 #include <string>
 #include <utility>
+#include <memory>
 
 namespace GSsl
 {

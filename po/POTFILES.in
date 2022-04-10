@@ -138,11 +138,10 @@
 ./src/gnet/glocation.cpp
 ./src/gnet/gtimer.cpp
 ./src/gnet/gtimerlist.cpp
-./src/gnet/gaddress_ipv6.cpp
+./src/gnet/gaddress.cpp
 ./src/gnet/gsocket_unix.cpp
 ./src/gnet/geventloggingcontext.cpp
 ./src/gnet/gconnection.cpp
-./src/gnet/gaddress_ipv4.cpp
 ./src/gnet/gclient.cpp
 ./src/gnet/gexceptionhandler.cpp
 ./src/gnet/gexceptionsource.cpp

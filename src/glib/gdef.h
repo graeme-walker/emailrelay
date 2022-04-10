@@ -1363,7 +1363,7 @@
 		#endif
 
 		#if ! GCONFIG_HAVE_CXX_ALIGNMENT
-			namespace std
+			namespace std // NOLINT
 			{
 				// missing in gcc 4.8.4 -- original copyright 2001-2016 FSF Inc, GPLv3
 				inline void * align( size_t align , size_t size , void * & ptr_inout , size_t & space ) noexcept

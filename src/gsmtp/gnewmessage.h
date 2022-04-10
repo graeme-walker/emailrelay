@@ -44,20 +44,22 @@ public:
 		///< Adds a line of content, typically ending with CR-LF.
 		///< Returns false on overflow.
 
-	virtual std::string prepare( const std::string & session_auth_id ,
+	virtual bool prepare( const std::string & session_auth_id ,
 		const std::string & peer_socket_address , const std::string & peer_certificate ) = 0 ;
 			///< Prepares to store the message in the message store.
-			///< Returns the location of the pre-commit()ed message,
-			///< or returns the empty string for a local-mailbox only
-			///< message that has already been fully written.
+			///< Returns true if a local-mailbox only message that
+			///< has been fully written and needs no commit().
 
 	virtual void commit( bool strict ) = 0 ;
 		///< Commits the prepare()d message to the store. Errors are
 		///< ignored (eg. missing files) if the 'strict' parameter
 		///< is false.
 
-	virtual unsigned long id() const = 0 ;
-		///< Returns the message's unique non-zero identifier.
+	virtual std::string location() const = 0 ;
+		///< Returns the message's unique location.
+
+	virtual MessageId id() const = 0 ;
+		///< Returns the message's unique identifier.
 
 	bool addTextLine( const std::string & ) ;
 		///< A convenience function that calls addText() taking

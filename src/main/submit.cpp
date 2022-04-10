@@ -64,7 +64,7 @@ G_EXCEPTION_CLASS( NoBody , "no body text" ) ;
 
 std::string versionNumber()
 {
-	return "2.2.1" ;
+	return "2.3" ;
 }
 
 static std::string writeFiles( const G::Path & spool_dir ,
@@ -75,7 +75,7 @@ static std::string writeFiles( const G::Path & spool_dir ,
 	// create the output file
 	//
 	std::string envelope_from = from.empty() ? "anonymous" : from ;
-	GSmtp::FileStore store( spool_dir , /*optimise_empty_test=*/true , /*max_size=*/0U , /*test_for_eight_bit=*/true ) ;
+	GSmtp::FileStore store( spool_dir , /*max_size=*/0U , /*test_for_eight_bit=*/true ) ;
 	std::unique_ptr<GSmtp::NewMessage> msg = store.newMessage( envelope_from , from_auth_in , from_auth_out ) ;
 
 	// add "To:" lines to the envelope
@@ -83,7 +83,7 @@ static std::string writeFiles( const G::Path & spool_dir ,
 	for( auto to : envelope_to_list )
 	{
 		G::Str::trim( to , {" \t\r\n",4U} ) ;
-		GSmtp::VerifierStatus status( to ) ;
+		GSmtp::VerifierStatus status = GSmtp::VerifierStatus::remote( to ) ;
 		msg->addTo( status.address , status.is_local ) ;
 	}
 
@@ -114,10 +114,10 @@ static std::string writeFiles( const G::Path & spool_dir ,
 	//
 	GNet::Address ip = GNet::Address::loopback( GNet::Address::Family::ipv4 ) ;
 	std::string auth_id = std::string() ;
-	std::string new_path = msg->prepare( auth_id , ip.hostPartString() , std::string() ) ;
+	msg->prepare( auth_id , ip.hostPartString() , std::string() ) ;
 	msg->commit( true ) ;
 
-	return new_path ; // content file
+	return store.contentPath(msg->id()).str() ;
 }
 
 static void copyIntoSubDirectories( const G::Path & content_path )

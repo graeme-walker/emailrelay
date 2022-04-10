@@ -28,9 +28,8 @@
 #include "gverifier.h"
 #include "gverifierstatus.h"
 #include "gsaslserver.h"
-#include "gsecrets.h"
+#include "gsaslserversecrets.h"
 #include "gstatemachine.h"
-#include "gtimer.h"
 #include "gexception.h"
 #include <utility>
 #include <memory>
@@ -122,8 +121,8 @@ public:
 		Config & set_allow_pipelining( bool = true ) ;
 	} ;
 
-	ServerProtocol( GNet::ExceptionSink , Sender & , Verifier & , ProtocolMessage & ,
-		const GAuth::Secrets & secrets , const std::string & sasl_server_config ,
+	ServerProtocol( Sender & , Verifier & , ProtocolMessage & ,
+		const GAuth::SaslServerSecrets & secrets , const std::string & sasl_server_config ,
 		Text & text , const GNet::Address & peer_address , const Config & config ) ;
 			///< Constructor.
 			///<
@@ -203,7 +202,6 @@ private:
 		eContent ,
 		eEot ,
 		eDone ,
-		eTimeout ,
 		eUnknown
 	} ;
 	enum class State
@@ -247,7 +245,6 @@ public:
 	void operator=( ServerProtocol && ) = delete ;
 
 private:
-	void onProcessTimeout() ;
 	void send( const char * ) ;
 	void send( std::string , bool = false ) ;
 	Event commandEvent( const std::string & ) const ;
@@ -257,7 +254,7 @@ private:
 	bool authenticationRequiresEncryption() const ;
 	void reset() ;
 	void badClientEvent() ;
-	void processDone( bool , unsigned long , const std::string & , const std::string & ) ; // ProtocolMessage::doneSignal()
+	void processDone( bool , const MessageId & , const std::string & , const std::string & ) ; // ProtocolMessage::doneSignal()
 	void prepareDone( bool , bool , std::string ) ;
 	bool isEndOfText( const EventData & ) const ;
 	bool isEscaped( const EventData & ) const ;
@@ -292,7 +289,7 @@ private:
 	void doStartTls( EventData , bool & ) ;
 	void doSecure( EventData , bool & ) ;
 	void doSecureGreeting( EventData , bool & ) ;
-	void verifyDone( const std::string & , const VerifierStatus & ) ;
+	void verifyDone( const VerifierStatus & ) ;
 	void sendBadFrom( const std::string & ) ;
 	void sendTooBig( bool disconnecting = false ) ;
 	void sendChallenge( const std::string & ) ;
@@ -336,7 +333,6 @@ private:
 	Verifier & m_verifier ;
 	Text & m_text ;
 	ProtocolMessage & m_message ;
-	GNet::Timer<ServerProtocol> m_process_timer ;
 	std::unique_ptr<GAuth::SaslServer> m_sasl ;
 	Config m_config ;
 	Fsm m_fsm ;

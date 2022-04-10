@@ -32,6 +32,7 @@
 #include "glog.h"
 #include <memory>
 #include <numeric>
+#include <algorithm>
 
 //| \class GNet::SocketProtocolImp
 /// A pimple-pattern implementation class used by GNet::SocketProtocol.
@@ -165,9 +166,7 @@ GNet::SocketProtocolImp::~SocketProtocolImp()
 
 void GNet::SocketProtocolImp::setReadBufferSize( std::size_t n )
 {
-	m_read_buffer_size = n ;
-	if( m_read_buffer_size == 0U )
-		m_read_buffer_size = 1U ;
+	m_read_buffer_size = std::max( std::size_t(1U) , n ) ;
 }
 
 void GNet::SocketProtocolImp::onSecureConnectionTimeout()
