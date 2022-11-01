@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,36 +23,34 @@
 
 #include "gdef.h"
 #include "gfilter.h"
-#include "gfilestore.h"
 #include "gfactoryparser.h"
 #include "gexceptionsink.h"
+#include "gexception.h"
 #include <string>
 #include <utility>
+#include <memory>
 
 namespace GSmtp
 {
 	class FilterFactory ;
 	class FilterFactoryFileStore ;
+	class FileStore ;
 }
 
 //| \class GSmtp::FilterFactory
-/// A factory interface for GSmtp::Filter message processors.
+/// A factory interface for making GSmtp::Filter message processors.
 ///
 class GSmtp::FilterFactory
 {
 public:
 	virtual std::unique_ptr<Filter> newFilter( GNet::ExceptionSink ,
-		bool server_side , const std::string & identifier , unsigned int timeout ) = 0 ;
-			///< Returns a Filter on the heap. The identifier
-			///< is normally prefixed with a processor type, or it
-			///< is the file system path of an exectuable.
+		bool server_side , const FactoryParser::Result & spec ,
+		unsigned int timeout , const std::string & log_prefix ) = 0 ;
+			///< Returns a Filter on the heap. Throws if an
+			///< invalid or unsupported specification.
 
 	virtual ~FilterFactory() = default ;
 		///< Destructor.
-
-	static std::string check( const std::string & identifier ) ;
-		///< Checks an identifier. Returns an empty string if okay,
-		///< or a diagnostic reason string.
 } ;
 
 //| \class GSmtp::FilterFactoryFileStore
@@ -68,16 +66,12 @@ public:
 		///< the content and envelope files that they process.
 
 	std::unique_ptr<Filter> newFilter( GNet::ExceptionSink ,
-		bool server_side , const std::string & identifier , unsigned int timeout ) override ;
+		bool server_side , const FactoryParser::Result & spec ,
+		unsigned int timeout , const std::string & log_prefix ) override ;
+			///< Override from FilterFactory.
 
 private:
 	FileStore & m_file_store ;
 } ;
-
-inline
-std::string GSmtp::FilterFactory::check( const std::string & identifier )
-{
-	return FactoryParser::check( identifier , true ) ;
-}
 
 #endif

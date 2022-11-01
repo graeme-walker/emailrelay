@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,9 +25,12 @@
 #include "garg.h"
 #include "goptions.h"
 #include "goptionmap.h"
+#include "gfactoryparser.h"
+#include "gdatetime.h"
 #include "gpath.h"
 #include "gstrings.h"
 #include "glogoutput.h"
+#include <vector>
 #include <string>
 
 namespace Main
@@ -44,7 +47,7 @@ namespace Main
 class Main::Configuration
 {
 public:
-	Configuration( const G::Options & , const G::OptionMap & , const G::Path & app_dir , const G::Path & base_dir ) ;
+	Configuration( const std::vector<G::Option> & , const G::OptionMap & , const G::Path & app_dir , const G::Path & base_dir ) ;
 		///< Constructor. The app-dir path is used as a substitution
 		///< value, and the base-dir path is used to turn relative paths
 		///< into absolute ones when daemon() is true.
@@ -64,8 +67,11 @@ public:
 	unsigned int port() const ;
 		///< Returns the main listening port number.
 
-	G::StringArray listeningAddresses( const std::string & protocol = std::string() ) const ;
-		///< Returns the listening addresses.
+	bool closeFiles() const ;
+		///< Returns true if the server should start by closing file descriptors.
+
+	G::StringArray listeningNames( const std::string & protocol = std::string() ) const ;
+		///< Returns the listening addresses, interfaces and file descriptors.
 
 	std::string clientBindAddress() const ;
 		///< Returns the sending address.
@@ -161,11 +167,11 @@ public:
 	bool useFilter() const ;
 		///< Returns true if pre-processing.
 
-	G::Path filter() const ;
-		///< Returns the path to a server-side pre-processor.
+	GSmtp::FactoryParser::Result filter() const ;
+		///< Returns the spec for the server-side pre-processor(s).
 
-	G::Path clientFilter() const ;
-		///< Returns the path to a client-side pre-processor.
+	GSmtp::FactoryParser::Result clientFilter() const ;
+		///< Returns the spec for the client-side pre-processor(s).
 
 	unsigned int filterTimeout() const ;
 		///< Returns the timeout for executing an ansynchronous
@@ -219,8 +225,8 @@ public:
 		///< Returns the name of an unprivileged user. This is only
 		///< used if running with a real user-id of root.
 
-	G::Path verifier() const ;
-		///< Returns the path of an external address verifier program.
+	GSmtp::FactoryParser::Result verifier() const ;
+		///< Returns the spec of an address verifier.
 
 	bool doPolling() const ;
 		///< Returns true if doing poll-based forwarding.
@@ -228,7 +234,7 @@ public:
 	bool pollingLog() const ;
 		///< Returns true if polling activity should be logged.
 
-	unsigned int pollingTimeout() const ;
+	G::TimeInterval pollingTimeout() const ;
 		///< Returns the timeout for periodic polling.
 
 	bool immediate() const ;
@@ -253,8 +259,20 @@ public:
 	unsigned int scannerResponseTimeout() const ;
 		///< Returns a timeout for talking to the scanner process.
 
-	bool anonymous() const ;
+	bool anonymousServerVrfy() const ;
+		///< Returns true if the server protocol should not
+		///< allow VRFY.
+
+	bool anonymousServerSmtp() const ;
 		///< Returns true if the server protocol should be
+		///< slightly more anonymous.
+
+	bool anonymousContent() const ;
+		///< Returns true if the server should not add a
+		///< received line.
+
+	bool anonymousClientSmtp() const ;
+		///< Returns true if the client protocol should be
 		///< slightly more anonymous.
 
 	bool clientTls() const ;
@@ -327,19 +345,20 @@ public:
 private:
 	G::Path pathValue( const std::string & option ) const ;
 	G::Path pathValueImp( const std::string & value ) const ;
+	GSmtp::FactoryParser::Result specValue( const std::string & , bool is_filter , G::StringArray * = nullptr ) const ;
 	G::Path keyFile( const std::string & option ) const ;
 	G::Path certificateFile( const std::string & option ) const ;
-	std::string semanticError( bool & ) const ;
 	static bool pathlike( const std::string & ) ;
 	static bool filterType( const std::string & ) ;
-	static bool specialFilterValue( const std::string & ) ;
 	static bool verifyType( const std::string & ) ;
 	static bool specialVerifyValue( const std::string & ) ;
 	G::StringArray semantics( bool ) const ;
 	bool validSyslogFacility() const ;
+	bool anonymous( G::string_view ) const ;
+	const char * semanticErrorImp( std::string & ) const ;
 
 private:
-	G::Options m_options ;
+	std::vector<G::Option> m_options ;
 	G::OptionMap m_map ;
 	G::Path m_app_dir ;
 	G::Path m_base_dir ;

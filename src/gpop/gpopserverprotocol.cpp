@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ GPop::ServerProtocol::ServerProtocol( Sender & sender , Security & security , St
 		m_security(security) ,
 		m_store(store) ,
 		m_store_lock(m_store) ,
-		m_sasl_server(GAuth::SaslServerFactory::newSaslServer(server_secrets,sasl_server_config,true)) ,
+		m_sasl_server(GAuth::SaslServerFactory::newSaslServer(server_secrets,true,sasl_server_config,false)) ,
 		m_peer_address(peer_address) ,
 		m_fsm(State::sStart,State::sEnd,State::s_Same,State::s_Any) ,
 		m_body_limit(-1L) ,
@@ -79,7 +79,7 @@ void GPop::ServerProtocol::init()
 void GPop::ServerProtocol::sendInit()
 {
 	std::string greeting = std::string() + "+OK " + m_text.greeting() ;
-	if( m_sasl_server->active() && m_sasl_server->init("APOP") )
+	if( m_sasl_server->init( m_secure , "APOP" ) )
 	{
 		m_sasl_server_init_apop = true ;
 		std::string apop_challenge = m_sasl_server->initialChallenge() ;
@@ -417,7 +417,7 @@ void GPop::ServerProtocol::doAuth( const std::string & line , bool & ok )
 		ss << "." ;
 		sendLines( ss ) ;
 	}
-	else if( m_sasl_server->requiresEncryption() && !m_secure )
+	else if( mechanisms().empty() )
 	{
 		// reject authentication over an unencrypted transport
 		// if authentication is sensitive
@@ -431,7 +431,7 @@ void GPop::ServerProtocol::doAuth( const std::string & line , bool & ok )
 			initial_response.clear() ; // RFC-5034
 
 		m_sasl_server_init_apop = false ;
-		if( !m_sasl_server->init( mechanism ) )
+		if( !m_sasl_server->init( m_secure , mechanism ) )
 		{
 			ok = false ;
 			sendError( "invalid mechanism" ) ;
@@ -507,13 +507,14 @@ void GPop::ServerProtocol::secure()
 
 bool GPop::ServerProtocol::mechanismsIncludePlain() const
 {
-	return m_sasl_server->active() && mechanisms().find("PLAIN") != std::string::npos ;
+	return mechanisms().find("PLAIN") != std::string::npos ;
 }
 
 std::string GPop::ServerProtocol::mechanisms() const
 {
-	if( G::Test::enabled("pop-server-sasl-plain") ) return "PLAIN" ;
-	return m_sasl_server->active() ? m_sasl_server->mechanisms(' ') : std::string() ;
+	G::StringArray m = m_sasl_server->mechanisms( m_secure ) ;
+	m.erase( std::remove( m.begin() , m.end() , "APOP" ) , m.end() ) ;
+	return G::Str::join( " " , m ) ;
 }
 
 void GPop::ServerProtocol::doCapa( const std::string & , bool & )
@@ -557,7 +558,7 @@ void GPop::ServerProtocol::doUser( const std::string & line , bool & )
 void GPop::ServerProtocol::doPass( const std::string & line , bool & ok )
 {
 	m_sasl_server_init_apop = false ;
-	if( !m_user.empty() && m_sasl_server->init("PLAIN") ) // (USER/PASS uses SASL PLAIN)
+	if( !m_user.empty() && m_sasl_server->init(m_secure,"PLAIN") ) // (USER/PASS uses SASL PLAIN)
 	{
 		std::string rsp = m_user + std::string(1U,'\0') + m_user + std::string(1U,'\0') + commandParameter(line) ;
 		bool done = false ;
@@ -582,7 +583,7 @@ void GPop::ServerProtocol::doPass( const std::string & line , bool & ok )
 
 void GPop::ServerProtocol::doApop( const std::string & line , bool & ok )
 {
-	if( m_sasl_server->active() && m_sasl_server_init_apop )
+	if( m_sasl_server_init_apop )
 	{
 		std::string rsp = commandParameter(line,1) + " " + commandParameter(line,2) ;
 		bool done = false ;
@@ -616,7 +617,7 @@ void GPop::ServerProtocol::sendLine( std::string line )
 void GPop::ServerProtocol::sendLines( std::ostringstream & ss )
 {
 	ss << crlf() ;
-	if( G::LogOutput::instance() && G::LogOutput::instance()->at(G::Log::Severity::s_InfoVerbose) )
+	if( G::LogOutput::instance() && G::LogOutput::instance()->at(G::Log::Severity::InfoVerbose) )
 	{
 		const std::string s = ss.str() ;
 		std::size_t lines = std::count( s.begin() , s.end() , '\n' ) ;

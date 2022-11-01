@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 namespace G
 {
 
-G_EXCEPTION_CLASS( StateMachine_Error , "invalid state machine transition" ) ;
+G_EXCEPTION_CLASS( StateMachine_Error , tx("invalid state machine transition") ) ;
 
 //| \class StateMachine
 /// A finite state machine class template.

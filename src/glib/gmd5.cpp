@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -58,6 +58,11 @@ public:
 	explicit digest( const std::string & s ) ;
 		// Constuctor. Calculates a digest for the given
 		// message string. Do not use add() with this
+		// constructor.
+
+	explicit digest( G::string_view ) ;
+		// Constuctor. Calculates a digest for the given
+		// message data. Do not use add() with this
 		// constructor.
 
 	explicit digest( digest_state ) ;
@@ -127,14 +132,13 @@ public:
 class G::Md5Imp::block
 {
 public:
-	block( const std::string & s , small_t block_offset , big_t end_value ) ;
-		// Constructor. Unusually, the string reference is
-		// kept, so beware of binding temporaries.
+	block( const char * data_p , std::size_t data_n , small_t block_offset , big_t end_value ) ;
+		// Constructor. The data pointer is kept.
 		//
 		// The 'block-offset' indicates, in units of 64-character
-		// blocks, how far down 's' the current block's data is.
+		// blocks, how far into 'p' the current block's data is.
 		//
-		// The string must hold at least 64 bytes beyond the
+		// The data pointer must have at least 64 bytes beyond the
 		// 'block-offset' point, except for the last block in
 		// a message sequence. Note that this is the number
 		// of blocks, not the number of bytes.
@@ -162,15 +166,16 @@ public:
 	~block() = default ;
 	block( const block & ) = delete ;
 	block( block && ) = delete ;
-	void operator=( const block & ) = delete ;
-	void operator=( block && ) = delete ;
+	block & operator=( const block & ) = delete ;
+	block & operator=( block && ) = delete ;
 
 private:
 	small_t x( small_t ) const ;
 	static small_t rounded( small_t n ) ;
 
 private:
-	const std::string & m_s ;
+	const char * m_p ;
+	std::size_t m_n ;
 	small_t m_block ;
 	big_t m_end_value ;
 } ;
@@ -187,10 +192,22 @@ G::Md5Imp::digest::digest( const std::string & s ) :
 	digest_state{}
 {
 	init() ;
-	small_t n = block::blocks( s.length() ) ;
-	for( small_t i = 0U ; i < n ; ++i )
+	small_t nblocks = block::blocks( s.size() ) ;
+	for( small_t i = 0U ; i < nblocks ; ++i )
 	{
-		block blk( s , i , block::end(s.length()) ) ;
+		block blk( s.data() , s.size() , i , block::end(s.size()) ) ;
+		add( blk ) ;
+	}
+}
+
+G::Md5Imp::digest::digest( string_view sv ) :
+	digest_state{}
+{
+	init() ;
+	small_t nblocks = block::blocks( sv.size() ) ;
+	for( small_t i = 0U ; i < nblocks ; ++i )
+	{
+		block blk( sv.data() , sv.size() , i , block::end(sv.size()) ) ;
 		add( blk ) ;
 	}
 }
@@ -327,7 +344,7 @@ G::Md5Imp::big_t G::Md5Imp::digest::T( small_t i )
 {
 	// T = static_cast<big_t>( 4294967296.0 * std::fabs(std::sin(static_cast<double>(i))) ) for 1 <= i <= 64
 	//
-	static std::array<big_t,64U> t_map {{
+	static constexpr std::array<big_t,64U> t_map {{
 		0xd76aa478UL ,
 		0xe8c7b756UL ,
 		0x242070dbUL ,
@@ -393,7 +410,7 @@ G::Md5Imp::big_t G::Md5Imp::digest::T( small_t i )
 		0x2ad7d2bbUL ,
 		0xeb86d391UL }} ;
 	G_ASSERT( i > 0 && i <= t_map.size() ) ;
-	return t_map[i-1U] ;
+	return t_map.at(i-1U) ;
 }
 
 // ===
@@ -424,8 +441,9 @@ G::Md5Imp::digest_state G::Md5Imp::format::decode( const std::string & str , sma
 
 // ===
 
-G::Md5Imp::block::block( const std::string & s , small_t block_in , big_t end_value ) :
-	m_s(s) ,
+G::Md5Imp::block::block( const char * data_p , std::size_t data_n , small_t block_in , big_t end_value ) :
+	m_p(data_p) ,
+	m_n(data_n) ,
 	m_block(block_in) ,
 	m_end_value(end_value)
 {
@@ -462,10 +480,10 @@ G::Md5Imp::big_t G::Md5Imp::block::X( small_t dword_index ) const
 
 G::Md5Imp::small_t G::Md5Imp::block::x( small_t i ) const
 {
-	small_t length = m_s.length() ;
+	small_t length = m_n ;
 	if( i < length )
 	{
-		return static_cast<unsigned char>(m_s[i]) ;
+		return static_cast<unsigned char>(m_p[i]) ;
 	}
 	else if( i < rounded(length) )
 	{
@@ -507,15 +525,27 @@ std::string G::Md5::state() const
 	return Md5Imp::format::encode( m_d , m_n ) ;
 }
 
+void G::Md5::add( const char * data_p , std::size_t data_n )
+{
+	m_s.append( data_p , data_n ) ;
+	m_n += data_n ;
+	consume() ;
+}
+
 void G::Md5::add( const std::string & data )
 {
-	// add complete blocks and keep the residue in m_s
+	m_s.append( data ) ;
+	m_n += data.size() ;
+	consume() ;
+}
+
+void G::Md5::consume()
+{
+	// consume complete blocks and keep the residue in m_s
 	Md5Imp::digest dd( m_d ) ;
-	m_s.append( data ) ; // could do better
-	m_n += data.length() ;
 	while( m_s.length() >= 64U )
 	{
-		Md5Imp::block blk( m_s , 0U , 0UL ) ;
+		Md5Imp::block blk( m_s.data() , m_s.size() , 0U , 0UL ) ;
 		dd.add( blk ) ;
 		m_s.erase( 0U , 64U ) ;
 	}
@@ -525,7 +555,7 @@ void G::Md5::add( const std::string & data )
 std::string G::Md5::value()
 {
 	Md5Imp::digest dd( m_d ) ;
-	Md5Imp::block blk( m_s , 0U , Md5Imp::block::end(m_n) ) ;
+	Md5Imp::block blk( m_s.data() , m_s.size() , 0U , Md5Imp::block::end(m_n) ) ;
 	dd.add( blk ) ;
 	m_s.erase() ;
 	m_d = dd.state() ;
@@ -538,11 +568,25 @@ std::string G::Md5::digest( const std::string & input )
 	return Md5Imp::format::encode( dd.state() ) ;
 }
 
+std::string G::Md5::digest( string_view input )
+{
+	Md5Imp::digest dd( input ) ;
+	return Md5Imp::format::encode( dd.state() ) ;
+}
+
 std::string G::Md5::digest( const std::string & input_1 , const std::string & input_2 )
 {
 	G::Md5 x ;
 	x.add( input_1 ) ;
 	x.add( input_2 ) ;
+	return x.value() ;
+}
+
+std::string G::Md5::digest( G::string_view input_1 , G::string_view input_2 )
+{
+	G::Md5 x ;
+	x.add( input_1.data() , input_1.size() ) ;
+	x.add( input_2.data() , input_2.size() ) ;
 	return x.value() ;
 }
 

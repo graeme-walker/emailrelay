@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -52,8 +52,8 @@ public:
 	~ExecutableVerifier() override = default ;
 	ExecutableVerifier( const ExecutableVerifier & ) = delete ;
 	ExecutableVerifier( ExecutableVerifier && ) = delete ;
-	void operator=( const ExecutableVerifier & ) = delete ;
-	void operator=( ExecutableVerifier && ) = delete ;
+	ExecutableVerifier & operator=( const ExecutableVerifier & ) = delete ;
+	ExecutableVerifier & operator=( ExecutableVerifier && ) = delete ;
 
 private:
 	G::Path m_path ;

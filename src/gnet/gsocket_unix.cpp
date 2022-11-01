@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -149,18 +149,19 @@ std::string GNet::SocketBase::reasonString( int e )
 
 // ==
 
-std::string GNet::Socket::canBindHint( const Address & address , bool stream )
+std::string GNet::Socket::canBindHint( const Address & address , bool stream , const Config & config )
 {
 	if( address.family() == Address::Family::ipv4 || address.family() == Address::Family::ipv6 )
 	{
 		if( stream )
 		{
-			StreamSocket s( address.family() ) ;
+			StreamSocket s( address.family() , StreamSocket::Config(config) ) ;
 			return s.bind( address , std::nothrow ) ? std::string() : s.reason() ;
 		}
 		else
 		{
-			DatagramSocket s( address.family() ) ;
+			int protocol = 0 ;
+			DatagramSocket s( address.family() , protocol , DatagramSocket::Config(config) ) ;
 			return s.bind( address , std::nothrow ) ? std::string() : s.reason() ;
 		}
 	}
@@ -227,5 +228,18 @@ GNet::SocketBase::ssize_type GNet::RawSocket::read( char * buffer , size_type le
 GNet::SocketBase::ssize_type GNet::RawSocket::write( const char * buffer , size_type length )
 {
 	return writeImp( buffer , length ) ; // SocketBase
+}
+
+// ==
+
+std::size_t GNet::DatagramSocket::limit() const
+{
+	int value = 0 ;
+	socklen_t size = sizeof(int) ;
+	int rc = ::getsockopt( fd() , SOL_SOCKET , SO_SNDBUF , &value , &size ) ;
+	if( rc == 0 && size == sizeof(int) && value > 1024 )
+		return static_cast<std::size_t>(value) ;
+	else
+		return 1024U ;
 }
 

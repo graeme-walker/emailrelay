@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -65,7 +65,7 @@ mo: emailrelay.$(LANG).mo
 
 emailrelay.pot:
 	@rm emailrelay.pot 2>/dev/null || true
-	xgettext -i --no-wrap --package-name=$(PACKAGE_NAME) --package-version=$(PACKAGE_VERSION) --c++ -o emailrelay.pot `find $(top_srcdir)/src -name *.cpp -o -name *.h | grep -v gui/`
+	cd $(top_srcdir)/src ; xgettext -i --no-wrap --keyword=txt --keyword=tx --package-name=$(PACKAGE_NAME) --package-version=$(PACKAGE_VERSION) --c++ --force-po -o ../po/emailrelay.pot `find . -name *.cpp -o -name *.h`
 
 emailrelay.$(LANG).mo: emailrelay.$(LANG).po
 	msgfmt -o $@ $<

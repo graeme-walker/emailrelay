@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include "gdef.h"
 #include "gvalid.h"
 #include "gsecret.h"
+#include "gstringview.h"
 
 namespace GAuth
 {
@@ -38,7 +39,7 @@ namespace GAuth
 class GAuth::SaslClientSecrets : public virtual Valid
 {
 public:
-	virtual Secret clientSecret( const std::string & type ) const = 0 ;
+	virtual Secret clientSecret( G::string_view type ) const = 0 ;
 		///< Returns the client secret for the given type.
 		///< The type is "plain" or the CRAM hash algorithm or "oauth".
 		///< Returns an invalid secret if none.

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #define G_XTEXT_H
 
 #include "gdef.h"
+#include "gstringview.h"
 #include <string>
 
 namespace G
@@ -36,18 +37,18 @@ namespace G
 class G::Xtext
 {
 public:
-	static std::string encode( const std::string & ) ;
+	static std::string encode( string_view ) ;
 		///< Encodes the given string.
 
-	static std::string decode( const std::string & ) ;
+	static std::string decode( string_view ) ;
 		///< Decodes the given string. Input strings must be
 		///< un-strictly valid(), otherwise the result is
 		///< undefined.
 
-	static bool valid( const std::string & , bool strict = false ) ;
-		///< Returns true if a valid encoding. If strict
-		///< then 'equals' and 'space' are disallowed and
-		///< hex characters must be uppercase (eg. "+1A").
+	static bool valid( string_view , bool strict = false ) ;
+		///< Returns true if a valid encoding, or empty. If
+		///< strict then 'equals' and 'space' are disallowed
+		///< and hex characters must be uppercase (eg. "+1A").
 
 public:
 	Xtext() = delete ;

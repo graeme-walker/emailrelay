@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 #define G_MAIN_WIN_FORM_H
 
 #include "gdef.h"
-#include "gstrings.h"
+#include "gstringarray.h"
 #include "gdialog.h"
 #include "gstack.h"
 #include "gcontrol.h"
@@ -80,8 +80,8 @@ public:
 	~WinForm() = default ;
 	WinForm( const WinForm & ) = delete ;
 	WinForm( WinForm && ) = delete ;
-	void operator=( const WinForm & ) = delete ;
-	void operator=( WinForm && ) = delete ;
+	WinForm & operator=( const WinForm & ) = delete ;
+	WinForm & operator=( WinForm && ) = delete ;
 
 private:
 	static void add( G::StringArray & s , const std::string & key , const std::string & value ) ;

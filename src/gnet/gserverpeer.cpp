@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,18 +21,20 @@
 #include "gdef.h"
 #include "gserver.h"
 #include "gmonitor.h"
+#include "gtest.h"
 #include "glog.h"
 #include "gassert.h"
 #include <sstream>
+#include <utility>
 
-GNet::ServerPeer::ServerPeer( ExceptionSink es , const ServerPeerInfo & peer_info ,
-	const LineBufferConfig & line_buffer_config ) :
-		m_address(peer_info.m_address) ,
-		m_socket(peer_info.m_socket) ,
-		m_sp(*this,es,*this,*m_socket,0U) ,
-		m_line_buffer(line_buffer_config) ,
-		m_config(peer_info.m_config) ,
-		m_idle_timer(*this,&ServerPeer::onIdleTimeout,es)
+GNet::ServerPeer::ServerPeer( ExceptionSink es , ServerPeerInfo && peer_info , const LineBufferConfig & line_buffer_config ) :
+	m_es(es) ,
+	m_address(peer_info.m_address) ,
+	m_socket(std::move(peer_info.m_socket)) ,
+	m_sp(*this,es,*this,*m_socket,peer_info.m_server_peer_config.socket_protocol_config) ,
+	m_line_buffer(line_buffer_config) ,
+	m_config(peer_info.m_server_peer_config) ,
+	m_idle_timer(*this,&ServerPeer::onIdleTimeout,es)
 {
 	G_ASSERT( peer_info.m_server != nullptr ) ;
 	G_ASSERT( m_socket.get() ) ;
@@ -58,6 +60,11 @@ void GNet::ServerPeer::secureAccept()
 	m_sp.secureAccept() ;
 }
 
+bool GNet::ServerPeer::secureAcceptCapable() const
+{
+	return m_sp.secureAcceptCapable() ;
+}
+
 void GNet::ServerPeer::expect( std::size_t n )
 {
 	m_line_buffer.expect( n ) ;
@@ -69,25 +76,36 @@ GNet::StreamSocket & GNet::ServerPeer::socket()
 	return *m_socket ;
 }
 
+void GNet::ServerPeer::dropReadHandler()
+{
+	socket().dropReadHandler() ;
+}
+
+void GNet::ServerPeer::addReadHandler()
+{
+	socket().addReadHandler( *this , m_es ) ;
+}
+
 void GNet::ServerPeer::otherEvent( EventHandler::Reason reason )
 {
-	m_sp.otherEvent( reason ) ;
+	m_sp.otherEvent( reason , m_config.no_throw_on_peer_disconnect ) ;
 }
 
 void GNet::ServerPeer::readEvent()
 {
-	m_sp.readEvent() ;
+	if( m_sp.readEvent( m_config.no_throw_on_peer_disconnect ) )
+		onSendComplete() ;
 }
 
-std::pair<bool,GNet::Address> GNet::ServerPeer::localAddress() const
+GNet::Address GNet::ServerPeer::localAddress() const
 {
 	G_ASSERT( m_socket != nullptr ) ;
-	return std::make_pair( true , m_socket->getLocalAddress() ) ;
+	return m_socket->getLocalAddress() ;
 }
 
-std::pair<bool,GNet::Address> GNet::ServerPeer::peerAddress() const
+GNet::Address GNet::ServerPeer::peerAddress() const
 {
-	return std::pair<bool,Address>( true , m_address ) ;
+	return m_address ;
 }
 
 std::string GNet::ServerPeer::connectionState() const
@@ -100,14 +118,19 @@ std::string GNet::ServerPeer::peerCertificate() const
 	return m_sp.peerCertificate() ;
 }
 
-bool GNet::ServerPeer::send( const std::string & data , std::string::size_type offset )
+bool GNet::ServerPeer::send( const std::string & data )
 {
-	return m_sp.send( data , offset ) ;
+	return m_sp.send( data , 0U ) ;
 }
 
-bool GNet::ServerPeer::send( const std::vector<G::string_view> & segments )
+bool GNet::ServerPeer::send( G::string_view data )
 {
-	return m_sp.send( segments ) ;
+	return m_sp.send( data ) ;
+}
+
+bool GNet::ServerPeer::send( const std::vector<G::string_view> & segments , std::size_t offset )
+{
+	return m_sp.send( segments , offset ) ;
 }
 
 void GNet::ServerPeer::writeEvent()
@@ -153,26 +176,27 @@ std::string GNet::ServerPeer::exceptionSourceId() const
 {
 	if( m_exception_source_id.empty() )
 	{
-		std::pair<bool,Address> pair = peerAddress() ; // GNet::Connection
-		if( pair.first )
-			m_exception_source_id = pair.second.hostPartString() ;
+		m_exception_source_id = peerAddress().hostPartString() ; // GNet::Connection
+		if( G::Test::enabled("log-full-address") )
+			m_exception_source_id = peerAddress().displayString() ;
 	}
 	return m_exception_source_id ;
 }
 
-// ==
-
-GNet::ServerPeerConfig::ServerPeerConfig()
-= default;
-
-GNet::ServerPeerConfig::ServerPeerConfig( unsigned int idle_timeout_in ) :
-	idle_timeout(idle_timeout_in)
+void GNet::ServerPeer::setIdleTimeout( unsigned int s )
 {
+	m_config.idle_timeout = s ;
+	m_idle_timer.cancelTimer() ;
+	if( m_config.idle_timeout )
+		m_idle_timer.startTimer( m_config.idle_timeout ) ;
 }
 
-GNet::ServerPeerConfig & GNet::ServerPeerConfig::set_idle_timeout( unsigned int t )
+void GNet::ServerPeer::finish()
 {
-	idle_timeout = t ;
-	return *this ;
+	m_sp.shutdown() ;
+}
+
+void GNet::ServerPeer::onPeerDisconnect()
+{
 }
 

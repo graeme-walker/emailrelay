@@ -1,4 +1,4 @@
-dnl Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+dnl Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 dnl 
 dnl This program is free software: you can redistribute it and/or modify
 dnl it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@ dnl
 dnl Process this file with autoconf to produce a configure script.
 dnl
 
-AC_INIT([E-MailRelay],[2.3.1],[],[emailrelay])
+AC_INIT([E-MailRelay],[2.4],[],[emailrelay])
 AC_CONFIG_SRCDIR([src/glib/gdef.h])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([no-define])
@@ -71,18 +71,13 @@ GCONFIG_FN_QT_BUILD
 GCONFIG_FN_TLS_OPENSSL
 GCONFIG_FN_TLS_MBEDTLS
 
-dnl possibly enable full gettext support -- uncomment this after running
-dnl 'gettextize' and remove the other gettext lines below
-dnl
-dnl AM_GNU_GETTEXT([external])
-
 dnl "--enable-whatever"
 dnl
 AC_ARG_ENABLE([bsd],AS_HELP_STRING([--enable-bsd],[enable building for bsd (default auto)]))
 GCONFIG_FN_ENABLE_BSD
 AC_ARG_ENABLE([debug],AS_HELP_STRING([--enable-debug],[enable extra debug messages at compile-time (default no)]))
 GCONFIG_FN_ENABLE_DEBUG
-AC_ARG_ENABLE([epoll],AS_HELP_STRING([--enable-epoll],[enable epoll (default no)]))
+AC_ARG_ENABLE([epoll],AS_HELP_STRING([--enable-epoll],[enable epoll (default auto)]))
 GCONFIG_FN_ENABLE_EPOLL
 AC_ARG_ENABLE([gui],AS_HELP_STRING([--enable-gui],[enable configuration gui (requires Qt) (default auto)]))
 GCONFIG_FN_ENABLE_GUI
@@ -100,6 +95,10 @@ AC_ARG_ENABLE([verbose],AS_HELP_STRING([--enable-verbose],[enable verbose loggin
 GCONFIG_FN_ENABLE_VERBOSE
 AC_ARG_ENABLE([windows],AS_HELP_STRING([--enable-windows],[enable building for windows (default auto)]))
 GCONFIG_FN_ENABLE_WINDOWS
+AC_ARG_ENABLE([uds],AS_HELP_STRING([--enable-uds],[enable unix domain sockets (default auto)]))
+GCONFIG_FN_ENABLE_UDS
+AC_ARG_ENABLE([dnsbl],AS_HELP_STRING([--enable-dnsbl],[enable DNSBL (default yes)]))
+GCONFIG_FN_ENABLE_DNSBL
 
 dnl "--with-whatever"
 dnl
@@ -114,8 +113,6 @@ AC_ARG_WITH([mbedtls],AS_HELP_STRING([--with-mbedtls],[use mbedtls for tls layer
 GCONFIG_FN_TLS
 AC_ARG_WITH([pam],AS_HELP_STRING([--with-pam],[use linux pam for authentication (default auto)]))
 GCONFIG_FN_WITH_PAM
-AC_ARG_WITH([uds],AS_HELP_STRING([--with-uds],[enable unix domain sockets (default auto)]))
-GCONFIG_FN_WITH_UDS
 
 dnl directory tweaking -- define e_ prefixed directory variables
 dnl
@@ -124,7 +121,7 @@ GCONFIG_FN_SET_DIRECTORIES_E
 
 dnl generate files
 dnl
-AC_CONFIG_FILES([Makefile src/Makefile src/glib/Makefile src/gssl/Makefile src/gnet/Makefile src/gauth/Makefile src/gsmtp/Makefile src/gpop/Makefile src/main/Makefile src/main/icon/Makefile src/win32/Makefile src/gui/Makefile bin/Makefile doc/Makefile etc/Makefile test/Makefile test/certificates/Makefile m4/Makefile bsd/Makefile debian/Makefile po/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile src/glib/Makefile src/gssl/Makefile src/gnet/Makefile src/gauth/Makefile src/gsmtp/Makefile src/gpop/Makefile src/main/Makefile src/main/icon/Makefile src/win32/Makefile src/gui/Makefile bin/Makefile doc/Makefile etc/Makefile test/Makefile test/certificates/Makefile m4/Makefile bsd/Makefile debian/Makefile po/Makefile unity/Makefile])
 AC_OUTPUT
 
 dnl final warnings

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -74,8 +74,8 @@ public:
 public:
 	DeviceContext( const DeviceContext & ) = delete ;
 	DeviceContext( DeviceContext && ) = delete ;
-	void operator=( const DeviceContext & ) = delete ;
-	void operator=( DeviceContext && ) = delete ;
+	DeviceContext & operator=( const DeviceContext & ) = delete ;
+	DeviceContext & operator=( DeviceContext && ) = delete ;
 
 private:
 	HDC m_hdc ;
@@ -121,8 +121,8 @@ public:
 public:
 	ScreenDeviceContext( const ScreenDeviceContext & ) = delete ;
 	ScreenDeviceContext( ScreenDeviceContext && ) = delete ;
-	void operator=( const ScreenDeviceContext & ) = delete ;
-	void operator=( ScreenDeviceContext && ) = delete ;
+	ScreenDeviceContext & operator=( const ScreenDeviceContext & ) = delete ;
+	ScreenDeviceContext & operator=( ScreenDeviceContext && ) = delete ;
 
 private:
 	HDC m_dc ;

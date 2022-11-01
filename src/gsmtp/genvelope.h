@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 #define G_SMTP_ENVELOPE_H
 
 #include "gdef.h"
-#include "gstrings.h"
+#include "gstringarray.h"
 #include "gexception.h"
 #include <iostream>
 
@@ -38,7 +38,7 @@ namespace GSmtp
 class GSmtp::Envelope
 {
 public:
-	G_EXCEPTION( ReadError , "cannot read envelope file" ) ;
+	G_EXCEPTION( ReadError , tx("cannot read envelope file") ) ;
 
 public:
 	static void read( std::istream & , Envelope & ) ;
@@ -69,6 +69,8 @@ public:
 	std::string m_client_certificate ;
 	std::string m_from_auth_in ;
 	std::string m_from_auth_out ;
+	std::string m_forward_to ;
+	std::string m_forward_to_address ;
 	std::size_t m_endpos{0U} ;
 } ;
 

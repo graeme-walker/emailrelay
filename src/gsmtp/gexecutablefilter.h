@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -43,7 +43,8 @@ class GSmtp::ExecutableFilter : public Filter, private GNet::TaskCallback
 {
 public:
 	ExecutableFilter( GNet::ExceptionSink , FileStore & , bool server_side ,
-		const std::string & path , unsigned int timeout ) ;
+		const std::string & path , unsigned int timeout ,
+		const std::string & log_prefix ) ;
 			///< Constructor.
 
 	~ExecutableFilter() override ;
@@ -64,8 +65,8 @@ private: // overrides
 public:
 	ExecutableFilter( const ExecutableFilter & ) = delete ;
 	ExecutableFilter( ExecutableFilter && ) = delete ;
-	void operator=( const ExecutableFilter & ) = delete ;
-	void operator=( ExecutableFilter && ) = delete ;
+	ExecutableFilter & operator=( const ExecutableFilter & ) = delete ;
+	ExecutableFilter & operator=( ExecutableFilter && ) = delete ;
 
 private:
 	std::pair<std::string,std::string> parseOutput( std::string , const std::string & ) const ;

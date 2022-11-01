@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,11 +31,11 @@
 #include "gstr.h"
 #include <utility>
 
-GSmtp::AdminServerPeer::AdminServerPeer( GNet::ExceptionSinkUnbound esu , const GNet::ServerPeerInfo & peer_info ,
+GSmtp::AdminServerPeer::AdminServerPeer( GNet::ExceptionSinkUnbound esu , GNet::ServerPeerInfo && peer_info ,
 	AdminServer & server , const std::string & remote_address ,
 	const G::StringMap & info_commands , const G::StringMap & config_commands ,
 	bool with_terminate ) :
-		GNet::ServerPeer(esu.bind(this),peer_info,GNet::LineBufferConfig::autodetect()) ,
+		GNet::ServerPeer(esu.bind(this),std::move(peer_info),GNet::LineBufferConfig::autodetect()) ,
 		m_es(esu.bind(this)) ,
 		m_server(server) ,
 		m_prompt("E-MailRelay> ") ,
@@ -46,7 +46,7 @@ GSmtp::AdminServerPeer::AdminServerPeer( GNet::ExceptionSinkUnbound esu , const 
 		m_config_commands(config_commands) ,
 		m_with_terminate(with_terminate)
 {
-	G_LOG_S( "GSmtp::AdminServerPeer: admin connection from " << peer_info.m_address.displayString() ) ;
+	G_LOG_S( "GSmtp::AdminServerPeer: admin connection from " << peerAddress().displayString() ) ;
 	m_client_ptr.deletedSignal().connect( G::Slot::slot(*this,&AdminServerPeer::clientDone) ) ;
 	// dont prompt here -- it confuses some clients
 }
@@ -67,7 +67,7 @@ void GSmtp::AdminServerPeer::clientDone( const std::string & s )
 void GSmtp::AdminServerPeer::onDelete( const std::string & reason )
 {
 	G_LOG_S( "GSmtp::AdminServerPeer: admin connection closed: " << reason << (reason.empty()?"":": ")
-		<< peerAddress().second.displayString() ) ;
+		<< peerAddress().displayString() ) ;
 }
 
 void GSmtp::AdminServerPeer::onSecure( const std::string & , const std::string & , const std::string & )
@@ -122,7 +122,7 @@ bool GSmtp::AdminServerPeer::onReceive( const char * line_data , std::size_t lin
 	else if( is(line,"terminate") && m_with_terminate )
 	{
 		G_LOG_S( "GSmtp::AdminServerPeer::onReceive: received a terminate command from "
-			<< peerAddress().second.displayString() ) ;
+			<< peerAddress().displayString() ) ;
 		if( GNet::EventLoop::exists() )
 			GNet::EventLoop::instance().quit("") ;
 	}
@@ -130,7 +130,7 @@ bool GSmtp::AdminServerPeer::onReceive( const char * line_data , std::size_t lin
 	{
 		std::string arg = argument( line ) ;
 		if( arg.empty() || !find(arg,m_info_commands).first )
-			sendLine( "usage: info {" + G::Str::join("|",G::Str::keySet(m_info_commands)) + "}" ) ;
+			sendLine( "usage: info {" + G::Str::join("|",G::Str::keys(m_info_commands)) + "}" ) ;
 		else
 			sendLine( find(arg,m_info_commands).second ) ;
 	}
@@ -140,7 +140,7 @@ bool GSmtp::AdminServerPeer::onReceive( const char * line_data , std::size_t lin
 		if( arg.empty() )
 			sendLine( G::Str::join( eol() , m_config_commands , "=[" , "]" ) ) ;
 		else if( !find(arg,m_config_commands).first )
-			sendLine( "usage: config [{" + G::Str::join("|",G::Str::keySet(m_config_commands)) + "}]" ) ;
+			sendLine( "usage: config [{" + G::Str::join("|",G::Str::keys(m_config_commands)) + "}]" ) ;
 		else
 			sendLine( find(arg,m_config_commands).second ) ;
 	}
@@ -187,20 +187,20 @@ std::pair<bool,std::string> GSmtp::AdminServerPeer::find( const std::string & li
 
 void GSmtp::AdminServerPeer::help()
 {
-	std::set<std::string> commands ;
-	commands.insert( "flush" ) ;
-	commands.insert( "forward" ) ;
-	commands.insert( "help" ) ;
-	commands.insert( "status" ) ;
-	commands.insert( "list" ) ;
-	commands.insert( "failures" ) ;
-	commands.insert( "unfail-all" ) ;
-	commands.insert( "notify" ) ;
-	commands.insert( "pid" ) ;
-	commands.insert( "quit" ) ;
-	if( !m_info_commands.empty() ) commands.insert( "info" ) ;
-	if( !m_config_commands.empty() ) commands.insert( "config" ) ;
-	if( m_with_terminate ) commands.insert( "terminate" ) ;
+	G::StringArray commands ;
+	commands.push_back( "flush" ) ;
+	commands.push_back( "forward" ) ;
+	commands.push_back( "help" ) ;
+	commands.push_back( "status" ) ;
+	commands.push_back( "list" ) ;
+	commands.push_back( "failures" ) ;
+	commands.push_back( "unfail-all" ) ;
+	commands.push_back( "notify" ) ;
+	commands.push_back( "pid" ) ;
+	commands.push_back( "quit" ) ;
+	if( !m_info_commands.empty() ) commands.push_back( "info" ) ;
+	if( !m_config_commands.empty() ) commands.push_back( "config" ) ;
+	if( m_with_terminate ) commands.push_back( "terminate" ) ;
 	sendLine( std::string("commands: ") + G::Str::join(", ",commands) ) ;
 }
 
@@ -341,7 +341,7 @@ bool GSmtp::AdminServerPeer::notifying() const
 
 GSmtp::AdminServer::AdminServer( GNet::ExceptionSink es , MessageStore & store ,
 	FilterFactory & ff , G::Slot::Signal<const std::string&> & forward_request ,
-	const GNet::ServerPeerConfig & server_peer_config , const GNet::ServerConfig & server_config ,
+	const GNet::ServerPeer::Config & server_peer_config , const GNet::Server::Config & server_config ,
 	const GSmtp::Client::Config & client_config , const GAuth::SaslClientSecrets & client_secrets ,
 	const G::StringArray & interfaces , unsigned int port , bool allow_remote ,
 	const std::string & remote_address , unsigned int connection_timeout ,
@@ -369,7 +369,7 @@ GSmtp::AdminServer::~AdminServer()
 }
 
 std::unique_ptr<GNet::ServerPeer> GSmtp::AdminServer::newPeer( GNet::ExceptionSinkUnbound esu ,
-	GNet::ServerPeerInfo peer_info , GNet::MultiServer::ServerInfo )
+	GNet::ServerPeerInfo && peer_info , GNet::MultiServer::ServerInfo )
 {
 	std::unique_ptr<GNet::ServerPeer> ptr ;
 	try
@@ -381,7 +381,7 @@ std::unique_ptr<GNet::ServerPeer> GSmtp::AdminServer::newPeer( GNet::ExceptionSi
 		}
 		else
 		{
-			ptr = std::make_unique<AdminServerPeer>( esu , peer_info , *this , m_remote_address ,
+			ptr = std::make_unique<AdminServerPeer>( esu , std::move(peer_info) , *this , m_remote_address ,
 				m_info_commands , m_config_commands , m_with_terminate ) ; // up-cast
 		}
 	}

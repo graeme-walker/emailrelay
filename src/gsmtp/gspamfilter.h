@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -63,8 +63,8 @@ private: // overrides
 public:
 	SpamFilter( const SpamFilter & ) = delete ;
 	SpamFilter( SpamFilter && ) = delete ;
-	void operator=( const SpamFilter & ) = delete ;
-	void operator=( SpamFilter && ) = delete ;
+	SpamFilter & operator=( const SpamFilter & ) = delete ;
+	SpamFilter & operator=( SpamFilter && ) = delete ;
 
 private:
 	void clientEvent( const std::string & , const std::string & , const std::string & ) ;

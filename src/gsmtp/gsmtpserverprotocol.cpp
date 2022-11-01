@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ GSmtp::ServerProtocol::ServerProtocol( Sender & sender ,
 		m_verifier(verifier) ,
 		m_text(text) ,
 		m_message(pmessage) ,
-		m_sasl(GAuth::SaslServerFactory::newSaslServer(secrets,sasl_server_config,false/*apop*/)) ,
+		m_sasl(GAuth::SaslServerFactory::newSaslServer(secrets,false,sasl_server_config,false)) ,
 		m_config(config) ,
 		m_fsm(State::sStart,State::sEnd,State::s_Same,State::s_Any) ,
 		m_with_starttls(false) ,
@@ -88,18 +88,10 @@ GSmtp::ServerProtocol::ServerProtocol( Sender & sender ,
 	m_fsm( Event::eDone , State::sProcessing , State::sIdle , &ServerProtocol::doComplete ) ;
 	m_fsm( Event::eContent , State::sDiscarding , State::sDiscarding , &ServerProtocol::doDiscard ) ;
 	m_fsm( Event::eEot , State::sDiscarding , State::sIdle , &ServerProtocol::doDiscarded ) ;
+	m_fsm( Event::eAuth , State::sIdle , State::sAuth , &ServerProtocol::doAuth , State::sIdle ) ;
+	m_fsm( Event::eAuthData, State::sAuth , State::sAuth , &ServerProtocol::doAuthData , State::sIdle ) ;
 
-	if( m_sasl->active() )
-	{
-		m_fsm( Event::eAuth , State::sIdle , State::sAuth , &ServerProtocol::doAuth , State::sIdle ) ;
-		m_fsm( Event::eAuthData, State::sAuth , State::sAuth , &ServerProtocol::doAuthData , State::sIdle ) ;
-	}
-	else
-	{
-		m_fsm( Event::eAuth , State::sIdle , State::sIdle , &ServerProtocol::doAuthInvalid ) ;
-	}
-
-	if( m_config.tls_starttls && GNet::SocketProtocol::secureAcceptCapable() )
+	if( m_config.tls_starttls )
 	{
 		m_with_starttls = true ;
 		m_fsm( Event::eStartTls , State::sIdle , State::sStartingTls , &ServerProtocol::doStartTls , State::sIdle ) ;
@@ -214,8 +206,8 @@ bool GSmtp::ServerProtocol::apply( const char * line_data , std::size_t line_dat
 	else
 	{
 		std::string line( line_data , line_data_size ) ;
-		G_LOG( "GSmtp::ServerProtocol: rx<<: \"" << G::Str::printable(line) << "\"" ) ;
 		event = commandEvent( commandWord(line) ) ;
+		G_LOG( "GSmtp::ServerProtocol: rx<<: \"" << (event == Event::eAuth ? printableAuth(line) : G::Str::printable(line)) << "\"" ) ;
 		m_buffer = commandLine( line ) ;
 		event_data = EventData( m_buffer.data() , m_buffer.size() ) ;
 	}
@@ -351,9 +343,9 @@ void GSmtp::ServerProtocol::doVrfy( EventData event_data , bool & predicate )
 
 void GSmtp::ServerProtocol::verify( const std::string & to , const std::string & from )
 {
-	std::string mechanism = m_sasl->active() ? m_sasl->mechanism() : std::string() ;
-	std::string id = m_sasl->active() ? m_sasl->id() : std::string() ;
-	if( m_sasl->active() && !m_session_authenticated )
+	std::string mechanism = m_sasl->authenticated() ? m_sasl->mechanism() : std::string() ;
+	std::string id = m_sasl->id() ;
+	if( mechanism.empty() )
 		mechanism = "NONE" ;
 	m_verifier.verify( to , from , m_peer_address , mechanism , id ) ;
 }
@@ -431,16 +423,25 @@ void GSmtp::ServerProtocol::doHelo( EventData event_data , bool & predicate )
 
 bool GSmtp::ServerProtocol::authenticationRequiresEncryption() const
 {
-	bool encryption_required_by_user = m_config.authentication_requires_encryption ;
-	bool encryption_required_by_sasl = m_sasl->active() && m_sasl->requiresEncryption() ;
-	return encryption_required_by_user || encryption_required_by_sasl ;
+	return mechanisms().empty() && !mechanisms(true).empty() ;
 }
 
-void GSmtp::ServerProtocol::doAuthInvalid( EventData , bool & )
+std::string GSmtp::ServerProtocol::printableAuth( const std::string & auth_line ) const
 {
-	// (workround with "--server-auth" pointing to an empty file)
-	G_WARNING( "GSmtp::ServerProtocol: client protocol error: AUTH requested but not advertised" ) ;
-	sendNotImplemented() ;
+	constexpr std::size_t npos = std::string::npos ;
+	std::size_t pos1 = auth_line.find_first_not_of( " \t" , 0U , 2U ) ;
+	std::size_t pos2 = auth_line.find_first_of( " \t" , pos1 , 2U ) ;
+	std::size_t pos3 = auth_line.find_first_not_of( " \t" , pos2 , 2U ) ;
+	std::size_t pos4 = auth_line.find_first_of( " \t" , pos3 , 2U ) ;
+	std::size_t pos5 = auth_line.find_first_not_of( " \t" , pos4 , 2U ) ;
+	if( pos1 != npos && pos2 != npos && pos3 != npos && pos4 != npos && pos5 != npos )
+	{
+		return auth_line.substr(0U,pos5).append(" [not logged]" ) ;
+	}
+	else
+	{
+		return auth_line ;
+	}
 }
 
 void GSmtp::ServerProtocol::doAuth( EventData event_data , bool & predicate )
@@ -466,7 +467,14 @@ void GSmtp::ServerProtocol::doAuth( EventData event_data , bool & predicate )
 		predicate = false ; // => idle
 		sendOutOfSequence() ; // see RFC-2554 "Restrictions"
 	}
-	else if( ! m_sasl->init(mechanism) )
+	else if( mechanisms().empty() )
+	{
+		// (workround with "--server-auth" pointing to an empty file)
+		G_WARNING( "GSmtp::ServerProtocol: client protocol error: AUTH requested but not advertised" ) ;
+		predicate = false ; // => idle
+		sendNotImplemented() ;
+	}
+	else if( ! m_sasl->init(m_secure,mechanism) )
 	{
 		G_WARNING( "GSmtp::ServerProtocol: request for unsupported server AUTH mechanism: " << mechanism ) ;
 		predicate = false ; // => idle
@@ -508,7 +516,7 @@ void GSmtp::ServerProtocol::doAuth( EventData event_data , bool & predicate )
 
 void GSmtp::ServerProtocol::doAuthData( EventData event_data , bool & predicate )
 {
-	G_LOG( "GSmtp::ServerProtocol: rx<<: [authentication response not logged]" ) ;
+	G_LOG( "GSmtp::ServerProtocol: rx<<: \"[authentication response not logged]\"" ) ;
 	std::string line( event_data.ptr , event_data.size ) ;
 	if( line == "*" )
 	{
@@ -547,7 +555,7 @@ void GSmtp::ServerProtocol::doAuthData( EventData event_data , bool & predicate 
 void GSmtp::ServerProtocol::doMail( EventData event_data , bool & predicate )
 {
 	std::string line( event_data.ptr , event_data.size ) ;
-	if( !m_session_authenticated && m_sasl->active() && !m_sasl->trusted(m_peer_address) )
+	if( m_config.mail_requires_authentication && !m_sasl->authenticated() && !m_sasl->trusted(m_peer_address) )
 	{
 		G_LOG( "GSmtp::ServerProtocol::doMail: server authentication enabled "
 			"but not a trusted address: " << m_peer_address.hostPartString() ) ;
@@ -870,8 +878,8 @@ void GSmtp::ServerProtocol::sendEhloReply()
 	if( m_config.max_size != 0U )
 		ss << "250-SIZE " << m_config.max_size << crlf() ;
 
-	if( m_sasl->active() && !( authenticationRequiresEncryption() && !m_secure ) )
-		ss << "250-AUTH " << m_sasl->mechanisms(' ') << crlf() ;
+	if( !mechanisms().empty() )
+		ss << "250-AUTH " << G::Str::join(" ",mechanisms()) << crlf() ;
 
 	if( m_with_starttls && !m_secure )
 		ss << "250-STARTTLS" << crlf() ;
@@ -1005,9 +1013,11 @@ std::string GSmtp::ServerProtocol::parsePeerName( const std::string & line ) con
 
 // ===
 
-GSmtp::ServerProtocolText::ServerProtocolText( const std::string & code_ident , const std::string & thishost ,
+GSmtp::ServerProtocolText::ServerProtocolText( const std::string & code_ident ,
+	bool with_received_line , const std::string & thishost ,
 	const GNet::Address & peer_address ) :
 		m_code_ident(code_ident) ,
+		m_with_received_line(with_received_line) ,
 		m_thishost(thishost) ,
 		m_peer_address(peer_address)
 {
@@ -1026,8 +1036,8 @@ std::string GSmtp::ServerProtocolText::hello( const std::string & ) const
 std::string GSmtp::ServerProtocolText::received( const std::string & smtp_peer_name ,
 	bool authenticated , bool secure , const std::string & protocol , const std::string & cipher ) const
 {
-	return receivedLine( smtp_peer_name , m_peer_address.hostPartString() , m_thishost ,
-		authenticated , secure , protocol , cipher ) ;
+	return m_with_received_line ? receivedLine( smtp_peer_name , m_peer_address.hostPartString() , m_thishost ,
+		authenticated , secure , protocol , cipher ) : std::string() ;
 }
 
 std::string GSmtp::ServerProtocolText::receivedLine( const std::string & smtp_peer_name ,
@@ -1062,6 +1072,16 @@ std::string GSmtp::ServerProtocolText::receivedLine( const std::string & smtp_pe
 		<< time.hhmmss(":") << " "
 		<< zone ;
 	return ss.str() ;
+}
+
+G::StringArray GSmtp::ServerProtocol::mechanisms() const
+{
+	return m_sasl->mechanisms( m_secure ) ;
+}
+
+G::StringArray GSmtp::ServerProtocol::mechanisms( bool secure ) const
+{
+	return m_sasl->mechanisms( secure ) ;
 }
 
 // ===

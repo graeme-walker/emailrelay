@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -91,7 +91,7 @@ void GSmtp::NetworkVerifier::clientEvent( const std::string & s1 , const std::st
 		// fields based on the script-based verifier interface, but backwards
 		//
 		G::StringArray parts ;
-		G::Str::splitIntoFields( s2 , parts , {"|",1U} ) ;
+		G::Str::splitIntoFields( s2 , parts , '|' ) ;
 		VerifierStatus status = VerifierStatus::invalid( m_to_address ) ;
 		if( !parts.empty() && parts[0U] == "100" )
 		{

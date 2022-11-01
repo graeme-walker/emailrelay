@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -193,11 +193,11 @@ sub fileLineCountLessThan
 
 sub allFilesContain
 {
-	my ( $glob , $string , $more ) = @_ ;
+	my ( $glob , $re , $more ) = @_ ;
 	my @files = System::glob_( $glob ) ;
 	for my $file ( @files )
 	{
-		fileContains( $file , $string , $more ) ;
+		fileContains( $file , $re , $more ) ;
 	}
 }
 
@@ -213,16 +213,17 @@ sub noFileContains
 
 sub fileContains
 {
-	my ( $path , $string , $more ) = @_ ;
+	my ( $path , $re , $more , $count ) = @_ ;
 	my $fh = new FileHandle( $path ) ;
 	my $n = 0 ;
 	while(<$fh>)
 	{
 		my $line = $_ ;
 		chomp $line ;
-		if( !defined($string) || $line =~ m/$string/ ) { $n++ }
+		if( !defined($re) || $line =~ m/$re/ ) { $n++ }
 	}
-	Check::that( $n > 0 , "file does not contain expected string" , $path , "[$string]" , $more ) ;
+	my $ok = defined($count) ? ($n == $count) : ($n > 0) ;
+	Check::that( $ok , "file does not contain expected string" , $path , "[$re]" , $more ) ;
 }
 
 sub fileContainsEither

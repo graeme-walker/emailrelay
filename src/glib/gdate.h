@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,9 +23,11 @@
 
 #include "gdef.h"
 #include "gdatetime.h"
+#include "gexception.h"
 #include "glog.h"
 #include <ctime>
 #include <string>
+#include <new>
 
 namespace G
 {
@@ -39,6 +41,7 @@ namespace G
 class G::Date
 {
 public:
+	G_EXCEPTION( DateError , tx("invalid date") ) ;
 	class LocalTime /// An overload discriminator class for Date constructors.
 		{} ;
 
@@ -48,10 +51,10 @@ public:
 
 	enum class Format { yyyy_mm_dd_slash , yyyy_mm_dd , mm_dd } ;
 
-	static int yearUpperLimit() ;
+	static int yearUpperLimit() noexcept ;
 		///< Returns the largest supported year value.
 
-	static int yearLowerLimit() ;
+	static int yearLowerLimit() noexcept ;
 		///< Returns the smallest supported year value.
 
 	Date() ;
@@ -74,6 +77,10 @@ public:
 		///< timezone as at the given epoch time.
 
 	Date( int year , Month month , int day_of_month ) ;
+		///< Constructor for the specified date.
+		///< Throws if out of range.
+
+	Date( int year , Month month , int day_of_month , std::nothrow_t ) noexcept ;
 		///< Constructor for the specified date.
 
 	std::string str( Format format = Format::yyyy_mm_dd_slash ) const ;
@@ -107,6 +114,12 @@ public:
 	std::string yyyy() const ;
 		///< Returns the year as a four-digit decimal string.
 
+	Date next() const ;
+		///< Returns the next date.
+
+	Date previous() const ;
+		///< Returns the previous date.
+
 	Date & operator++() ;
 		///< Increments the date by one day.
 
@@ -121,6 +134,7 @@ public:
 
 private:
 	void init( const BrokenDownTime & ) ;
+	void check() ;
 	static int lastDay( int month , int year ) ;
 	static bool isLeapYear( int y ) ;
 

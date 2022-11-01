@@ -1,12 +1,19 @@
 E-MailRelay Change Log
 ======================
 
-2.3 -> 2.3.1
-------------
+2.3 -> 2.4
+----------
 
+* Multiple `--filter` and `--client-filter` options allowed.
+* [TLS][] key and certificate files can be specified separately.
+* Finer control when using `--anonymous` (eg. `--anonymous=server`).
+* The `auth-config` options can distinguish between TLS and non-TLS authentication.
 * Hourly log file rotation using `%h` (eg. `--log-file=log.%d.%h`).
-* TLS key and certificate files can be specified separately.
-* Fixed error handling for network client filters (`--client-filter=net:...`) [bug-id #50].
+* Listening file descriptors can be inherited from the parent process (see `--interface`).
+* Listening ports on Windows use exclusive binding.
+* The Linux event loop uses `epoll` by default rather than `select`.
+* Some support for message routing (see NEWS).
+* Fix of error handling in network client filters (`--client-filter=net:...`) [bug-id #50].
 
 2.2 -> 2.3
 ----------
@@ -22,7 +29,7 @@ E-MailRelay Change Log
 
 * Connections from IPv4 'private use' addresses are allowed by default (see `--remote-clients`).
 * Interface names can be used with `--interface` (eg. `--interface=eth0`).
-* New `--server-tls-connection` option for server-side implicit [TLS][].
+* New `--server-tls-connection` option for server-side implicit TLS.
 * New `--forward-to-some` option to permit some message recipients to be rejected.
 * New `--log-address` option to aid adaptive firewalling.
 * Dynamic log file rolling when using `--log-file=%d`.

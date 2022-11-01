@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -222,8 +222,8 @@ protected:
 public:
 	Window( const Window & ) = delete ;
 	Window( Window && ) = delete ;
-	void operator=( const Window & ) = delete ;
-	void operator=( Window && ) = delete ;
+	Window & operator=( const Window & ) = delete ;
+	Window & operator=( Window && ) = delete ;
 
 private:
 	static LRESULT wndProcCore( Window * , HWND , UINT , WPARAM , LPARAM ) ;

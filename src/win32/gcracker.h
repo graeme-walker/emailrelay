@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -292,8 +292,8 @@ protected:
 public:
 	Cracker( const Cracker & ) = delete ;
 	Cracker( Cracker && ) = delete ;
-	void operator=( const Cracker & ) = delete ;
-	void operator=( Cracker && ) = delete ;
+	Cracker & operator=( const Cracker & ) = delete ;
+	Cracker & operator=( Cracker && ) = delete ;
 
 private:
 	using Fn = void (Cracker::*)(int,int,bool,bool) ;

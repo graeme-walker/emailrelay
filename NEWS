@@ -1,7 +1,34 @@
 News
 ----
-Version 2.3 is a relatively minor release. The main functional change is to
-support unix domain sockets. Non-functional code changes include better
-separation of interface and implementation in the SMTP message store.
+Low-level changes include a rework of the event-loops. The Unix event loop
+defaults to an epoll() implementation.
 
-Version 2.3.1 is a point release principally to fix bug-id #50.
+The i18n of the main server (not the gui) has been extended somewhat by marking
+for translation the text of most C++ exceptions. This is only relevant if
+building "--with-gettext" and running with "--localedir".
+
+The "--anonyous" option has changed slightly in v2.4 so that it will now force
+the AUTH parameter on the MAIL command to be "AUTH=<>". Replace "--anonymous"
+with "--anonymous=vrfy,server,content" to keep the same behaviour as before.
+
+The "emailrelay-submit" utility's "--content" option no longer suppresses
+reading of the standard input stream; there is a new "--no-stdin" option
+instead. A dot on its own does not terminate the input any more, so use ^D or
+^Z to stop reading from the terminal. Header-only content with no body text is
+now permitted.
+
+Authentication using PAM no longer insists on TLS encryption because the
+"--server-auth-config" option can be used to disable password authentication
+over an unencypted connection.
+
+Limited support for routing is included. The envelope files have two new fields:
+ForwardTo and ForwardToAddress. A filter script can examine the message content
+and deposit the appropriate domain name and port number in the ForwardTo field.
+If the SMTP client sees a ForwardTo value then it runs the client-filter early
+allowing the client filter to do a DNS MX lookup of the ForwardTo value and
+deposit the address into the ForwardToAddress field. If the SMTP client sees a
+ForwardToAddress it will initiate a connection to that address to send the
+message. The client-filter is run a second time in the normal way once the SMTP
+session has been established. A connection to the main "--forward-to" address
+will always be made even if all the messages are routed elsewhere, and each
+routed connection will carry only one message.

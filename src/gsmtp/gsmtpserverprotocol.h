@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ namespace GSmtp
 class GSmtp::ServerProtocol
 {
 public:
-	G_EXCEPTION( ProtocolDone , "smtp protocol done" ) ;
+	G_EXCEPTION( ProtocolDone , tx("smtp protocol done") ) ;
 
 	class Sender /// An interface used by ServerProtocol to send protocol replies.
 	{
@@ -96,6 +96,7 @@ public:
 		unsigned int filter_timeout{0U} ;
 		std::size_t max_size{0U} ;
 		bool authentication_requires_encryption{false} ;
+		bool mail_requires_authentication{false} ; // for MAIL or VRFY, unless a trusted address
 		bool mail_requires_encryption{false} ;
 		bool disconnect_on_max_size{false} ;
 		bool tls_starttls{false} ;
@@ -113,6 +114,7 @@ public:
 		Config & set_filter_timeout( unsigned int ) ;
 		Config & set_max_size( std::size_t ) ;
 		Config & set_authentication_requires_encryption( bool = true ) ;
+		Config & set_mail_requires_authentication( bool = true ) ;
 		Config & set_mail_requires_encryption( bool = true ) ;
 		Config & set_disconnect_on_max_size( bool = true ) ;
 		Config & set_tls_starttls( bool = true ) ;
@@ -241,8 +243,8 @@ private:
 public:
 	ServerProtocol( const ServerProtocol & ) = delete ;
 	ServerProtocol( ServerProtocol && ) = delete ;
-	void operator=( const ServerProtocol & ) = delete ;
-	void operator=( ServerProtocol && ) = delete ;
+	ServerProtocol & operator=( const ServerProtocol & ) = delete ;
+	ServerProtocol & operator=( ServerProtocol && ) = delete ;
 
 private:
 	void send( const char * ) ;
@@ -253,6 +255,8 @@ private:
 	static const std::string & crlf() ;
 	bool authenticationRequiresEncryption() const ;
 	void reset() ;
+	G::StringArray mechanisms() const ;
+	G::StringArray mechanisms( bool secure ) const ;
 	void badClientEvent() ;
 	void processDone( bool , const MessageId & , const std::string & , const std::string & ) ; // ProtocolMessage::doneSignal()
 	void prepareDone( bool , bool , std::string ) ;
@@ -271,7 +275,6 @@ private:
 	void doHelo( EventData , bool & ) ;
 	void sendReadyForTls() ;
 	void sendBadMechanism() ;
-	void doAuthInvalid( EventData , bool & ) ;
 	void doAuth( EventData , bool & ) ;
 	void doAuthData( EventData , bool & ) ;
 	void doMail( EventData , bool & ) ;
@@ -327,6 +330,7 @@ private:
 	std::string parseRcptParameter( const std::string & ) const ;
 	std::string parsePeerName( const std::string & ) const ;
 	void verify( const std::string & , const std::string & ) ;
+	std::string printableAuth( const std::string & auth_line ) const ;
 
 private:
 	Sender & m_sender ;
@@ -356,8 +360,8 @@ private:
 class GSmtp::ServerProtocolText : public ServerProtocol::Text
 {
 public:
-	ServerProtocolText( const std::string & code_ident , const std::string & thishost ,
-		const GNet::Address & peer_address ) ;
+	ServerProtocolText( const std::string & code_ident , bool with_received_line ,
+		const std::string & thishost , const GNet::Address & peer_address ) ;
 			///< Constructor.
 
 	static std::string receivedLine( const std::string & smtp_peer_name_from_helo ,
@@ -370,8 +374,8 @@ public:
 	~ServerProtocolText() override = default ;
 	ServerProtocolText( const ServerProtocolText & ) = delete ;
 	ServerProtocolText( ServerProtocolText && ) = delete ;
-	void operator=( const ServerProtocolText & ) = delete ;
-	void operator=( ServerProtocolText && ) = delete ;
+	ServerProtocolText & operator=( const ServerProtocolText & ) = delete ;
+	ServerProtocolText & operator=( ServerProtocolText && ) = delete ;
 
 private: // overrides
 	std::string greeting() const override ; // Override from GSmtp::ServerProtocol::Text.
@@ -380,6 +384,7 @@ private: // overrides
 
 private:
 	std::string m_code_ident ;
+	bool m_with_received_line ;
 	std::string m_thishost ;
 	GNet::Address m_peer_address ;
 } ;
@@ -388,6 +393,7 @@ inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_with_v
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_filter_timeout( unsigned int t ) { filter_timeout = t ; return *this ; }
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_max_size( std::size_t n ) { max_size = n ; return *this ; }
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_authentication_requires_encryption( bool b ) { authentication_requires_encryption = b ; return *this ; }
+inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_mail_requires_authentication( bool b ) { mail_requires_authentication = b ; return *this ; }
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_mail_requires_encryption( bool b ) { mail_requires_encryption = b ; return *this ; }
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_disconnect_on_max_size( bool b ) { disconnect_on_max_size = b ; return *this ; }
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_tls_starttls( bool b ) { tls_starttls = b ; return *this ; }

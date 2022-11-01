@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ namespace GNet
 /// A tuple containing an ExceptionHandler interface pointer and
 /// a bound 'exception source' pointer.
 ///
-/// The EventHandlerList and TimerList classes associate an
+/// The EventEmitter and TimerList classes associate an
 /// event handler and ExceptionSink with each event source
 /// (file descriptor or timer). If the event handler throws
 /// an exception then the associated ExceptionHandler's
@@ -65,9 +65,10 @@ namespace GNet
 /// } ;
 /// \endcode
 ///
-/// The ExceptionSinkUnbound class is used as syntactic sugar
-/// to force factory methods to supply an ExceptionSource
-/// pointer that points to the most-derived ServerPeer class.
+/// The ExceptionSinkUnbound class is used as a device to force
+/// factory methods to plumb-in an ExceptionSource pointer to
+/// the newly-created object as soon as its address is available
+/// (ie. before the constructor body runs).
 ///
 /// \code
 /// class FooServerPeer : public ServerPeer
@@ -86,39 +87,43 @@ namespace GNet
 /// \endcode
 ///
 /// So then the ServerPeer constructor has a bound ExceptionSink that
-/// it can pass to its timers etc. and to the event-handler list:
+/// it can pass to its timers and other event-handling objects:
 ///
 /// \code
 /// ServerPeer::ServerPeer( ExceptionSink es , ... ) :
-///    m_timer(..., es)
+///    m_timer(*this,...,es) ,
+///    m_other(es,...)
 /// {
-///   EventHandlerList::instance().add( es , ... ) ;
 /// }
 /// \endcode
 ///
 class GNet::ExceptionSink
 {
 public:
-	enum class Type
-	{
-		Null , // eh() is nullptr, call() does nothing
-		Rethrow , // rethrows
-		Log // logs an error with G_ERROR
-	} ;
-
-	explicit ExceptionSink( Type = Type::Rethrow , ExceptionSource * source = nullptr ) noexcept ;
-		///< Constructor.
+	ExceptionSink() noexcept ;
+		///< Default constructor for an exception handler that rethrows.
+		///< Postcondition: !set()
 
 	ExceptionSink( ExceptionHandler & eh , ExceptionSource * source ) noexcept ;
 		///< Constructor. The ExceptionHandler reference must
 		///< remain valid as the ExceptionSink is copied around.
+		///< Postcondition: set()
 
 	ExceptionSink( ExceptionHandler * eh , ExceptionSource * source ) noexcept ;
 		///< Constructor. The ExceptionHandler pointer must
 		///< remain valid as the ExceptionSink is copied around.
+		///< Precondition: eh != nullptr
+		///< Postcondition: set()
 
 	ExceptionSink( std::nullptr_t , ExceptionSource * ) = delete ;
 		///< Deleted override to prohibit a null ExceptionHandler.
+
+	static ExceptionSink logOnly() ;
+		///< A factory function for an exception handler that logs the
+		///< exception as an error but does not re-throw. This can
+		///< be a convenient alternative to a try/catch block for
+		///< code that might throw but should not terminate a
+		///< long-running server process.
 
 	ExceptionHandler * eh() const noexcept ;
 		///< Returns the exception handler pointer.
@@ -128,19 +133,20 @@ public:
 
 	void call( std::exception & e , bool done ) ;
 		///< Calls the exception handler's onException() method.
-		///< Used by EventHandlerList and TimerList. Exceptions
-		///< thrown out of the onException() implementation are
-		///< allowed to propagate.
+		///< Used by EventEmitter and TimerList when handling
+		///< an exception thrown from an event handler.
+		///< Precondition: set()
 
 	void reset() noexcept ;
-		///< Resets the pointers.
+		///< Resets the object as if default constructed.
+		///< Postcondition: !set()
 
 	bool set() const noexcept ;
 		///< Returns true if eh() is not null.
 
 private:
-	ExceptionHandler * m_eh ;
-	ExceptionSource * m_esrc{nullptr} ;
+	ExceptionHandler * m_eh {nullptr} ;
+	ExceptionSource * m_esrc {nullptr} ;
 } ;
 
 //| \class GNet::ExceptionSinkUnbound
@@ -163,7 +169,7 @@ public:
 		///< Returns a sink object with the source pointer set.
 
 private:
-	ExceptionHandler * m_eh ;
+	ExceptionHandler * m_eh {nullptr} ;
 } ;
 
 #endif

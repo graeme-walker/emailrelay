@@ -1,4 +1,12 @@
 #
+# Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+# 
+# Copying and distribution of this file, with or without modification,
+# are permitted in any medium without royalty provided the copyright
+# notice and this notice are preserved.  This file is offered as-is,
+# without any warranty.
+# ===
+#
 # emailrelay-gui.pro
 #
 # QMake project file for the emailrelay gui.
@@ -40,20 +48,20 @@ win {
 	QMAKE_LFLAGS += "/MANIFESTUAC:level='highestAvailable'"
 	LIBS += advapi32.lib ole32.lib oleaut32.lib
 	SOURCES += \
-		access_win32.cpp \
-		boot_win32.cpp \
-		dir_win32.cpp \
-		glink_win32.cpp
+		guiaccess_win32.cpp \
+		guiboot_win32.cpp \
+		guidir_win32.cpp \
+		guilink_win32.cpp
 }
 
 unix {
 	TARGET = emailrelay-gui.real
 	#LIBS += ...
 	SOURCES += \
-		access_unix.cpp \
-		boot_unix.cpp \
-		dir_unix.cpp \
-		glink_unix.cpp
+		guiaccess_unix.cpp \
+		guiboot_unix.cpp \
+		guidir_unix.cpp \
+		guilink_unix.cpp
 }
 
 RC_FILE = emailrelay-gui.rc
@@ -67,18 +75,18 @@ build_pass:CONFIG(release,debug|release) {
 
 SOURCES += \
 	guimain.cpp \
-	gdialog.cpp \
-	gpage.cpp \
+	guidialog.cpp \
+	guipage.cpp \
 	pages.cpp \
 	installer.cpp \
-	dir.cpp \
+	guidir.cpp \
 	glibsources.cpp \
-	legal.cpp \
+	guilegal.cpp \
 	serverconfiguration.cpp
 
 HEADERS += \
-	gdialog.h \
-	gpage.h \
+	guidialog.h \
+	guipage.h \
 	pages.h
 
 INCLUDEPATH += \

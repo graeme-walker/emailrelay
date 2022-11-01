@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,6 @@
 
 GSmtp::StoredFile::StoredFile( FileStore & store , const G::Path & envelope_path ) :
 	m_store(store) ,
-	m_content(std::make_unique<std::ifstream>()) , // up-cast
 	m_id(MessageId::none()) ,
 	m_state(State::Normal)
 {
@@ -144,18 +143,18 @@ bool GSmtp::StoredFile::openContent( std::string & reason )
 	try
 	{
 		G_DEBUG( "GSmtp::FileStore::openContent: \"" << cpath() << "\"" ) ;
-		auto stream = std::make_unique<std::ifstream>() ;
+		auto stream = std::make_unique<Stream>() ;
 		{
 			FileReader claim_reader ;
-			G::File::open( *stream , cpath() ) ;
+			stream->open( cpath() ) ;
 		}
 		if( !stream->good() )
 		{
 			reason = "cannot open content file" ;
 			return false ;
 		}
-		stream->exceptions( std::ios_base::badbit ) ; // (new)
-		m_content = std::unique_ptr<std::istream>( stream.release() ) ; // up-cast
+		stream->exceptions( std::ios_base::badbit ) ;
+		m_content = std::move( stream ) ;
 		return true ;
 	}
 	catch( std::exception & e ) // invalid file in store
@@ -203,18 +202,20 @@ void GSmtp::StoredFile::edit( const G::StringArray & rejectees )
 
 	// create new file
 	std::ofstream out ;
+	int e = 0 ;
 	{
 		FileWriter claim_writer ;
 		G::File::open( out , path_out ) ;
+		e = G::Process::errno_() ;
 	}
 	if( !out.good() )
-		throw EditError( path_in.str() ) ;
-	G::ScopeExit file_deleter( [=](){G::File::remove(path_out,std::nothrow);} ) ;
+		throw EditError( path_in.basename() , G::Process::strerror(e) ) ;
+	G::ScopeExit file_deleter( [&](){out.close();G::File::remove(path_out,std::nothrow);} ) ;
 
 	// write new file
 	std::size_t endpos = GSmtp::Envelope::write( out , env_copy ) ;
 	if( endpos == 0U )
-		throw EditError( path_in.str() ) ;
+		throw EditError( path_in.basename() ) ;
 
 	// open existing file
 	std::ifstream in ;
@@ -223,7 +224,7 @@ void GSmtp::StoredFile::edit( const G::StringArray & rejectees )
 		G::File::open( in , path_in ) ;
 	}
 	if( !in.good() )
-		throw EditError( path_in.str() ) ;
+		throw EditError( path_in.basename() ) ;
 
 	// re-read the existing file's endpos, just in case
 	GSmtp::Envelope env_check ;
@@ -234,22 +235,24 @@ void GSmtp::StoredFile::edit( const G::StringArray & rejectees )
 	// copy the existing file's tail to the new file
 	in.seekg( env_check.m_endpos ) ; // NOLINT narrowing
 	if( !in.good() )
-		throw EditError( path_in.str() ) ;
+		throw EditError( path_in.basename() ) ;
 	GSmtp::Envelope::copy( in , out ) ;
 
 	in.close() ;
 	out.close() ;
 	if( out.fail() )
-		throw EditError( path_in.str() ) ;
+		throw EditError( path_in.basename() ) ;
 
 	// commit the file
 	bool ok = false ;
+	e = 0 ;
 	{
 		FileWriter claim_writer ;
-		ok = G::File::rename( path_out , path_in , std::nothrow ) ;
+		ok = G::File::remove( path_in , std::nothrow ) && G::File::rename( path_out , path_in , std::nothrow ) ;
+		e = G::Process::errno_() ;
 	}
 	if( !ok )
-		throw EditError( path_in.str() ) ;
+		throw EditError( path_in.basename() , G::Process::strerror(e) ) ;
 	file_deleter.release() ;
 
 	m_env.m_crlf = true ;
@@ -321,17 +324,25 @@ void GSmtp::StoredFile::addReason( const G::Path & path , const std::string & re
 void GSmtp::StoredFile::destroy()
 {
 	G_LOG( "GSmtp::StoredMessage: deleting file: \"" << epath(m_state).basename() << "\"" ) ;
+	int e = 0 ;
 	{
 		FileWriter claim_writer ;
-		G::File::remove( epath(m_state) , std::nothrow ) ;
+		if( !G::File::remove( epath(m_state) , std::nothrow ) )
+			e = G::Process::errno_() ;
 	}
+	if( e )
+		G_WARNING( "GSmtp::StoredFile::destroy: failed to delete envelope file: " << G::Process::strerror(e) ) ;
 
 	G_LOG( "GSmtp::StoredMessage: deleting file: \"" << cpath().basename() << "\"" ) ;
 	m_content.reset() ; // close it before deleting
+	e = 0 ;
 	{
 		FileWriter claim_writer ;
-		G::File::remove( cpath() , std::nothrow ) ;
+		if( !G::File::remove( cpath() , std::nothrow ) )
+			e = G::Process::errno_() ;
 	}
+	if( e )
+		G_WARNING( "GSmtp::StoredFile::destroy: failed to delete content file: " << G::Process::strerror(e) ) ;
 }
 
 std::string GSmtp::StoredFile::from() const
@@ -351,10 +362,8 @@ std::size_t GSmtp::StoredFile::toCount() const
 
 std::istream & GSmtp::StoredFile::contentStream()
 {
-	G_ASSERT( m_content != nullptr ) ;
 	if( m_content == nullptr )
-		m_content = std::make_unique<std::ifstream>() ; // up-cast
-
+		m_content = std::make_unique<Stream>() ;
 	return *m_content ;
 }
 
@@ -371,5 +380,39 @@ std::string GSmtp::StoredFile::fromAuthIn() const
 std::string GSmtp::StoredFile::fromAuthOut() const
 {
 	return m_env.m_from_auth_out ;
+}
+
+std::string GSmtp::StoredFile::forwardTo() const
+{
+	return m_env.m_forward_to ;
+}
+
+std::string GSmtp::StoredFile::forwardToAddress() const
+{
+	return m_env.m_forward_to_address ;
+}
+
+// ==
+
+
+GSmtp::StoredFile::Stream::Stream() :
+	StreamBuf(&G::File::read,&G::File::write,&G::File::close),
+	std::istream(static_cast<StreamBuf*>(this))
+{
+}
+
+void GSmtp::StoredFile::Stream::open( const G::Path & path )
+{
+	// File::open() because we want _O_NOINHERIT and _SH_DENYNO on windows
+	int fd = G::File::open( path.cstr() , G::File::InOutAppend::In ) ;
+	if( fd >= 0 )
+	{
+		StreamBuf::open( fd ) ;
+		clear() ;
+	}
+	else
+	{
+		clear( std::ios_base::failbit ) ;
+	}
 }
 

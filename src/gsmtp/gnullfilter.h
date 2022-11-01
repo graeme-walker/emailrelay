@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -59,8 +59,8 @@ public:
 	~NullFilter() override = default ;
 	NullFilter( const NullFilter & ) = delete ;
 	NullFilter( NullFilter && ) = delete ;
-	void operator=( const NullFilter & ) = delete ;
-	void operator=( NullFilter && ) = delete ;
+	NullFilter & operator=( const NullFilter & ) = delete ;
+	NullFilter & operator=( NullFilter && ) = delete ;
 
 private:
 	void onTimeout() ;

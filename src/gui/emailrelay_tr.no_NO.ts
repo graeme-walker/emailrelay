@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
+<!-- Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>. All rights reserved. -->
 <TS version="2.1" language="nb_NO">
 <context>
     <name>CopyPayloadFile</name>
@@ -1296,3 +1297,4 @@ client-side filtering options: none or script</extracomment>
     </message>
 </context>
 </TS>
+

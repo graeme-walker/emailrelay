@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include "goptionvalue.h"
 #include "goptionparser.h"
 #include "gstr.h"
+#include "gstringmap.h"
 #include "gassert.h"
 #include "glog.h"
 #include <fstream>
@@ -73,6 +74,19 @@ void G::GetOpt::parseArgs( std::size_t ignore_non_options )
 	m_args = Arg( new_args ) ;
 }
 
+bool G::GetOpt::addOptionsFromFile( std::size_t n , const StringArray & block )
+{
+	if( n < m_args.c() )
+	{
+		G::Path path = m_args.v( n ) ;
+		if( std::find( block.begin() , block.end() , path.extension() ) != block.end() )
+			return false ;
+		m_args.removeAt( n ) ;
+		addOptionsFromFile( path ) ;
+	}
+	return true ;
+}
+
 void G::GetOpt::addOptionsFromFile( std::size_t n , const std::string & varkey , const std::string & varvalue )
 {
 	if( n < m_args.c() )
@@ -110,9 +124,9 @@ void G::GetOpt::addOptionsFromFile( const G::Path & filename )
 	OptionParser::parse( optionsFromFile(m_spec,filename) , m_spec , m_map , &m_errors , 0U ) ;
 }
 
-const G::Options & G::GetOpt::options() const
+const std::vector<G::Option> & G::GetOpt::options() const
 {
-	return m_spec ;
+	return m_spec.list() ;
 }
 
 const G::OptionMap & G::GetOpt::map() const
@@ -130,23 +144,23 @@ bool G::GetOpt::contains( char c ) const
 	return m_map.contains( m_spec.lookup(c) ) ;
 }
 
-bool G::GetOpt::contains( const std::string & name ) const
+bool G::GetOpt::contains( string_view name ) const
 {
 	return m_map.contains( name ) ;
 }
 
-std::size_t G::GetOpt::count( const std::string & name ) const
+std::size_t G::GetOpt::count( string_view name ) const
 {
 	return m_map.count( name ) ;
 }
 
-std::string G::GetOpt::value( char c , const std::string & default_ ) const
+std::string G::GetOpt::value( char c , string_view default_ ) const
 {
 	G_ASSERT( contains(c) ) ;
 	return value( m_spec.lookup(c) , default_ ) ;
 }
 
-std::string G::GetOpt::value( const std::string & name , const std::string & default_ ) const
+std::string G::GetOpt::value( string_view name , string_view default_ ) const
 {
 	return m_map.value( name , default_ ) ;
 }

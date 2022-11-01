@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,11 +24,11 @@
 #include "gdef.h"
 #include "garg.h"
 #include "ggetopt.h"
-#include "goptions.h"
+#include "goption.h"
 #include "output.h"
 #include "configuration.h"
 #include "output.h"
-#include "gstrings.h"
+#include "gstringarray.h"
 #include <string>
 
 namespace Main
@@ -40,7 +40,7 @@ namespace Main
 /// A class which deals with the command-line interface to the process, both
 /// input from command-line parameters and feedback to (eg.) stdout.
 ///
-/// Higher-level access to command-line options is provided by the Configuration class.
+/// Higher-level access to command-line options is provided by Main::Configuration.
 ///
 class Main::CommandLine
 {
@@ -55,8 +55,11 @@ public:
 	const G::OptionMap & map() const ;
 		///< Exposes the option-map sub-object.
 
-	const G::Options & options() const ;
-		///< Exposes the options sub-object.
+	const std::vector<G::Option> & options() const ;
+		///< Exposes the command-line options.
+
+	G::StringArray usageErrors() const ;
+		///< Returns the usage error list.
 
 	std::size_t argc() const ;
 		///< Returns the number of non-option arguments on the command line.
@@ -88,10 +91,10 @@ public:
 	void showVersion( bool error_stream = false ) const ;
 		///< Writes the version number.
 
-	void showBanner( bool error_stream = false , const std::string & = std::string() ) const ;
+	void showBanner( bool error_stream = false , const std::string & = {} ) const ;
 		///< Writes a startup banner.
 
-	void showCopyright( bool error_stream = false , const std::string & = std::string() ) const ;
+	void showCopyright( bool error_stream = false , const std::string & = {} ) const ;
 		///< Writes a copyright message.
 
 	void showSemanticError( const std::string & semantic_error ) const ;
@@ -106,18 +109,18 @@ public:
 public:
 	CommandLine( const CommandLine & ) = delete ;
 	CommandLine( CommandLine && ) = delete ;
-	void operator=( const CommandLine & ) = delete ;
-	void operator=( CommandLine && ) = delete ;
+	CommandLine & operator=( const CommandLine & ) = delete ;
+	CommandLine & operator=( CommandLine && ) = delete ;
 
 private:
 	void showUsage( bool e ) const ;
 	void showShortHelp( bool e ) const ;
 	void showExtraHelp( bool e ) const ;
-	void showWarranty( bool e = false , const std::string & eot = std::string() ) const ;
-	void showSslCredit( bool e = false , const std::string & eot = std::string() ) const ;
-	void showSslVersion( bool e = false , const std::string & eot = std::string() ) const ;
-	void showThreading( bool e = false , const std::string & eot = std::string() ) const ;
-	bool sanityCheck( const G::Path & ) ;
+	void showWarranty( bool e = false , const std::string & eot = {} ) const ;
+	void showSslCredit( bool e = false , const std::string & eot = {} ) const ;
+	void showSslVersion( bool e = false , const std::string & eot = {} ) const ;
+	void showThreading( bool e = false , const std::string & eot = {} ) const ;
+	void showUds( bool e = false , const std::string & eod = {} ) const ;
 
 private:
 	Output & m_output ;
@@ -125,7 +128,6 @@ private:
 	G::Arg m_arg ;
 	G::GetOpt m_getopt ;
 	bool m_verbose ;
-	std::string m_insanity ;
 } ;
 
 #endif

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ namespace G
 	{
 		inline char hex( unsigned int n )
 		{
-			static const char * map = "0123456789ABCDEF" ;
+			static constexpr char map[17] = "0123456789ABCDEF" ;
 			return map[n] ;
 		}
 		inline bool ishex( char c , bool allow_lowercase )
@@ -72,7 +72,7 @@ namespace G
 	}
 }
 
-bool G::Xtext::valid( const std::string & s , bool strict )
+bool G::Xtext::valid( string_view s , bool strict )
 {
 	namespace imp = XtextImp ;
 	if( !Str::isPrintableAscii(s) || ( strict && s.find_first_of("= ") != std::string::npos ) )
@@ -92,7 +92,7 @@ bool G::Xtext::valid( const std::string & s , bool strict )
 	}
 }
 
-std::string G::Xtext::encode( const std::string & s )
+std::string G::Xtext::encode( string_view s )
 {
 	namespace imp = XtextImp ;
 	std::string result ;
@@ -114,11 +114,12 @@ std::string G::Xtext::encode( const std::string & s )
 	return result ;
 }
 
-std::string G::Xtext::decode( const std::string & s )
+std::string G::Xtext::decode( string_view s )
 {
 	namespace imp = XtextImp ;
 	std::string result ;
-	for( std::string::const_iterator p = s.begin() ; p != s.end() ; ++p )
+	result.reserve( s.size() ) ;
+	for( auto p = s.begin() ; p != s.end() ; ++p )
 	{
 		if( *p == '+' )
 		{

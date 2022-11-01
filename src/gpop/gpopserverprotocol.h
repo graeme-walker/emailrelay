@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ namespace GPop
 class GPop::ServerProtocol
 {
 public:
-	G_EXCEPTION( ProtocolDone , "pop protocol done" ) ;
+	G_EXCEPTION( ProtocolDone , tx("pop protocol done") ) ;
 
 	class Sender /// An interface used by ServerProtocol to send protocol replies.
 	{
@@ -149,8 +149,8 @@ public:
 	~ServerProtocol() = default ;
 	ServerProtocol( const ServerProtocol & ) = delete ;
 	ServerProtocol( ServerProtocol && ) = delete ;
-	void operator=( const ServerProtocol & ) = delete ;
-	void operator=( ServerProtocol && ) = delete ;
+	ServerProtocol & operator=( const ServerProtocol & ) = delete ;
+	ServerProtocol & operator=( ServerProtocol && ) = delete ;
 
 private:
 	void doQuit( const std::string & line , bool & ) ;
@@ -221,8 +221,8 @@ public:
 	~ServerProtocolText() override = default ;
 	ServerProtocolText( const ServerProtocolText & ) = delete ;
 	ServerProtocolText( ServerProtocolText && ) = delete ;
-	void operator=( const ServerProtocolText & ) = delete ;
-	void operator=( ServerProtocolText && ) = delete ;
+	ServerProtocolText & operator=( const ServerProtocolText & ) = delete ;
+	ServerProtocolText & operator=( ServerProtocolText && ) = delete ;
 
 private: // overrides
 	std::string greeting() const override ; // Override from GPop::ServerProtocol::Text.

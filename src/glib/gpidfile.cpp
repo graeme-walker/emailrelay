@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,9 +33,14 @@
 G::PidFile::PidFile()
 = default;
 
+G::PidFile::PidFile( const Path & path ) :
+	m_path((!path.empty()&&path.isRelative())?Path::join(Process::cwd(),path):path)
+{
+}
+
 G::PidFile::~PidFile()
 {
-	if( valid() )
+	if( !m_path.empty() )
 	{
 		bool done = cleanup( SignalSafe() , m_path.cstr() ) ;
 		if( !done )
@@ -46,14 +51,10 @@ G::PidFile::~PidFile()
 	}
 }
 
-G::PidFile::PidFile( const Path & path ) :
-	m_path(path)
+void G::PidFile::mkdir()
 {
-}
-
-void G::PidFile::init( const Path & path )
-{
-	m_path = path ;
+	if( !m_path.empty() )
+		File::mkdir( m_path.dirname() , std::nothrow ) ;
 }
 
 void G::PidFile::create( const Path & pid_file )
@@ -74,7 +75,7 @@ void G::PidFile::create( const Path & pid_file )
 
 		// (leak only if necessary)
 		static constexpr std::size_t buffer_size = 60U ; // eg. "/var/run/whatever/whatever.pid"
-		static std::array<char,buffer_size> buffer ;
+		static std::array<char,buffer_size> buffer {} ;
 		const char * cleanup_arg = &buffer[0] ;
 		if( buffer[0] == '\0' && pid_file.size() < buffer.size() )
 			G::Str::strncpy_s( &buffer[0] , buffer.size() , pid_file.cstr() , pid_file.size() ) ;
@@ -92,7 +93,7 @@ G::Process::Id G::PidFile::read( SignalSafe , const char * path ) noexcept
 		return Process::Id::invalid() ;
 
 	constexpr std::size_t buffer_size = 11U ;
-	std::array<char,buffer_size> buffer ; // NOLINT cppcoreguidelines-pro-type-member-init
+	std::array<char,buffer_size> buffer {} ;
 	buffer[0U] = '\0' ;
 
 	ssize_t rc = File::read( fd , &buffer[0] , buffer_size-1U ) ;
@@ -123,15 +124,9 @@ bool G::PidFile::cleanup( SignalSafe safe , const char * path ) noexcept
 	}
 }
 
-void G::PidFile::check()
-{
-	if( valid() && ! m_path.isAbsolute() )
-		throw Error(std::string("must be an absolute path: ")+m_path.str()) ;
-}
-
 void G::PidFile::commit()
 {
-	if( valid() )
+	if( !m_path.empty() )
 	{
 		create( m_path ) ;
 		m_committed = true ;
@@ -146,10 +141,5 @@ bool G::PidFile::committed() const
 G::Path G::PidFile::path() const
 {
 	return m_path ;
-}
-
-bool G::PidFile::valid() const
-{
-	return !m_path.empty() ;
 }
 

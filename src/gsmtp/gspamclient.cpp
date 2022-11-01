@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -43,7 +43,8 @@ GSmtp::SpamClient::SpamClient( GNet::ExceptionSink es , const GNet::Location & l
 
 GNet::Client::Config GSmtp::SpamClient::netConfig( unsigned int connect_timeout , unsigned int response_timeout )
 {
-	GNet::Client::Config net_config( GNet::LineBufferConfig::newline() ) ;
+	GNet::Client::Config net_config ;
+	net_config.line_buffer_config = GNet::LineBufferConfig::newline() ;
 	net_config.connection_timeout = connect_timeout ;
 	net_config.response_timeout = response_timeout ;
 	return net_config ;

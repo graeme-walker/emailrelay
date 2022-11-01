@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,7 +22,8 @@
 #define G_PATH_H
 
 #include "gdef.h"
-#include "gstrings.h"
+#include "gstringarray.h"
+#include "gstringview.h"
 #include <string>
 #include <iostream>
 #include <initializer_list>
@@ -30,7 +31,7 @@
 namespace G
 {
 	class Path ;
-	class PathImp ;
+	class PathFriend ;
 }
 
 //| \class G::Path
@@ -78,8 +79,11 @@ public:
 	Path( const std::string & path ) ;
 		///< Implicit constructor from a string.
 
+	Path( string_view path ) ;
+		///< Implicit constructor from a string view.
+
 	Path( const char * path ) ;
-		///< Implicit constructor from a c-style string.
+		///< Implicit constructor from a c string.
 
 	Path( const Path & path , const std::string & tail ) ;
 		///< Constructor with an implicit pathAppend().
@@ -132,14 +136,19 @@ public:
 
 	Path withoutExtension() const ;
 		///< Returns a path without the basename extension, if any.
-		///< As a special case, a basename() that starts with a dot
-		///< is replaced by a single dot. Prefer withExtension()
-		///< where appropriate to avoid this.
+		///< Returns this path if there is no dot in the basename.
+		///< As a special case, a basename() like ".foo" ends up as
+		///< "."; prefer withExtension() where appropriate to avoid
+		///< this.
 
-	bool isAbsolute() const ;
+	Path withoutRoot() const ;
+		///< Returns a path without the root part. This has no effect
+		///< if the path isRelative().
+
+	bool isAbsolute() const noexcept ;
 		///< Returns !isRelative().
 
-	bool isRelative() const ;
+	bool isRelative() const noexcept ;
 		///< Returns true if the path is a relative path or empty().
 
 	void pathAppend( const std::string & tail ) ;
@@ -195,7 +204,7 @@ public:
 		///< UTF-8 paths.
 
 private:
-	friend class G::PathImp ;
+	friend class G::PathFriend ;
 	std::string m_str ;
 } ;
 

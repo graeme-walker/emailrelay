@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,13 +22,13 @@
 #define G_MAIN_GUI_PAGES_H
 
 #include "gdef.h"
+#include "gqt.h"
+#include "guidialog.h"
+#include "guipage.h"
+#include "installer.h"
 #include "gmapfile.h"
 #include "gpath.h"
-#include "gstrings.h"
-#include "gqt.h"
-#include "gdialog.h"
-#include "gpage.h"
-#include "installer.h"
+#include "gstringarray.h"
 #include <fstream>
 
 class QCheckBox;
@@ -45,10 +45,10 @@ class FinishPage;
 class RegisterPage;
 class TitlePage;
 
-class TitlePage : public GPage
+class TitlePage : public Gui::Page
 {Q_OBJECT
 public:
-	TitlePage( GDialog & dialog , const G::MapFile & config , const std::string & name ,
+	TitlePage( Gui::Dialog & dialog , const G::MapFile & config , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 ) ;
 
 	std::string nextPage() override ;
@@ -59,10 +59,10 @@ private:
 	QLabel * m_credit ;
 };
 
-class LicensePage : public GPage
+class LicensePage : public Gui::Page
 {Q_OBJECT
 public:
-	LicensePage( GDialog & dialog , const G::MapFile & config , const std::string & name ,
+	LicensePage( Gui::Dialog & dialog , const G::MapFile & config , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 , bool accepted ) ;
 
 	std::string nextPage() override ;
@@ -75,12 +75,12 @@ private:
 	QCheckBox * m_agree_checkbox ;
 };
 
-class DirectoryPage : public GPage
+class DirectoryPage : public Gui::Page
 {Q_OBJECT
 public:
-	DirectoryPage( GDialog & dialog , const G::MapFile & , const std::string & name ,
+	DirectoryPage( Gui::Dialog & dialog , const G::MapFile & , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 ,
-		bool installing , bool is_mac ) ;
+		bool installing , bool is_windows , bool is_mac ) ;
 
 	G::Path installDir() const ;
 	G::Path spoolDir() const ;
@@ -125,10 +125,10 @@ private:
 	bool m_other_dir_changed ;
 } ;
 
-class DoWhatPage : public GPage
+class DoWhatPage : public Gui::Page
 {Q_OBJECT
 public:
-	DoWhatPage( GDialog & dialog , const G::MapFile & config , const std::string & name ,
+	DoWhatPage( Gui::Dialog & dialog , const G::MapFile & config , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 ) ;
 
 	std::string nextPage() override ;
@@ -150,10 +150,10 @@ private slots:
 	void onToggle() ;
 } ;
 
-class PopPage : public GPage
+class PopPage : public Gui::Page
 {Q_OBJECT
 public:
-	explicit PopPage( GDialog & dialog , const G::MapFile & config , const std::string & name ,
+	explicit PopPage( Gui::Dialog & dialog , const G::MapFile & config , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 ,
 		bool have_accounts ) ;
 	bool withFilterCopy() const ;
@@ -181,10 +181,10 @@ private:
 	QLineEdit * m_pwd_3 ;
 } ;
 
-class SmtpServerPage : public GPage
+class SmtpServerPage : public Gui::Page
 {Q_OBJECT
 public:
-	SmtpServerPage( GDialog & dialog , const G::MapFile & config , const std::string & name ,
+	SmtpServerPage( Gui::Dialog & dialog , const G::MapFile & config , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 ,
 		bool have_account , bool is_windows ) ;
 
@@ -216,10 +216,10 @@ private slots:
 	void browseCertificate() ;
 } ;
 
-class FilterPage : public GPage
+class FilterPage : public Gui::Page
 {Q_OBJECT
 public:
-	FilterPage( GDialog & dialog , const G::MapFile & config , const std::string & name ,
+	FilterPage( Gui::Dialog & dialog , const G::MapFile & config , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 ,
 		bool installing , bool is_windows ) ;
 
@@ -260,10 +260,10 @@ private:
 	G::Path m_client_filter_script_path_default ;
 } ;
 
-class SmtpClientPage : public GPage
+class SmtpClientPage : public Gui::Page
 {Q_OBJECT
 public:
-	SmtpClientPage( GDialog & dialog , const G::MapFile & config , const std::string & name ,
+	SmtpClientPage( Gui::Dialog & dialog , const G::MapFile & config , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 , bool have_account ) ;
 
 	std::string nextPage() override ;
@@ -286,11 +286,12 @@ private slots:
 	void onToggle() ;
 } ;
 
-class StartupPage : public GPage
+class StartupPage : public Gui::Page
 {Q_OBJECT
 public:
-	StartupPage( GDialog & dialog , const G::MapFile & config , const std::string & name ,
-		const std::string & next_1 , const std::string & next_2 , bool is_mac ) ;
+	StartupPage( Gui::Dialog & dialog , const G::MapFile & config , const std::string & name ,
+		const std::string & next_1 , const std::string & next_2 ,
+		bool is_mac ) ;
 
 	std::string nextPage() override ;
 	void dump( std::ostream & , bool ) const override ;
@@ -304,10 +305,10 @@ private:
 	QCheckBox * m_add_desktop_item_checkbox ;
 } ;
 
-class LoggingPage : public GPage
+class LoggingPage : public Gui::Page
 {Q_OBJECT
 public:
-	LoggingPage( GDialog & dialog , const G::MapFile & config , const std::string & name ,
+	LoggingPage( Gui::Dialog & dialog , const G::MapFile & config , const std::string & name ,
 		const std::string & next_1 , const std::string & next_2 ) ;
 
 	std::string nextPage() override ;
@@ -335,11 +336,11 @@ private:
 	QCheckBox * m_log_fields_address_checkbox ;
 } ;
 
-class ListeningPage : public GPage
+class ListeningPage : public Gui::Page
 {Q_OBJECT
 public:
-	ListeningPage( GDialog & dialog , const G::MapFile & config , const std::string & name ,
-		const std::string & next_1 , const std::string & next_2 ) ;
+	ListeningPage( Gui::Dialog & dialog , const G::MapFile & config , const std::string & name ,
+		const std::string & next_1 , const std::string & next_2 , bool next_is_next2 ) ;
 
 	std::string nextPage() override ;
 	void dump( std::ostream & , bool ) const override ;
@@ -351,6 +352,7 @@ private slots:
 	void onTextChanged() ;
 
 private:
+	bool m_next_is_next2 ;
 	QCheckBox * m_remote_checkbox ;
 	QRadioButton * m_all_checkbox ;
 	QRadioButton * m_ipv4_checkbox ;
@@ -361,10 +363,10 @@ private:
 	std::string m_value ;
 } ;
 
-class ReadyPage : public GPage
+class ReadyPage : public Gui::Page
 {Q_OBJECT
 public:
-	ReadyPage( GDialog & dialog , const G::MapFile & config , const std::string & name , const std::string & next_1 ,
+	ReadyPage( Gui::Dialog & dialog , const G::MapFile & config , const std::string & name , const std::string & next_1 ,
 		const std::string & next_2 , bool installing ) ;
 
 	std::string nextPage() override ;
@@ -395,11 +397,11 @@ signals:
 	void newLine( QString ) ;
 } ;
 
-class ProgressPage : public GPage
+class ProgressPage : public Gui::Page
 {Q_OBJECT
 public:
-	ProgressPage( GDialog & dialog , const G::MapFile & config , const std::string & name , const std::string & next_1 ,
-		const std::string & next_2 , Installer & ) ;
+	ProgressPage( Gui::Dialog & dialog , const G::MapFile & config , const std::string & name , const std::string & next_1 ,
+		const std::string & next_2 , Installer & , bool installing ) ;
 
 	std::string nextPage() override ;
 	void dump( std::ostream & , bool ) const override ;

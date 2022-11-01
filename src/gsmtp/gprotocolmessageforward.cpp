@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,12 +29,12 @@
 
 GSmtp::ProtocolMessageForward::ProtocolMessageForward( GNet::ExceptionSink es ,
 	MessageStore & store , FilterFactory & ff , std::unique_ptr<ProtocolMessage> pm ,
-	const GSmtp::Client::Config & client_config ,
-	const GAuth::SaslClientSecrets & client_secrets , const std::string & server ) :
+	const GSmtp::Client::Config & client_config , const GAuth::SaslClientSecrets & client_secrets ,
+	const std::string & forward_to , int forward_to_family ) :
 		m_es(es) ,
 		m_store(store) ,
 		m_ff(ff) ,
-		m_client_location(server) ,
+		m_client_location(forward_to,forward_to_family) ,
 		m_client_config(client_config) ,
 		m_client_secrets(client_secrets) ,
 		m_pm(pm.release()) ,

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,10 +30,11 @@
 #include <tuple>
 
 GSmtp::ExecutableFilter::ExecutableFilter( GNet::ExceptionSink es , FileStore & file_store ,
-	bool server_side , const std::string & path , unsigned int timeout ) :
+	bool server_side , const std::string & path , unsigned int timeout ,
+	const std::string & log_prefix ) :
 		m_file_store(file_store) ,
 		m_server_side(server_side) ,
-		m_prefix(server_side?"filter":"client filter") ,
+		m_prefix(log_prefix.empty()?std::string(server_side?"filter":"client filter"):log_prefix) ,
 		m_exit(0,server_side) ,
 		m_path(path) ,
 		m_timeout(timeout) ,
@@ -142,7 +143,7 @@ std::pair<std::string,std::string> GSmtp::ExecutableFilter::parseOutput( std::st
 	G::StringArray lines ;
 	while( G::Str::replaceAll( s , "\r\n" , "\n" ) ) {;}
 	G::Str::replaceAll( s , "\r" , "\n" ) ;
-	G::Str::splitIntoFields( s , lines , "\n" ) ;
+	G::Str::splitIntoFields( s , lines , '\n' ) ;
 
 	for( auto p = lines.begin() ; p != lines.end() ; )
 	{

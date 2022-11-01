@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 #include "gidentity.h"
 #include "gprocess.h"
 #include "gpath.h"
-#include "gstrings.h"
+#include "gstringarray.h"
 #include <memory>
 #include <new>
 #include <string>
@@ -63,15 +63,15 @@ namespace G
 class G::NewProcess
 {
 public:
-	G_EXCEPTION( Error , "cannot spawn new process" ) ;
-	G_EXCEPTION( CannotFork , "cannot fork" ) ;
-	G_EXCEPTION( WaitError , "failed waiting for child process" ) ;
-	G_EXCEPTION( ChildError , "child process terminated abnormally" ) ;
-	G_EXCEPTION( Insecure , "refusing to exec while the user-id is zero" ) ;
-	G_EXCEPTION( PipeError , "pipe error" ) ;
-	G_EXCEPTION( InvalidPath , "invalid executable path -- must be absolute" ) ;
-	G_EXCEPTION( InvalidParameter , "invalid parameter" ) ;
-	G_EXCEPTION( CreateProcessError , "CreateProcess error" ) ; // windows
+	G_EXCEPTION( Error , tx("cannot spawn new process") ) ;
+	G_EXCEPTION( CannotFork , tx("cannot fork") ) ;
+	G_EXCEPTION( WaitError , tx("failed waiting for child process") ) ;
+	G_EXCEPTION( ChildError , tx("child process terminated abnormally") ) ;
+	G_EXCEPTION( Insecure , tx("refusing to exec while the user-id is zero") ) ;
+	G_EXCEPTION( PipeError , tx("pipe error") ) ;
+	G_EXCEPTION( InvalidPath , tx("invalid executable path -- must be absolute") ) ;
+	G_EXCEPTION( InvalidParameter , tx("invalid parameter") ) ;
+	G_EXCEPTION( CreateProcessError , tx("CreateProcess error") ) ; // windows
 
 	struct Fd /// Wraps up a file descriptor for passing to G::NewProcess.
 	{
@@ -91,7 +91,7 @@ public:
 		const G::Path & cd = G::Path() , bool strict_path = true ,
 		Identity run_as_id = Identity::invalid() , bool strict_id = true ,
 		int exec_error_exit = 127 ,
-		const std::string & exec_error_format = std::string() ,
+		const std::string & exec_error_format = {} ,
 		std::string (*exec_error_format_fn)(std::string,int) = nullptr ) ;
 			///< Constructor. Spawns the given program to run independently in a
 			///< child process.
@@ -155,8 +155,8 @@ public:
 public:
 	NewProcess( const NewProcess & ) = delete ;
 	NewProcess( NewProcess && ) = delete ;
-	void operator=( const NewProcess & ) = delete ;
-	void operator=( NewProcess && ) = delete ;
+	NewProcess & operator=( const NewProcess & ) = delete ;
+	NewProcess & operator=( NewProcess && ) = delete ;
 
 private:
 	static std::string execErrorFormat( const std::string & , int ) ;
@@ -233,8 +233,8 @@ public:
 	~NewProcessWaitable() = default ;
 	NewProcessWaitable( const NewProcessWaitable & ) = delete ;
 	NewProcessWaitable( NewProcessWaitable && ) = delete ;
-	void operator=( const NewProcessWaitable & ) = delete ;
-	void operator=( NewProcessWaitable && ) = delete ;
+	NewProcessWaitable & operator=( const NewProcessWaitable & ) = delete ;
+	NewProcessWaitable & operator=( NewProcessWaitable && ) = delete ;
 
 private:
 	std::vector<char> m_buffer ;
@@ -251,7 +251,8 @@ private:
 } ;
 
 //| \class G::NewProcessConfig
-/// Provides syntactic sugar for the G::NewProcess constructor.
+/// Packages up the parameters of the multi-parameter G::NewProcess
+/// constructor for its one-parameter overload.
 ///
 struct G::NewProcessConfig
 {

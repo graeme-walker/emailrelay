@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -96,7 +96,7 @@ bool GSsl::Library::hasProfile( const std::string & profile_name ) const
 const GSsl::Profile & GSsl::Library::profile( const std::string & profile_name ) const
 {
 	if( !imp().hasProfile(profile_name) )
-		throw G::Exception( "invalid tls profile name [" + profile_name + "]" ) ;
+		throw BadProfileName( profile_name ) ;
 	return imp().profile( profile_name ) ;
 }
 
@@ -108,21 +108,21 @@ bool GSsl::Library::enabledAs( const std::string & profile_name )
 GSsl::LibraryImpBase & GSsl::Library::impstance()
 {
 	if( instance() == nullptr )
-		throw G::Exception( "no tls library instance" ) ;
+		throw NoInstance() ;
 	return instance()->imp() ;
 }
 
 GSsl::LibraryImpBase & GSsl::Library::imp()
 {
 	if( m_imp == nullptr )
-		throw G::Exception( "no tls library instance" ) ;
+		throw NoInstance() ;
 	return *m_imp ;
 }
 
 const GSsl::LibraryImpBase & GSsl::Library::imp() const
 {
 	if( m_imp == nullptr )
-		throw G::Exception( "no tls library instance" ) ;
+		throw NoInstance() ;
 	return *m_imp ;
 }
 
@@ -222,9 +222,9 @@ GSsl::Digester::Digester( std::unique_ptr<DigesterImpBase> p ) :
 {
 }
 
-void GSsl::Digester::add( const std::string & s )
+void GSsl::Digester::add( G::string_view sv )
 {
-	m_imp->add( s ) ;
+	m_imp->add( sv ) ;
 }
 
 std::string GSsl::Digester::value()
@@ -254,9 +254,9 @@ std::size_t GSsl::Digester::statesize() const
 
 // ==
 
-bool GSsl::LibraryImpBase::consume( G::StringArray & list , const std::string & key )
+bool GSsl::LibraryImpBase::consume( G::StringArray & list , G::string_view key )
 {
-	auto p = std::find( list.begin() , list.end() , key ) ;
+	auto p = std::find( list.begin() , list.end() , G::sv_to_string(key) ) ;
 	if( p != list.end() )
 	{
 		list.erase( p ) ;

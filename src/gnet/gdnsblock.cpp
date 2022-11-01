@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -84,7 +84,7 @@ namespace GNet
 	}
 }
 
-GNet::DnsBlock::DnsBlock( DnsBlockCallback & callback , ExceptionSink es , const std::string & config ) :
+GNet::DnsBlock::DnsBlock( DnsBlockCallback & callback , ExceptionSink es , G::string_view config ) :
 	m_callback(callback) ,
 	m_es(es) ,
 	m_timer(*this,&DnsBlock::onTimeout,es) ,
@@ -106,20 +106,20 @@ void GNet::DnsBlock::checkConfig( const std::string & config )
 	}
 	catch( std::exception & e )
 	{
-		throw Error( "invalid dnsbl configuration string" , e.what() ) ;
+		throw ConfigError( e.what() ) ;
 	}
 }
 
-void GNet::DnsBlock::configure( const std::string & config )
+void GNet::DnsBlock::configure( G::string_view config )
 {
 	configureImp( config , this ) ;
 }
 
-void GNet::DnsBlock::configureImp( const std::string & config , DnsBlock * p )
+void GNet::DnsBlock::configureImp( G::string_view config , DnsBlock * p )
 {
-	G::StringArray list = G::Str::splitIntoFields( config , "," ) ;
+	G::StringArray list = G::Str::splitIntoFields( config , ',' ) ;
 	if( list.size() < 4U )
-		throw std::runtime_error( "not enough comma-sparated fields" ) ;
+		throw BadFieldCount() ;
 
 	Address dns_server = Address::parse( list.at(0U) , Address::NotLocal() ) ;
 
@@ -167,7 +167,9 @@ void GNet::DnsBlock::start( const Address & address )
 		id_generator = 10 ;
 
 	// create a socket to receive responses
-	m_socket_ptr = std::make_unique<DatagramSocket>( m_dns_server.family() ) ;
+	int protocol = 0 ;
+	DatagramSocket::Config datagram_socket_config ;
+	m_socket_ptr = std::make_unique<DatagramSocket>( m_dns_server.family() , protocol , datagram_socket_config ) ;
 	m_socket_ptr->addReadHandler( *this , m_es ) ;
 
 	// send a DNS query to each configured server
@@ -187,7 +189,7 @@ void GNet::DnsBlock::start( const Address & address )
 
 		ssize_t rc = m_socket_ptr->writeto( message.p() , message.n() , m_dns_server ) ;
 		if( rc < 0 || static_cast<std::size_t>(rc) != message.n() )
-			throw Error( "socket send failed" , m_socket_ptr->reason() ) ;
+			throw SendError( m_socket_ptr->reason() ) ;
 	}
 	m_timer.startTimer( m_timeout ) ;
 }
@@ -203,7 +205,7 @@ void GNet::DnsBlock::readEvent()
 	buffer.resize( 4096U ) ; // 512 in RFC-1035 4.2.1
 	ssize_t rc = m_socket_ptr->read( &buffer[0] , buffer.size() ) ;
 	if( rc <= 0 || static_cast<std::size_t>(rc) >= buffer.size() )
-		throw Error( "invalid dns response size" ) ;
+		throw BadDnsResponse() ;
 	buffer.resize( static_cast<std::size_t>(rc) ) ;
 
 	DnsMessage message( buffer ) ;
@@ -219,8 +221,10 @@ void GNet::DnsBlock::readEvent()
 
 	std::size_t server_count = m_result.list().size() ;
 	std::size_t responder_count = countResponders( m_result.list() ) ;
-	std::size_t laggard_count = server_count - responder_count ; G_ASSERT( laggard_count < server_count ) ;
+	std::size_t laggard_count = server_count - responder_count ;
 	std::size_t deny_count = countDeniers( m_result.list() ) ;
+
+	G_ASSERT( laggard_count < server_count ) ;
 
 	G_DEBUG( "GNet::DnsBlock::readEvent: id=" << message.ID() << " rcode=" << message.RCODE()
 		<< (message.ANCOUNT()?" deny ":" allow ")

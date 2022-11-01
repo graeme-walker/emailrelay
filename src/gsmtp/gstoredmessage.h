@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 
 #include "gdef.h"
 #include "gmessagestore.h"
-#include "gstrings.h"
+#include "gstringarray.h"
 #include "gpath.h"
 #include <iostream>
 #include <fstream>
@@ -98,6 +98,12 @@ public:
 		///< Returns the outgoing "mail from" auth parameter,
 		///< either empty, xtext-encoded or "<>".
 
+	virtual std::string forwardTo() const = 0 ;
+		///< Returns the routing override or the empty string.
+
+	virtual std::string forwardToAddress() const = 0 ;
+		///< Returns the forwardTo() address or the empty string.
+
 	virtual ~StoredMessage() = default ;
 		///< Destructor.
 } ;
@@ -132,12 +138,14 @@ private: // overrides
 	std::string authentication() const override ;
 	std::string fromAuthIn() const override ;
 	std::string fromAuthOut() const override ;
+	std::string forwardTo() const override ;
+	std::string forwardToAddress() const override ;
 
 public:
 	StoredMessageStub( const StoredMessageStub & ) = delete ;
 	StoredMessageStub( StoredMessageStub && ) = delete ;
-	void operator=( const StoredMessageStub & ) = delete ;
-	void operator=( StoredMessageStub && ) = delete ;
+	StoredMessageStub & operator=( const StoredMessageStub & ) = delete ;
+	StoredMessageStub & operator=( StoredMessageStub && ) = delete ;
 
 private:
 	G::StringArray m_to_list ;
@@ -160,5 +168,7 @@ inline int GSmtp::StoredMessageStub::eightBit() const { return false ; }
 inline std::string GSmtp::StoredMessageStub::authentication() const { return std::string() ; }
 inline std::string GSmtp::StoredMessageStub::fromAuthIn() const { return std::string() ; }
 inline std::string GSmtp::StoredMessageStub::fromAuthOut() const { return std::string() ; }
+inline std::string GSmtp::StoredMessageStub::forwardTo() const { return std::string() ; }
+inline std::string GSmtp::StoredMessageStub::forwardToAddress() const { return std::string() ; }
 
 #endif

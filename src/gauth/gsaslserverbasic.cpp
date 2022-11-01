@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,11 +28,14 @@
 #include "gtest.h"
 #include "gdatetime.h"
 #include "grandom.h"
+#include "gstringview.h"
+#include "gstringlist.h"
 #include "glog.h"
 #include "gassert.h"
 #include <sstream>
 #include <algorithm>
 #include <functional>
+#include <utility>
 
 //| \class GAuth::SaslServerBasicImp
 /// A private pimple-pattern implementation class used by GAuth::SaslServerBasic.
@@ -40,89 +43,143 @@
 class GAuth::SaslServerBasicImp
 {
 public:
-	SaslServerBasicImp( const SaslServerSecrets & , const std::string & , bool ) ;
-	std::string mechanisms( const std::string & ) const ;
-	bool init( const std::string & mechanism ) ;
+	SaslServerBasicImp( const SaslServerSecrets & , bool , const std::string & , bool ) ;
+	G::StringArray mechanisms( bool ) const ;
+	void reset() ;
+	bool init( bool , const std::string & mechanism ) ;
 	std::string mechanism() const ;
+	std::string preferredMechanism( bool ) const ;
 	std::string initialChallenge() const ;
 	std::string apply( const std::string & response , bool & done ) ;
 	bool trusted( const GNet::Address & ) const ;
 	bool trustedCore( const std::string & , const GNet::Address & ) const ;
-	bool active() const ;
 	std::string id() const ;
 	bool authenticated() const ;
 
 private:
-	bool m_allow_apop ;
 	bool m_first_apply ;
 	const SaslServerSecrets & m_secrets ;
-	G::StringArray m_mechanisms ; // that have secrets
+	G::StringArray m_mechanisms_secure ;
+	G::StringArray m_mechanisms_insecure ;
 	std::string m_mechanism ;
 	std::string m_challenge ;
 	bool m_authenticated ;
 	std::string m_id ;
 	std::string m_trustee ;
-	static const char * login_challenge_1 ;
-	static const char * login_challenge_2 ;
+	static G::string_view login_challenge_1 ;
+	static G::string_view login_challenge_2 ;
 } ;
 
-const char * GAuth::SaslServerBasicImp::login_challenge_1 = "Username:" ;
-const char * GAuth::SaslServerBasicImp::login_challenge_2 = "Password:" ;
+G::string_view GAuth::SaslServerBasicImp::login_challenge_1 {"Username:",9U} ;
+G::string_view GAuth::SaslServerBasicImp::login_challenge_2 {"Password:",9U} ;
 
 // ===
 
-GAuth::SaslServerBasicImp::SaslServerBasicImp( const SaslServerSecrets & secrets , const std::string & sasl_server_config , bool allow_apop ) :
-	m_allow_apop(allow_apop) ,
-	m_first_apply(true) ,
-	m_secrets(secrets) ,
-	m_authenticated(false)
+GAuth::SaslServerBasicImp::SaslServerBasicImp( const SaslServerSecrets & secrets ,
+	bool with_apop , const std::string & config , bool force_no_insecure_mechanisms ) :
+		m_first_apply(true) ,
+		m_secrets(secrets) ,
+		m_authenticated(false)
 {
-	m_mechanisms = Cram::hashTypes( "CRAM-" ) ;
-	m_mechanisms.push_back( "PLAIN" ) ;
-	m_mechanisms.push_back( "LOGIN" ) ;
-	if( G::Test::enabled("sasl-server-oauth") )
-		m_mechanisms.push_back( "XOAUTH2" ) ; // to allow testing of the client-side
-
-	// use the configuration string as a mechanism whitelist and/or blacklist
-	if( !sasl_server_config.empty() )
+	// prepare a list of mechanisms, but remove any that are completely unusable
+	G::StringArray mechanisms ;
 	{
-		G::StringArray list = G::Str::splitIntoTokens( G::Str::upper(sasl_server_config) , ";" ) ;
-		G::StringArray whitelist = G::Str::splitIntoTokens( G::Str::headMatchResidue( list , "M:" ) , "," ) ;
-		G::StringArray blacklist = G::Str::splitIntoTokens( G::Str::headMatchResidue( list , "X:" ) , "," ) ;
-		m_mechanisms.erase( G::Str::keepMatch( m_mechanisms.begin() , m_mechanisms.end() , whitelist , true ) , m_mechanisms.end() ) ;
-		m_mechanisms.erase( G::Str::removeMatch( m_mechanisms.begin() , m_mechanisms.end() , blacklist , true ) , m_mechanisms.end() ) ;
-		if( m_mechanisms.empty() )
-			throw SaslServerBasic::NoMechanisms() ;
+		// if there are any plain secrets then all mechanisms are usable
+		if( secrets.contains( "PLAIN" , {} ) )
+		{
+			mechanisms = Cram::hashTypes( "CRAM-" ) ;
+			mechanisms.push_back( "PLAIN" ) ;
+			mechanisms.push_back( "LOGIN" ) ;
+		}
+		else
+		{
+			// if there are any CRAM-X secrets then enable the CRAM-X mechansism
+			for( const auto & cram : Cram::hashTypes({},true) )
+			{
+				if( secrets.contains( cram , {} ) )
+					mechanisms.push_back( std::string("CRAM-").append(cram) ) ;
+			}
+		}
+		if( with_apop )
+			mechanisms.push_back( "APOP" ) ;
 	}
+
+	m_mechanisms_secure = mechanisms ;
+	m_mechanisms_insecure = mechanisms ;
+
+	// RFC-4954 4 p6 -- PLAIN is always an option when secure
+	if( m_mechanisms_secure.empty() && secrets.valid() )
+	{
+		m_mechanisms_secure.push_back( "PLAIN" ) ;
+	}
+
+	// apply the allow/deny configuration
+	//
+	// backwards compatibility if no A or D:
+	// M: for secure/insecure (M)echanisms to allow
+	// X: for secure/insecure mechanisms to e(X)clude
+	//
+	// new behaviour:
+	// M: for insecure (M)echanisms to allow
+	// X: for insecure mechanisms to e(X)clude
+	// A: for the secure (A)llow list
+	// D: for the secure (D)eny list
+	//
+	// eg: "m:;a:plain,login"
+	//
+	G::StringArray config_list = G::Str::splitIntoTokens( G::Str::upper(config) , ";" ) ;
+	bool have_m = G::StringList::headMatch( config_list , "M:" ) ;
+	bool have_a = G::StringList::headMatch( config_list , "A:" ) ;
+	bool have_d = G::StringList::headMatch( config_list , "D:" ) ;
+	std::string m = G::StringList::headMatchResidue( config_list , "M:" ) ;
+	std::string x = G::StringList::headMatchResidue( config_list , "X:" ) ;
+	std::string a = G::StringList::headMatchResidue( config_list , "A:" ) ;
+	std::string d = G::StringList::headMatchResidue( config_list , "D:" ) ;
+	G::optional<std::string> m_( have_m , m ) ;
+	G::optional<std::string> a_( have_a , a ) ;
+	if( have_a || have_d )
+	{
+		G::StringList::Filter(m_mechanisms_insecure).allow(m_).deny(x) ;
+		G::StringList::Filter(m_mechanisms_secure).allow(a_).deny(d) ;
+	}
+	else
+	{
+		G::StringList::Filter(m_mechanisms_insecure).allow(m_).deny(x) ;
+		G::StringList::Filter(m_mechanisms_secure).allow(m_).deny(x) ;
+	}
+
+	if( force_no_insecure_mechanisms )
+		m_mechanisms_insecure.clear() ;
 }
 
-std::string GAuth::SaslServerBasicImp::mechanisms( const std::string & sep ) const
-{
-	return G::Str::join( sep , m_mechanisms ) ;
-}
-
-bool GAuth::SaslServerBasicImp::init( const std::string & mechanism_in )
+void GAuth::SaslServerBasicImp::reset()
 {
 	m_first_apply = true ;
 	m_authenticated = false ;
-	m_id.erase() ;
-	m_trustee.erase() ;
-	m_challenge.erase() ;
-	m_mechanism.erase() ;
+	m_id.clear() ;
+	m_trustee.clear() ;
+	m_challenge.clear() ;
+	m_mechanism.clear() ;
+}
+
+G::StringArray GAuth::SaslServerBasicImp::mechanisms( bool secure ) const
+{
+	return secure ? m_mechanisms_secure : m_mechanisms_insecure ;
+}
+
+bool GAuth::SaslServerBasicImp::init( bool secure , const std::string & mechanism_in )
+{
+	reset() ;
 
 	std::string mechanism = G::Str::upper( mechanism_in ) ;
-	if( m_allow_apop && mechanism == "APOP" )
-	{
-		m_mechanism = mechanism ;
-		m_challenge = Cram::challenge( G::Random::rand() ) ;
-		return true ;
-	}
-	else if( std::find(m_mechanisms.begin(),m_mechanisms.end(),mechanism) == m_mechanisms.end() )
+	const G::StringArray & mechanisms = secure ? m_mechanisms_secure : m_mechanisms_insecure ;
+
+	if( mechanism.empty() || std::find(mechanisms.begin(),mechanisms.end(),mechanism) == mechanisms.end() )
 	{
 		G_DEBUG( "GAuth::SaslServerBasicImp::init: requested mechanism [" << mechanism << "] is not in our list" ) ;
 		return false ;
 	}
-	else if( mechanism.find("CRAM-") == 0U )
+	else if( mechanism == "APOP" || mechanism.find("CRAM-") == 0U )
 	{
 		m_mechanism = mechanism ;
 		m_challenge = Cram::challenge( G::Random::rand() ) ;
@@ -135,16 +192,33 @@ bool GAuth::SaslServerBasicImp::init( const std::string & mechanism_in )
 	}
 }
 
+std::string GAuth::SaslServerBasicImp::preferredMechanism( bool secure ) const
+{
+	if( !m_id.empty() )
+	{
+		auto mechanism_list = mechanisms( secure ) ;
+		std::reverse( mechanism_list.begin() , mechanism_list.end() ) ;
+		for( const auto & m : mechanism_list )
+		{
+			if( G::Str::headMatch( m , "CRAM-" ) )
+			{
+				std::string type = G::Str::lower( m.substr(5U) ) ; // eg. "sha1"
+				if( m_secrets.contains( type , m_id ) )
+					return m ;
+			}
+		}
+	}
+	return std::string() ;
+}
+
 std::string GAuth::SaslServerBasicImp::initialChallenge() const
 {
 	// see RFC-4422 section 5
 	if( m_mechanism == "PLAIN" ) // "client-first"
 		return std::string() ;
-	else if( m_mechanism == "XOAUTH2" ) // for testing -- "client-first"
-		return std::string() ;
 	else if( m_mechanism == "LOGIN" ) // "variable"
-		return login_challenge_1 ;
-	else // CRAM-X "server-first"
+		return G::sv_to_string(login_challenge_1) ;
+	else // APOP/CRAM-X "server-first"
 		return m_challenge ;
 }
 
@@ -168,14 +242,14 @@ std::string GAuth::SaslServerBasicImp::apply( const std::string & response , boo
 		{
 			if( m_mechanism == "APOP" )
 			{
-				secret = m_secrets.serverSecret( "plain" , id ) ; // (APOP is MD5 but not HMAC)
+				secret = m_secrets.serverSecret( "plain"_sv , id ) ; // (APOP is MD5 but not HMAC)
 			}
 			else
 			{
 				std::string hash_type = m_mechanism.substr(5U) ;
 				secret = m_secrets.serverSecret( hash_type , id ) ;
 				if( !secret.valid() )
-					secret = m_secrets.serverSecret( "plain" , id ) ;
+					secret = m_secrets.serverSecret( "plain"_sv , id ) ;
 			}
 		}
 		if( !secret.valid() )
@@ -195,33 +269,14 @@ std::string GAuth::SaslServerBasicImp::apply( const std::string & response , boo
 	else if( m_mechanism == "PLAIN" )
 	{
 		// PLAIN has a single response containing three nul-separated fields
-		std::string sep( 1U , '\0' ) ;
-		std::string id_pwd_in = G::Str::tail( response , sep ) ;
+		G::string_view sep( "\0" , 1U ) ;
+		G::string_view id_pwd_in = G::Str::tailView( response , sep ) ;
 		id = G::Str::head( id_pwd_in , sep ) ;
-		std::string pwd_in = G::Str::tail( id_pwd_in , sep ) ;
-		secret = m_secrets.serverSecret( "plain" , id ) ;
+		G::string_view pwd_in = G::Str::tailView( id_pwd_in , sep ) ;
+		secret = m_secrets.serverSecret( "plain"_sv , id ) ;
 
 		m_authenticated = secret.valid() && !id.empty() && !pwd_in.empty() && pwd_in == secret.key() ;
 		m_id = id ;
-		done = true ;
-	}
-	else if( m_mechanism == "XOAUTH2" && first_apply ) // for testing
-	{
-		if( G::Test::enabled("sasl-server-oauth-pass") )
-		{
-			m_id = "test" ;
-			m_authenticated = true ;
-			done = true ;
-		}
-		else
-		{
-			next_challenge = "not authenticated, send empty response" ;
-			done = false ;
-		}
-	}
-	else if( m_mechanism == "XOAUTH2" ) // for testing
-	{
-		m_authenticated = false ;
 		done = true ;
 	}
 	else if( first_apply ) // LOGIN username
@@ -230,13 +285,13 @@ std::string GAuth::SaslServerBasicImp::apply( const std::string & response , boo
 		G_ASSERT( m_mechanism == "LOGIN" ) ;
 		id = m_id = response ;
 		if( !m_id.empty() )
-			next_challenge = login_challenge_2 ;
+			next_challenge = G::sv_to_string(login_challenge_2) ;
 	}
 	else // LOGIN password
 	{
 		G_ASSERT( m_mechanism == "LOGIN" ) ;
 		id = m_id ;
-		secret = m_secrets.serverSecret( "plain" , m_id ) ;
+		secret = m_secrets.serverSecret( "plain"_sv , m_id ) ;
 		m_authenticated = secret.valid() && !response.empty() && response == secret.key() ;
 		done = true ;
 	}
@@ -282,11 +337,6 @@ bool GAuth::SaslServerBasicImp::trustedCore( const std::string & address_wildcar
 	}
 }
 
-bool GAuth::SaslServerBasicImp::active() const
-{
-	return m_secrets.valid() ;
-}
-
 std::string GAuth::SaslServerBasicImp::mechanism() const
 {
 	return m_mechanism ;
@@ -304,17 +354,18 @@ bool GAuth::SaslServerBasicImp::authenticated() const
 
 // ===
 
-GAuth::SaslServerBasic::SaslServerBasic( const SaslServerSecrets & secrets , const std::string & config , bool allow_apop ) :
-	m_imp(std::make_unique<SaslServerBasicImp>(secrets,config,allow_apop))
+GAuth::SaslServerBasic::SaslServerBasic( const SaslServerSecrets & secrets ,
+	bool with_apop , const std::string & config , bool no_insecure_mechanisms ) :
+		m_imp(std::make_unique<SaslServerBasicImp>(secrets,with_apop,config,no_insecure_mechanisms))
 {
 }
 
 GAuth::SaslServerBasic::~SaslServerBasic()
 = default ;
 
-std::string GAuth::SaslServerBasic::mechanisms( char c ) const
+G::StringArray GAuth::SaslServerBasic::mechanisms( bool secure ) const
 {
-	return m_imp->mechanisms( std::string(1U,c) ) ;
+	return m_imp->mechanisms( secure ) ;
 }
 
 std::string GAuth::SaslServerBasic::mechanism() const
@@ -322,25 +373,31 @@ std::string GAuth::SaslServerBasic::mechanism() const
 	return m_imp->mechanism() ;
 }
 
+std::string GAuth::SaslServerBasic::preferredMechanism( bool secure ) const
+{
+	return m_imp->preferredMechanism( secure ) ;
+}
+
 bool GAuth::SaslServerBasic::trusted( const GNet::Address & address ) const
 {
 	return m_imp->trusted( address ) ;
 }
 
-bool GAuth::SaslServerBasic::active() const
+void GAuth::SaslServerBasic::reset()
 {
-	return m_imp->active() ;
+	return m_imp->reset() ;
 }
 
-bool GAuth::SaslServerBasic::init( const std::string & mechanism )
+bool GAuth::SaslServerBasic::init( bool secure , const std::string & mechanism )
 {
-	return m_imp->init( mechanism ) ;
+	return m_imp->init( secure , mechanism ) ;
 }
 
 bool GAuth::SaslServerBasic::mustChallenge() const
 {
-	std::string m = G::Str::upper( m_imp->mechanism() ) ; // upper() just in case
-	return m != "PLAIN" && m != "LOGIN" && m != "XOAUTH2" ;
+	const bool plain = G::Str::imatch( m_imp->mechanism() , "PLAIN" ) ;
+	const bool login = !plain && G::Str::imatch( m_imp->mechanism() , "LOGIN" ) ;
+	return !plain && !login ;
 }
 
 std::string GAuth::SaslServerBasic::initialChallenge() const
@@ -361,10 +418,5 @@ bool GAuth::SaslServerBasic::authenticated() const
 std::string GAuth::SaslServerBasic::id() const
 {
 	return m_imp->id() ;
-}
-
-bool GAuth::SaslServerBasic::requiresEncryption() const
-{
-	return false ;
 }
 

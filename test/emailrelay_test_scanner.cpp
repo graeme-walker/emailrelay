@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 ///
 // A dummy network processor for testing "emailrelay --filter net:<host>:<port>".
 //
-// usage: emailrelay-test-scanner [--port <port-or-address>] [--log] [--log-file <file>] [--debug] [--pid-file <pidfile>]
+// usage: emailrelay_test_scanner [--port <port-or-address>] [--log] [--log-file <file>] [--debug] [--pid-file <pidfile>]
 //
 // Listens on port 10020 by default. Each request is a 'content' filename
 // and the file should contain a mini script with commands of:
@@ -40,6 +40,7 @@
 #include "gtimerlist.h"
 #include "gfile.h"
 #include "gprocess.h"
+#include "gscope.h"
 #include "gstr.h"
 #include "garg.h"
 #include "gfile.h"
@@ -59,7 +60,7 @@ namespace Main
 class Main::ScannerPeer : public GNet::ServerPeer
 {
 public:
-	ScannerPeer( GNet::ExceptionSinkUnbound esu , GNet::ServerPeerInfo ) ;
+	ScannerPeer( GNet::ExceptionSinkUnbound esu , GNet::ServerPeerInfo && ) ;
 private:
 	void onDelete( const std::string & ) override ;
 	bool onReceive( const char * , std::size_t , std::size_t , std::size_t , char ) override ;
@@ -68,10 +69,10 @@ private:
 	bool processFile( std::string , std::string ) ;
 } ;
 
-Main::ScannerPeer::ScannerPeer( GNet::ExceptionSinkUnbound esu , GNet::ServerPeerInfo peer_info ) :
+Main::ScannerPeer::ScannerPeer( GNet::ExceptionSinkUnbound esu , GNet::ServerPeerInfo && peer_info ) :
 	ServerPeer(esu.bind(this),std::move(peer_info),GNet::LineBufferConfig::autodetect())
 {
-	G_LOG_S( "ScannerPeer::ctor: new connection from " << peerAddress().second.displayString() ) ;
+	G_LOG_S( "ScannerPeer::ctor: new connection from " << peerAddress().displayString() ) ;
 }
 
 void Main::ScannerPeer::onDelete( const std::string & )
@@ -151,7 +152,7 @@ bool Main::ScannerPeer::processFile( std::string path , std::string eol )
 		}
 		if( line.find("shutdown") == 0U )
 		{
-			socket().shutdown() ;
+			socket().shutdown() ; // no more sends (FIN)
 		}
 		if( line.find("disconnect") == 0U )
 		{
@@ -185,11 +186,13 @@ class Main::Scanner : public GNet::Server
 public:
 	Scanner( GNet::ExceptionSink , const GNet::Address & , unsigned int idle_timeout ) ;
 	~Scanner() override ;
-	std::unique_ptr<GNet::ServerPeer> newPeer( GNet::ExceptionSinkUnbound ebu , GNet::ServerPeerInfo ) override ;
+	std::unique_ptr<GNet::ServerPeer> newPeer( GNet::ExceptionSinkUnbound ebu , GNet::ServerPeerInfo && ) override ;
 } ;
 
 Main::Scanner::Scanner( GNet::ExceptionSink es , const GNet::Address & address , unsigned int idle_timeout ) :
-	GNet::Server(es,address,GNet::ServerPeerConfig(idle_timeout),GNet::ServerConfig())
+	GNet::Server(es,address,
+		GNet::ServerPeer::Config().set_idle_timeout(idle_timeout),
+		GNet::Server::Config().set_uds_open_permissions())
 {
 	G_LOG_S( "Scanner::ctor: listening on " << address.displayString() ) ;
 }
@@ -199,11 +202,11 @@ Main::Scanner::~Scanner()
 	serverCleanup() ; // base class early cleanup
 }
 
-std::unique_ptr<GNet::ServerPeer> Main::Scanner::newPeer( GNet::ExceptionSinkUnbound ebu , GNet::ServerPeerInfo peer_info )
+std::unique_ptr<GNet::ServerPeer> Main::Scanner::newPeer( GNet::ExceptionSinkUnbound ebu , GNet::ServerPeerInfo && peer_info )
 {
 	try
 	{
-		return std::unique_ptr<GNet::ServerPeer>( new ScannerPeer( ebu , peer_info ) ) ;
+		return std::unique_ptr<GNet::ServerPeer>( new ScannerPeer( ebu , std::move(peer_info) ) ) ;
 	}
 	catch( std::exception & e )
 	{
@@ -226,6 +229,7 @@ static int run( const GNet::Address & address , unsigned int idle_timeout )
 
 int main( int argc , char * argv [] )
 {
+	std::string pid_file ;
 	try
 	{
 		G::Arg arg( argc , argv ) ;
@@ -233,7 +237,7 @@ int main( int argc , char * argv [] )
 		bool debug = arg.remove("--debug") ;
 		std::string log_file = arg.index("--log-file",1U) ? arg.v(arg.index("--log-file",1U)+1U) : std::string() ;
 		std::string port_str = arg.index("--port",1U) ? arg.v(arg.index("--port",1U)+1U) : std::string("10020") ;
-		std::string pid_file = arg.index("--pid-file",1U) ? arg.v(arg.index("--pid-file",1U)+1U) : std::string() ;
+		pid_file = arg.index("--pid-file",1U) ? arg.v(arg.index("--pid-file",1U)+1U) : std::string() ;
 		unsigned int idle_timeout = 10U ;
 
 		GNet::Address address = G::Str::isNumeric(port_str) ?
@@ -258,6 +262,7 @@ int main( int argc , char * argv [] )
 
 		int rc = run( address , idle_timeout ) ;
 		std::cout << "done" << std::endl ;
+		std::remove( pid_file.c_str() ) ;
 		return rc ;
 	}
 	catch( std::exception & e )
@@ -268,6 +273,7 @@ int main( int argc , char * argv [] )
 	{
 		std::cerr << "exception\n" ;
 	}
+	std::remove( pid_file.c_str() ) ;
 	return 1 ;
 }
 

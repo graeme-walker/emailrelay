@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,6 +24,8 @@
 #include "gdef.h"
 #include "gexceptionsink.h"
 #include "geventhandler.h"
+#include "gexception.h"
+#include <memory>
 
 namespace GNet
 {
@@ -33,12 +35,13 @@ namespace GNet
 }
 
 //| \class GNet::FutureEvent
-/// A FutureEvent object can be used to send a one-shot event via the
-/// event loop to the relevant event handler. Used in the implementation
-/// of 'future' classes.
+/// A FutureEvent object can be used to send a one-shot event between
+/// threads via the event loop, resulting in a call to the relevant
+/// event handler. This is used in the implementation of multi-threaded
+/// asynchronous task classes such as GNet::Task and GNet::Resolver.
 ///
 /// The thread-safe trigger function send() is typically called from
-/// a 'future' worker thread just before it finishes.
+/// a worker thread just before it finishes.
 ///
 /// Eg:
 /// \code
@@ -46,7 +49,7 @@ namespace GNet
 /// {
 ///  Foo() ;
 ///  void onFutureEvent() ;
-///  void run( FutureEvent::handle_type ) ;
+///  void run( HANDLE ) ;
 ///  FutureEvent m_future_event ;
 ///  std::thread m_thread ;
 ///  int m_result ;
@@ -56,7 +59,7 @@ namespace GNet
 ///    m_thread(&Foo::run,this,m_future_event.handle())
 /// {
 /// }
-/// void Foo::run( FutureEvent::handle_type h )
+/// void Foo::run( HANDLE h )
 /// {
 ///   m_result = ... ; // do blocking work in worker thread
 ///   FutureEvent::send( h ) ; // raise 'work complete' event
@@ -71,8 +74,7 @@ namespace GNet
 class GNet::FutureEvent
 {
 public:
-	G_EXCEPTION( Error , "FutureEvent error" ) ;
-	using handle_type = HANDLE ;
+	G_EXCEPTION( Error , tx("FutureEvent error") ) ;
 
 	FutureEvent( FutureEventHandler & , ExceptionSink ) ;
 		///< Constructor. Installs itself in the event loop.
@@ -80,12 +82,12 @@ public:
 	~FutureEvent() ;
 		///< Destructor.
 
-	handle_type handle() noexcept ;
+	HANDLE handle() noexcept ;
 		///< Extracts a handle that can be passed between threads
 		///< and used in send(). This should be called once,
 		///< typically as the worker thread is created.
 
-	static bool send( handle_type handle , bool close = true ) noexcept ;
+	static bool send( HANDLE handle , bool close = true ) noexcept ;
 		///< Pokes an event into the main event loop so that the
 		///< FutureEventHandler callback is called asynchronously.
 		///<
@@ -96,11 +98,15 @@ public:
 		///< This is safe even if the FutureEvent object has been
 		///< deleted. Returns true on success.
 
+	static HANDLE createHandle() ;
+		///< Used by some event loop implementations to create the
+		///< underlying synchronisation object.
+
 public:
 	FutureEvent( const FutureEvent & ) = delete ;
 	FutureEvent( FutureEvent && ) = delete ;
-	void operator=( const FutureEvent & ) = delete ;
-	void operator=( FutureEvent && ) = delete ;
+	FutureEvent & operator=( const FutureEvent & ) = delete ;
+	FutureEvent & operator=( FutureEvent && ) = delete ;
 
 private:
 	std::unique_ptr<FutureEventImp> m_imp ;

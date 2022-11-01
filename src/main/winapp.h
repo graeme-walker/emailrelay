@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include "gdef.h"
 #include "gappbase.h"
 #include "gexception.h"
+#include "goptionsusage.h"
 #include "gtray.h"
 #include "winform.h"
 #include "winmenu.h"
@@ -61,7 +62,7 @@ namespace Main
 class Main::WinApp : public GGui::ApplicationBase , public Main::Output
 {
 public:
-	G_EXCEPTION( Error , "application error" ) ;
+	G_EXCEPTION( Error , tx("application error") ) ;
 
 	WinApp( HINSTANCE h , HINSTANCE p , const std::string & name ) ;
 		///< Constructor. Initialise with init().
@@ -78,7 +79,7 @@ public:
 	void disableOutput() ;
 		///< Disables subsequent calls to output().
 
-	void onError( const std::string & message ) ;
+	void onError( const std::string & message , int exit_code = 1 ) ;
 		///< To be called when WinMain() catches an exception.
 
 	unsigned int columns() ;
@@ -91,7 +92,7 @@ public:
 
 private: // overrides
 	void output( const std::string & message , bool error , bool ) override ; // Override from Main::Output.
-	G::Options::Layout outputLayout( bool verbose ) const override ; // Override from Main::Output.
+	G::OptionsUsage::Config outputLayout( bool verbose ) const override ; // Override from Main::Output.
 	bool outputSimple() const override ; // Override from Main::Output.
 	void onWindowException( std::exception & e ) override ; // Override from GGui::Window.
 	DWORD classStyle() const override ; // Override from GGui::ApplicationBase.
@@ -130,8 +131,8 @@ private:
 public:
 	WinApp( const WinApp & ) = delete ;
 	WinApp( WinApp && ) = delete ;
-	void operator=( const WinApp & ) = delete ;
-	void operator=( WinApp && ) = delete ;
+	WinApp & operator=( const WinApp & ) = delete ;
+	WinApp & operator=( WinApp && ) = delete ;
 
 private:
 	void doOpen() ;

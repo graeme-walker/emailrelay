@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,10 +28,12 @@
 #include "genvironment.cpp"
 #include "genvironment_win32.cpp"
 #include "gdatetime.cpp"
+#include "ggettext_win32.cpp"
 #else
 #include "genvironment.cpp"
 #include "genvironment_unix.cpp"
 #include "gdatetime.cpp"
+#include "ggettext_unix.cpp"
 #endif
 
 #include "garg.cpp"
@@ -46,15 +48,19 @@
 #include "ggetopt.cpp"
 #include "ghash.cpp"
 #include "glog.cpp"
+#include "glogstream.cpp"
 #include "glogoutput.cpp"
 #include "gmapfile.cpp"
 #include "gmd5.cpp"
+#include "goption.cpp"
+#include "goptionmap.cpp"
 #include "goptionparser.cpp"
 #include "goptions.cpp"
-#include "goptionmap.cpp"
+#include "goptionsusage.cpp"
 #include "gpath.cpp"
 #include "groot.cpp"
 #include "gstr.cpp"
+#include "gstringview.cpp"
 #include "gstringwrap.cpp"
 #include "gtest.cpp"
 #include "gtime.cpp"

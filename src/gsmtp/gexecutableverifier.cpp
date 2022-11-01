@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -65,7 +65,7 @@ void GSmtp::ExecutableVerifier::onTaskDone( int exit_code , const std::string & 
 
 	G::StringArray result_parts ;
 	result_parts.reserve( 2U ) ;
-	G::Str::splitIntoFields( result , result_parts , {"\n",1U} ) ;
+	G::Str::splitIntoFields( result , result_parts , '\n' ) ;
 	std::size_t parts = result_parts.size() ;
 	result_parts.resize( 2U ) ;
 

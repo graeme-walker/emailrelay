@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -77,7 +77,7 @@ std::string GNet::ResolverFuture::failure() const
 
 std::string GNet::ResolverFuture::ipvx() const
 {
-	if( m_family == AF_UNSPEC ) return std::string() ;
+	if( m_family == AF_UNSPEC ) return {} ;
 	if( m_family == AF_INET ) return "ipv4 " ;
 	return "ipv6 " ; // AF_INET6 possibly undefined
 }

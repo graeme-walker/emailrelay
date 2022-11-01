@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,9 +27,10 @@
 #include "geventhandler.h"
 #include "gexceptionsink.h"
 #include "gexception.h"
-#include "gstrings.h"
+#include "gstringarray.h"
 #include "gtimer.h"
 #include "gsocket.h"
+#include <memory>
 #include <vector>
 
 namespace GNet
@@ -144,10 +145,14 @@ private:
 class GNet::DnsBlock : private EventHandler
 {
 public:
-	G_EXCEPTION( Error , "dnsbl error" ) ;
+	G_EXCEPTION( Error , tx("dnsbl error") ) ;
+	G_EXCEPTION( ConfigError , tx("invalid dnsbl configuration") ) ;
+	G_EXCEPTION( BadFieldCount , tx("not enough comma-sparated fields") ) ;
+	G_EXCEPTION( SendError , tx("socket send failed") ) ;
+	G_EXCEPTION( BadDnsResponse , tx("invalid dns response") ) ;
 	using ResultList = std::vector<DnsBlockServerResult> ;
 
-	DnsBlock( DnsBlockCallback & , ExceptionSink , const std::string & config = std::string() ) ;
+	DnsBlock( DnsBlockCallback & , ExceptionSink , G::string_view config = {} ) ;
 		///< Constructor. Use configure() if necessary and then start(),
 		///< one time only.
 
@@ -155,7 +160,7 @@ public:
 		G::TimeInterval timeout , const G::StringArray & servers ) ;
 			///< Configures the object after construction.
 
-	void configure( const std::string & ) ;
+	void configure( G::string_view ) ;
 		///< Configuration overload taking a configuration string containing
 		///< comma-separated fields of: dns-server-address, timeout-ms,
 		///< threshold, dnsbl-server-list.
@@ -174,14 +179,14 @@ public:
 	~DnsBlock() override = default ;
 	DnsBlock( const DnsBlock & ) = delete ;
 	DnsBlock( DnsBlock && ) = delete ;
-	void operator=( const DnsBlock & ) = delete ;
-	void operator=( DnsBlock && ) = delete ;
+	DnsBlock & operator=( const DnsBlock & ) = delete ;
+	DnsBlock & operator=( DnsBlock && ) = delete ;
 
 private: // overrides
 	void readEvent() override ; // Override from GNet::EventHandler.
 
 private:
-	static void configureImp( const std::string & , DnsBlock * ) ;
+	static void configureImp( G::string_view , DnsBlock * ) ;
 	void onTimeout() ;
 	static std::string queryString( const Address & ) ;
 	static std::size_t countResponders( const ResultList & ) ;
@@ -208,7 +213,7 @@ class GNet::DnsBlockCallback
 {
 public:
 	virtual ~DnsBlockCallback() = default ;
-		///< Desstructor.
+		///< Destructor.
 
 	virtual void onDnsBlockResult( const DnsBlockResult & ) = 0 ;
 		///< Called with the results from DnsBlock::start().

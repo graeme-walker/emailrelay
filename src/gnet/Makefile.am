@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -17,153 +17,57 @@
 
 noinst_LIBRARIES = libgnet.a
 
+# -- OS
+
 if GCONFIG_WINDOWS
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gssl -I$(top_srcdir)/src/win32
 
-EXTRA_DIST_COMMON=\
-	gaddresslocal_unix.cpp \
+OS_EXTRA_DIST = \
 	gdescriptor_unix.cpp \
-	geventloop_select.cpp \
-	geventloop_epoll.cpp \
 	gfutureevent_unix.cpp \
 	gsocket_unix.cpp
 
-if GCONFIG_INTERFACE_NAMES
-
-EXTRA_DIST = \
-	$(EXTRA_DIST_COMMON) \
-	ginterfaces_unix.cpp \
-	ginterfaces_none.cpp
-
-INTERFACES_SOURCES = \
-	ginterfaces_common.cpp \
-	ginterfaces_win32.cpp
-
-else
-
-EXTRA_DIST = \
-	$(EXTRA_DIST_COMMON) \
-	ginterfaces_unix.cpp \
-	ginterfaces_common.cpp \
-	ginterfaces_win32.cpp
-
-INTERFACES_SOURCES = \
-	ginterfaces_none.cpp
-
-endif
-
-libgnet_a_SOURCES = \
-	gaddresslocal_none.cpp \
-	gaddresslocal.h \
-	gaddress4.cpp \
-	gaddress4.h \
-	gaddress6.cpp \
-	gaddress6.h \
-	gaddress.cpp \
-	gaddress.h \
-	gclient.cpp \
-	gclient.h \
-	gclientptr.cpp \
-	gclientptr.h \
-	gconnection.cpp \
-	gconnection.h \
-	gdescriptor.h \
-	gdescriptor_win32.cpp \
-	gdnsblock.cpp \
-	gdnsblock.h \
-	gdnsmessage.cpp \
-	gdnsmessage.h \
-	gdnsmessage.cpp \
-	gdnsmessage.h \
-	gevent.h \
-	geventhandler.cpp \
-	geventhandler.h \
-	geventhandlerlist.cpp \
-	geventhandlerlist.h \
-	geventloggingcontext.cpp \
-	geventloggingcontext.h \
-	geventloop.cpp \
-	geventloop.h \
-	geventloop_win32.cpp \
-	gexceptionhandler.cpp \
-	gexceptionhandler.h \
-	gexceptionsink.cpp \
-	gexceptionsink.h \
-	gexceptionsource.cpp \
-	gexceptionsource.h \
-	gfutureevent.h \
-	gfutureevent_win32.cpp \
-	ginterfaces.h \
-	$(INTERFACES_SOURCES) \
-	glinebuffer.cpp \
-	glinebuffer.h \
-	glinestore.cpp \
-	glinestore.h \
-	glistener.h \
-	glocal.cpp \
-	glocal.h \
-	glocation.cpp \
-	glocation.h \
-	gmonitor.cpp \
-	gmonitor.h \
-	gmultiserver.cpp \
-	gmultiserver.h \
-	gnetdone.cpp \
-	gnetdone.h \
-	gresolver.cpp \
-	gresolver.h \
-	gresolverfuture.cpp \
-	gresolverfuture.h \
-	gserver.cpp \
-	gserver.h \
-	gserverpeer.cpp \
-	gserverpeer.h \
-	gsocket.cpp \
-	gsocket.h \
-	gsocketprotocol.cpp \
-	gsocketprotocol.h \
-	gsocket_win32.cpp \
-	gsocks.cpp \
-	gsocks.h \
-	gtask.cpp \
-	gtask.h \
-	gtimer.cpp \
-	gtimer.h \
-	gtimerlist.cpp \
-	gtimerlist.h
-
-else
-
-AM_CPPFLAGS = -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gssl
-
-EXTRA_DIST_COMMON=\
+OS_SOURCES = \
 	gdescriptor_win32.cpp \
 	geventloop_win32.cpp \
 	gfutureevent_win32.cpp \
 	gsocket_win32.cpp
 
-if GCONFIG_UDS
-
-UDS_SOURCES = \
-	gaddresslocal_unix.cpp
-
-EXTRA_DIST_UDS = \
-	gaddresslocal_none.cpp
-
 else
 
-UDS_SOURCES = \
-	gaddresslocal_none.cpp
+AM_CPPFLAGS = -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gssl
 
-EXTRA_DIST_UDS = \
-	gaddresslocal_unix.cpp
+OS_EXTRA_DIST = \
+	gdescriptor_win32.cpp \
+	geventloop_win32.cpp \
+	gfutureevent_win32.cpp \
+	gsocket_win32.cpp
+
+OS_SOURCES = \
+	gdescriptor_unix.cpp \
+	gfutureevent_unix.cpp \
+	gsocket_unix.cpp
 
 endif
+
+# -- INTERFACE_NAMES
 
 if GCONFIG_INTERFACE_NAMES
 
-EXTRA_DIST_INTERFACES = \
+if GCONFIG_WINDOWS
+
+INTERFACES_EXTRA_DIST = \
+	ginterfaces_unix.cpp \
+	ginterfaces_none.cpp
+
+INTERFACES_SOURCES = \
+	ginterfaces_common.cpp \
+	ginterfaces_win32.cpp
+
+else
+
+INTERFACES_EXTRA_DIST = \
 	ginterfaces_win32.cpp \
 	ginterfaces_none.cpp
 
@@ -171,21 +75,103 @@ INTERFACES_SOURCES = \
 	ginterfaces_unix.cpp \
 	ginterfaces_common.cpp
 
+endif
+
 else
 
-EXTRA_DIST_INTERFACES = \
-	ginterfaces_win32.cpp \
+INTERFACES_EXTRA_DIST = \
 	ginterfaces_unix.cpp \
+	ginterfaces_win32.cpp \
 	ginterfaces_common.cpp
 
 INTERFACES_SOURCES = \
 	ginterfaces_none.cpp
 
 endif
+
+# -- DNSBL
+
+if GCONFIG_DNSBL
+
+DNSBL_EXTRA_DIST = \
+	gdnsbl_disabled.cpp
+
+DNSBL_SOURCES = \
+	gdnsbl.h \
+	gdnsbl_enabled.cpp \
+	gdnsblock.h \
+	gdnsblock.cpp \
+	gdnsmessage.h \
+	gdnsmessage.cpp
+
+else
+
+DNSBL_EXTRA_DIST = \
+	gdnsbl_enabled.cpp \
+	gdnsblock.h \
+	gdnsblock.cpp \
+	gdnsmessage.h \
+	gdnsmessage.cpp
+
+DNSBL_SOURCES = \
+	gdnsbl.h \
+	gdnsbl_disabled.cpp
+
+endif
+
+# -- UDS
+
+if GCONFIG_UDS
+
+if GCONFIG_WINDOWS
+
+UDS_SOURCES = \
+	gaddresslocal_none.cpp
+
+UDS_EXTRA_DIST =
+	gaddresslocal_unix.cpp
+
+else
+
+UDS_SOURCES = \
+	gaddresslocal_unix.cpp
+
+UDS_EXTRA_DIST =
+	gaddresslocal_none.cpp
+
+endif
+
+else
+
+UDS_SOURCES = \
+	gaddresslocal_none.cpp
+
+UDS_EXTRA_DIST =
+	gaddresslocal_unix.cpp
+
+endif
+
+# -- EVENTLOOP
+
+if GCONFIG_WINDOWS
+
+EVENTLOOP_EXTRA_DIST = \
+	geventloop_epoll.cpp \
+	geventloop_select.cpp
+
+EVENTLOOP_SOURCES = \
+	geventloop_win32.cpp \
+	geventloophandles.h \
+	geventloophandles.cpp
+
+else
 
 if GCONFIG_EPOLL
 
-EXTRA_DIST_EVENTLOOP = \
+EVENTLOOP_EXTRA_DIST = \
+	geventloop_win32.cpp \
+	geventloophandles.h \
+	geventloophandles.cpp \
 	geventloop_select.cpp
 
 EVENTLOOP_SOURCES = \
@@ -193,29 +179,41 @@ EVENTLOOP_SOURCES = \
 
 else
 
-EXTRA_DIST_EVENTLOOP = \
-	geventloop_epoll.cpp
+EVENTLOOP_EXTRA_DIST = \
+	geventloop_win32.cpp \
+	geventloophandles.cpp \
+	geventloophandles.h \
+	geventloop_select.cpp
 
 EVENTLOOP_SOURCES = \
 	geventloop_select.cpp
 
 endif
 
+endif
+
+# ===
+
 EXTRA_DIST = \
-	$(EXTRA_DIST_COMMON) \
-	$(EXTRA_DIST_UDS) \
-	$(EXTRA_DIST_INTERFACES) \
-	$(EXTRA_DIST_EVENTLOOP)
+	$(DNSBL_EXTRA_DIST) \
+	$(EVENTLOOP_EXTRA_DIST) \
+	$(INTERFACES_EXTRA_DIST) \
+	$(OS_EXTRA_DIST) \
+	$(UDS_EXTRA_DIST)
 
 libgnet_a_SOURCES = \
+	$(DNSBL_SOURCES) \
+	$(EVENTLOOP_SOURCES) \
+	$(INTERFACES_SOURCES) \
+	$(OS_SOURCES) \
 	$(UDS_SOURCES) \
 	gaddress.cpp \
 	gaddress.h \
-	gaddresslocal.h \
 	gaddress4.h \
 	gaddress4.cpp \
 	gaddress6.h \
 	gaddress6.cpp \
+	gaddresslocal.h \
 	gclient.cpp \
 	gclient.h \
 	gclientptr.cpp \
@@ -223,21 +221,15 @@ libgnet_a_SOURCES = \
 	gconnection.cpp \
 	gconnection.h \
 	gdescriptor.h \
-	gdescriptor_unix.cpp \
-	gdnsblock.cpp \
-	gdnsblock.h \
-	gdnsmessage.cpp \
-	gdnsmessage.h \
 	gevent.h \
+	geventemitter.cpp \
+	geventemitter.h \
 	geventhandler.cpp \
 	geventhandler.h \
-	geventhandlerlist.cpp \
-	geventhandlerlist.h \
 	geventloggingcontext.cpp \
 	geventloggingcontext.h \
 	geventloop.cpp \
 	geventloop.h \
-	$(EVENTLOOP_SOURCES) \
 	gexceptionhandler.cpp \
 	gexceptionhandler.h \
 	gexceptionsink.cpp \
@@ -245,9 +237,7 @@ libgnet_a_SOURCES = \
 	gexceptionsource.cpp \
 	gexceptionsource.h \
 	gfutureevent.h \
-	gfutureevent_unix.cpp \
 	ginterfaces.h \
-	$(INTERFACES_SOURCES) \
 	glinebuffer.cpp \
 	glinebuffer.h \
 	glinestore.cpp \
@@ -273,7 +263,6 @@ libgnet_a_SOURCES = \
 	gserverpeer.h \
 	gsocket.h \
 	gsocket.cpp \
-	gsocket_unix.cpp \
 	gsocketprotocol.cpp \
 	gsocketprotocol.h \
 	gsocks.cpp \
@@ -285,4 +274,3 @@ libgnet_a_SOURCES = \
 	gtimerlist.cpp \
 	gtimerlist.h
 
-endif

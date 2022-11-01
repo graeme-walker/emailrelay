@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -32,9 +32,7 @@ G::Time::Time( int hh , int mm , int ss ) :
 }
 
 G::Time::Time( const BrokenDownTime & tm ) :
-	m_hh(tm.hour()) ,
-	m_mm(tm.min()) ,
-	m_ss(tm.sec())
+	Time(tm.hour(),tm.min(),tm.sec())
 {
 }
 
@@ -73,27 +71,26 @@ int G::Time::seconds() const
 	return m_ss ;
 }
 
+std::string G::Time::xx( int n )
+{
+	return std::string(1U,'0'+n/10).append(1U,'0'+n%10) ;
+}
+
 std::string G::Time::hhmmss( const char * sep ) const
 {
 	if( sep == nullptr ) sep = "" ;
-	std::ostringstream ss ;
-	ss << (m_hh/10) << (m_hh%10) << sep << (m_mm/10) << (m_mm%10) << sep << (m_ss/10) << (m_ss%10) ;
-	return ss.str() ;
+	return std::string(xx(m_hh)).append(sep).append(xx(m_mm)).append(sep).append(xx(m_ss)) ;
 }
 
 std::string G::Time::hhmm( const char * sep ) const
 {
 	if( sep == nullptr ) sep = "" ;
-	std::ostringstream ss ;
-	ss << (m_hh/10) << (m_hh%10) << sep << (m_mm/10) << (m_mm%10) ;
-	return ss.str() ;
+	return std::string(xx(m_hh)).append(sep).append(xx(m_mm)) ;
 }
 
 std::string G::Time::ss() const
 {
-	std::ostringstream ss ;
-	ss << (m_ss/10) << (m_ss%10) ;
-	return ss.str() ;
+	return xx( m_ss ) ;
 }
 
 unsigned int G::Time::value() const

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,7 +24,8 @@
 #include "gdef.h"
 #include "gsaslclientsecrets.h"
 #include "gexception.h"
-#include "gstrings.h"
+#include "gstringview.h"
+#include "gstringarray.h"
 #include <memory>
 
 namespace GAuth
@@ -57,11 +58,11 @@ public:
 	bool active() const ;
 		///< Returns true if the constructor's secrets object is valid.
 
-	Response response( const std::string & mechanism , const std::string & challenge ) const ;
+	Response response( G::string_view mechanism , G::string_view challenge ) const ;
 		///< Returns a response to the given challenge. The mechanism is
 		///< used to choose the appropriate entry in the secrets file.
 
-	std::string initialResponse( std::size_t limit = 0U ) const ;
+	Response initialResponse( std::size_t limit = 0U ) const ;
 		///< Returns an optional initial response. Always returns the empty
 		///< string if the mechanism is 'server-first'. Returns the empty
 		///< string, with no side-effects, if the initial response is longer
@@ -79,9 +80,8 @@ public:
 
 	std::string next( const std::string & ) ;
 		///< A convenience overload that moves to the next() mechanism
-		///< and returns it. Returns the empty string if the
-		///< given string is empty or if there are no more
-		///< mechanisms.
+		///< and returns it. Returns the empty string if the given string
+		///< is empty or if there are no more mechanisms.
 
 	std::string mechanism() const ;
 		///< Returns the name of the current mechanism once next() has
@@ -98,8 +98,8 @@ public:
 public:
 	SaslClient( const SaslClient & ) = delete ;
 	SaslClient( SaslClient && ) = delete ;
-	void operator=( const SaslClient & ) = delete ;
-	void operator=( SaslClient && ) = delete ;
+	SaslClient & operator=( const SaslClient & ) = delete ;
+	SaslClient & operator=( SaslClient && ) = delete ;
 
 private:
 	std::unique_ptr<SaslClientImp> m_imp ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -61,7 +61,7 @@ namespace G
 class G::Convert
 {
 public:
-	G_EXCEPTION_CLASS( Error , "string character-set conversion error" ) ;
+	G_EXCEPTION_CLASS( Error , tx("string character-set conversion error") ) ;
 	using tstring = std::basic_string<TCHAR> ;
 
 	struct utf8 /// A string wrapper that indicates UTF-8 encoding.

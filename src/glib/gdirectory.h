@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 #include "gexception.h"
 #include <string>
 #include <vector>
+#include <memory>
 #include <list>
 #include <sys/types.h>
 
@@ -47,9 +48,6 @@ class G::Directory
 public:
 	Directory() ;
 		///< Default constructor for the current directory.
-
-	explicit Directory( const char * path ) ;
-		///< Constructor.
 
 	explicit Directory( const Path & path ) ;
 		///< Constructor.
@@ -90,10 +88,10 @@ private:
 } ;
 
 //| \class G::DirectoryIterator
-/// A iterator that returns filenames in a directory.
+/// A iterator that returns unsorted filenames in a directory.
 /// The iteration model is:
 /// \code
-/// while(iter.more()) { (void)iter.filePath() ; }
+/// while(iter.more()) { auto path = iter.filePath() ; }
 /// \endcode
 ///
 class G::DirectoryIterator
@@ -115,6 +113,9 @@ public:
 	bool isDir() const ;
 		///< Returns true if the current item is a directory.
 
+	bool isLink() const ;
+		///< Returns true if the current item is a symlink.
+
 	std::string sizeString() const ;
 		///< Returns the file size as a decimal string. The value
 		///< may be bigger than any integer type can hold.
@@ -130,7 +131,7 @@ public:
 public:
 	DirectoryIterator( const DirectoryIterator & ) = delete ;
 	DirectoryIterator( DirectoryIterator && ) noexcept = default ;
-	void operator=( const DirectoryIterator & ) = delete ;
+	DirectoryIterator & operator=( const DirectoryIterator & ) = delete ;
 	DirectoryIterator & operator=( DirectoryIterator && ) noexcept = default ;
 
 private:
@@ -139,8 +140,9 @@ private:
 
 //| \class G::DirectoryList
 /// A iterator similar to G::DirectoryIterator but doing all file
-/// i/o in one go. This is useful when temporarily adopting
-/// additional process privileges to read a directory.
+/// i/o in one go and providing a sorted result. This can be useful
+/// when temporarily adopting additional process privileges to
+/// read a directory.
 ///
 class G::DirectoryList
 {
@@ -148,8 +150,10 @@ public:
 	struct Item /// A directory-entry item for G::DirectoryList.
 	{
 		bool m_is_dir{false} ;
+		bool m_is_link{false} ;
 		Path m_path ;
 		std::string m_name ;
+		bool operator<( const Item & ) const noexcept ;
 	} ;
 
 	DirectoryList() ;
@@ -157,13 +161,13 @@ public:
 		///< of the two read methods to do all the file i/o in one go.
 
 	void readAll( const Path & dir ) ;
-		///< An initialiser that is to be used after default
-		///< construction. Reads all files in the directory.
+		///< An initialiser that is to be used after default construction.
+		///< Reads all files in the directory.
 
-	void readType( const Path & dir , const std::string & suffix , unsigned int limit = 0U ) ;
+	void readType( const Path & dir , string_view suffix , unsigned int limit = 0U ) ;
 		///< An initialiser that is to be used after default
 		///< construction. Reads all files that have the given
-		///< suffix.
+		///< suffix (unsorted).
 
 	bool more() ;
 		///< Returns true if more and advances by one.
@@ -171,28 +175,30 @@ public:
 	bool isDir() const ;
 		///< Returns true if the current item is a directory.
 
+	bool isLink() const ;
+		///< Returns true if the current item is a symlink.
+
 	Path filePath() const ;
 		///< Returns the current path.
 
 	std::string fileName() const ;
-		///< Returns the current filename. On Windows
-		///< any characters that cannot be represented in the
-		///< active code page are replaced by '?'.
+		///< Returns the current filename. On Windows any characters
+		///< that cannot be represented in the active code page are
+		///< replaced by '?'.
 
-	void sort() ;
-		///< Sorts the files lexicographically.
-
-	static void readAll( const Path & dir , std::vector<Item> & out , bool sorted ) ;
+	static void readAll( const Path & dir , std::vector<Item> & out ) ;
 		///< A static overload returning by reference a collection
-		///< of Items.
-
-private:
-	static bool compare( const Item & , const Item & ) ;
+		///< of Items, sorted by name.
 
 private:
 	bool m_first{true} ;
 	unsigned int m_index{0U} ;
 	std::vector<Item> m_list ;
 } ;
+
+inline bool G::DirectoryList::Item::operator<( const Item & other ) const noexcept
+{
+	return m_name < other.m_name ;
+}
 
 #endif

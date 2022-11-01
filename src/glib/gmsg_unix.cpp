@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
-/// \file gmsg_unix.cpp
+/// \file gmsg_linux.cpp
 ///
 
 #include "gdef.h"
@@ -27,28 +27,30 @@
 #include <cerrno> // EINTR etc
 #include <stdexcept>
 #include <array>
+#include <type_traits>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
 
 ssize_t G::Msg::send( int fd , const void * buffer , std::size_t size , int flags ) noexcept
 {
-	return ::sendto( fd , buffer , size , flags | MSG_NOSIGNAL , nullptr , 0U ) ;
+	return sendto( fd , buffer , size , flags , nullptr , 0U ) ;
 }
 
 ssize_t G::Msg::sendto( int fd , const void * buffer , std::size_t size , int flags ,
 	const sockaddr * address_p , socklen_t address_n ) noexcept
 {
-	return ::sendto( fd , buffer , size , flags | MSG_NOSIGNAL , const_cast<sockaddr*>(address_p) , address_n ) ;
+	return ::sendto( fd , buffer , size , flags|MSG_NOSIGNAL , // NOLINT
+		const_cast<sockaddr*>(address_p) , address_n ) ;
 }
 
-ssize_t G::Msg::recv( int fd , void * buffer , std::size_t size , int flags )
+ssize_t G::Msg::recv( int fd , void * buffer , std::size_t size , int flags ) noexcept
 {
 	return ::recv( fd , buffer , size , flags ) ;
 }
 
 ssize_t G::Msg::recvfrom( int fd , void * buffer , std::size_t size , int flags ,
-	sockaddr * address_p , socklen_t * address_np )
+	sockaddr * address_p , socklen_t * address_np ) noexcept
 {
 	return ::recvfrom( fd , buffer , size , flags , address_p , address_np ) ;
 }
@@ -61,7 +63,6 @@ bool G::Msg::fatal( int error ) noexcept
 		error == EINTR ||
 		error == EMSGSIZE || // moot
 		error == ENOBUFS ||
-		error == ENOMEM ||
-		false ) ;
+		error == ENOMEM ) ;
 }
 

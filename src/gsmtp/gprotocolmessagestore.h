@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -80,8 +80,8 @@ public:
 public:
 	ProtocolMessageStore( const ProtocolMessageStore & ) = delete ;
 	ProtocolMessageStore( ProtocolMessageStore && ) = delete ;
-	void operator=( const ProtocolMessageStore & ) = delete ;
-	void operator=( ProtocolMessageStore && ) = delete ;
+	ProtocolMessageStore & operator=( const ProtocolMessageStore & ) = delete ;
+	ProtocolMessageStore & operator=( ProtocolMessageStore && ) = delete ;
 
 private:
 	void filterDone( int ) ;

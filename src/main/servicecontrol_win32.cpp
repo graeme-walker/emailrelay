@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -45,8 +45,8 @@ struct ServiceControl::ScopeExitCloser
 	~ScopeExitCloser() { CloseServiceHandle( m_h ) ; }
 	ScopeExitCloser( const ScopeExitCloser & ) = delete ;
 	ScopeExitCloser( ScopeExitCloser && ) = delete ;
-	void operator=( const ScopeExitCloser & ) = delete ;
-	void operator=( ScopeExitCloser && ) = delete ;
+	ScopeExitCloser & operator=( const ScopeExitCloser & ) = delete ;
+	ScopeExitCloser & operator=( ScopeExitCloser && ) = delete ;
 	SC_HANDLE m_h ;
 } ;
 
@@ -60,8 +60,8 @@ public:
 public:
 	Manager( const Manager & ) = delete ;
 	Manager( Manager && ) = delete ;
-	void operator=( const Manager & ) = delete ;
-	void operator=( Manager && ) = delete ;
+	Manager & operator=( const Manager & ) = delete ;
+	Manager & operator=( Manager && ) = delete ;
 
 private:
 	SC_HANDLE m_h ;
@@ -84,8 +84,8 @@ public:
 public:
 	Service( const Service & ) = delete ;
 	Service( Service && ) = delete ;
-	void operator=( const Service & ) = delete ;
-	void operator=( Service && ) = delete ;
+	Service & operator=( const Service & ) = delete ;
+	Service & operator=( Service && ) = delete ;
 
 private:
 	SC_HANDLE open( SC_HANDLE , const std::string & ) ;

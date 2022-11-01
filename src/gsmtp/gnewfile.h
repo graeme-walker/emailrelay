@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 #include "gdef.h"
 #include "gfilestore.h"
 #include "genvelope.h"
-#include "gstrings.h"
+#include "gstringarray.h"
 #include "gnewmessage.h"
 #include "gexception.h"
 #include <fstream>
@@ -42,9 +42,7 @@ namespace GSmtp
 class GSmtp::NewFile : public NewMessage
 {
 public:
-	G_EXCEPTION( InvalidPath , "invalid path: must be absolute" ) ;
-	G_EXCEPTION( FileError , "message store error" ) ;
-	G_EXCEPTION( TooBig , "message too big" ) ;
+	G_EXCEPTION( FileError , tx("message store error") ) ;
 
 	NewFile( FileStore & store , const std::string & from , const std::string & from_auth_in ,
 		const std::string & from_auth_out , std::size_t max_size , bool test_for_eight_bit ) ;
@@ -60,8 +58,8 @@ public:
 public:
 	NewFile( const NewFile & ) = delete ;
 	NewFile( NewFile && ) = delete ;
-	void operator=( const NewFile & ) = delete ;
-	void operator=( NewFile && ) = delete ;
+	NewFile & operator=( const NewFile & ) = delete ;
+	NewFile & operator=( NewFile && ) = delete ;
 
 private: // overrides
 	void commit( bool strict ) override ; // Override from GSmtp::NewMessage.

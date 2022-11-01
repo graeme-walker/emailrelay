@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@ bool G::Process::Id::operator!=( const Id & rhs ) const noexcept
 
 // ===
 
-void G::Process::closeFiles( bool keep_stderr )
+void G::Process::closeFiles( bool /*keep_stderr*/ )
 {
 	std::cout << std::flush ;
 	std::cerr << std::flush ;
@@ -92,7 +92,12 @@ int G::Process::errno_( const SignalSafe & ) noexcept
 	return e ;
 }
 
-int G::Process::errno_( const SignalSafe & signal_safe , int e ) noexcept
+void G::Process::errno_( int e ) noexcept
+{
+	_set_errno( e ) ;
+}
+
+int G::Process::errno_( const SignalSafe & , int e ) noexcept
 {
 	int old = errno_( SignalSafe() ) ;
 	_set_errno( e ) ;
@@ -103,7 +108,7 @@ std::string G::Process::strerror( int errno_ )
 {
 	std::vector<char> buffer( 80U , '\0' ) ;
 	if( strerror_s( &buffer[0] , buffer.size()-1U , errno_ ) || buffer.at(0U) == '\0' )
-		return "unknown error" ;
+		return std::string("unknown error (").append(G::Str::fromInt(errno_)).append(1U,')') ;
 	std::string s( &buffer[0] ) ;
 	return Str::isPrintableAscii(s) ? Str::lower(s) : s ;
 }
@@ -123,7 +128,7 @@ void G::Process::beOrdinaryForExec( Identity ) noexcept
 	// not implemented
 }
 
-void G::Process::beSpecial( Identity identity , bool )
+void G::Process::beSpecial( Identity , bool )
 {
 	// not implemented -- see also RevertToSelf()
 }
@@ -167,7 +172,7 @@ std::string G::Process::cwd( bool no_throw )
 	if( p == nullptr )
 	{
 		if( !no_throw )
-			throw std::runtime_error( "getcwd() failed" ) ;
+			throw GetCwdError() ;
 		return std::string() ;
 	}
 	else
@@ -192,6 +197,16 @@ G::Process::Umask::~Umask()
 = default ;
 
 void G::Process::Umask::set( Process::Umask::Mode )
+{
+	// not implemented
+}
+
+void G::Process::Umask::tightenOther()
+{
+	// not implemented
+}
+
+void G::Process::Umask::loosenGroup()
 {
 	// not implemented
 }

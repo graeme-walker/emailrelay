@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 
 #include "gdef.h"
 #include "gexception.h"
+#include "gstringview.h"
 #include <string>
 
 namespace G
@@ -48,8 +49,8 @@ namespace G
 class G::Md5
 {
 public:
-	G_EXCEPTION( Error , "internal md5 error" ) ;
-	G_EXCEPTION_CLASS( InvalidState , "invalid md5 hash state" ) ;
+	G_EXCEPTION( Error , tx("internal md5 error") ) ;
+	G_EXCEPTION_CLASS( InvalidState , tx("invalid md5 hash state") ) ;
 	using big_t = std::size_t ; // To hold at least 32 bits.
 	using small_t = std::size_t ; // To hold at least a std::size_t and no bigger than a big_t.
 	struct digest_state /// Holds the four parts of the md5 state.
@@ -77,6 +78,9 @@ public:
 	void add( const std::string & data ) ;
 		///< Adds more data.
 
+	void add( const char * data , std::size_t size ) ;
+		///< Adds more data.
+
 	std::string value() ;
 		///< Returns the hash value as a 16-character string. No
 		///< more add()s are allowed. The resulting string is not
@@ -96,7 +100,15 @@ public:
 		///< A convenience function that returns a digest from
 		///< one input.
 
+	static std::string digest( G::string_view input ) ;
+		///< A convenience function that returns a digest from
+		///< one input.
+
 	static std::string digest( const std::string & input_1 , const std::string & input_2 ) ;
+		///< A convenience function that returns a digest from
+		///< two inputs.
+
+	static std::string digest( G::string_view input_1 , G::string_view input_2 ) ;
 		///< A convenience function that returns a digest from
 		///< two inputs.
 
@@ -124,8 +136,11 @@ public:
 	~Md5() = default ;
 	Md5( const Md5 & ) = delete ;
 	Md5( Md5 && ) = delete ;
-	void operator=( const Md5 & ) = delete ;
-	void operator=( Md5 && ) = delete ;
+	Md5 & operator=( const Md5 & ) = delete ;
+	Md5 & operator=( Md5 && ) = delete ;
+
+private:
+	void consume() ;
 
 private:
 	std::size_t m_n{0U} ;

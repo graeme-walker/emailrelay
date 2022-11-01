@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,14 +22,9 @@
 #define G_STRINGS_H
 
 #include "gdef.h"
-#include <string>
-#include <vector>
-#include <map>
+#include "gstringarray.h"
+#include "gstringmap.h"
 
-namespace G
-{
-	using StringArray = std::vector<std::string> ; ///< A std::vector of std::strings.
-	using StringMap = std::map<std::string,std::string> ; ///< A std::map of std::strings.
-}
+// empty
 
 #endif

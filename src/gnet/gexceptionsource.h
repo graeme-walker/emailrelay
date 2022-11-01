@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -42,7 +42,8 @@ public:
 	virtual std::string exceptionSourceId() const ;
 		///< Returns an identifying string for logging purposes,
 		///< or the empty string. This typically provides the
-		///< remote peer's network address.
+		///< remote peer's network address. The default
+		///< implementation returns the empty string.
 
 	virtual ~ExceptionSource() ;
 		///< Destructor.
@@ -50,9 +51,9 @@ public:
 public:
 	ExceptionSource() = default ;
 	ExceptionSource( const ExceptionSource & ) = delete ;
-	ExceptionSource( ExceptionSource && ) = delete ;
-	void operator=( const ExceptionSource & ) = delete ;
-	void operator=( ExceptionSource && ) = delete ;
+	ExceptionSource( ExceptionSource && ) = default ;
+	ExceptionSource & operator=( const ExceptionSource & ) = delete ;
+	ExceptionSource & operator=( ExceptionSource && ) = default ;
 } ;
 
 #endif

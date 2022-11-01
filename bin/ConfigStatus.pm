@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,9 @@
 #
 # Synopsis:
 #  use ConfigStatus ;
-#  my $cs = new ConfigStatus( "config.status" ) ;
+#  my $cs = new ConfigStatus() ;
+#  my $cs = new ConfigStatus( "./config.status" ) ;
+#  my $cs = new ConfigStatus("") ; $cs->parse( "/tmp/config.status" ) ;
 #  my %vars = $cs->vars() ;
 #  my %switches = $cs->switches() ;
 #
@@ -42,6 +44,18 @@ sub new
 		m_vars => {} ,
 		m_switches => {} ,
 	} , $classname ;
+	if( !defined($filename) )
+	{
+		for my $dir ( "." , ".." , "../.." )
+		{
+			if( -e "$dir/config.status" )
+			{
+				$filename = "$dir/config.status" ;
+				last ;
+			}
+		}
+		$filename or die ;
+	}
 	$this->parse( $filename ) if $filename ;
 	return $this ;
 }

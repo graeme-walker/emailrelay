@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ namespace GPop
 class GPop::Store
 {
 public:
-	G_EXCEPTION( InvalidDirectory , "invalid spool directory" ) ;
+	G_EXCEPTION( InvalidDirectory , tx("invalid spool directory") ) ;
 
 	Store( const G::Path & spool_dir , bool by_name , bool allow_delete ) ;
 		///< Constructor.
@@ -63,8 +63,8 @@ public:
 	~Store() = default ;
 	Store( const Store & ) = delete ;
 	Store( Store && ) = delete ;
-	void operator=( const Store & ) = delete ;
-	void operator=( Store && ) = delete ;
+	Store & operator=( const Store & ) = delete ;
+	Store & operator=( Store && ) = delete ;
 
 private:
 	static void checkPath( const G::Path & , bool , bool ) ;
@@ -102,8 +102,8 @@ public:
 class GPop::StoreLock
 {
 public:
-	G_EXCEPTION( CannotDelete , "cannot delete message file" ) ;
-	G_EXCEPTION( CannotRead , "cannot read message file" ) ;
+	G_EXCEPTION( CannotDelete , tx("cannot delete message file") ) ;
+	G_EXCEPTION( CannotRead , tx("cannot read message file") ) ;
 	using Size = StoreLockEntry::Size ;
 	using Entry = StoreLockEntry ;
 	using List = std::list<Entry> ;
@@ -175,8 +175,8 @@ private:
 public:
 	StoreLock( const StoreLock & ) = delete ;
 	StoreLock( StoreLock && ) = delete ;
-	void operator=( const StoreLock & ) = delete ;
-	void operator=( StoreLock && ) = delete ;
+	StoreLock & operator=( const StoreLock & ) = delete ;
+	StoreLock & operator=( StoreLock && ) = delete ;
 
 private:
 	Set::iterator find( const std::string & ) ;

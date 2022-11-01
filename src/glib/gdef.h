@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+   Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -22,8 +22,7 @@
 /* This header is always the first header included in source
  * files. It takes care of a lot of portability concerns
  * and it works best when autoconf is used to set GCONFIG
- * preprocessor switches. Either G_UNIX or G_WINDOWS are expected
- * to be defined on the compiler command-line.
+ * preprocessor switches.
  */
 
 #ifndef G_DEF_H
@@ -79,59 +78,10 @@
 		#define G_UNIX_LINUX 1
 	#endif
 
-	/* Define the compiler c++ dialect
-	 */
-	#define G_COMPILER_CXX_11 1
-
 	/* Apply GCONFIG defaults in case of no autoconf
 	 */
-	#if !defined(GCONFIG_HAVE_CXX_NULLPTR)
-		#define GCONFIG_HAVE_CXX_NULLPTR 1
-	#endif
-	#if !defined(GCONFIG_HAVE_CXX_CONSTEXPR)
-		#define GCONFIG_HAVE_CXX_CONSTEXPR 1
-	#endif
-	#if !defined(GCONFIG_HAVE_CXX_ENUM_CLASS)
-		#define GCONFIG_HAVE_CXX_ENUM_CLASS 1
-	#endif
-	#if !defined(GCONFIG_HAVE_CXX_NOEXCEPT)
-		#define GCONFIG_HAVE_CXX_NOEXCEPT 1
-	#endif
-	#if !defined(GCONFIG_HAVE_CXX_OVERRIDE)
-		#define GCONFIG_HAVE_CXX_OVERRIDE 1
-	#endif
-	#if !defined(GCONFIG_HAVE_CXX_FINAL)
-		#define GCONFIG_HAVE_CXX_FINAL 1
-	#endif
 	#if !defined(GCONFIG_HAVE_CXX_ALIGNMENT)
 		#define GCONFIG_HAVE_CXX_ALIGNMENT 1
-	#endif
-	#if !defined(GCONFIG_HAVE_CXX_SHARED_PTR)
-		#define GCONFIG_HAVE_CXX_SHARED_PTR 1
-	#endif
-	#if !defined(GCONFIG_HAVE_CXX_STD_THREAD)
-		#define GCONFIG_HAVE_CXX_STD_THREAD 1
-	#endif
-	#if !defined(GCONFIG_HAVE_CXX_TYPE_TRAITS_MAKE_UNSIGNED)
-		#define GCONFIG_HAVE_CXX_TYPE_TRAITS_MAKE_UNSIGNED 1
-	#endif
-	#if !defined(GCONFIG_HAVE_CXX_EMPLACE)
-		#define GCONFIG_HAVE_CXX_EMPLACE 1
-	#endif
-	#if !defined(GCONFIG_HAVE_CXX_MOVE)
-		#define GCONFIG_HAVE_CXX_MOVE 1
-	#endif
-	#if !defined(GCONFIG_HAVE_CXX_DELETED)
-		#define GCONFIG_HAVE_CXX_DELETED 1
-	#endif
-	#if !defined(GCONFIG_HAVE_CXX_DEFAULTED)
-		#define GCONFIG_HAVE_CXX_DEFAULTED
-	#endif
-	#if !defined(GCONFIG_HAVE_CXX_INITIALIZER_LIST)
-		#define GCONFIG_HAVE_CXX_INITIALIZER_LIST 1
-	#endif
-	#if !defined(GCONFIG_HAVE_CXX_STD_WSTRING)
-		#define GCONFIG_HAVE_CXX_STD_WSTRING 1
 	#endif
 	#if !defined(GCONFIG_HAVE_CXX_STD_MAKE_UNIQUE)
 		#if defined(_MSC_VER)
@@ -418,13 +368,24 @@
 		#define GCONFIG_HAVE_INET_NTOP 1
 	#endif
 	#if !defined(GCONFIG_HAVE_IFNAMETOINDEX)
-		#define GCONFIG_HAVE_IFNAMETOINDEX 1
+		#ifdef G_UNIX
+			#define GCONFIG_HAVE_IFNAMETOINDEX 1
+		#else
+			#define GCONFIG_HAVE_IFNAMETOINDEX 0
+		#endif
 	#endif
 	#if !defined(GCONFIG_HAVE_IFNAMETOLUID)
-		#ifdef G_UNIX
-			#define GCONFIG_HAVE_IFNAMETOLUID 0
-		#else
+		#if defined(G_WINDOWS) && !defined(G_MINGW)
 			#define GCONFIG_HAVE_IFNAMETOLUID 1
+		#else
+			#define GCONFIG_HAVE_IFNAMETOLUID 0
+		#endif
+	#endif
+	#if !defined(GCONFIG_HAVE_IFINDEX)
+		#ifdef G_UNIX_LINUX
+			#define GCONFIG_HAVE_IFINDEX 1
+		#else
+			#define GCONFIG_HAVE_IFINDEX 0
 		#endif
 	#endif
 	#if !defined(GCONFIG_HAVE_INET_PTON)
@@ -538,7 +499,12 @@
 		#define GCONFIG_HAVE_LIBV4L 0
 	#endif
 	#if !defined(GCONFIG_HAVE_GETTEXT)
-		#define GCONFIG_HAVE_GETTEXT 0
+		/* see AM_GNU_GETTEXT */
+		#if defined(ENABLE_NLS) && ENABLE_NLS == 1
+			#define GCONFIG_HAVE_GETTEXT 1
+		#else
+			#define GCONFIG_HAVE_GETTEXT 0
+		#endif
 	#endif
 	#if !defined(GCONFIG_ENABLE_IPV6)
 		#define GCONFIG_ENABLE_IPV6 GCONFIG_HAVE_IPV6
@@ -700,11 +666,32 @@
 			#define GCONFIG_HAVE_PTHREAD_SIGMASK 0
 		#endif
 	#endif
+	#if !defined(GCONFIG_HAVE_DIRENT_D_TYPE)
+		#if defined(_DIRENT_HAVE_D_TYPE)
+			#define GCONFIG_HAVE_DIRENT_D_TYPE 1
+		#else
+			#define GCONFIG_HAVE_DIRENT_D_TYPE 0
+		#endif
+	#endif
+	#if !defined(GCONFIG_HAVE_IOVEC_SIMPLE)
+		#ifdef G_UNIX
+			#define GCONFIG_HAVE_IOVEC_SIMPLE 1
+		#else
+			#define GCONFIG_HAVE_IOVEC_SIMPLE 0
+		#endif
+	#endif
 	#if !defined(GCONFIG_HAVE_UDS)
 		#ifdef G_UNIX
 			#define GCONFIG_HAVE_UDS 1
 		#else
 			#define GCONFIG_HAVE_UDS 0
+		#endif
+	#endif
+	#if !defined(GCONFIG_HAVE_UDS_LEN)
+		#ifdef G_UNIX_BSD
+			#define GCONFIG_HAVE_UDS_LEN 1
+		#else
+			#define GCONFIG_HAVE_UDS_LEN 0
 		#endif
 	#endif
 
@@ -897,21 +884,19 @@
 		#else
 			using g_uintptr_t = std::size_t ; // assumes a non-segmented architecture - see also windows LONG_PTR
 		#endif
-		#if __cplusplus
-			#if GCONFIG_HAVE_INT64
-				static_assert( sizeof(g_int64_t) == 8U , "uint64 wrong size" ) ;
-				static_assert( sizeof(g_uint64_t) == 8U , "int64 wrong size" ) ;
-			#endif
-			#if GCONFIG_HAVE_INT32
-				static_assert( sizeof(g_uint32_t) == 4U , "uint32 wrong size" ) ;
-				static_assert( sizeof(g_int32_t) == 4U , "int32 wrong size" ) ;
-			#endif
-			#if GCONFIG_HAVE_INT16
-				static_assert( sizeof(g_uint16_t) == 2U , "uint16 wrong size" ) ;
-				static_assert( sizeof(g_int16_t) == 2U , "int16 wrong size" ) ;
-			#endif
-			static_assert( sizeof(g_uintptr_t) >= sizeof(void*) , "uintptr_t wrong size; try using g_uintptr_t = unsigned long" ) ;
+		#if GCONFIG_HAVE_INT64
+			static_assert( sizeof(g_int64_t) == 8U , "uint64 wrong size" ) ;
+			static_assert( sizeof(g_uint64_t) == 8U , "int64 wrong size" ) ;
 		#endif
+		#if GCONFIG_HAVE_INT32
+			static_assert( sizeof(g_uint32_t) == 4U , "uint32 wrong size" ) ;
+			static_assert( sizeof(g_int32_t) == 4U , "int32 wrong size" ) ;
+		#endif
+		#if GCONFIG_HAVE_INT16
+			static_assert( sizeof(g_uint16_t) == 2U , "uint16 wrong size" ) ;
+			static_assert( sizeof(g_int16_t) == 2U , "int16 wrong size" ) ;
+		#endif
+		static_assert( sizeof(g_uintptr_t) >= sizeof(void*) , "" ) ; // try 'using g_uintptr_t = unsigned long'
 
 		/* Define missing standard types
 	 	*/
@@ -942,34 +927,42 @@
 		/* Attributes
 	 	*/
 		#if __cplusplus >= 201700L
+			#define GDEF_NORETURN_LHS [[noreturn]]
 			#define GDEF_UNUSED [[maybe_unused]]
-			#define GDEF_NORETURN [[noreturn]]
-			#define GDEF_FALLTHROUGH [[fallthrough]]
+			#define GDEF_FALLTHROUGH [[fallthrough]];
 		#else
 			#if defined(__GNUC__) || defined(__clang__)
-				#define GDEF_UNUSED __attribute__((__unused__))
-				#define GDEF_NORETURN __attribute__((__noreturn__))
+				#define GDEF_NORETURN_RHS __attribute__((noreturn))
+				#define GDEF_UNUSED __attribute__((unused))
+				#if defined(__GNUC__) && __GNUC__ >= 7
+					#define GDEF_FALLTHROUGH __attribute__((fallthrough));
+				#endif
+				#if defined(__clang__) && __clang_major__ >= 10
+					#define GDEF_FALLTHROUGH __attribute__((fallthrough));
+				#endif
 			#endif
-			#ifdef _MSC_VER
-				// __declspec(noreturn) goes on the lhs
+			#if defined(_MSC_VER)
+				#define GDEF_NORETURN_LHS __declspec(noreturn)
 			#endif
+		#endif
+		#ifndef GDEF_NORETURN_LHS
+			#define GDEF_NORETURN_LHS
+		#endif
+		#ifndef GDEF_NORETURN_RHS
+			#define GDEF_NORETURN_RHS
 		#endif
 		#ifndef GDEF_UNUSED
 			#define GDEF_UNUSED
 		#endif
-		#ifndef GDEF_NORETURN
-			#define GDEF_NORETURN
-		#endif
 		#ifndef GDEF_FALLTHROUGH
 			#define GDEF_FALLTHROUGH
 		#endif
-		#ifdef __cplusplus
-			#include <tuple>
-			namespace G { template <typename... T> inline void ignore( T&& ... ) {} }
-			#define GDEF_IGNORE_PARAMS(...) G::ignore(__VA_ARGS__)
-			#define GDEF_IGNORE_RETURN std::ignore =
-			#define GDEF_IGNORE_PARAM(name) std::ignore = name
-		#endif
+		#include <tuple>
+		namespace G { template <typename... T> inline void gdef_ignore( T&& ... ) {} }
+		#define GDEF_IGNORE_PARAMS(...) G::gdef_ignore(__VA_ARGS__)
+		#define GDEF_IGNORE_RETURN std::ignore =
+		#define GDEF_IGNORE_PARAM(name) std::ignore = name
+		#define GDEF_IGNORE_VARIABLE(name) std::ignore = name
 
 		/* C++ language backwards compatibility
 	 	*/
@@ -1042,6 +1035,11 @@
 				inline constexpr bool is_windows() { return true ; }
 			#else
 				inline constexpr bool is_windows() { return false ; }
+			#endif
+			#ifdef G_MINGW
+				inline constexpr bool is_wine() { return true ; }
+			#else
+				inline constexpr bool is_wine() { return false ; }
 			#endif
 			#ifdef G_UNIX_LINUX
 				inline constexpr bool is_linux() { return true ; }
@@ -1318,7 +1316,7 @@
 		#endif
 
 		#if ! GCONFIG_HAVE_GET_WINDOW_LONG_PTR && defined(G_WINDOWS)
-			static_assert( sizeof(void*) == 4U , "unexpected pointer size" ) ; // if this fails then we are on win64 so no need for this block at all
+			static_assert( sizeof(void*) == 4U , "" ) ; // if this fails then we are on win64 so no need for this block at all
 			const int GWLP_HINSTANCE = GWL_HINSTANCE ;
 			const int GWLP_WNDPROC = GWL_WNDPROC ;
 			const int DWLP_USER = DWL_USER ;

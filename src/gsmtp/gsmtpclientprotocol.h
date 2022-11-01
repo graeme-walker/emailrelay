@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 #include "gsaslclient.h"
 #include "gsecrets.h"
 #include "gslot.h"
-#include "gstrings.h"
+#include "gstringarray.h"
 #include "gtimer.h"
 #include "gexception.h"
 #include <memory>
@@ -155,9 +155,9 @@ private:
 class GSmtp::ClientProtocol : private GNet::TimerBase
 {
 public:
-	G_EXCEPTION( NotReady , "not ready" ) ;
-	G_EXCEPTION( TlsError , "tls/ssl error" ) ;
-	G_EXCEPTION_CLASS( SmtpError , "smtp error" ) ;
+	G_EXCEPTION( NotReady , tx("not ready") ) ;
+	G_EXCEPTION( TlsError , tx("tls/ssl error") ) ;
+	G_EXCEPTION_CLASS( SmtpError , tx("smtp error") ) ;
 	using Reply = ClientProtocolReply ;
 
 	class Sender /// An interface used by ClientProtocol to send protocol messages.
@@ -189,15 +189,10 @@ public:
 		bool use_starttls_if_possible{false} ;
 		bool must_use_tls{false} ;
 		bool must_authenticate{false} ;
-		bool anonymous{false} ; // MAIL..AUTH=
+		bool anonymous{false} ; // force MAIL..AUTH=<>
 		bool must_accept_all_recipients{false} ;
 		bool eight_bit_strict{false} ; // fail 8bit messages to 7bit server
 		Config() ;
-		Config( const std::string & name , unsigned int response_timeout ,
-			unsigned int ready_timeout , unsigned int filter_timeout ,
-			bool use_starttls_if_possible , bool must_use_tls ,
-			bool must_authenticate , bool anonymous ,
-			bool must_accept_all_recipients , bool eight_bit_strict ) ;
 		Config & set_thishost_name( const std::string & ) ;
 		Config & set_response_timeout( unsigned int ) ;
 		Config & set_ready_timeout( unsigned int ) ;
@@ -263,8 +258,8 @@ public:
 	~ClientProtocol() override = default ;
 	ClientProtocol( const ClientProtocol & ) = delete ;
 	ClientProtocol( ClientProtocol && ) = delete ;
-	void operator=( const ClientProtocol & ) = delete ;
-	void operator=( ClientProtocol && ) = delete ;
+	ClientProtocol & operator=( const ClientProtocol & ) = delete ;
+	ClientProtocol & operator=( ClientProtocol && ) = delete ;
 
 private:
 	struct AuthError : public SmtpError
@@ -278,10 +273,12 @@ private: // overrides
 
 private:
 	std::shared_ptr<StoredMessage> message() ;
+	void sendEot() ;
 	void send( const char * ) ;
 	void send( const char * , const std::string & ) ;
 	void send( const char * , const std::string & , const std::string & ) ;
-	bool send( const std::string & , bool eot , bool sensitive = false ) ;
+	void send( const char * , const std::string & , const std::string & , bool ) ;
+	bool sendImp( const std::string & , bool eot , bool sensitive , const std::string & = {} ) ;
 	bool sendLine( std::string & ) ;
 	std::size_t sendLines() ;
 	void sendEhlo() ;
@@ -295,7 +292,8 @@ private:
 	bool serverAuth( const ClientProtocolReply & reply ) const ;
 	G::StringArray serverAuthMechanisms( const ClientProtocolReply & reply ) const ;
 	void startFiltering() ;
-	static std::string initialResponse( const GAuth::SaslClient & ) ;
+	static GAuth::SaslClient::Response initialResponse( const GAuth::SaslClient & ) ;
+	static std::string base64( char , const std::string & ) ;
 
 private:
 	enum class State {

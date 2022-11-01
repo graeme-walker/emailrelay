@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -55,8 +55,8 @@ private: // overrides
 public:
 	NetworkVerifier( const NetworkVerifier & ) = delete ;
 	NetworkVerifier( NetworkVerifier && ) = delete ;
-	void operator=( const NetworkVerifier & ) = delete ;
-	void operator=( NetworkVerifier && ) = delete ;
+	NetworkVerifier & operator=( const NetworkVerifier & ) = delete ;
+	NetworkVerifier & operator=( NetworkVerifier && ) = delete ;
 
 private:
 	void clientEvent( const std::string & , const std::string & , const std::string & ) ;

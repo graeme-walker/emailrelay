@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,9 +20,11 @@
 
 #include "gdef.h"
 #include "gstr.h"
+#include "gstringfield.h"
 #include "configuration.h"
 #include "commandline.h"
 #include "gmessagestore.h"
+#include "gfactoryparser.h"
 #include "gaddress.h"
 #include "gprocess.h"
 #include "gformat.h"
@@ -30,7 +32,7 @@
 #include "glog.h"
 #include <array>
 
-Main::Configuration::Configuration( const G::Options & options , const G::OptionMap & map ,
+Main::Configuration::Configuration( const std::vector<G::Option> & options , const G::OptionMap & map ,
 	const G::Path & app_dir , const G::Path & base_dir ) :
 		m_options(options) ,
 		m_map(map) ,
@@ -115,12 +117,17 @@ unsigned int Main::Configuration::port() const
 	return G::Str::toUInt( m_map.value( "port" , "25" ) ) ;
 }
 
-G::StringArray Main::Configuration::listeningAddresses( const std::string & protocol ) const
+bool Main::Configuration::closeFiles() const
 {
-	// allow eg. "127.0.0.1,smtp=192.168.1.1,admin=10.0.0.1"
+	return daemon() && m_map.value("interface").find("fd#") == std::string::npos ;
+}
+
+G::StringArray Main::Configuration::listeningNames( const std::string & protocol ) const
+{
+	// allow eg. "127.0.0.1,smtp=192.168.1.1,admin=10.0.0.1,pop=fd#4"
 
 	// prepare the naive result by splitting the user's string by commas
-	G::StringArray result = G::Str::splitIntoFields( m_map.value("interface") , "," ) ;
+	G::StringArray result = G::Str::splitIntoFields( m_map.value("interface") , ',' ) ;
 
 	// then weed out the ones that have an explicit protocol name that doesnt match the
 	// required protocol, removing the "protocol=" prefix at the same time to leave just
@@ -143,7 +150,6 @@ G::StringArray Main::Configuration::listeningAddresses( const std::string & prot
 
 std::string Main::Configuration::clientBindAddress() const
 {
-	// "--interface client=..." no longer supported, just "--client-interface"
 	return m_map.value( "client-interface" ) ;
 }
 
@@ -232,18 +238,22 @@ bool Main::Configuration::immediate() const
 
 bool Main::Configuration::doPolling() const
 {
-	return m_map.contains( "poll" ) && pollingTimeout() > 0U ;
+	return m_map.contains( "poll" ) ;
 }
 
-unsigned int Main::Configuration::pollingTimeout() const
+G::TimeInterval Main::Configuration::pollingTimeout() const
 {
-	return G::Str::toUInt( m_map.value( "poll" , "0" ) ) ;
+	std::string value = m_map.value( "poll" , "0" ) ;
+	if( G::Str::tailMatch(value,"ms"_sv) )
+		return G::TimeInterval( 0U , 1000U * G::Str::toUInt( G::Str::head(value,"ms"_sv) ) ) ;
+	else
+		return G::TimeInterval( G::Str::toUInt( value ) ) ;
 }
 
 bool Main::Configuration::pollingLog() const
 {
 	// dont log if polling very frequently
-	return doPolling() && pollingTimeout() > 60U ;
+	return doPolling() && pollingTimeout() > G::TimeInterval(60U) ;
 }
 
 bool Main::Configuration::forwardOnDisconnect() const
@@ -308,14 +318,14 @@ bool Main::Configuration::useFilter() const
 	return m_map.contains( "filter" ) ;
 }
 
-G::Path Main::Configuration::filter() const
+GSmtp::FactoryParser::Result Main::Configuration::filter() const
 {
-	return m_map.contains("filter") ? pathValue("filter") : G::Path() ;
+	return specValue( "filter" , true ) ;
 }
 
-G::Path Main::Configuration::clientFilter() const
+GSmtp::FactoryParser::Result Main::Configuration::clientFilter() const
 {
-	return m_map.contains("client-filter") ? pathValue("client-filter") : G::Path() ;
+	return specValue( "client-filter" , true ) ;
 }
 
 G::Path Main::Configuration::clientSecretsFile() const
@@ -465,9 +475,9 @@ std::string Main::Configuration::user() const
 	return m_map.value( "user" , "daemon" ) ;
 }
 
-G::Path Main::Configuration::verifier() const
+GSmtp::FactoryParser::Result Main::Configuration::verifier() const
 {
-	return m_map.contains("address-verifier") ? pathValue("address-verifier") : G::Path() ;
+	return specValue( "address-verifier" , false ) ;
 }
 
 bool Main::Configuration::withTerminate() const
@@ -500,9 +510,41 @@ unsigned int Main::Configuration::scannerResponseTimeout() const
 	return 90U ; // for now
 }
 
-bool Main::Configuration::anonymous() const
+bool Main::Configuration::anonymous( G::string_view type ) const
 {
-	return m_map.contains( "anonymous" ) ;
+	if( !m_map.contains("anonymous") )
+		return false ;
+
+	std::string value = m_map.value( "anonymous" ) ;
+	if( value.empty() )
+		return true ;
+
+	for( G::StringField f(value,",",1U) ; f ; ++f )
+	{
+		if( f() == type )
+			return true ;
+	}
+	return false ;
+}
+
+bool Main::Configuration::anonymousServerVrfy() const
+{
+	return anonymous( "vrfy" ) ;
+}
+
+bool Main::Configuration::anonymousServerSmtp() const
+{
+	return anonymous( "server" ) ;
+}
+
+bool Main::Configuration::anonymousContent() const
+{
+	return anonymous( "content" ) ;
+}
+
+bool Main::Configuration::anonymousClientSmtp() const
+{
+	return anonymous( "client" ) ;
 }
 
 bool Main::Configuration::smtpPipelining() const
@@ -516,34 +558,28 @@ unsigned int Main::Configuration::filterTimeout() const
 	return G::Str::toUInt( m_map.value( "filter-timeout" , "300" ) ) ;
 }
 
-G::StringArray Main::Configuration::semanticWarnings() const
-{
-	return semantics( false ) ;
-}
-
 std::string Main::Configuration::semanticError() const
 {
-	G::StringArray errors = semantics( true ) ;
-	return errors.empty() ? std::string() : errors.at(0U) ;
+	// (code size optimisation)
+	std::string s ;
+	const char * p = semanticErrorImp( s ) ;
+	return (p && *p) ? std::string(p) : ( p ? s : std::string() ) ;
 }
 
-G::StringArray Main::Configuration::semantics( bool want_errors ) const
+const char * Main::Configuration::semanticErrorImp( std::string & s ) const
 {
+	using G::txt ;
 	using G::format ;
-	using G::gettext ;
-	G::StringArray errors ;
-	G::StringArray warnings ;
 
 	if( m_map.contains("syslog") && !validSyslogFacility() )
 	{
-		errors.push_back( str(
-			format(gettext("invalid --syslog facility [%1%]: use %2%")) %
-				m_map.value("syslog") % validSyslogFacilities() ) ) ;
+		s.assign( str( format(txt("invalid --syslog facility [%1%]: use %2%")) % m_map.value("syslog") % validSyslogFacilities() ) ) ;
+		return "" ;
 	}
 
-	if( m_map.contains("poll") && G::Str::toUInt(m_map.value("poll","0")) == 0U )
+	if( m_map.contains("poll") && pollingTimeout() == G::TimeInterval(0U) )
 	{
-		errors.push_back( gettext("invalid --poll period: try --forward-on-disconnect") ) ;
+		return txt("invalid --poll period: try --forward-on-disconnect") ;
 	}
 
 	if( ! m_map.contains("pop") && (
@@ -552,23 +588,23 @@ G::StringArray Main::Configuration::semantics( bool want_errors ) const
 		m_map.contains("pop-by-name") ||
 		m_map.contains("pop-no-delete") ) )
 	{
-		errors.push_back( gettext("pop options require --pop") ) ;
+		return txt("pop options require --pop") ;
 	}
 
 	if( m_map.contains("pop") && !m_map.contains("pop-auth") )
 	{
-		errors.push_back( gettext("the --pop option requires --pop-auth") ) ;
+		return txt("the --pop option requires --pop-auth") ;
 	}
 
 	if( m_map.contains("admin-terminate") && !m_map.contains("admin") )
 	{
-		errors.push_back( gettext("the --admin-terminate option requires --admin") ) ;
+		return txt("the --admin-terminate option requires --admin") ;
 	}
 
 	if( daemon() && spoolDir().isRelative() )
 	{
 		// (in case m_base_dir is relative)
-		errors.push_back( gettext("in daemon mode the spool-dir must be an absolute path") ) ;
+		return txt("in daemon mode the spool-dir must be an absolute path") ;
 	}
 
 	if( daemon() && (
@@ -577,12 +613,12 @@ G::StringArray Main::Configuration::semantics( bool want_errors ) const
 		( m_map.contains("pop-auth") && ( popSecretsFile().empty() || popSecretsFile().isRelative() ) ) ) )
 	{
 		// (in case m_base_dir is relative)
-		errors.push_back( gettext("in daemon mode the authorisation secrets file(s) must be absolute paths") ) ;
+		return txt("in daemon mode the authorisation secrets file(s) must be absolute paths") ;
 	}
 
 	if( m_map.contains("forward-to") && ( m_map.contains("as-proxy") || m_map.contains("as-client") ) )
 	{
-		errors.push_back( gettext("--forward-to cannot be used with --as-client or --as-proxy") ) ;
+		return txt("--forward-to cannot be used with --as-client or --as-proxy") ;
 	}
 
 	const bool have_forward_to =
@@ -601,7 +637,10 @@ G::StringArray Main::Configuration::semantics( bool want_errors ) const
 		for( const char * p : need_forward_to )
 		{
 			if( m_map.contains(p) && !have_forward_to )
-				errors.push_back( str( format(gettext("%1% requires --forward-to")) % ("--"+std::string(p)) ) ) ;
+			{
+				s.assign( str( format(txt("%1% requires --forward-to")) % ("--"+std::string(p)) ) ) ;
+				return "" ;
+			}
 		}
 	}
 
@@ -624,34 +663,44 @@ G::StringArray Main::Configuration::semantics( bool want_errors ) const
 	if( not_serving ) // ie. if not serving admin, smtp or pop
 	{
 		if( m_map.contains("filter") )
-			errors.push_back( gettext("the --filter option cannot be used with --as-client or --dont-serve") ) ;
+			return txt("the --filter option cannot be used with --as-client or --dont-serve") ;
 
 		if( m_map.contains("port") )
-			errors.push_back( gettext("the --port option cannot be used with --as-client or --dont-serve") ) ;
+			return txt("the --port option cannot be used with --as-client or --dont-serve") ;
 
 		if( m_map.contains("server-auth") )
-			errors.push_back( gettext("the --server-auth option cannot be used with --as-client or --dont-serve") ) ;
+			return txt("the --server-auth option cannot be used with --as-client or --dont-serve") ;
 
 		if( m_map.contains("pop") )
-			errors.push_back( gettext("the --pop option cannot be used with --as-client or --dont-serve") ) ;
+			return txt("the --pop option cannot be used with --as-client or --dont-serve") ;
 
 		if( m_map.contains("admin") )
-			errors.push_back( gettext("the --admin option cannot be used with --as-client or --dont-serve") ) ;
+			return txt("the --admin option cannot be used with --as-client or --dont-serve") ;
 
 		if( m_map.contains("poll") )
-			errors.push_back( gettext("the --poll option cannot be used with --as-client or --dont-serve") ) ;
+			return txt("the --poll option cannot be used with --as-client or --dont-serve") ;
 	}
 
 	if( m_map.contains("no-smtp") ) // ie. if not serving smtp
 	{
 		if( m_map.contains("filter") )
-			errors.push_back( gettext("the --filter option cannot be used with --no-smtp") ) ;
+			return txt("the --filter option cannot be used with --no-smtp") ;
 
 		if( m_map.contains("port") )
-			errors.push_back( gettext("the --port option cannot be used with --no-smtp") ) ;
+			return txt("the --port option cannot be used with --no-smtp") ;
 
 		if( m_map.contains("server-auth") )
-			errors.push_back( gettext("the --server-auth option cannot be used with --no-smtp") ) ;
+			return txt("the --server-auth option cannot be used with --no-smtp") ;
+	}
+
+	if( m_map.contains("server-auth-config") && !m_map.contains("server-auth") )
+	{
+		return txt("--server-auth-config requires --server-auth") ;
+	}
+
+	if( m_map.contains("client-auth-config") && !m_map.contains("client-auth") )
+	{
+		return txt("--client-auth-config requires --client-auth") ;
 	}
 
 	const bool contains_log =
@@ -662,117 +711,113 @@ G::StringArray Main::Configuration::semantics( bool want_errors ) const
 
 	if( m_map.contains("verbose") && ! ( m_map.contains("help") || contains_log ) )
 	{
-		errors.push_back(
-			gettext("the --verbose option must be used with --log, --help, --as-client, --as-server or --as-proxy") ) ;
+		return txt("the --verbose option must be used with --log, --help, --as-client, --as-server or --as-proxy") ;
 	}
 
 	if( m_map.contains("debug") && !contains_log )
 	{
-		errors.push_back(
-			gettext("the --debug option requires --log, --as-client, --as-server or --as-proxy") ) ;
+		return txt("the --debug option requires --log, --as-client, --as-server or --as-proxy") ;
 	}
-
-	const bool no_daemon =
-		m_map.contains("as-client") || // => no-daemon
-		m_map.contains("no-daemon") ;
 
 	if( m_map.contains("client-tls") && m_map.contains("client-tls-connection") )
 	{
-		errors.push_back(
-			gettext("the --client-tls and --client-tls-connection options cannot be used together") ) ;
+		return txt("the --client-tls and --client-tls-connection options cannot be used together") ;
 	}
 
 	if( m_map.contains("server-tls") && m_map.contains("server-tls-connection") )
 	{
-		errors.push_back(
-			gettext("the --server-tls and --server-tls-connection options cannot be used together") ) ;
+		return txt("the --server-tls and --server-tls-connection options cannot be used together") ;
 	}
 
 	if( m_map.contains("server-tls") && !m_map.contains("server-tls-certificate") )
 	{
-		errors.push_back(
-			gettext("the --server-tls option requires --server-tls-certificate") ) ;
+		return txt("the --server-tls option requires --server-tls-certificate") ;
 	}
 
 	if( m_map.contains("server-tls-connection") && !m_map.contains("server-tls-certificate") )
 	{
-		errors.push_back(
-			gettext("the --server-tls-connection option requires --server-tls-certificate") ) ;
+		return txt("the --server-tls-connection option requires --server-tls-certificate") ;
 	}
 
 	if( ( m_map.contains("server-tls-certificate") || m_map.contains("server-tls-verify") ) &&
 		!( m_map.contains("server-tls") || m_map.contains("server-tls-connection") ) )
 	{
-		errors.push_back(
-			gettext("the --server-tls options require either --server-tls or --server-tls-connection") ) ;
+		return txt("the --server-tls options require either --server-tls or --server-tls-connection") ;
 	}
 
 	if( ( m_map.contains("client-tls-certificate") || m_map.contains("client-tls-verify") ||
 		m_map.contains("client-tls-required") ) &&
 		!( m_map.contains("client-tls") || m_map.contains("client-tls-connection") ) )
 	{
-		errors.push_back(
-			gettext("the --client-tls- options require --client-tls or --client-tls-connection") ) ;
+		return txt("the --client-tls- options require --client-tls or --client-tls-connection") ;
 	}
 
 	if( m_map.count("server-tls-certificate") > 2U )
 	{
-		errors.push_back(
-			gettext("the --server-tls-certificate option cannot be used more than twice") ) ;
+		return txt("the --server-tls-certificate option cannot be used more than twice") ;
 	}
 
 	if( m_map.count("client-tls-certificate") > 2U )
 	{
-		errors.push_back(
-			gettext("the --client-tls-certificate option cannot be used more than twice") ) ;
+		return txt("the --client-tls-certificate option cannot be used more than twice") ;
 	}
 
 	if( m_map.contains("client-tls-verify-name") && !m_map.contains("client-tls-verify") )
 	{
-		errors.push_back(
-			gettext("the --client-tls-verify-name options requires --client-tls-verify") ) ;
-	}
-
-	if( m_map.contains("server-auth") && m_map.value("server-auth") == "/pam" &&
-		!( m_map.contains("server-tls" ) || m_map.contains("server-tls-connection") ) )
-	{
-		errors.push_back(
-			gettext("--server-auth using pam requires --server-tls or --server-tls-connection") ) ;
+		return txt("the --client-tls-verify-name options requires --client-tls-verify") ;
 	}
 
 	if( m_map.contains("server-tls-required") &&
 		!( m_map.contains("server-tls" ) || m_map.contains("server-tls-connection") ) )
 	{
-		errors.push_back(
-			gettext("--server-tls-required requires --server-tls or --server-tls-connection") ) ;
-	}
-
-	if( m_map.contains("pop-auth") && m_map.value("pop-auth") == "/pam" &&
-		!( m_map.contains("server-tls" ) || m_map.contains("server-tls-connection") ) )
-	{
-		errors.push_back(
-			gettext("--pop-auth using pam requires --server-tls or --server-tls-connection") ) ;
+		return txt("--server-tls-required requires --server-tls or --server-tls-connection") ;
 	}
 
 	if( m_map.contains("interface") && m_map.value("interface").find("client=") != std::string::npos )
 	{
-		errors.push_back(
-			gettext("using --interface with client= is no longer supported: use --client-interface instead") ) ;
+		return txt("using --interface with client= is no longer supported: use --client-interface instead") ;
 	}
 
 	if( m_map.contains("dnsbl") && !m_map.contains("remote-clients") )
 	{
-		errors.push_back( gettext("--dnsbl requires --remote-clients or -r") ) ;
+		return txt("--dnsbl requires --remote-clients or -r") ;
 	}
 
 	std::string forward_to = serverAddress() ;
 
 	if( m_map.contains("client-interface") && GNet::Address::isFamilyLocal(forward_to) )
 	{
-		errors.push_back( "cannot use --client-interface with a unix-domain forwarding address" ) ;
+		return txt("cannot use --client-interface with a unix-domain forwarding address") ;
 	}
 
-	// warnings...
+	{
+		GSmtp::FactoryParser::Result r ;
+		if( (r=filter()).first.empty() )
+		{
+			s.assign( str( format(txt("invalid filter specification: %1%")) % r.second ) ) ;
+			return "" ;
+		}
+		if( (r=clientFilter()).first.empty() )
+		{
+			s.assign( str( format(txt("invalid client filter specification: %1%")) % r.second ) ) ;
+			return "" ;
+		}
+		if( (r=verifier()).first.empty() )
+		{
+			s.assign( str( format(txt("invalid address verifier specification: %1%")) % r.second ) ) ;
+			return "" ;
+		}
+	}
+
+	return nullptr ;
+}
+
+G::StringArray Main::Configuration::semanticWarnings() const
+{
+	using G::txt ;
+	using G::format ;
+
+	G::StringArray warnings ;
 
 	const bool no_syslog =
 		m_map.contains("no-syslog") ||
@@ -786,6 +831,12 @@ G::StringArray Main::Configuration::semantics( bool want_errors ) const
 		m_map.contains("as-server") ||
 		m_map.contains("as-proxy") ;
 
+	const bool contains_log =
+		m_map.contains("log") ||
+		m_map.contains("as-server") || // => log
+		m_map.contains("as-client") || // => log
+		m_map.contains("as-proxy") ; // => log
+
 	if( contains_log && close_stderr && !m_map.contains("log-file") && !syslog ) // ie. logging to nowhere
 	{
 		std::string close_stderr_option =
@@ -794,77 +845,51 @@ G::StringArray Main::Configuration::semantics( bool want_errors ) const
 			"--as-proxy" ) ) ;
 
 		warnings.push_back( str( format(
-			gettext("logging will stop because %1% closes the standard error stream soon after startup")) %
+			txt("logging will stop because %1% closes the standard error stream soon after startup")) %
 				close_stderr_option ) ) ;
 	}
+
+	const bool no_daemon =
+		m_map.contains("as-client") || // => no-daemon
+		m_map.contains("no-daemon") ;
 
 	if( m_map.contains("show") && ( no_daemon || m_map.contains("hidden") ) ) // (windows)
 	{
 		warnings.push_back(
-			gettext("the --show option is ignored when using --no-daemon, --as-client or --hidden") ) ;
+			txt("the --show option is ignored when using --no-daemon, --as-client or --hidden") ) ;
 	}
 
-	return want_errors ? errors : warnings ;
+	specValue( "filter" , true , &warnings ) ;
+	specValue( "client-filter" , true , &warnings ) ;
+	specValue( "address-verifier" , false , &warnings ) ;
+
+	return warnings ;
+}
+
+GSmtp::FactoryParser::Result Main::Configuration::specValue( const std::string & option_name , bool is_filter ,
+	G::StringArray * warnings_p ) const
+{
+	std::string value = m_map.value( option_name ) ;
+	return GSmtp::FactoryParser::parse( value , is_filter ,
+		m_base_dir.str() , m_app_dir.str() , warnings_p ) ;
 }
 
 G::Path Main::Configuration::pathValue( const std::string & option_name ) const
 {
-	std::string value = m_map.value( option_name ) ;
-	if( filterType(option_name) && specialFilterValue(value) ) // dont mess with eg. "--filter=net:localhost:999"
-	{
+ 	std::string value = m_map.value( option_name ) ;
+	if( verifyType(option_name) && specialVerifyValue(value) ) // dont mess "<none>" etc. in "--tls-client-verify=<none>"
 		return value ;
-	}
-	else if( verifyType(option_name) && specialVerifyValue(value) ) // dont mess with eg. "--tls-client-verify=<none>"
-	{
-		return value ;
-	}
 	else
-	{
 		return pathValueImp( value ) ;
-	}
 }
 
 G::Path Main::Configuration::pathValueImp( const std::string & value_in ) const
 {
+	// (see also GSmtp::FactoryParser::parse())
 	std::string value = value_in ;
 	if( value.find("@app") == 0U && !m_app_dir.empty() )
 		G::Str::replace( value , "@app" , m_app_dir.str() ) ;
-
 	return G::Path(value).isAbsolute() ? G::Path(value) : ( daemon() ? (m_base_dir+value) : value ) ;
-}
-
-bool Main::Configuration::pathlike( const std::string & option_name )
-{
-	return
-		option_name == "log-file" ||
-		option_name == "spool-dir" ||
-		option_name == "pid-file" ||
-		option_name == "filter" || // filterType()
-		option_name == "client-filter" || // filterType()
-		option_name == "client-auth" ||
-		option_name == "server-tls-certificate" ||
-		option_name == "server-tls-verify" || // verifyType()
-		option_name == "client-tls-certificate" ||
-		option_name == "client-tls-verify" || // verifyType()
-		option_name == "pop-auth" ||
-		option_name == "server-auth" ||
-		option_name == "address-verifier" || // filterType()
-		false ;
-}
-
-bool Main::Configuration::filterType( const std::string & option_name )
-{
-	return
-		option_name == "filter" ||
-		option_name == "client-filter" ||
-		option_name == "address-verifier" ;
-}
-
-bool Main::Configuration::specialFilterValue( const std::string & value )
-{
-	return
-		value.find(':') != std::string::npos &&
-		value.find(':') >= 3U ;
 }
 
 bool Main::Configuration::verifyType( const std::string & option_name )
@@ -879,55 +904,74 @@ bool Main::Configuration::specialVerifyValue( const std::string & value )
 	return !value.empty() && value.at(0U) == '<' && value.at(value.length()-1U) == '>' ;
 }
 
+#ifdef G_WINDOWS
+bool Main::Configuration::pathlike( const std::string & option_name )
+{
+	return
+		option_name == "log-file" ||
+		option_name == "spool-dir" ||
+		option_name == "pid-file" ||
+		option_name == "client-auth" ||
+		option_name == "server-tls-certificate" ||
+		option_name == "server-tls-verify" || // verifyType()
+		option_name == "client-tls-certificate" ||
+		option_name == "client-tls-verify" || // verifyType()
+		option_name == "pop-auth" ||
+		option_name == "server-auth" ||
+		false ;
+}
+#endif
+
+#ifdef G_WINDOWS
 G::StringArray Main::Configuration::display() const
 {
 	const std::string yes = "yes" ;
 	const std::string no = "no" ;
 	G::StringArray result ;
 	result.reserve( 70U ) ;
-	G::StringArray names = m_options.names() ;
-	for( const auto & name : names )
+	for( const auto & option : m_options )
 	{
-		if( m_options.visible(name) &&
-			name != "version" &&
-			name != "help" &&
-			name != "no-syslog" &&
-			name.find("as-") != 0U &&
+		if( option.visible() &&
+			option.name != "version" &&
+			option.name != "help" &&
+			option.name != "no-syslog" &&
+			option.name.find("as-") != 0U &&
 			true )
 		{
-			result.push_back( name ) ;
-			if( name == "log" )
+			result.push_back( option.name ) ;
+			if( option.name == "log" )
 				result.push_back( log()?yes:no ) ;
-			else if( name == "syslog" )
+			else if( option.name == "syslog" )
 				result.push_back( useSyslog()?yes:no ) ;
-			else if( name == "spool-dir" )
+			else if( option.name == "spool-dir" )
 				result.push_back( spoolDir().str() ) ;
-			else if( name == "close-stderr" )
+			else if( option.name == "close-stderr" )
 				result.push_back( closeStderr()?yes:no ) ;
-			else if( name == "no-daemon" )
+			else if( option.name == "no-daemon" )
 				result.back() = "daemon" , result.push_back( daemon()?yes:no ) ;
-			else if( name == "dont-serve" )
+			else if( option.name == "dont-serve" )
 				result.back() = "serve" , result.push_back( doServing()?yes:no ) ;
-			else if( name == "forward" )
+			else if( option.name == "forward" )
 				result.push_back( forwardOnStartup()?yes:no ) ;
-			else if( name == "forward-on-disconnect" )
+			else if( option.name == "forward-on-disconnect" )
 				result.push_back( forwardOnDisconnect()?yes:no ) ;
-			else if( name == "forward-to" )
+			else if( option.name == "forward-to" )
 				result.push_back( serverAddress() ) ;
-			else if( name == "port" )
+			else if( option.name == "port" )
 				result.push_back( (doSmtp()&&doServing()) ? G::Str::fromUInt(port()) : std::string() ) ;
-			else if( name == "pop-port" )
+			else if( option.name == "pop-port" )
 				result.push_back( (doPop()&&doServing()) ? G::Str::fromUInt(popPort()) : std::string() ) ;
-			else if( m_options.multivalued(name) )
-				result.push_back( m_map.value(name) ) ;
-			else if( m_options.valued(name) && pathlike(name) )
-				result.push_back( m_map.contains(name) ? pathValue(name).str() : std::string() ) ;
-			else if( m_options.valued(name) )
-				result.push_back( m_map.value(name) ) ;
+			else if( option.multivalued() )
+				result.push_back( m_map.value(option.name) ) ;
+			else if( option.valued() && pathlike(option.name) )
+				result.push_back( m_map.contains(option.name) ? pathValue(option.name).str() : std::string() ) ;
+			else if( option.valued() )
+				result.push_back( m_map.value(option.name) ) ;
 			else
-				result.push_back( m_map.contains(name) ? yes : no ) ;
+				result.push_back( m_map.contains(option.name) ? yes : no ) ;
 		}
 	}
 	return result ;
 }
+#endif
 

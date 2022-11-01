@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -41,9 +41,8 @@ public:
 	explicit Address4( unsigned int ) ;
 	explicit Address4( const std::string & ) ;
 	Address4( const std::string & , const std::string & ) ;
-	Address4( const std::string & , unsigned int ) ;
 	Address4( unsigned int port , int /*loopback_overload*/ ) ; // canonical loopback address
-	Address4( const sockaddr * addr , socklen_t len , bool ipv6_scope_id_fixup = false ) ;
+	Address4( const sockaddr * addr , socklen_t len ) ;
 
 	static int domain() noexcept ;
 	static unsigned short af() noexcept ;
@@ -66,23 +65,26 @@ public:
 	bool isLocal( std::string & ) const ;
 	bool isLinkLocal() const ;
 	bool isUniqueLocal() const ;
+	bool isMulticast() const ;
 	bool isAny() const ;
 	unsigned int bits() const ;
 	std::string displayString( bool ipv6_with_scope = false ) const ;
-	std::string hostPartString( bool raw = false ) const ;
+	std::string hostPartString() const ;
 	std::string queryString() const ;
 	G::StringArray wildcards() const ;
-	static bool format( std::string ) ;
+	static bool format( G::string_view ) ;
 
 private:
 	explicit Address4( std::nullptr_t ) ;
-	static const char * setAddress( sockaddr_type & , const std::string & ) ;
-	static const char * setHostAddress( sockaddr_type & , const std::string & ) ;
+	static const char * setAddress( sockaddr_type & , G::string_view ) ;
+	static const char * setHostAddress( sockaddr_type & , G::string_view ) ;
 	static const char * setPort( sockaddr_type & , unsigned int ) ;
-	static const char * setPort( sockaddr_type & , const std::string & ) ;
+	static const char * setPort( sockaddr_type & , G::string_view ) ;
 	static bool sameAddr( const ::in_addr & a , const ::in_addr & b ) ;
-	static void add( G::StringArray & , const std::string & , unsigned int , const char * ) ;
-	static void add( G::StringArray & , const std::string & , const char * ) ;
+	static void add( G::StringArray & , G::string_view , unsigned int , const char * ) ;
+	static void add( G::StringArray & , unsigned int , const char * ) ;
+	static void add( G::StringArray & , G::string_view , const char * ) ;
+	static void add( G::StringArray & , const char * ) ;
 
 private:
 	sockaddr_type m_inet ;

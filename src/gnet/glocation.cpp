@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ GNet::Location::Location( const std::string & spec , int family ) :
 {
 	m_using_socks = socksified( spec , m_socks_far_host , m_socks_far_port ) ;
 	if( m_host.empty() )
-		throw InvalidFormat( spec ) ;
+		throw InvalidFormat( spec ) ; // eg. ":25"
 	G_DEBUG( "GNet::Location::ctor: unresolved location [" << displayString() << "]" << (m_using_socks?" (using socks)":"") ) ;
 }
 
@@ -49,6 +49,8 @@ GNet::Location::Location( const std::string & spec , int family , int ) : // nos
 	m_using_socks(false)
 {
 	G_DEBUG( "GNet::Location::ctor: unresolved location [" << displayString() << "]" ) ;
+	if( m_host.empty() )
+		throw InvalidFormat( spec ) ;
 }
 
 GNet::Location::Location( const std::string & socks_server , const std::string & far_server , int family ) : // socks() overload
@@ -66,6 +68,8 @@ GNet::Location::Location( const std::string & socks_server , const std::string &
 		throw InvalidFormat() ;
 	if( !G::Str::isUInt(m_socks_far_port) )
 		throw InvalidFormat( "invalid port number: [" + m_socks_far_port + "]" ) ;
+	if( m_host.empty() )
+		throw InvalidFormat( socks_server ) ;
 	G_DEBUG( "GNet::Location::ctor: unresolved location [" << displayString() << "]" << " (using socks)" ) ;
 }
 
@@ -101,8 +105,8 @@ bool GNet::Location::socksified( const std::string & s , std::string & far_host_
 std::string GNet::Location::head( const std::string & s )
 {
 	std::size_t pos = s.rfind( ':' ) ;
-	std::string h = ( pos == std::string::npos && !s.empty() && s[0] == '/' ) ? s : G::Str::head( s , pos ) ;
-	if( h.size() > 1U && h.at(0U) == '[' && h.at(h.size()-1U) == ']' )
+	std::string h = ( pos == std::string::npos && !s.empty() && s[0] == '/' ) ? s : G::Str::head( s , pos ) ; // eg. "/tmp/socket"
+	if( h.size() > 1U && h.at(0U) == '[' && h.at(h.size()-1U) == ']' ) // eg. "[::1]:25"
 		h = h.substr( 1U , h.size()-2U ) ;
 	return h ;
 }

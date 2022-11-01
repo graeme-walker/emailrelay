@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -96,16 +96,6 @@ GNet::Address6::Address6( const sockaddr * addr , socklen_t len , bool ipv6_scop
 		m_inet.sin6_addr.s6_addr[3] = 0 ;
 		m_inet.sin6_scope_id = ( hi << 8U | lo ) ;
 	}
-}
-
-GNet::Address6::Address6( const std::string & host_part , unsigned int port ) :
-	Address6(nullptr)
-{
-	const char * reason = setHostAddress( m_inet , host_part ) ;
-	if( !reason )
-		reason = setPort( m_inet , port ) ;
-	if( reason )
-		throw Address::BadString( std::string(reason) + ": " + host_part ) ;
 }
 
 GNet::Address6::Address6( const std::string & host_part , const std::string & port_part ) :
@@ -227,7 +217,7 @@ std::string GNet::Address6::displayString( bool ipv6_with_scope_id ) const
 	return ss.str() ;
 }
 
-std::string GNet::Address6::hostPartString( bool /*raw*/ ) const
+std::string GNet::Address6::hostPartString() const
 {
 	std::array<char,INET6_ADDRSTRLEN+1U> buffer {} ;
 	const void * vp = & m_inet.sin6_addr ;
@@ -468,6 +458,11 @@ bool GNet::Address6::isLinkLocal() const
 	struct in6_addr addr_64 = imp::masked( m_inet.sin6_addr , imp::mask(64U) ) ;
 	struct in6_addr _fe80 = imp::make( 0xfeU , 0x80U , 0U ) ;
 	return sameAddr( _fe80 , addr_64 ) ;
+}
+
+bool GNet::Address6::isMulticast() const
+{
+	return false ; // TODO ipv6 multicast
 }
 
 bool GNet::Address6::isUniqueLocal() const

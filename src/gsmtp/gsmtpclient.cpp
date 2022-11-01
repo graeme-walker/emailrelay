@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -32,17 +32,22 @@
 #include "glog.h"
 
 GSmtp::Client::Client( GNet::ExceptionSink es , FilterFactory & ff , const GNet::Location & remote ,
-	const GAuth::SaslClientSecrets & client_secrets , const Config & config ) :
+	const GAuth::SaslClientSecrets & secrets , const Config & config ) :
 		GNet::Client(es,remote,netConfig(config)) ,
+		m_es(es) ,
+		m_ff(ff) ,
+		m_config(config) ,
+		m_secrets(secrets) ,
 		m_store(nullptr) ,
-		m_filter(ff.newFilter(es,false,config.filter_address,config.filter_timeout)) ,
-		m_protocol(es,*this,client_secrets,config.sasl_client_config,config.client_protocol_config,config.secure_tunnel) ,
-		m_secure_tunnel(config.secure_tunnel) ,
+		m_filter(ff.newFilter(es,false,config.filter_spec,config.filter_timeout,std::string())) ,
+		m_routing_filter(ff.newFilter(es,false,config.filter_spec,config.filter_timeout,"routing filter")) ,
+		m_protocol(es,*this,secrets,config.sasl_client_config,config.client_protocol_config,config.secure_tunnel) ,
 		m_message_count(0U)
 {
 	m_protocol.doneSignal().connect( G::Slot::slot(*this,&Client::protocolDone) ) ;
 	m_protocol.filterSignal().connect( G::Slot::slot(*this,&Client::filterStart) ) ;
 	m_filter->doneSignal().connect( G::Slot::slot(*this,&Client::filterDone) ) ;
+	m_routing_filter->doneSignal().connect( G::Slot::slot(*this,&Client::routingFilterDone) ) ;
 }
 
 GSmtp::Client::~Client()
@@ -50,18 +55,24 @@ GSmtp::Client::~Client()
 	m_protocol.doneSignal().disconnect() ;
 	m_protocol.filterSignal().disconnect() ;
 	m_filter->doneSignal().disconnect() ;
+	m_routing_filter->doneSignal().disconnect() ;
 }
 
 GNet::Client::Config GSmtp::Client::netConfig( const Config & smtp_config )
 {
-	GNet::Client::Config net_config( GNet::LineBufferConfig::smtp() ) ;
-	net_config.bind_local_address = smtp_config.bind_local_address ;
-	net_config.local_address = smtp_config.local_address ;
-	net_config.connection_timeout = smtp_config.connection_timeout ;
-	net_config.secure_connection_timeout = smtp_config.secure_connection_timeout ;
-	//net_config.response_timeout = 0U ; // the protocol class does this
-	//net_config.idle_timeout = 0U ; // not needed
-	return net_config ;
+	return
+		GNet::Client::Config()
+			.set_stream_socket_config( smtp_config.stream_socket_config )
+			.set_line_buffer_config( GNet::LineBufferConfig::smtp() )
+			.set_bind_local_address( smtp_config.bind_local_address )
+			.set_local_address( smtp_config.local_address )
+			.set_connection_timeout( smtp_config.connection_timeout )
+			//.set_response_timeout( 0U ) // the protocol class does this
+			//.set_idle_timeout( 0U ) // not needed
+			.set_socket_protocol_config(
+				GNet::SocketProtocol::Config()
+					.set_client_tls_profile( smtp_config.client_tls_profile )
+					.set_secure_connection_timeout( smtp_config.secure_connection_timeout ) ) ;
 }
 
 G::Slot::Signal<const std::string&> & GSmtp::Client::messageDoneSignal()
@@ -74,22 +85,28 @@ void GSmtp::Client::sendMessagesFrom( MessageStore & store )
 	G_ASSERT( m_store == nullptr ) ;
 	G_ASSERT( !connected() ) ; // ie. immediately after construction
 	m_store = &store ;
+	m_iter = m_store->iterator( true ) ;
 }
 
 void GSmtp::Client::sendMessage( std::unique_ptr<StoredMessage> message )
 {
 	G_ASSERT( message && message->toCount() ) ;
-	if( message && message->toCount() )
-	{
-		m_message.reset( message.release() ) ;
-		if( connected() )
-			start() ;
-	}
+	m_message = std::move( message ) ;
+	if( connected() )
+		start() ;
+}
+
+void GSmtp::Client::sendMessage( std::shared_ptr<StoredMessage> message )
+{
+	G_ASSERT( message && message->toCount() ) ;
+	m_message = message ;
+	if( connected() )
+		start() ;
 }
 
 void GSmtp::Client::onConnect()
 {
-	if( m_secure_tunnel )
+	if( m_config.secure_tunnel )
 		secureConnect() ; // GNet::SocketProtocol
 	else
 		startSending() ;
@@ -97,7 +114,7 @@ void GSmtp::Client::onConnect()
 
 void GSmtp::Client::onSecure( const std::string & , const std::string & , const std::string & )
 {
-	if( m_secure_tunnel )
+	if( m_config.secure_tunnel )
 		startSending() ;
 	else
 		m_protocol.secure() ; // tell the protocol that STARTTLS is done
@@ -105,12 +122,9 @@ void GSmtp::Client::onSecure( const std::string & , const std::string & , const 
 
 void GSmtp::Client::startSending()
 {
-	G_LOG_S( "GSmtp::Client::startSending: smtp connection to " << peerAddress().second.displayString() ) ;
-	if( m_store != nullptr )
+	G_LOG_S( "GSmtp::Client::startSending: smtp connection to " << peerAddress().displayString() ) ;
+	if( m_store != nullptr && m_message.get() == nullptr )
 	{
-		// initialise the message iterator
-		m_iter = m_store->iterator( true ) ;
-
 		// start sending the first message
 		bool started = sendNext() ;
 		if( !started )
@@ -140,7 +154,7 @@ bool GSmtp::Client::sendNext()
 			m_message_count = 0U ;
 			return false ;
 		}
-		m_message.reset( message.release() ) ;
+		m_message = std::move( message ) ;
 	}
 
 	start() ;
@@ -151,6 +165,18 @@ void GSmtp::Client::start()
 {
 	G_ASSERT( message()->toCount() != 0U ) ;
 	m_message_count++ ;
+
+	// basic routing if forward-to is defined in the envelope
+	if( m_config.with_routing && !message()->forwardTo().empty() )
+	{
+		if( !m_routing_filter->simple() )
+		{
+			G_LOG( "GSmtp::Client::filterStart: routing filter start: [" << m_filter->id() << "]" << " [" << message()->location() << "]" ) ;
+			message()->close() ;
+		}
+		m_routing_filter->start( message()->id() ) ;
+		return ;
+	}
 
 	G::CallFrame this_( m_stack ) ;
 	eventSignal().emit( "sending" , message()->location() , std::string() ) ;
@@ -170,7 +196,9 @@ std::shared_ptr<GSmtp::StoredMessage> GSmtp::Client::message()
 
 bool GSmtp::Client::protocolSend( const std::string & line , std::size_t offset , bool go_secure )
 {
-	bool rc = send( line , offset ) ; // GNet::Client::send()
+    offset = std::min( offset , line.size() ) ;
+    G::string_view data( line.data()+offset , line.size()-offset ) ;
+    bool rc = data.empty() ? true : send( data ) ; // GNet::Client::send()
 	if( go_secure )
 		secureConnect() ; // GNet::Client -> GNet::SocketProtocol
 	return rc ;
@@ -180,7 +208,7 @@ void GSmtp::Client::filterStart()
 {
 	if( !m_filter->simple() )
 	{
-		G_LOG( "GSmtp::Client::filterStart: client filter: [" << m_filter->id() << "]" ) ;
+		G_LOG( "GSmtp::Client::filterStart: client filter start: [" << m_filter->id() << "]" << " [" << message()->location() << "]" ) ;
 		message()->close() ; // allow external editing
 	}
 	m_filter->start( message()->id() ) ;
@@ -274,13 +302,13 @@ void GSmtp::Client::protocolDone( int response_code , const std::string & respon
 	{
 		if( !sendNext() )
 		{
-			G_DEBUG( "GSmtp::Client::protocolDone: all sent" ) ;
 			quitAndFinish() ;
 			throw GNet::Done() ;
 		}
 	}
 	else
 	{
+		m_message.reset() ;
 		messageDoneSignal().emit( response ) ;
 	}
 }
@@ -288,7 +316,7 @@ void GSmtp::Client::protocolDone( int response_code , const std::string & respon
 void GSmtp::Client::quitAndFinish()
 {
 	m_protocol.finish() ; // send QUIT
-	finish( true ) ; // GNet::Client::finish() -- expect a disconnect
+	finish() ; // GNet::Client::finish() -- expect a disconnect
 }
 
 void GSmtp::Client::messageDestroy()
@@ -314,6 +342,7 @@ bool GSmtp::Client::onReceive( const char * line_data , std::size_t line_size , 
 
 	if( done )
 	{
+		m_message.reset() ;
 		quitAndFinish() ;
 		throw GNet::Done() ;
 	}
@@ -337,27 +366,72 @@ void GSmtp::Client::onSendComplete()
 	m_protocol.sendComplete() ;
 }
 
+void GSmtp::Client::routingFilterDone( int filter_result )
+{
+	G_ASSERT( m_config.with_routing ) ;
+	G_LOG( "GSmtp::Client::routingFilterDone: routing filter done: " << m_routing_filter->str(false) ) ;
+	std::string reopen_error = filter_result == 0 && !m_routing_filter->simple() ? message()->reopen() : std::string() ;
+	bool move_on = false ;
+	if( filter_result == 1 ) // abandon
+	{
+		move_on  = true ;
+	}
+	else if( filter_result == 2 ) // fail
+	{
+		messageFail( 550 , "routing filter failed" ) ;
+		move_on = true ;
+	}
+	else if( !reopen_error.empty() ) // ok but cannot open
+	{
+		messageFail( 550 , "routing filter error" ) ;
+		move_on = true ;
+	}
+	if( move_on )
+	{
+		G_ASSERT( m_store != nullptr ) ;
+		if( !sendNext() )
+		{
+			quitAndFinish() ;
+			throw GNet::Done() ;
+		}
+	}
+	else // ok and reopened
+	{
+		std::string forward_to_address = message()->forwardToAddress() ;
+
+		G::CallFrame this_( m_stack ) ;
+		eventSignal().emit( "sending" , message()->location() , std::string() ) ;
+		if( this_.deleted() ) return ;
+
+		if( forward_to_address.empty() )
+		{
+			// no special routing -- send to the default smarthost
+			m_protocol.start( std::weak_ptr<StoredMessage>(message()) ) ;
+		}
+		else
+		{
+			G_LOG( "GSmtp::Client::routingFilterDone: routing to " << forward_to_address ) ;
+			m_routing_client.reset( new Client( m_es , m_ff , GNet::Location(forward_to_address) ,
+				m_secrets , Config(m_config).set_with_routing(false) ) ) ;
+			m_routing_client->messageDoneSignal().connect( G::Slot::slot( *this , &GSmtp::Client::routedMessageDone ) ) ;
+			m_routing_client->sendMessage( message() ) ;
+		}
+	}
+}
+
+void GSmtp::Client::routedMessageDone( const std::string & )
+{
+	if( !sendNext() )
+	{
+		quitAndFinish() ;
+		throw GNet::Done() ;
+	}
+}
+
 // ==
 
 GSmtp::Client::Config::Config() :
 	local_address(GNet::Address::defaultAddress())
-{
-}
-
-GSmtp::Client::Config::Config( const std::string & filter_address_ , unsigned int filter_timeout_ ,
-	bool bind_local_address_ , const GNet::Address & local_address_ ,
-	const ClientProtocol::Config & protocol_config_ , unsigned int connection_timeout_ ,
-	unsigned int secure_connection_timeout_ , bool secure_tunnel_ ,
-	const std::string & sasl_client_config_ ) :
-		filter_address(filter_address_) ,
-		filter_timeout(filter_timeout_) ,
-		bind_local_address(bind_local_address_) ,
-		local_address(local_address_) ,
-		client_protocol_config(protocol_config_) ,
-		connection_timeout(connection_timeout_) ,
-		secure_connection_timeout(secure_connection_timeout_) ,
-		secure_tunnel(secure_tunnel_) ,
-		sasl_client_config(sasl_client_config_)
 {
 }
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -52,7 +52,7 @@ public:
 		// Disarms the callback and schedules a 'delete this' for when
 		// the workder thread has finished.
 
-	static void start( ResolverImp * , FutureEvent::handle_type ) noexcept ;
+	static void start( ResolverImp * , HANDLE ) noexcept ;
 		// Static worker-thread function to do name resolution. Calls
 		// ResolverFuture::run() to do the work and then FutureEvent::send()
 		// to signal the main thread. The event plumbing then results in a
@@ -67,8 +67,8 @@ private: // overrides
 public:
 	ResolverImp( const ResolverImp & ) = delete ;
 	ResolverImp( ResolverImp && ) = delete ;
-	void operator=( const ResolverImp & ) = delete ;
-	void operator=( ResolverImp && ) = delete ;
+	ResolverImp & operator=( const ResolverImp & ) = delete ;
+	ResolverImp & operator=( ResolverImp && ) = delete ;
 
 private:
 	void onTimeout() ;
@@ -116,7 +116,7 @@ std::size_t GNet::ResolverImp::zcount() noexcept
 	return m_zcount ;
 }
 
-void GNet::ResolverImp::start( ResolverImp * This , FutureEvent::handle_type handle ) noexcept
+void GNet::ResolverImp::start( ResolverImp * This , HANDLE handle ) noexcept
 {
 	// thread function, spawned from ctor and join()ed from dtor
 	try
@@ -210,7 +210,7 @@ std::string GNet::Resolver::resolve( Location & location )
 		G_DEBUG( "GNet::Resolver::resolve: resolve result [" << result.first.displayString() << "]"
 			<< "[" << result.second << "]" ) ;
 		location.update( result.first , result.second ) ;
-		return std::string() ;
+		return {} ;
 	}
 }
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,11 +24,13 @@
 #define G_SSL_H
 
 #include "gdef.h"
-#include "gstrings.h"
+#include "gstringarray.h"
+#include "gstringview.h"
+#include "gexception.h"
 #include "greadwrite.h"
 #include <string>
-#include <utility>
 #include <memory>
+#include <utility>
 
 namespace GSsl
 {
@@ -74,8 +76,8 @@ public:
 		more
 	} ;
 
-	explicit Protocol( const Profile & , const std::string & peer_certificate_name = std::string() ,
-		const std::string & peer_host_name = std::string() ) ;
+	explicit Protocol( const Profile & , const std::string & peer_certificate_name = {} ,
+		const std::string & peer_host_name = {} ) ;
 			///< Constructor.
 			///<
 			///< The optional "peer-certificate-name" parameter is used as an
@@ -190,8 +192,8 @@ public:
 public:
 	Protocol( const Protocol & ) = delete ;
 	Protocol( Protocol && ) = delete ;
-	void operator=( const Protocol & ) = delete ;
-	void operator=( Protocol && ) = delete ;
+	Protocol & operator=( const Protocol & ) = delete ;
+	Protocol & operator=( Protocol && ) = delete ;
 
 private:
 	std::unique_ptr<ProtocolImpBase> m_imp ;
@@ -225,7 +227,7 @@ public:
 		///< Returns the size of the state() string in bytes,
 		///< or zero if state() is not implemented.
 
-	void add( const std::string & ) ;
+	void add( G::string_view ) ;
 		///< Adds data of arbitrary size.
 
 	std::string state() ;
@@ -252,9 +254,11 @@ private:
 class GSsl::Library
 {
 public:
+	G_EXCEPTION( NoInstance , tx("no tls library object") ) ;
+	G_EXCEPTION( BadProfileName , tx("invalid tls profile name") ) ;
 	using LogFn = void (*)(int, const std::string &) ;
 
-	explicit Library( bool active = true , const std::string & library_config = std::string() ,
+	explicit Library( bool active = true , const std::string & library_config = {} ,
 		LogFn = Library::log , bool verbose = true ) ;
 			///< Constructor.
 			///<
@@ -279,11 +283,11 @@ public:
 		///< Returns a pointer to a library object, if any.
 
 	void addProfile( const std::string & profile_name , bool is_server_profile ,
-		const std::string & key_file = std::string() , const std::string & cert_file = std::string() ,
-		const std::string & ca_path = std::string() ,
-		const std::string & default_peer_certificate_name = std::string() ,
-		const std::string & default_peer_host_name = std::string() ,
-		const std::string & profile_config = std::string() ) ;
+		const std::string & key_file = {} , const std::string & cert_file = {} ,
+		const std::string & ca_path = {} ,
+		const std::string & default_peer_certificate_name = {} ,
+		const std::string & default_peer_host_name = {} ,
+		const std::string & profile_config = {} ) ;
 			///< Creates a named Profile object that can be retrieved by profile().
 			///<
 			///< A typical application will have two profiles named "client" and "server".
@@ -335,8 +339,8 @@ public:
 	std::string generateKey( const std::string & name ) const ;
 		///< Generates a test certificate as a PEM string with embedded newlines,
 		///< also containing the private-key. Returns the empty string if not
-		///< implemented. Throws on error. The implementation will
-		///< normally be slow and blocking.
+		///< implemented. Throws on error. The implementation will normally
+		///< be slow and blocking.
 
 	static LibraryImpBase & impstance() ;
 		///< Returns a reference to the pimple object when enabled(). Used in
@@ -363,14 +367,14 @@ public:
 		///< hash functions that can generate and be initialised with an
 		///< intermediate state.
 
-	Digester digester( const std::string & name , const std::string & state = std::string() , bool need_state = false ) const ;
+	Digester digester( const std::string & name , const std::string & state = {} , bool need_state = false ) const ;
 		///< Returns a digester object.
 
 public:
 	Library( const Library & ) = delete ;
 	Library( Library && ) = delete ;
-	void operator=( const Library & ) = delete ;
-	void operator=( Library && ) = delete ;
+	Library & operator=( const Library & ) = delete ;
+	Library & operator=( Library && ) = delete ;
 
 private:
 	const LibraryImpBase & imp() const ;
@@ -417,7 +421,7 @@ public:
 	virtual std::string generateKey( const std::string & ) const = 0 ;
 		///< Implements Library::generateKey().
 
-	static bool consume( G::StringArray & list , const std::string & item ) ;
+	static bool consume( G::StringArray & list , G::string_view item ) ;
 		///< A convenience function that removes the item from
 		///< the list and returns true iff is was removed.
 } ;
@@ -433,7 +437,7 @@ public:
 		///< Destructor.
 
 	virtual std::unique_ptr<ProtocolImpBase> newProtocol( const std::string & , const std::string & ) const = 0 ;
-		///< Factory method for a new Protocol object on the heap.
+		///< Factory method for a new Protocol object.
 } ;
 
 //| \class GSsl::ProtocolImpBase
@@ -485,7 +489,7 @@ public:
 	virtual ~DigesterImpBase() = default ;
 		///< Destructor.
 
-	virtual void add( const std::string & ) = 0 ;
+	virtual void add( G::string_view ) = 0 ;
 		///< Implements Digester::add().
 
 	virtual std::string value() = 0 ;

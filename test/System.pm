@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -226,7 +226,7 @@ sub commandline
 		return
 			$args{prefix} . $command . " " .
 			( $args{stdout} ? ">$args{stdout} " : "" ) .
-			( $args{stderr} && System::unix() ? "2>$stderr " : "" ) .
+			( $args{stderr} ? "2>$stderr " : "" ) .
 			( ( $args{prefix} =~ m/"$/ ) ? "\" " : "" ) .
 			( $args{background} ? "&" : "" ) ;
 	}
@@ -249,7 +249,7 @@ sub _tempdir
 		# using Cwd::cwd() here can be awkward because permissioning tests
 		# typically need some unprivileged access to spool directories etc.
 		# (consider filter tests where the filter scripts run as "daemon",
-		# or submit tests where the submit tool is run from an unprivileted
+		# or submit tests where the submit tool is run from an unprivileged
 		# test account) -- when using absolute paths under the cwd every
 		# directory on the path requires "--------x" (see stat(2) and
 		# open(2)), but we might be running under a home directory with
@@ -483,14 +483,14 @@ sub matchOne
 
 sub submitSmallMessage
 {
-	# Submits a small message using emailrelay-submit.
+	# Submits a small message using the "emailrelay-submit" utility.
 	my ( $spool_dir , @to ) = @_ ;
 	submitMessage( $spool_dir , 10 , @to ) ;
 }
 
 sub submitMessage
 {
-	# Submits a message of 'n' lines.
+    # Submits a message of 'n' lines using the "emailrelay-submit" utility.
 	my ( $spool_dir , $n , @to ) = @_ ;
 	push @to , "me\@there.localnet" if( scalar(@to) == 0 ) ;
 	my $path = _createMessageFile( tempfile("message") , $n ) ;
@@ -500,28 +500,42 @@ sub submitMessage
 	System::unlink( $path ) ;
 }
 
+{
+our $seq = 1 ;
 sub submitMessageText
 {
-    # Submits a message using emailrelay-submit.
+    # Submits a message using the "emailrelay-submit" utility.
 	my ( $spool_dir , @lines ) = @_ ;
 	my $to = "me\@there.localnet" ;
-	my $path = tempfile( "message" ) ;
-	my $fh = new FileHandle( $path , "w" ) or die ;
+	my $tmp_path = tempfile( "message" ) ;
+	my $fh = new FileHandle( $tmp_path , "w" ) or die ;
 	print $fh "Subject: test\r\n\r\n" ;
 	for my $line ( @lines )
 	{
 		print $fh $line , "\r\n" ;
 	}
 	$fh->close() or die ;
-	my $rc = system( sanepath(exe($bin_dir,"emailrelay-submit")) . " --from me\@here.localnet " .
-		"--spool-dir $spool_dir $to < $path" ) ;
-	Check::that( $rc == 0 , "failed to submit" ) ;
-	System::unlink( $path ) ;
+	my $cmd = sanepath(exe($bin_dir,"emailrelay-submit")) .
+		" --verbose --from me\@here.localnet --spool-dir $spool_dir $to" ;
+	my $fh_out = new FileHandle( "$cmd < $tmp_path |" ) ;
+	chomp( my $content_path = <$fh_out> ) ;
+	$fh_out->close() ;
+	( my $envelope_path = $content_path ) =~ s/\.content$/.envelope/ ;
+	Check::that( -e $content_path && -e $envelope_path , "failed to submit" , $content_path ) ;
+	System::unlink( $tmp_path ) ;
+
+	# impose an ordering
+	my $n = $seq++ ;
+	( my $new_content_path = $content_path ) =~ s:emailrelay\.(\d+)\.(\d+)\.(\d+)\.content$:emailrelay.$n.content: ;
+	( my $new_envelope_path = $envelope_path ) =~ s:emailrelay\.(\d+)\.(\d+)\.(\d+)\.envelope$:emailrelay.$n.envelope: ;
+	rename( $content_path , $new_content_path ) or die ;
+	rename( $envelope_path , $new_envelope_path ) or die ;
+}
 }
 
 sub submitMessages
 {
-	# Submits 'n' message of 'm' lines using the "emailrelay-submit" utility.
+	# Submits 'n' messages of 'm' lines using the "emailrelay-submit" utility.
 	my ( $spool_dir , $n , $m ) = @_ ;
 	for my $i ( 1 .. $n )
 	{
@@ -755,6 +769,10 @@ sub processIsRunning
 
 sub nextPort
 {
+	# Returns the next port number in sequence. The implementation
+	# uses a state file, which is created if necessary with a random
+	# port number. O/s file locking is used to avoid races on the
+	# state file contents.
 	my $first = 16000 ;
 	my $last = 32000 ;
 	my $file = ".tmp.port" ;

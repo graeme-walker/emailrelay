@@ -488,7 +488,7 @@ mo: emailrelay.$(LANG).mo
 
 emailrelay.pot:
 	@rm emailrelay.pot 2>/dev/null || true
-	xgettext -i --no-wrap --package-name=$(PACKAGE_NAME) --package-version=$(PACKAGE_VERSION) --c++ -o emailrelay.pot `find $(top_srcdir)/src -name *.cpp -o -name *.h | grep -v gui/`
+	cd $(top_srcdir)/src ; xgettext -i --no-wrap --keyword=txt --keyword=tx --package-name=$(PACKAGE_NAME) --package-version=$(PACKAGE_VERSION) --c++ --force-po -o ../po/emailrelay.pot `find . -name *.cpp -o -name *.h`
 
 emailrelay.$(LANG).mo: emailrelay.$(LANG).po
 	msgfmt -o $@ $<

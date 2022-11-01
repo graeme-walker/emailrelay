@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ namespace GNet
 }
 
 //| \class GNet::ClientPtrBase
-/// The non-template part of GNet::ClientPtr. It is an ExcptionHandler
+/// The non-template part of GNet::ClientPtr. It is an ExceptionHandler
 /// so that exceptions thrown by the Client out to the event loop can
 /// be delivered back to reset the ClientPtr with the expected Client
 /// onDelete() semantics (like GNet::ServerPeer).
@@ -75,8 +75,8 @@ public:
 	~ClientPtrBase() override = default ;
 	ClientPtrBase( const ClientPtrBase & ) = delete ;
 	ClientPtrBase( ClientPtrBase && ) = delete ;
-	void operator=( const ClientPtrBase & ) = delete ;
-	void operator=( ClientPtrBase && ) = delete ;
+	ClientPtrBase & operator=( const ClientPtrBase & ) = delete ;
+	ClientPtrBase & operator=( ClientPtrBase && ) = delete ;
 
 private:
 	void eventSlot( const std::string & , const std::string & , const std::string & ) ;
@@ -128,13 +128,14 @@ private:
 ///
 /// Note that the ClientPtr exception handler ignores the ExceptionSource
 /// pointer, so it can be set to be the same as the higher-level object,
-/// for better event logging (as shown above).
+/// for better event logging (as shown above) (see
+/// GNet::ExceptionSource::exceptionSourceId()).
 ///
 template <typename T>
 class GNet::ClientPtr : public ClientPtrBase
 {
 public:
-	G_EXCEPTION( InvalidState , "invalid state of network client holder" ) ;
+	G_EXCEPTION( InvalidState , tx("invalid state of network client holder") ) ;
 
 	explicit ClientPtr( T * p = nullptr ) ;
 		///< Constructor. Takes ownership of the new-ed client.
@@ -145,11 +146,11 @@ public:
 	bool busy() const ;
 		///< Returns true if the pointer is not nullptr.
 
-	void reset( T * p ) noexcept ;
+	void reset( T * p ) ;
 		///< Resets the pointer. There is no call to onDelete()
 		///< and no emitted signals.
 
-	void reset( std::unique_ptr<T> p ) noexcept ;
+	void reset( std::unique_ptr<T> p ) ;
 		///< Resets the pointer. There is no call to onDelete()
 		///< and no emitted signals.
 
@@ -177,8 +178,8 @@ private: // overrides
 public:
 	ClientPtr( const ClientPtr & ) = delete ;
 	ClientPtr( ClientPtr && ) = delete ;
-	void operator=( const ClientPtr & ) = delete ;
-	void operator=( ClientPtr && ) = delete ;
+	ClientPtr & operator=( const ClientPtr & ) = delete ;
+	ClientPtr & operator=( ClientPtr && ) = delete ;
 
 private:
 	T * set( T * ) ;
@@ -198,10 +199,13 @@ GNet::ClientPtr<T>::ClientPtr( T * p ) :
 		connectSignals( *m_p ) ;
 }
 
-template <typename T>
-GNet::ClientPtr<T>::~ClientPtr()
+namespace GNet
 {
-	delete release() ;
+	template <typename T>
+	ClientPtr<T>::~ClientPtr()
+	{
+		delete release() ;
+	}
 }
 
 template <typename T>
@@ -261,13 +265,13 @@ T * GNet::ClientPtr<T>::release() noexcept
 }
 
 template <typename T>
-void GNet::ClientPtr<T>::reset( T * p ) noexcept
+void GNet::ClientPtr<T>::reset( T * p )
 {
 	delete set( p ) ;
 }
 
 template <typename T>
-void GNet::ClientPtr<T>::reset( std::unique_ptr<T> p ) noexcept
+void GNet::ClientPtr<T>::reset( std::unique_ptr<T> p )
 {
 	delete set( p.release() ) ;
 }

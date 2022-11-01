@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,12 +22,21 @@
 #define G_GETTEXT_H
 
 #include "gdef.h"
+#include "gstringview.h"
 #include <string>
-#include <clocale>
 
-#if GCONFIG_HAVE_GETTEXT
-#include <libintl.h>
-#endif
+// Strings should be marked for translation using gettext() or gettext_noop(),
+// but not using the namespace scoping so that 'xgettext(1)' will still work.
+// For brevity G::txt() or G::tx() can be used instead. See also G::format.
+//
+// Eg:
+/// \code
+/// #include "ggettext.h"
+/// using G::tx ;
+/// using G::txt ;
+/// Message msg( tx("world") ) ;
+/// std::cout << txt("hello") << msg.translated() << "\n" ;
+/// \endcode
 
 namespace G
 {
@@ -36,45 +45,43 @@ namespace G
 		///< to set the CTYPE and MESSAGES facets of the global C locale as a
 		///< side-effect.
 
-	constexpr const char * gettext_noop( const char * p ) ;
-		///< Marks a string for translation at build-time, but no translation is
-		///< applied at run-time.
-
-	const char * gettext( const char * ) ;
+	const char * gettext( const char * ) noexcept ;
 		///< Returns the message translation in the current locale's codeset,
-		///< eg. ISO8859-1 or UTF-8, transcoding from the catalogue as
+		///< eg. ISO-8859-1 or UTF-8, transcoding from the catalogue as
 		///< necessary.
+
+	constexpr const char * gettext_noop( const char * p ) ;
+		///< Returns the parameter. Used as a marker for xgettext
+		///< for potential translation at build-time.
+
+	const char * txt( const char * p ) ;
+		///< A briefer alternative to G::gettext().
+
+	constexpr const char * tx( const char * p ) ;
+		///< A briefer alternative to G::gettext_noop().
+
+	constexpr string_view tx( string_view sv ) ;
+		///< String view overload.
 }
 
-#if GCONFIG_HAVE_GETTEXT
-inline void G::gettext_init( const std::string & localedir , const std::string & appname )
+inline const char * G::txt( const char * p )
 {
-	if( !appname.empty() )
-	{
-		std::setlocale( LC_MESSAGES , "" ) ;
-		std::setlocale( LC_CTYPE , "" ) ;
-		if( !localedir.empty() )
-            bindtextdomain( appname.c_str() , localedir.c_str() ) ;
-		textdomain( appname.c_str() ) ;
-	}
+	return G::gettext( p ) ;
 }
-inline const char * G::gettext( const char * p )
-{
-		return ::gettext( p ) ;
-}
-#else
-inline void G::gettext_init( const std::string & , const std::string & )
-{
-}
-inline const char * G::gettext( const char * p )
-{
-		return p ;
-}
-#endif
 
 constexpr const char * G::gettext_noop( const char * p )
 {
 	return p ;
+}
+
+constexpr const char * G::tx( const char * p )
+{
+	return p ;
+}
+
+constexpr G::string_view G::tx( string_view sv )
+{
+	return sv ;
 }
 
 #endif

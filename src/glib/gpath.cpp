@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,51 +21,60 @@
 #include "gdef.h"
 #include "gpath.h"
 #include "gstr.h"
-#include "gstrings.h"
+#include "gstringarray.h"
 #include "gstringview.h"
 #include "gassert.h"
 #include <algorithm> // std::swap()
 #include <utility> // std::swap()
 
-//| \class G::PathImp
-/// A private implementation class used by G::Path providing a set of
-/// static methods. Supports both posix-style and windows-style paths
-/// at run-time, with only the default selected at compile-time.
-///
-class G::PathImp
+namespace G
 {
-public:
-	static bool use_posix ;
-	using pos_t = std::string::size_type ;
-
-	static string_view windows_sep()
+	namespace PathImp /// An implementation namespace for G::Path.
 	{
-		return {"\\",1U} ;
+		enum class Platform { Unix , Windows } ;
+		template <Platform> struct PathPlatform /// A class template specialised by o/s in the implementation of G::Path.
+			{} ;
+		template <> struct G::PathImp::PathPlatform<Platform::Unix> ;
+		template <> struct G::PathImp::PathPlatform<Platform::Windows> ;
 	}
-	static pos_t windows_slashpos( const std::string & s )
+}
+
+template <>
+struct G::PathImp::PathPlatform<G::PathImp::Platform::Windows> /// A windows specialisation of G::PathImp::PathPlatform used by G::Path.
+{
+	static string_view sep() noexcept
+	{
+		return { "\\" , 1U } ;
+	}
+	static std::size_t slashpos( const std::string & s ) noexcept
 	{
 		return s.rfind('\\') ;
 	}
-	static bool windows_simple( const std::string & s )
+	static bool simple( const std::string & s ) noexcept
 	{
 		return s.find('/') == std::string::npos && s.find('\\') == std::string::npos ;
 	}
-	static bool windows_absolute( const std::string & s )
+	static bool isdrive( const std::string & s ) noexcept
 	{
-		return
-			( s.length() >= 3U && s.at(1U) == ':' && s.at(2U) == '\\' ) ||
-			( s.length() >= 1U && s.at(0U) == '\\' ) ;
+		return s.length() == 2U && s[1] == ':' ;
 	}
-	static pos_t windows_rootsize( const std::string & s , std::size_t chars , std::size_t parts )
+	static bool absolute( const std::string & s ) noexcept
+	{
+		// TODO use rootsize()
+		return
+			( s.length() >= 3U && s[1] == ':' && s[2] == '\\' ) ||
+			( s.length() >= 1U && s[0] == '\\' ) ;
+	}
+	static std::size_t rootsizeImp( const std::string & s , std::size_t chars , std::size_t parts ) noexcept
 	{
 		G_ASSERT( s.length() >= chars ) ;
 		G_ASSERT( parts == 1U || parts == 2U ) ;
-		pos_t pos = s.find( '\\' , chars ) ;
+		std::size_t pos = s.find( '\\' , chars ) ;
 		if( parts == 2U && pos != std::string::npos )
 			pos = s.find( '\\' , pos+1U ) ;
 		return pos == std::string::npos ? s.length() : pos ;
 	}
-	static pos_t windows_rootsize( const std::string & s )
+	static std::size_t rootsize( const std::string & s ) noexcept
 	{
 		if( s.empty() )
 			return 0U ;
@@ -73,185 +82,187 @@ public:
 			return 3U ; // C:|...
 		if( s.length() >= 2U && s.at(1U) == ':' )
 			return 2U ; // C:...
-		if( s.find("\\\\?\\UNC\\") == 0U )
-			return windows_rootsize(s,8U,2U) ; // ||?|UNC|server|volume|...
-		if( s.find("\\\\?\\") == 0U && s.size() > 5U && s.at(5U) == ':' )
-			return windows_rootsize(s,4U,1U) ; // ||?|C:|...
-		if( s.find("\\\\?\\") == 0U )
-			return windows_rootsize(s,4U,2U) ; // ||?|server|volume|...
-		if( s.find("\\\\.\\") == 0U )
-			return windows_rootsize(s,4U,1U) ; // ||.|dev|...
-		if( s.find("\\\\") == 0U )
-			return windows_rootsize(s,2U,2U) ; // ||server|volume|...
+		if( s.find(R"(\\?\UNC\)",0U,8U) == 0U )
+			return rootsizeImp(s,8U,2U) ; // ||?|UNC|server|volume|...
+		if( s.find(R"(\\?\)",0U,4U) == 0U && s.size() > 5U && s.at(5U) == ':' )
+			return rootsizeImp(s,4U,1U) ; // ||?|C:|...
+		if( s.find(R"(\\?\)",0U,4U) == 0U )
+			return rootsizeImp(s,4U,2U) ; // ||?|server|volume|...
+		if( s.find(R"(\\.\)",0U,4U) == 0U )
+			return rootsizeImp(s,4U,1U) ; // ||.|dev|...
+		if( s.find("\\\\",0U,2U) == 0U )
+			return rootsizeImp(s,2U,2U) ; // ||server|volume|...
 		if( s.find('\\') == 0U )
 			return 1U ; // |...
 		return 0U ;
 	}
-	static void windows_normalise( std::string & s )
+	static void normalise( std::string & s )
 	{
-		Str::replaceAll( s , "/" , "\\" ) ;
-		bool special = s.find("\\\\") == 0U ;
-		while( Str::replaceAll( s , "\\\\" , "\\" ) ) {;}
-		if( special ) s = "\\" + s ;
+		Str::replaceAll( s , "/"_sv , "\\"_sv ) ;
+		bool special = s.find("\\\\",0U,2U) == 0U ;
+		while( Str::replaceAll( s , "\\\\"_sv , "\\"_sv ) ) {;}
+		if( special ) s.insert( 0U , 1U , '\\' ) ;
 
 		while( s.length() > 1U )
 		{
-			pos_t pos = s.rfind('\\') ;
+			std::size_t pos = s.rfind('\\') ;
 			if( pos == std::string::npos ) break ;
 			if( (pos+1U) != s.length() ) break ;
-			if( pos < windows_rootsize(s) ) break ;
+			if( pos < rootsize(s) ) break ;
 			s.resize( pos ) ;
 		}
 	}
-	static std::string windows_null()
+	static std::string null()
 	{
 		return "NUL" ;
 	}
+} ;
 
-	static string_view posix_sep()
+template <>
+struct G::PathImp::PathPlatform<G::PathImp::Platform::Unix> /// A unix specialisation of G::PathImp::PathPlatform used by G::Path.
+{
+	static string_view sep() noexcept
 	{
-		return {"/",1U} ;
+		return { "/" , 1U } ;
 	}
-	static pos_t posix_slashpos( const std::string & s )
+	static std::size_t slashpos( const std::string & s ) noexcept
 	{
 		return s.rfind('/') ;
 	}
-	static bool posix_simple( const std::string & s )
+	static bool simple( const std::string & s ) noexcept
 	{
 		return s.find('/') == std::string::npos ;
 	}
-	static void posix_normalise( std::string & s )
+	static bool isdrive( const std::string & ) noexcept
 	{
-		while( Str::replaceAll( s , "//" , "/" ) ) {;}
-		while( s.length() > 1U && s.at(s.length()-1U) == '/' ) s.resize(s.length()-1U) ;
-	}
-	static bool posix_absolute( const std::string & s )
-	{
-		return !s.empty() && s.at(0U) == '/' ;
-	}
-	static pos_t posix_rootsize( const std::string & s )
-	{
-		return s.empty() || s.at(0U) != '/' ? 0U : 1U ;
-	}
-	static std::string posix_null()
-	{
-		return "/dev/null" ;
-	}
-
-	static string_view sep()
-	{
-		return use_posix ? posix_sep() : windows_sep() ;
+		return false ;
 	}
 	static void normalise( std::string & s )
 	{
-		use_posix ? posix_normalise(s) : windows_normalise(s) ;
+		while( Str::replaceAll( s , "//"_sv , "/"_sv ) ) {;}
+		while( s.length() > 1U && s.at(s.length()-1U) == '/' ) s.resize(s.length()-1U) ;
 	}
-	static bool simple( const std::string & s )
+	static bool absolute( const std::string & s ) noexcept
 	{
-		return use_posix ? posix_simple(s) : windows_simple(s) ;
+		return !s.empty() && s[0] == '/' ;
 	}
-	static bool absolute( const std::string & s )
+	static std::size_t rootsize( const std::string & s ) noexcept
 	{
-		return use_posix ? posix_absolute(s) : windows_absolute(s) ;
+		return s.empty() || s[0] != '/' ? 0U : 1U ;
 	}
 	static std::string null()
 	{
-		return use_posix ? posix_null() : windows_null() ;
+		return "/dev/null" ;
 	}
-	static pos_t rootsize( const std::string & s )
-	{
-		return use_posix ? posix_rootsize(s) : windows_rootsize(s) ;
-	}
-	static pos_t slashpos( const std::string & s )
-	{
-		return use_posix ? posix_slashpos(s) : windows_slashpos(s) ;
-	}
-	static pos_t dotpos( const std::string & s )
-	{
-		const pos_t npos = std::string::npos ;
-		const pos_t sp = slashpos( s ) ;
-		const pos_t dp = s.rfind( '.' ) ;
-		if( dp == npos )
-			return npos ;
-		else if( sp == npos )
-			return dp ;
-		else if( dp < sp )
-			return npos ;
-		else
-			return dp ;
-	}
-
-	static void splitInto( const std::string & str , StringArray & a )
-	{
-		pos_t rs = rootsize(str) ;
-		if( str.empty() )
-		{
-		}
-		else if( rs != 0U ) // ie. absolute or like "c:foo"
-		{
-			std::string root = str.substr( 0U , rs ) ;
-			Str::splitIntoTokens( Str::tail(str,rs-1U,std::string()) , a , sep() ) ;
-			a.insert( a.begin() , root ) ;
-		}
-		else
-		{
-			Str::splitIntoTokens( str , a , sep() ) ;
-		}
-	}
-
-	static bool purge( StringArray & a )
-	{
-		const std::string dot( 1U , '.' ) ;
-		a.erase( std::remove( a.begin() , a.end() , std::string() ) , a.end() ) ;
-		std::size_t n = a.size() ;
-		a.erase( std::remove( a.begin() , a.end() , dot ) , a.end() ) ;
-		const bool all_dots = a.empty() && n != 0U ;
-		return all_dots ;
-	}
-
-	static std::string join( StringArray::const_iterator p , StringArray::const_iterator end )
-	{
-		std::string str ;
-		int i = 0 ;
-		for( ; p != end ; ++p , i++ )
-		{
-			bool drive = !use_posix && str.length() == 2U && str.at(1U) == ':' ;
-			bool last_is_slash = !str.empty() &&
-				( str.at(str.length()-1U) == '/' || str.at(str.length()-1U) == '\\' ) ;
-			if( i == 1 && (drive || last_is_slash) )
-				;
-			else if( i != 0 )
-				str.append( sep().data() , sep().size() ) ;
-			str.append( *p ) ;
-		}
-		return str ;
-	}
-
-	static std::string join( const StringArray & a )
-	{
-		return join( a.begin() , a.end() ) ;
-	}
-
-public:
-	PathImp() = delete ;
 } ;
 
-#ifdef G_WINDOWS
-bool G::PathImp::use_posix = false ;
-#else
-bool G::PathImp::use_posix = true ;
-#endif
+namespace G
+{
+	namespace PathImp
+	{
+		static bool use_posix = !G::is_windows() ; // gdef.h // NOLINT bogus cert-err58-cpp
+		using U = PathPlatform<Platform::Unix> ;
+		using W = PathPlatform<Platform::Windows> ;
+		static void usePosix() { use_posix = true ; }
+		static void useWindows() { use_posix = false ; }
+		static string_view sep() { return use_posix ? U::sep() : W::sep() ; }
+		static void normalise( std::string & s ) { use_posix ? U::normalise(s) : W::normalise(s) ; }
+		static bool simple( const std::string & s ) { return use_posix ? U::simple(s) : W::simple(s) ; }
+		static bool isdrive( const std::string & s ) { return use_posix ? U::isdrive(s) : W::isdrive(s) ; }
+		static bool absolute( const std::string & s ) { return use_posix ? U::absolute(s) : W::absolute(s); }
+		static std::string null() { return use_posix ? U::null() : W::null() ; }
+		static std::size_t rootsize( const std::string & s ) { return use_posix ? U::rootsize(s) : W::rootsize(s) ; }
+		static std::size_t slashpos( const std::string & s ) { return use_posix ? U::slashpos(s) : W::slashpos(s) ; }
+	}
+}
+
+namespace G
+{
+	namespace PathImp
+	{
+		static std::size_t dotpos( const std::string & s ) noexcept
+		{
+			const std::size_t npos = std::string::npos ;
+			const std::size_t sp = slashpos( s ) ;
+			const std::size_t dp = s.rfind( '.' ) ;
+			if( dp == npos )
+				return npos ;
+			else if( sp == npos )
+				return dp ;
+			else if( dp < sp )
+				return npos ;
+			else
+				return dp ;
+		}
+
+		static void splitInto( const std::string & str , StringArray & a )
+		{
+			std::size_t rs = rootsize( str ) ;
+			if( str.empty() )
+			{
+			}
+			else if( rs != 0U ) // ie. absolute or like "c:foo"
+			{
+				std::string root = str.substr( 0U , rs ) ;
+				Str::splitIntoTokens( Str::tail(str,rs-1U,std::string()) , a , sep() ) ;
+				a.insert( a.begin() , root ) ;
+			}
+			else
+			{
+				Str::splitIntoTokens( str , a , sep() ) ;
+			}
+		}
+
+		static bool purge( StringArray & a )
+		{
+			const std::string dot( 1U , '.' ) ;
+			a.erase( std::remove( a.begin() , a.end() , std::string() ) , a.end() ) ;
+			std::size_t n = a.size() ;
+			a.erase( std::remove( a.begin() , a.end() , dot ) , a.end() ) ;
+			const bool all_dots = a.empty() && n != 0U ;
+			return all_dots ;
+		}
+
+		static std::string join( StringArray::const_iterator p , StringArray::const_iterator end )
+		{
+			std::string str ;
+			int i = 0 ;
+			for( ; p != end ; ++p , i++ )
+			{
+				bool drive = isdrive( str ) ;
+				bool last_is_slash = !str.empty() &&
+					( str.at(str.length()-1U) == '/' || str.at(str.length()-1U) == '\\' ) ;
+				if( i == 1 && (drive || last_is_slash) )
+					;
+				else if( i != 0 )
+					str.append( sep().data() , sep().size() ) ;
+				str.append( *p ) ;
+			}
+			return str ;
+		}
+
+		static std::string join( const StringArray & a )
+		{
+			return join( a.begin() , a.end() ) ;
+		}
+
+		static bool string_less( const std::string & a , const std::string & b ) noexcept
+		{
+			return a.compare(b) < 0 ; // uses std::char_traits<char>::compare()
+		}
+	}
+}
 
 // ==
 
 void G::Path::setPosixStyle()
 {
-	PathImp::use_posix = true ;
+	PathImp::usePosix() ;
 }
 
 void G::Path::setWindowsStyle()
 {
-	PathImp::use_posix = false ;
+	PathImp::useWindows() ;
 }
 
 G::Path::Path()
@@ -265,6 +276,12 @@ G::Path::Path( const std::string & path ) :
 
 G::Path::Path( const char * path ) :
 	m_str(path)
+{
+	PathImp::normalise( m_str ) ;
+}
+
+G::Path::Path( string_view path ) :
+	m_str(sv_to_string(path))
 {
 	PathImp::normalise( m_str ) ;
 }
@@ -307,7 +324,7 @@ G::Path::Path( std::initializer_list<std::string> args )
 
 G::Path G::Path::nullDevice()
 {
-	return Path( PathImp::null() ) ;
+	return { PathImp::null() } ;
 }
 
 bool G::Path::simple() const
@@ -315,12 +332,12 @@ bool G::Path::simple() const
 	return dirname().empty() ;
 }
 
-bool G::Path::isAbsolute() const
+bool G::Path::isAbsolute() const noexcept
 {
 	return PathImp::absolute( m_str ) ;
 }
 
-bool G::Path::isRelative() const
+bool G::Path::isRelative() const noexcept
 {
 	return !isAbsolute() ;
 }
@@ -338,22 +355,22 @@ G::Path G::Path::dirname() const
 	StringArray a ;
 	PathImp::splitInto( m_str , a ) ;
 	PathImp::purge( a ) ;
-	if( a.empty() ) return Path() ;
+	if( a.empty() ) return {} ;
 	a.pop_back() ;
 	return join( a ) ;
 }
 
 G::Path G::Path::withoutExtension() const
 {
-	std::string::size_type sp = PathImp::slashpos(m_str) ;
-	std::string::size_type dp = PathImp::dotpos(m_str) ;
+	std::string::size_type sp = PathImp::slashpos( m_str ) ;
+	std::string::size_type dp = PathImp::dotpos( m_str ) ;
 	if( dp != std::string::npos )
 	{
 		std::string result = m_str ;
 		result.resize( dp ) ;
 		if( (sp == std::string::npos && dp == 0U) || ((sp+1U) == dp) )
 			result.append(".") ; // special case
-		return Path( result ) ;
+		return { result } ;
 	}
 	else
 	{
@@ -364,12 +381,28 @@ G::Path G::Path::withoutExtension() const
 G::Path G::Path::withExtension( const std::string & ext ) const
 {
 	std::string result = m_str ;
-	std::string::size_type dp = PathImp::dotpos(m_str) ;
+	std::string::size_type dp = PathImp::dotpos( m_str ) ;
 	if( dp != std::string::npos )
 		result.resize( dp ) ;
 	result.append( 1U , '.' ) ;
 	result.append( ext ) ;
-	return Path( result ) ;
+	return { result } ;
+}
+
+G::Path G::Path::withoutRoot() const
+{
+	if( isAbsolute() )
+	{
+		StringArray a ;
+		PathImp::splitInto( m_str , a ) ;
+		G_ASSERT( !a.empty() ) ;
+		a.erase( a.begin() ) ;
+		return a.empty() ? Path("."_sv) : join( a ) ;
+	}
+	else
+	{
+		return *this ;
+	}
 }
 
 void G::Path::pathAppend( const std::string & tail )
@@ -407,8 +440,8 @@ G::StringArray G::Path::split() const
 
 G::Path G::Path::join( const G::StringArray & a )
 {
-	if( a.empty() ) return Path() ;
-	return Path( PathImp::join(a) ) ;
+	if( a.empty() ) return {} ;
+	return { PathImp::join(a) } ;
 }
 
 G::Path G::Path::join( const G::Path & p1 , const G::Path & p2 )
@@ -475,11 +508,6 @@ void G::Path::swap( Path & other ) noexcept
 	swap( m_str , other.m_str ) ;
 }
 
-static bool string_less( const std::string & a , const std::string & b )
-{
-	return a.compare(b) < 0 ; // uses std::char_traits<char>::compare()
-}
-
 bool G::Path::less( const G::Path & a , const G::Path & b )
 {
 	StringArray a_parts = a.split() ;
@@ -487,7 +515,7 @@ bool G::Path::less( const G::Path & a , const G::Path & b )
 	return std::lexicographical_compare(
 		a_parts.begin() , a_parts.end() ,
 		b_parts.begin() , b_parts.end() ,
-		string_less ) ;
+		PathImp::string_less ) ;
 }
 
 G::Path G::Path::difference( const G::Path & root_in , const G::Path & path_in )
@@ -500,16 +528,16 @@ G::Path G::Path::difference( const G::Path & root_in , const G::Path & path_in )
 	if( path_parts.size() == 1U && path_parts.at(0U) == "." ) path_parts.clear() ;
 
 	if( path_parts.size() < root_parts.size() )
-		return Path() ;
+		return {} ;
 
 	using Pair = std::pair<StringArray::iterator,StringArray::iterator> ;
 	Pair p = std::mismatch( root_parts.begin() , root_parts.end() , path_parts.begin() ) ;
 
 	if( p.first == root_parts.end() && p.second == path_parts.end() )
-		return Path(".") ;
+		return { "." } ;
 	else if( p.first != root_parts.end() )
-		return Path() ;
+		return {} ;
 	else
-		return Path( PathImp::join(p.second,path_parts.end()) ) ;
+		return { PathImp::join(p.second,path_parts.end()) } ;
 }
 

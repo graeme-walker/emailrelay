@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ namespace GSmtp
 class GSmtp::SpamClient : public GNet::Client
 {
 public:
-	G_EXCEPTION( Error , "spam client error" ) ;
+	G_EXCEPTION( Error , tx("spam client error") ) ;
 
 	SpamClient( GNet::ExceptionSink , const GNet::Location & host_and_service ,
 		bool read_only , unsigned int connect_timeout , unsigned int response_timeout ) ;
@@ -82,8 +82,8 @@ public:
 	~SpamClient() override = default ;
 	SpamClient( const SpamClient & ) = delete ;
 	SpamClient( SpamClient && ) = delete ;
-	void operator=( const SpamClient & ) = delete ;
-	void operator=( SpamClient && ) = delete ;
+	SpamClient & operator=( const SpamClient & ) = delete ;
+	SpamClient & operator=( SpamClient && ) = delete ;
 
 private:
 	void onTimeout() ;
@@ -107,8 +107,8 @@ private:
 		~Response() ;
 		Response( const Response & ) = delete ;
 		Response( Response && ) = delete ;
-		void operator=( const Response & ) = delete ;
-		void operator=( Response && ) = delete ;
+		Response & operator=( const Response & ) = delete ;
+		Response & operator=( Response && ) = delete ;
 		void add( const std::string & , const std::string & ) ;
 		bool ok( const std::string & ) const ;
 		bool complete() const ;

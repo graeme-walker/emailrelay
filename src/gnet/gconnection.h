@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ namespace GNet
 }
 
 //| \class GNet::Connection
-/// An abstract interface which provides address information for a network
+/// An abstract interface which provides information about a network
 /// connection.
 /// \see GNet::Client, GNet::ServerPeer
 ///
@@ -40,18 +40,17 @@ public:
 	virtual ~Connection() = default ;
 		///< Destructor.
 
-	virtual std::pair<bool,Address> localAddress() const = 0 ;
+	virtual Address localAddress() const = 0 ;
 		///< Returns the connection's local address.
-		///< Pair.first is false if none.
 
-	virtual std::pair<bool,Address> peerAddress() const = 0 ;
+	virtual Address peerAddress() const = 0 ;
 		///< Returns the connection's peer address.
-		///< Pair.first is false if none.
+		///< Throws if a client connection that has not yet connected.
 
 	virtual std::string connectionState() const = 0 ;
 		///< Returns the connection state as a display string.
-		///< This should normally return the peerAddress() string
-		///< when the connection is fully established.
+		///< This should be the peerAddress() display string, unless
+		///< a client connection that has not yet connected.
 
 	virtual std::string peerCertificate() const = 0 ;
 		///< Returns the peer's TLS certificate. Returns the

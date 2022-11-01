@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ public:
 			// the event-loop.
 			//
 			// In a single-threaded build, or if multi-threading is broken,
-			// this contructor runs the task, waits for it to complete
+			// this constructor runs the task, waits for it to complete
 			// and posts the completion message to the event-loop
 			// before this constructor returns.
 
@@ -71,12 +71,12 @@ private: // overrides
 public:
 	TaskImp( const TaskImp & ) = delete ;
 	TaskImp( TaskImp && ) = delete ;
-	void operator=( const TaskImp & ) = delete ;
-	void operator=( TaskImp && ) = delete ;
+	TaskImp & operator=( const TaskImp & ) = delete ;
+	TaskImp & operator=( TaskImp && ) = delete ;
 
 private:
 	void onTimeout() ;
-	static void waitThread( TaskImp * , FutureEvent::handle_type ) ; // thread function
+	static void waitThread( TaskImp * , HANDLE ) ; // thread function
 
 private:
 	Task * m_task ;
@@ -157,7 +157,7 @@ bool GNet::TaskImp::zombify()
 		m_zcount++ ;
 		m_timer.startTimer( 1U ) ;
 
-		std::size_t threshold = G::Test::enabled("task-warning") ? 3U : 100U ;
+		const std::size_t threshold = 30U ;
 		if( m_zcount == threshold )
 			G_WARNING_ONCE( "GNet::Task::dtor: large number of threads waiting for processes to finish" ) ;
 
@@ -191,10 +191,10 @@ std::pair<int,std::string> GNet::TaskImp::wait()
 {
 	m_process.waitable().wait() ;
 	int exit_code = m_process.waitable().get() ;
-	return std::make_pair( exit_code , m_process.waitable().output() ) ;
+	return { exit_code , m_process.waitable().output() } ;
 }
 
-void GNet::TaskImp::waitThread( TaskImp * This , FutureEvent::handle_type handle )
+void GNet::TaskImp::waitThread( TaskImp * This , HANDLE handle )
 {
 	// worker-thread -- keep it simple
 	try

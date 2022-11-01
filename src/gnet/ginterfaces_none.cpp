@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -57,22 +57,29 @@ std::vector<GNet::Address> GNet::Interfaces::find( const std::string & , unsigne
 }
 
 std::vector<GNet::Address> GNet::Interfaces::addresses( const G::StringArray & names , unsigned int port ,
-	G::StringArray & used_names , G::StringArray & , G::StringArray & bad_names ) const
+	G::StringArray * used_names , G::StringArray * empty_names , G::StringArray * bad_names ) const
 {
 	AddressList result ;
 	for( const auto & name : names )
 	{
-		if( !Address::validStrings( name , G::Str::fromUInt(port) ) )
-		{
-			bad_names.push_back( name ) ;
-		}
-		else
-		{
-			used_names.push_back( name ) ;
-			result.push_back( Address::parse(name,port) ) ;
-		}
+		addresses( name , port , result , used_names , empty_names , bad_names ) ;
 	}
 	return result ;
+}
+
+void GNet::Interfaces::addresses( const std::string & name , unsigned int port ,
+	std::vector<GNet::Address> & result ,
+	G::StringArray * used_names , G::StringArray * /*empty_names*/ , G::StringArray * bad_names ) const
+{
+	if( !Address::validStrings( name , G::Str::fromUInt(port) ) )
+	{
+		if( bad_names ) bad_names->push_back( name ) ;
+	}
+	else
+	{
+		if( used_names ) used_names->push_back( name ) ;
+		result.push_back( Address::parse(name,port) ) ;
+	}
 }
 
 G::StringArray GNet::Interfaces::names( bool ) const

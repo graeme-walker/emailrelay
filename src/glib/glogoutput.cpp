@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,9 +23,12 @@
 #include "gdatetime.h"
 #include "gscope.h"
 #include "gfile.h"
-#include "groot.h"
+#include "ggettext.h"
 #include "gomembuf.h"
+#include "gstringview.h"
 #include "glimits.h"
+#include "groot.h"
+#include "gtest.h"
 #include <algorithm>
 #include <sstream>
 #include <stdexcept>
@@ -37,40 +40,55 @@ namespace G
 {
 	namespace LogOutputImp /// An implementation namespace for G::LogOutput.
 	{
-		static std::string s_info ;
-		static std::string s_warning ;
-		static std::string s_error ;
-		static std::string s_fatal ;
 		constexpr int stderr_fileno = 2 ; // STDERR_FILENO
 		LogOutput * this_ = nullptr ;
 		constexpr std::size_t margin = 7U ;
 		constexpr std::size_t buffer_base_size = limits::log + 40U ;
-		std::array<char,buffer_base_size+margin> buffer_1 ;
-		std::array<char,8> buffer_2 ;
-		struct ostream : std::ostream /// An ostream using a G::omembuf streambuf.
+		std::array<char,buffer_base_size+margin> buffer {} ;
+		struct ostream : std::ostream /// An ostream using G::omembuf.
 		{
 			explicit ostream( G::omembuf * p ) : std::ostream(p) {}
 			void reset() { clear() ; seekp(0) ; }
 		} ;
-		std::ostream & ostream1()
+		LogStream & ostream1()
 		{
-			static G::omembuf buf( &buffer_1[0] , buffer_1.size() ) ; // bogus clang-tidy cert-err58-cpp
+			static G::omembuf buf( &buffer[0] , buffer.size() ) ; // bogus clang-tidy cert-err58-cpp
 			static ostream s( &buf ) ;
+			static LogStream logstream( &s ) ;
 			s.reset() ;
-			return s ;
+			return logstream ;
 		}
-		std::ostream & ostream2()
+		LogStream & ostream2() noexcept
 		{
 			// an ostream for junk that gets discarded
-			static G::omembuf buf( &buffer_2[0] , buffer_2.size() ) ;
-			static ostream s( &buf ) ;
-			s.reset() ;
-			return s ;
+			static LogStream logstream( nullptr ) ; // is noexcept
+			return logstream ;
 		}
-		std::size_t tellp( std::ostream & s )
+		std::size_t tellp( LogStream & logstream )
 		{
-			s.clear() ;
-			return static_cast<std::size_t>( std::max( std::streampos(0) , s.tellp() ) ) ;
+			if( !logstream.m_ostream ) return 0U ;
+			logstream.m_ostream->clear() ;
+			return static_cast<std::size_t>( std::max( std::streampos(0) , logstream.m_ostream->tellp() ) ) ;
+		}
+		G::string_view info()
+		{
+			static std::string s( txt("info: ") ) ;
+			return {s.data(),s.size()} ;
+		}
+		G::string_view warning()
+		{
+			static std::string s( txt("warning: ") ) ;
+			return {s.data(),s.size()} ;
+		}
+		G::string_view error()
+		{
+			static std::string s( txt("error: ") ) ;
+			return {s.data(),s.size()} ;
+		}
+		G::string_view fatal()
+		{
+			static std::string s( txt("fatal: ") ) ;
+			return {s.data(),s.size()} ;
 		}
 	}
 }
@@ -82,10 +100,9 @@ G::LogOutput::LogOutput( const std::string & exename , const Config & config ,
 		m_path(path)
 {
 	updateTime() ;
-	updatePath() ;
+	updatePath( m_path , m_real_path ) ;
 	open( m_real_path , true ) ;
 	osinit() ;
-	m_depth = 0U ;
 	if( LogOutputImp::this_ == nullptr )
 		LogOutputImp::this_ = this ;
 }
@@ -101,10 +118,9 @@ G::LogOutput::LogOutput( bool output_enabled_and_summary_info ,
 		.set_debug(verbose_info_and_debug) ;
 
 	updateTime() ;
-	updatePath() ;
+	updatePath( m_path , m_real_path ) ;
 	open( m_real_path , true ) ;
 	osinit() ;
-	m_depth = 0U ;
 	if( LogOutputImp::this_ == nullptr )
 		LogOutputImp::this_ = this ;
 }
@@ -152,44 +168,70 @@ void * G::LogOutput::contextarg() noexcept
 bool G::LogOutput::at( Log::Severity severity ) const noexcept
 {
 	bool do_output = m_config.m_output_enabled ;
-	if( severity == Log::Severity::s_Debug )
+	if( severity == Log::Severity::Debug )
 		do_output = m_config.m_output_enabled && m_config.m_debug ;
-	else if( severity == Log::Severity::s_InfoSummary )
+	else if( severity == Log::Severity::InfoSummary )
 		do_output = m_config.m_output_enabled && m_config.m_summary_info ;
-	else if( severity == Log::Severity::s_InfoVerbose )
+	else if( severity == Log::Severity::InfoVerbose )
 		do_output = m_config.m_output_enabled && m_config.m_verbose_info ;
 	return do_output ;
 }
 
-std::ostream & G::LogOutput::start( Log::Severity severity , const char * , int )
+G::LogStream & G::LogOutput::start( Log::Severity severity , const char * , int ) noexcept
 {
-	if( instance() )
-		return instance()->start( severity ) ;
-	else
-		return LogOutputImp::ostream2() ;
+	try
+	{
+		if( instance() )
+			return instance()->start( severity ) ; // not noexcept
+		else
+			return LogOutputImp::ostream2() ;
+	}
+	catch(...)
+	{
+		return LogOutputImp::ostream2() ; // is noexcept
+	}
 }
 
-void G::LogOutput::output( std::ostream & ss )
+void G::LogOutput::output( LogStream & s ) noexcept
 {
-	if( instance() )
-		instance()->output( ss , 0 ) ;
+	try
+	{
+		if( instance() )
+			instance()->output( s , 0 ) ; // not noexcept
+	}
+	catch(...)
+	{
+	}
 }
 
-bool G::LogOutput::updatePath()
+bool G::LogOutput::updatePath( const std::string & path_in , std::string & path_out ) const
 {
-	std::string real_path = m_path ;
+	bool changed = false ;
+	if( !path_in.empty() )
+	{
+		std::string new_path_out = makePath( path_in ) ;
+		changed = new_path_out != path_out ;
+		path_out.swap( new_path_out ) ;
+	}
+	return changed ;
+}
+
+std::string G::LogOutput::makePath( const std::string & path_in ) const
+{
+	// this is called at most hourly, so not optimised
+	std::string path_out = path_in ;
 	std::size_t pos = 0U ;
-	if( (pos=real_path.find("%h")) != std::string::npos )
+	if( (pos=path_out.find("%d")) != std::string::npos )
 	{
-		real_path[pos] = m_time_buffer[9] ;
-		real_path[pos+1] = m_time_buffer[10] ;
+		std::string yyyymmdd( &m_time_buffer[0] , 8U ) ;
+		path_out.replace( pos , 2U , yyyymmdd ) ;
 	}
-	if( (pos=real_path.find("%d")) != std::string::npos )
+	if( (pos=path_out.find("%h")) != std::string::npos )
 	{
-		real_path.replace( pos , 2U , std::string(&m_time_buffer[0],8U) ) ;
+		path_out[pos] = m_time_buffer[9] ;
+		path_out[pos+1U] = m_time_buffer[10] ;
 	}
-	real_path.swap( m_real_path ) ;
-	return real_path != m_real_path ;
+	return path_out ;
 }
 
 void G::LogOutput::open( const std::string & path , bool do_throw )
@@ -202,15 +244,13 @@ void G::LogOutput::open( const std::string & path , bool do_throw )
 	{
 		int fd = -1 ;
 		{
+			Process::Umask set_umask( m_config.m_umask ) ;
 			Root claim_root ;
 			fd = File::open( path.c_str() , File::InOutAppend::Append ) ;
+			if( fd < 0 && do_throw )
+				throw LogFileError( path ) ;
 		}
-		if( fd < 0 )
-		{
-			if( do_throw )
-				throw std::runtime_error( "cannot open log file: " + path ) ;
-		}
-		else
+		if( fd >= 0 )
 		{
 			if( m_fd >= 0 && m_fd != LogOutputImp::stderr_fileno )
 				G::File::close( m_fd ) ;
@@ -219,39 +259,39 @@ void G::LogOutput::open( const std::string & path , bool do_throw )
 	}
 }
 
-std::ostream & G::LogOutput::start( Log::Severity severity )
+G::LogStream & G::LogOutput::start( Log::Severity severity )
 {
 	m_depth++ ;
 	if( m_depth > 1 )
 		return LogOutputImp::ostream2() ;
 
-	if( updateTime() && updatePath() )
+	if( updateTime() && updatePath(m_path,m_real_path) )
 		open( m_real_path , false ) ;
 
-	std::ostream & ss = LogOutputImp::ostream1() ;
-	ss << std::dec ;
+	LogStream & logstream = LogOutputImp::ostream1() ;
+	logstream << std::dec ;
 	if( m_exename.length() )
-		ss << m_exename << ": " ;
+		logstream << m_exename << ": " ;
 	if( m_config.m_with_timestamp )
-		appendTimeTo( ss ) ;
+		appendTimeTo( logstream ) ;
 	if( m_config.m_with_level )
-		ss << levelString( severity ) ;
+		logstream << levelString( severity ) ;
 	if( m_config.m_with_context && m_context_fn )
-		ss << (*m_context_fn)( m_context_fn_arg ) ;
+		logstream << (*m_context_fn)( m_context_fn_arg ) ;
 
-	m_start_pos = LogOutputImp::tellp( ss ) ;
+	m_start_pos = LogOutputImp::tellp( logstream ) ;
 	m_severity = severity ;
-	return ss ;
+	return logstream ;
 }
 
-void G::LogOutput::output( std::ostream & ss , int )
+void G::LogOutput::output( LogStream & logstream , int )
 {
 	// reject nested logging
 	if( m_depth ) m_depth-- ;
 	if( m_depth ) return ;
 
-	char * buffer = &LogOutputImp::buffer_1[0] ;
-	std::size_t n = LogOutputImp::tellp( ss ) ;
+	char * buffer = &LogOutputImp::buffer[0] ;
+	std::size_t n = LogOutputImp::tellp( logstream ) ;
 
 	// elipsis on overflow
 	if( n >= LogOutputImp::buffer_base_size )
@@ -294,15 +334,15 @@ void G::LogOutput::assertionFailure( const char * file , int line , const char *
 	// ('noexcept' on this fn so we std::terminate() if any of this throws)
 	if( instance() )
 	{
-		std::ostream & ss = LogOutputImp::ostream1() ;
-		ss << "assertion error: " << basename(file) << "(" << line << "): " << test_expression ;
-		char * p = &LogOutputImp::buffer_1[0] ;
-		std::size_t n = LogOutputImp::tellp( ss ) ;
-		instance()->osoutput( instance()->m_fd , Log::Severity::s_Assertion , p , n ) ;
+		LogStream & logstream = LogOutputImp::ostream1() ;
+		logstream << txt("assertion error: ") << basename(file) << "(" << line << "): " << test_expression ;
+		char * p = &LogOutputImp::buffer[0] ;
+		std::size_t n = LogOutputImp::tellp( logstream ) ;
+		instance()->osoutput( instance()->m_fd , Log::Severity::Assertion , p , n ) ;
 	}
 	else
 	{
-		std::cerr << "assertion error: " << basename(file) << "(" << line << "): " << test_expression << std::endl ;
+		std::cerr << txt("assertion error: ") << basename(file) << "(" << line << "): " << test_expression << std::endl ;
 	}
 }
 
@@ -316,21 +356,24 @@ bool G::LogOutput::updateTime()
 	SystemTime now = SystemTime::now() ;
 	m_time_us = now.us() ;
 	bool new_hour = false ;
-	if( m_time_s == 0 || m_time_s != now.s() || m_time_buffer.empty() )
+	if( m_time_s == 0 || m_time_s != now.s() || m_time_buffer[0] == '\0' )
 	{
 		m_time_s = now.s() ;
-		m_time_buffer.resize( 17U ) ;
-		now.local().format( m_time_buffer , "%Y%m%d.%H%M%S." ) ;
+		m_time_buffer[0] = '\0' ;
+		now.local().format( &m_time_buffer[0] , m_time_buffer.size() , "%Y%m%d.%H%M%S." ) ;
 		m_time_buffer[16U] = '\0' ;
+
 		new_hour = 0 != std::memcmp( &m_time_change_buffer[0] , &m_time_buffer[0] , 11U ) ;
-		std::memcpy( &m_time_change_buffer[0] , &m_time_buffer[0] , m_time_change_buffer.size() ) ;
+
+		static_assert( sizeof(m_time_change_buffer) == sizeof(m_time_buffer) , "" ) ;
+		std::memcpy( &m_time_change_buffer[0] , &m_time_buffer[0] , m_time_buffer.size() ) ;
 	}
 	return new_hour ;
 }
 
-void G::LogOutput::appendTimeTo( std::ostream & ss )
+void G::LogOutput::appendTimeTo( LogStream & logstream )
 {
-	ss
+	logstream
 		<< &m_time_buffer[0]
 		<< static_cast<char>( '0' + ( ( m_time_us / 100000U ) % 10U ) )
 		<< static_cast<char>( '0' + ( ( m_time_us / 10000U ) % 10U ) )
@@ -346,26 +389,16 @@ const char * G::LogOutput::basename( const char * file ) noexcept
 	return p1 > p2 ? (p1+1) : (p2?(p2+1):file) ;
 }
 
-const char * G::LogOutput::levelString( Log::Severity s ) noexcept
+G::string_view G::LogOutput::levelString( Log::Severity s ) noexcept
 {
 	namespace imp = LogOutputImp ;
-	if( s == Log::Severity::s_Debug ) return "debug: " ;
-	else if( s == Log::Severity::s_InfoSummary ) return imp::s_info.empty() ? "info: " : imp::s_info.c_str() ;
-	else if( s == Log::Severity::s_InfoVerbose ) return imp::s_info.empty() ? "info: " : imp::s_info.c_str() ;
-	else if( s == Log::Severity::s_Warning ) return imp::s_warning.empty() ? "warning: " : imp::s_warning.c_str() ;
-	else if( s == Log::Severity::s_Error ) return imp::s_error.empty() ? "error: " : imp::s_error.c_str() ;
-	else if( s == Log::Severity::s_Assertion ) return imp::s_fatal.empty() ? "fatal: " : imp::s_fatal.c_str() ;
+	if( s == Log::Severity::Debug ) return "debug: "_sv ;
+	else if( s == Log::Severity::InfoSummary ) return imp::info() ;
+	else if( s == Log::Severity::InfoVerbose ) return imp::info() ;
+	else if( s == Log::Severity::Warning ) return imp::warning() ;
+	else if( s == Log::Severity::Error ) return imp::error() ;
+	else if( s == Log::Severity::Assertion ) return imp::fatal() ;
 	return "" ;
-}
-
-void G::LogOutput::translate( const std::string & info , const std::string & warning ,
-	const std::string & error , const std::string & fatal )
-{
-	namespace imp = LogOutputImp ;
-	imp::s_info = info ;
-	imp::s_warning = warning ;
-	imp::s_error = error ;
-	imp::s_fatal = fatal ;
 }
 
 // ==
@@ -442,6 +475,12 @@ G::LogOutput::Config & G::LogOutput::Config::set_allow_bad_syslog( bool value )
 G::LogOutput::Config & G::LogOutput::Config::set_facility( SyslogFacility facility )
 {
 	m_facility = facility ;
+	return *this ;
+}
+
+G::LogOutput::Config & G::LogOutput::Config::set_umask( Process::Umask::Mode umask )
+{
+	m_umask = umask ;
 	return *this ;
 }
 

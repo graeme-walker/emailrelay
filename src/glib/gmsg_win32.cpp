@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -35,13 +35,13 @@ ssize_t G::Msg::sendto( SOCKET fd , const void * buffer , std::size_t size , int
 		flags , address_p , address_n ) ;
 }
 
-ssize_t G::Msg::recv( SOCKET fd , void * buffer , std::size_t size , int flags )
+ssize_t G::Msg::recv( SOCKET fd , void * buffer , std::size_t size , int flags ) noexcept
 {
 	return ::recv( fd , reinterpret_cast<char*>(buffer) , static_cast<int>(size) , flags ) ;
 }
 
 ssize_t G::Msg::recvfrom( SOCKET fd , void * buffer , std::size_t size , int flags ,
-	sockaddr * address_p , socklen_t * address_np )
+	sockaddr * address_p , socklen_t * address_np ) noexcept
 {
 	return ::recvfrom( fd , reinterpret_cast<char*>(buffer) , static_cast<int>(size) ,
 		flags , address_p , address_np ) ;

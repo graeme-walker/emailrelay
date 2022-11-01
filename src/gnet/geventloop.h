@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -49,12 +49,22 @@ namespace GNet
 /// The class has a static member for finding an instance, but instances
 /// are not created automatically.
 ///
+/// \code
+/// int main()
+/// {
+///    auto event_loop = GNet::EventLoop::create() ;
+///    App app ; // EventLoop::instance().addRead() etc.
+///    event_loop->run() ;
+///    return 0 ;
+/// }
+/// \endcode
+///
 class GNet::EventLoop
 {
 public:
-	G_EXCEPTION( Error , "failed to initialise the event loop" ) ;
-	G_EXCEPTION( NoInstance , "no event loop instance" ) ;
-	G_EXCEPTION( Overflow , "event loop overflow" ) ;
+	G_EXCEPTION( Error , tx("event loop error") ) ;
+	G_EXCEPTION( NoInstance , tx("no event loop instance") ) ;
+	G_EXCEPTION( Overflow , tx("event loop overflow") ) ;
 
 protected:
 	EventLoop() ;
@@ -114,19 +124,24 @@ public:
 		///< See also Socket::addOtherHandler().
 
 	virtual void dropRead( Descriptor fd ) noexcept = 0 ;
-		///< Removes the given event source descriptor from the
+		///< Removes the given event descriptor from the
 		///< list of read sources.
 		///< See also Socket::dropReadHandler().
 
 	virtual void dropWrite( Descriptor fd ) noexcept = 0 ;
-		///< Removes the given event source descriptor from the
+		///< Removes the given event descriptor from the
 		///< list of write sources.
 		///< See also Socket::dropWriteHandler().
 
 	virtual void dropOther( Descriptor fd ) noexcept = 0 ;
-		///< Removes the given event source descriptor from the
-		///< list of exception sources.
+		///< Removes the given event descriptor from the
+		///< list of other-event sources.
 		///< See also Socket::dropOtherHandler().
+
+	virtual void drop( Descriptor fd ) noexcept = 0 ;
+		///< Removes the given event descriptor from the
+		///< event loop as the EventHandler is being
+		///< destructed.
 
 	virtual void disarm( ExceptionHandler * ) noexcept = 0 ;
 		///< Used to prevent the given interface from being used,
@@ -136,8 +151,8 @@ public:
 public:
 	EventLoop( const EventLoop & ) = delete ;
 	EventLoop( EventLoop && ) = delete ;
-	void operator=( const EventLoop & ) = delete ;
-	void operator=( EventLoop && ) = delete ;
+	EventLoop & operator=( const EventLoop & ) = delete ;
+	EventLoop & operator=( EventLoop && ) = delete ;
 
 private:
 	static EventLoop * m_this ;

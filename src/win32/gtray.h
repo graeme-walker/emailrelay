@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@
 namespace GGui
 {
 	class Tray ;
-} ;
+}
 
 //| \class GGui::Tray
 /// Manages an icon within the system tray.
@@ -37,8 +37,8 @@ namespace GGui
 class GGui::Tray
 {
 public:
-	G_EXCEPTION( IconError , "no icon resource built-in" ) ;
-	G_EXCEPTION( Error , "system-tray error" ) ;
+	G_EXCEPTION( IconError , tx("no icon resource built-in") ) ;
+	G_EXCEPTION( Error , tx("system-tray error") ) ;
 
 	Tray( unsigned int icon_resource_id , const WindowBase & window ,
 		const std::string & tip , unsigned int message = Cracker::wm_tray() ) ;
@@ -53,8 +53,8 @@ public:
 		///< Destructor. Removes the icon from the system tray.
 
 public:
-	void operator=( const Tray & ) = delete ;
-	void operator=( Tray && ) = delete ;
+	Tray & operator=( const Tray & ) = delete ;
+	Tray & operator=( Tray && ) = delete ;
 	Tray( const Tray & ) = delete ;
 	Tray( Tray && ) = delete ;
 

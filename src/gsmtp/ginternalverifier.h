@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -52,8 +52,8 @@ public:
 	~InternalVerifier() override = default ;
 	InternalVerifier( const InternalVerifier & ) = delete ;
 	InternalVerifier( InternalVerifier && ) = delete ;
-	void operator=( const InternalVerifier & ) = delete ;
-	void operator=( InternalVerifier && ) = delete ;
+	InternalVerifier & operator=( const InternalVerifier & ) = delete ;
+	InternalVerifier & operator=( InternalVerifier && ) = delete ;
 
 private:
 	G::Slot::Signal<const VerifierStatus&> m_done_signal ;

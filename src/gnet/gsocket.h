@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #include "greadwrite.h"
 #include "gstringview.h"
 #include <string>
+#include <utility>
 #include <memory>
 #include <new>
 
@@ -41,7 +42,7 @@ namespace GNet
 	class StreamSocket ;
 	class DatagramSocket ;
 	class RawSocket ;
-	class AcceptPair ;
+	class AcceptInfo ;
 }
 
 //| \class GNet::SocketBase
@@ -51,10 +52,10 @@ namespace GNet
 class GNet::SocketBase : public G::ReadWrite
 {
 public:
-	G_EXCEPTION( SocketError , "socket error" ) ;
-	G_EXCEPTION_CLASS( SocketCreateError , "socket create error" ) ;
-	G_EXCEPTION_CLASS( SocketBindError , "socket bind error" ) ;
-	G_EXCEPTION_CLASS( SocketTooMany , "socket accept error" ) ;
+	G_EXCEPTION( SocketError , tx("socket error") ) ;
+	G_EXCEPTION_CLASS( SocketCreateError , tx("socket create error") ) ;
+	G_EXCEPTION_CLASS( SocketBindError , tx("socket bind error") ) ;
+	G_EXCEPTION_CLASS( SocketTooMany , tx("socket accept error") ) ;
 	using size_type = G::ReadWrite::size_type ;
 	using ssize_type = G::ReadWrite::ssize_type ;
 	struct Accepted /// Overload discriminator class for GNet::SocketBase.
@@ -102,7 +103,8 @@ public:
 		///< the given handler receives read events.
 
 	void dropReadHandler() noexcept ;
-		///< Reverses addReadHandler().
+		///< Reverses addReadHandler(). Does nothing if no
+		///< read handler is currently installed.
 
 	void addWriteHandler( EventHandler & , ExceptionSink ) ;
 		///< Adds this socket to the event source list so that
@@ -111,7 +113,8 @@ public:
 		///< sockets.)
 
 	void dropWriteHandler() noexcept ;
-		///< Reverses addWriteHandler().
+		///< Reverses addWriteHandler(). Does nothing if no
+		///< write handler is currently installed.
 
 	void addOtherHandler( EventHandler & , ExceptionSink ) ;
 		///< Adds this socket to the event source list so that
@@ -121,7 +124,8 @@ public:
 		///< sockets.)
 
 	void dropOtherHandler() noexcept ;
-		///< Reverses addOtherHandler().
+		///< Reverses addOtherHandler(). Does nothing if no
+		///< 'other' handler is currently installed.
 
 	std::string asString() const ;
 		///< Returns the socket handle as a string.
@@ -185,15 +189,17 @@ private:
 public:
 	SocketBase( const SocketBase & ) = delete ;
 	SocketBase( SocketBase && ) = delete ;
-	void operator=( const SocketBase & ) = delete ;
-	void operator=( SocketBase && ) = delete ;
+	SocketBase & operator=( const SocketBase & ) = delete ;
+	SocketBase & operator=( SocketBase && ) = delete ;
 
 private:
 	int m_reason ;
 	int m_domain ;
 	Address::Family m_family ; // valid depending on m_domain
 	Descriptor m_fd ;
-	bool m_added ;
+	bool m_read_added ;
+	bool m_write_added ;
+	bool m_other_added ;
 	bool m_accepted ;
 } ;
 
@@ -205,8 +211,26 @@ private:
 class GNet::Socket : public SocketBase
 {
 public:
+	struct Adopted /// Overload discriminator class for GNet::Socket.
+		{} ;
+	struct Config /// A configuration structure for GNet::Socket.
+	{
+		Config() ;
+		int listen_queue {0} ; // zero for compile-time default
+		bool connect_pureipv6 {true} ;
+		bool bind_pureipv6 {true} ;
+		bool bind_reuse {true} ;
+		bool bind_exclusive {false} ; // (windows, einval if also bind_reuse)
+		bool free_bind {false} ; // (linux) (not yet implemented)
+		Config & set_listen_queue( int ) ;
+		Config & set_bind_reuse( bool ) ;
+		Config & set_bind_exclusive( bool ) ;
+		Config & set_free_bind( bool ) ;
+		template <typename T> const T & set_last() ;
+	} ;
+
 	Address getLocalAddress() const ;
-		///< Retrieves local address of the socket.
+		///< Retrieves the local address of the socket.
 
 	std::pair<bool,Address> getPeerAddress() const ;
 		///< Retrieves address of socket's peer.
@@ -219,7 +243,7 @@ public:
 	bool bind( const Address & , std::nothrow_t ) ;
 		///< No-throw overload. Returns false on error.
 
-	static std::string canBindHint( const Address & address , bool stream_socket = true ) ;
+	static std::string canBindHint( const Address & address , bool stream_socket , const Config & ) ;
 		///< Returns the empty string if a socket could probably be
 		///< bound with the given address or a failure reason.
 		///< Some implementations will always return the empty
@@ -246,13 +270,13 @@ public:
 		///< between two addresses. The socket should first be
 		///< bound with a local address.
 
-	void listen( int backlog = 1 ) ;
+	void listen() ;
 		///< Starts the socket listening on the bound
 		///< address for incoming connections or incoming
 		///< datagrams.
 
 	void shutdown( int how = 1 ) ;
-		///< Modifies the local socket state so that so that new
+		///< Modifies the local socket state so that new
 		///< sends (1 or 2) and/or receives (0 or 2) will fail.
 		///<
 		///< If receives are shut-down then anything received
@@ -268,40 +292,46 @@ public:
 	~Socket() override = default ;
 	Socket( const Socket & ) = delete ;
 	Socket( Socket && ) = delete ;
-	void operator=( const Socket & ) = delete ;
-	void operator=( Socket && ) = delete ;
+	Socket & operator=( const Socket & ) = delete ;
+	Socket & operator=( Socket && ) = delete ;
 
 protected:
-	Socket( Address::Family , int type , int protocol ) ;
-	Socket( Address::Family , Descriptor s , const Accepted & ) ;
-	std::pair<bool,Address> getLocalAddress( std::nothrow_t ) const ;
+	Socket( Address::Family , int type , int protocol , const Config & ) ;
+	Socket( Address::Family , Descriptor s , const Accepted & , const Config & ) ;
+	Socket( Address::Family , Descriptor s , const Adopted & , const Config & ) ;
+	static Address getLocalAddress( Descriptor ) ;
+
+protected:
+	void setOptionLinger( int onoff , int time ) ;
+	void setOptionKeepAlive() ;
+	void setOptionFreeBind() ;
+
+private:
 	void setOption( int , const char * , int , int ) ;
 	bool setOption( int , const char * , int , int , std::nothrow_t ) ;
 	bool setOptionImp( int , int , const void * , socklen_t ) ;
 	void setOptionsOnBind( Address::Family ) ;
 	void setOptionsOnConnect( Address::Family ) ;
-	void setOptionLingerImp( int , int ) ;
-	void setOptionNoLinger() ;
 	void setOptionReuse() ;
 	void setOptionExclusive() ;
 	void setOptionPureV6() ;
 	bool setOptionPureV6( std::nothrow_t ) ;
-	void setOptionKeepAlive() ;
 
 private:
-	unsigned long m_bound_scope_id{0UL} ;
+	Config m_config ;
+	unsigned long m_bound_scope_id {0UL} ;
 } ;
 
-//| \class GNet::AcceptPair
-/// A class which is used to return a new()ed socket to calling
+//| \class GNet::AcceptInfo
+/// A move-only class which is used to return a new()ed socket to calling
 /// code, together with associated address information.
 ///
-class GNet::AcceptPair
+class GNet::AcceptInfo
 {
 public:
-	std::shared_ptr<StreamSocket> socket_ptr ;
+	std::unique_ptr<StreamSocket> socket_ptr ;
 	Address address ;
-	AcceptPair() : address(Address::defaultAddress()) {}
+	AcceptInfo() : address(Address::defaultAddress()) {}
 } ;
 
 //| \class GNet::StreamSocket
@@ -314,6 +344,23 @@ public:
 	using ssize_type = Socket::ssize_type ;
 	struct Listener /// Overload discriminator class for GNet::StreamSocket.
 		{} ;
+	struct Config : Socket::Config /// A configuration structure for GNet::StreamSocket.
+	{
+		Config() ;
+		explicit Config( const Socket::Config & ) ;
+		int create_linger_onoff {0} ; // -1 no-op, 0 nolinger, 1 linger with time
+		int create_linger_time {0} ;
+		int accept_linger_onoff {0} ;
+		int accept_linger_time {0} ;
+		bool create_keepalive {false} ;
+		bool accept_keepalive {false} ;
+		Config & set_create_linger( std::pair<int,int> ) ;
+		Config & set_create_linger_onoff( int ) ;
+		Config & set_create_linger_time( int ) ;
+		Config & set_accept_linger( std::pair<int,int> ) ;
+		Config & set_accept_linger_onoff( int ) ;
+		Config & set_accept_linger_time( int ) ;
+	} ;
 
 	static bool supports( Address::Family ) ;
 		///< Returns true if stream sockets can be created with the
@@ -322,13 +369,17 @@ public:
 		///< Note that a run-time check is useful when running a
 		///< new binary on an old operating system.
 
-	explicit StreamSocket( Address::Family ) ;
+	StreamSocket( Address::Family , const Config & config ) ;
 		///< Constructor.
 
-	StreamSocket( Address::Family , const Listener & ) ;
+	StreamSocket( Address::Family , const Listener & , const Config & config ) ;
 		///< Constructor overload specifically for a listening
 		///< socket, which might need slightly different socket
 		///< options.
+
+	StreamSocket( const Listener & , Descriptor fd , const Config & config ) ;
+		///< Constructor overload for adopting an externally-managed
+		///< listening file descriptor.
 
 	ssize_type read( char * buffer , size_type buffer_length ) override ;
 		///< Override from ReadWrite::read().
@@ -336,7 +387,7 @@ public:
 	ssize_type write( const char * buf , size_type len ) override ;
 		///< Override from Socket::write().
 
-	AcceptPair accept() ;
+	AcceptInfo accept() ;
 		///< Accepts an incoming connection, returning a new()ed
 		///< socket and the peer address.
 
@@ -344,13 +395,17 @@ public:
 	~StreamSocket() override = default ;
 	StreamSocket( const StreamSocket & ) = delete ;
 	StreamSocket( StreamSocket && ) = delete ;
-	void operator=( const StreamSocket & ) = delete ;
-	void operator=( StreamSocket && ) = delete ;
+	StreamSocket & operator=( const StreamSocket & ) = delete ;
+	StreamSocket & operator=( StreamSocket && ) = delete ;
 
 private:
-	StreamSocket( Address::Family , Descriptor s , const Accepted & ) ;
+	StreamSocket( Address::Family , Descriptor s , const Accepted & , const Config & config ) ;
 	void setOptionsOnCreate( Address::Family , bool listener ) ;
 	void setOptionsOnAccept( Address::Family ) ;
+	static Address::Family family( Descriptor ) ;
+
+private:
+	Config m_config ;
 } ;
 
 //| \class GNet::DatagramSocket
@@ -359,7 +414,13 @@ private:
 class GNet::DatagramSocket : public Socket
 {
 public:
-	explicit DatagramSocket( Address::Family , int protocol = 0 ) ;
+	struct Config : Socket::Config /// A configuration structure for GNet::DatagramSocket.
+	{
+		Config() ;
+		explicit Config( const Socket::Config & ) ;
+	} ;
+
+	explicit DatagramSocket( Address::Family , int protocol , const Config & config ) ;
 		///< Constructor.
 
 	ssize_type read( char * buffer , size_type len ) override ;
@@ -377,16 +438,25 @@ public:
 		///< Sends a datagram to the given address. This should be used
 		///< if there is no connect() assocation in effect.
 
+	ssize_type writeto( const std::vector<G::string_view> & , const Address & dst ) ;
+		///< Sends a datagram to the given address, overloaded for
+		///< scatter-gather data chunks.
+
 	void disconnect() ;
 		///< Releases the association between two datagram endpoints
 		///< reversing the effect of the previous Socket::connect().
+
+	std::size_t limit() const ;
+		///< Returns the maximum datagram size or 1024, whichever is
+		///< larger.
+		/// \see SO_SNDBUF, /proc/sys/net/core/wmem_default
 
 public:
 	~DatagramSocket() override = default ;
 	DatagramSocket( const DatagramSocket & ) = delete ;
 	DatagramSocket( DatagramSocket && ) = delete ;
-	void operator=( const DatagramSocket & ) = delete ;
-	void operator=( DatagramSocket && ) = delete ;
+	DatagramSocket & operator=( const DatagramSocket & ) = delete ;
+	DatagramSocket & operator=( DatagramSocket && ) = delete ;
 } ;
 
 //| \class GNet::RawSocket
@@ -409,8 +479,21 @@ public:
 	~RawSocket() override = default ;
 	RawSocket( const RawSocket & ) = delete ;
 	RawSocket( RawSocket && ) = delete ;
-	void operator=( const RawSocket & ) = delete ;
-	void operator=( RawSocket && ) = delete ;
+	RawSocket & operator=( const RawSocket & ) = delete ;
+	RawSocket & operator=( RawSocket && ) = delete ;
 } ;
+
+inline GNet::Socket::Config & GNet::Socket::Config::set_listen_queue( int n ) { listen_queue = n ; return *this ; }
+inline GNet::Socket::Config & GNet::Socket::Config::set_bind_reuse( bool b ) { bind_reuse = b ; return *this ; }
+inline GNet::Socket::Config & GNet::Socket::Config::set_bind_exclusive( bool b ) { bind_exclusive = b ; return *this ; }
+inline GNet::Socket::Config & GNet::Socket::Config::set_free_bind( bool b ) { free_bind = b ; return *this ; }
+template <typename T> const T & GNet::Socket::Config::set_last() { return static_cast<const T&>(*this) ; }
+
+inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_create_linger( std::pair<int,int> p ) { create_linger_onoff = p.first ; create_linger_time = p.second ; return *this ; }
+inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_create_linger_onoff( int n ) { create_linger_onoff = n ; return *this ; }
+inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_create_linger_time( int n ) { create_linger_time = n ; return *this ; }
+inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_accept_linger( std::pair<int,int> p ) { accept_linger_onoff = p.first ; accept_linger_time = p.second ; return *this ; }
+inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_accept_linger_onoff( int n ) { accept_linger_onoff = n ; return *this ; }
+inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_accept_linger_time( int n ) { accept_linger_time = n ; return *this ; }
 
 #endif

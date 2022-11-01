@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,6 +25,8 @@
 #include "gmultiserver.h"
 #include "gtimer.h"
 #include "gstr.h"
+#include "gstringarray.h"
+#include "gstringmap.h"
 #include "glinebuffer.h"
 #include "gsmtpserverprotocol.h"
 #include "gclientptr.h"
@@ -52,7 +54,7 @@ namespace GSmtp
 class GSmtp::AdminServerPeer : public GNet::ServerPeer
 {
 public:
-	AdminServerPeer( GNet::ExceptionSinkUnbound , const GNet::ServerPeerInfo & , AdminServer & ,
+	AdminServerPeer( GNet::ExceptionSinkUnbound , GNet::ServerPeerInfo && , AdminServer & ,
 		const std::string & remote , const G::StringMap & info_commands ,
 		const G::StringMap & config_commands , bool with_terminate ) ;
 			///< Constructor.
@@ -77,8 +79,8 @@ private: // overrides
 public:
 	AdminServerPeer( const AdminServerPeer & ) = delete ;
 	AdminServerPeer( AdminServerPeer && ) = delete ;
-	void operator=( const AdminServerPeer & ) = delete ;
-	void operator=( AdminServerPeer && ) = delete ;
+	AdminServerPeer & operator=( const AdminServerPeer & ) = delete ;
+	AdminServerPeer & operator=( AdminServerPeer && ) = delete ;
 
 private:
 	void clientDone( const std::string & ) ;
@@ -121,7 +123,7 @@ class GSmtp::AdminServer : public GNet::MultiServer
 public:
 	AdminServer( GNet::ExceptionSink , MessageStore & store , FilterFactory & ff ,
 		G::Slot::Signal<const std::string&> & forward_request ,
-		const GNet::ServerPeerConfig & server_peer_config , const GNet::ServerConfig & server_config ,
+		const GNet::ServerPeer::Config & server_peer_config , const GNet::Server::Config & server_config ,
 		const GSmtp::Client::Config & client_config , const GAuth::SaslClientSecrets & client_secrets ,
 		const G::StringArray & interfaces , unsigned int port , bool allow_remote ,
 		const std::string & remote_address , unsigned int connection_timeout ,
@@ -167,14 +169,14 @@ public:
 			///< users might be interested in.
 
 protected:
-	std::unique_ptr<GNet::ServerPeer> newPeer( GNet::ExceptionSinkUnbound , GNet::ServerPeerInfo , GNet::MultiServer::ServerInfo ) override ;
+	std::unique_ptr<GNet::ServerPeer> newPeer( GNet::ExceptionSinkUnbound , GNet::ServerPeerInfo && , GNet::MultiServer::ServerInfo ) override ;
 		///< Override from GNet::MultiServer.
 
 public:
 	AdminServer( const AdminServer & ) = delete ;
 	AdminServer( AdminServer && ) = delete ;
-	void operator=( const AdminServer & ) = delete ;
-	void operator=( AdminServer && ) = delete ;
+	AdminServer & operator=( const AdminServer & ) = delete ;
+	AdminServer & operator=( AdminServer && ) = delete ;
 
 private:
 	void onForwardTimeout() ;

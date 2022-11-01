@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@
 #include "gslot.h"
 #include "gstr.h"
 #include <string>
+#include <memory>
 
 namespace GNet
 {
@@ -74,28 +75,29 @@ namespace GNet
 class GNet::Client : private EventHandler, public Connection, private SocketProtocolSink, private Resolver::Callback , public ExceptionSource
 {
 public:
-	G_EXCEPTION( DnsError , "dns error" ) ;
-	G_EXCEPTION( ConnectError , "connect failure" ) ;
-	G_EXCEPTION( NotConnected , "socket not connected" ) ;
-	G_EXCEPTION( ResponseTimeout , "response timeout" ) ;
-	G_EXCEPTION( IdleTimeout , "idle timeout" ) ;
+	G_EXCEPTION( DnsError , tx("dns error") ) ;
+	G_EXCEPTION( ConnectError , tx("connect failure") ) ;
+	G_EXCEPTION( NotConnected , tx("socket not connected") ) ;
+	G_EXCEPTION( ResponseTimeout , tx("response timeout") ) ;
+	G_EXCEPTION( IdleTimeout , tx("idle timeout") ) ;
 
 	struct Config /// A structure containing GNet::Client configuration parameters.
 	{
-		Config() ;
-		explicit Config( const LineBufferConfig & ) ;
-		Config( const LineBufferConfig & , unsigned int all_timeouts ) ;
-		Config( const LineBufferConfig & , unsigned int connection_timeout ,
-			unsigned int secure_connection_timeout , unsigned int response_timeout , unsigned int idle_timeout ) ;
-		Address local_address ;
-		LineBufferConfig line_buffer_config ;
-		bool sync_dns ;
-		bool auto_start{true} ;
-		bool bind_local_address{false} ;
-		unsigned int connection_timeout{0U} ;
-		unsigned int secure_connection_timeout{0U} ;
-		unsigned int response_timeout{0U} ;
-		unsigned int idle_timeout{0U} ;
+		StreamSocket::Config stream_socket_config ;
+		LineBufferConfig line_buffer_config {LineBufferConfig::transparent()} ;
+		SocketProtocol::Config socket_protocol_config ; // inc. secure_connection_timeout
+		Address local_address {Address::defaultAddress()} ;
+		bool sync_dns {false} ;
+		bool auto_start {true} ;
+		bool bind_local_address {false} ;
+		unsigned int connection_timeout {0U} ;
+		unsigned int response_timeout {0U} ;
+		unsigned int idle_timeout {0U} ;
+		bool no_throw_on_peer_disconnect {false} ; // see SocketProtocolSink::onPeerDisconnect()
+
+		Config & set_stream_socket_config( const StreamSocket::Config & ) ;
+		Config & set_line_buffer_config( const LineBufferConfig & ) ;
+		Config & set_socket_protocol_config( const SocketProtocol::Config & ) ;
 		Config & set_sync_dns( bool = true ) ;
 		Config & set_auto_start( bool = true ) ;
 		Config & set_bind_local_address( bool = true ) ;
@@ -105,6 +107,7 @@ public:
 		Config & set_response_timeout( unsigned int ) ;
 		Config & set_idle_timeout( unsigned int ) ;
 		Config & set_all_timeouts( unsigned int ) ;
+		Config & set_no_throw_on_peer_disconnect( bool = true ) ;
 	} ;
 
 	Client( ExceptionSink , const Location & remote_location , const Config & ) ;
@@ -131,14 +134,12 @@ public:
 		///< only calls to hasConnected(), finished() and the dtor
 		///< are allowed.
 
-	std::pair<bool,Address> localAddress() const override ;
-		///< Override from Connection. Returns the local
-		///< address. Pair.first is false on error.
+	Address localAddress() const override ;
+		///< Returns the local address.
 		///< Override from GNet::Connection.
 
-	std::pair<bool,Address> peerAddress() const override ;
-		///< Override from Connection. Returns the peer
-		///< address. Pair.first is false on error.
+	Address peerAddress() const override ;
+		///< Returns the peer address. Throws if not connected().
 		///< Override from GNet::Connection.
 
 	std::string connectionState() const override ;
@@ -153,12 +154,15 @@ public:
 		///< Returns a Location structure, including the result of
 		///< name lookup if available.
 
-	bool send( const std::string & data , std::size_t offset = 0 ) ;
+	bool send( const std::string & data ) ;
 		///< Sends data to the peer and starts the response
 		///< timer (if configured). Returns true if all sent.
 		///< Returns false if flow control was asserted, in which
 		///< case the unsent portion is copied internally and
 		///< onSendComplete() called when complete. Throws on error.
+
+	bool send( G::string_view data ) ;
+		///< Overload for string_view.
 
 	bool send( const std::vector<G::string_view> & data , std::size_t offset = 0 ) ;
 		///< Overload for scatter/gather segments.
@@ -170,11 +174,22 @@ public:
 		///< classes may inject the own events into this channel.
 
 	void doOnDelete( const std::string & reason , bool done ) ;
-		///< Called by ClientPtr (or equivalent) to call onDelete(),
-		///< just before this client object is deleted.
+		///< This should be called by the Client owner (typically
+		///< ClientPtr) just before this Client object is deleted.
+		///<
+		///< A Client onDelete() call only ever comes from
+		///< something external calling doOnDelete().
+		///<
+		///< The 'done' argument should be true if the current
+		///< exception is GNet::Done. The 'reason' string passed
+		///< to onDelete() will be the given 'reason' or the
+		///< empty string if 'done||finished()'.
+		///<
+		///< See also GNet::ExceptionHandler::onException(),
+		///< GNet::ServerPeer::onDelete().
 
 	bool finished() const ;
-		///< Returns true if finish()ed or disconnect()ed.
+		///< Returns true if finish() has been called.
 
 	LineBufferState lineBuffer() const ;
 		///< Returns information about the state of the internal
@@ -190,7 +205,7 @@ protected:
 	const StreamSocket & socket() const ;
 		///< Returns a const reference to the socket. Throws if not connected.
 
-	void finish( bool with_socket_shutdown ) ;
+	void finish() ;
 		///< Indicates that the last data has been sent and the client
 		///< is expecting a peer disconnect. Any subsequent onDelete()
 		///< callback from doOnDelete() will have an empty reason
@@ -224,7 +239,7 @@ protected:
 
 	void secureConnect() ;
 		///< Starts TLS/SSL client-side negotiation. Uses a profile
-		///< called "client"; see GSsl::Library::addProfile().
+		///< called "client" by default; see GSsl::Library::addProfile().
 		///< The callback GNet::SocketProtocolSink::onSecure() is
 		///< triggered when the secure session is established.
 
@@ -234,15 +249,28 @@ private: // overrides
 	void otherEvent( EventHandler::Reason ) override ; // Override from GNet::EventHandler.
 	void onResolved( std::string , Location ) override ; // Override from GNet::Resolver.
 	void onData( const char * , std::size_t ) override ; // Override from GNet::SocketProtocolSink.
+	void onPeerDisconnect() override ; // Override from GNet::SocketProtocolSink.
 
 public:
 	Client( const Client & ) = delete ;
 	Client( Client && ) = delete ;
-	void operator=( const Client & ) = delete ;
-	void operator=( Client && ) = delete ;
+	Client & operator=( const Client & ) = delete ;
+	Client & operator=( Client && ) = delete ;
+	bool send( const char * , std::size_t ) = delete ;
+	bool send( const char * ) = delete ;
+	bool send( const std::string & , std::size_t ) = delete ;
 
 private:
-	enum class State { Idle , Resolving , Connecting , Connected , Socksing , Disconnected , Testing } ;
+	enum class State
+	{
+		Idle ,
+		Resolving ,
+		Connecting ,
+		Connected ,
+		Socksing ,
+		Disconnected ,
+		Testing
+	} ;
 	bool onDataImp( const char * , std::size_t , std::size_t , std::size_t , char ) ;
 	void emit( const std::string & ) ;
 	void startConnecting() ;
@@ -258,6 +286,7 @@ private:
 
 private:
 	ExceptionSink m_es ;
+	const Config m_config ;
 	G::CallStack m_call_stack ;
 	std::unique_ptr<StreamSocket> m_socket ;
 	std::unique_ptr<SocketProtocol> m_sp ;
@@ -265,13 +294,6 @@ private:
 	LineBuffer m_line_buffer ;
 	std::unique_ptr<Resolver> m_resolver ;
 	Location m_remote_location ;
-	bool m_bind_local_address ;
-	Address m_local_address ;
-	bool m_sync_dns ;
-	unsigned int m_secure_connection_timeout ;
-	unsigned int m_connection_timeout ;
-	unsigned int m_response_timeout ;
-	unsigned int m_idle_timeout ;
 	State m_state ;
 	bool m_finished ;
 	bool m_has_connected ;
@@ -283,13 +305,17 @@ private:
 	G::Slot::Signal<const std::string&,const std::string&,const std::string&> m_event_signal ;
 } ;
 
+inline GNet::Client::Config & GNet::Client::Config::set_stream_socket_config( const StreamSocket::Config & cfg ) { stream_socket_config = cfg ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_line_buffer_config( const LineBufferConfig & cfg ) { line_buffer_config = cfg ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_socket_protocol_config( const SocketProtocol::Config & cfg ) { socket_protocol_config = cfg ; return *this ; }
 inline GNet::Client::Config & GNet::Client::Config::set_sync_dns( bool b ) { sync_dns = b ; return *this ; }
 inline GNet::Client::Config & GNet::Client::Config::set_auto_start( bool b ) { auto_start = b ; return *this ; }
 inline GNet::Client::Config & GNet::Client::Config::set_bind_local_address( bool b ) { bind_local_address = b ; return *this ; }
 inline GNet::Client::Config & GNet::Client::Config::set_local_address( const Address & a ) { local_address = a ; return *this ; }
 inline GNet::Client::Config & GNet::Client::Config::set_connection_timeout( unsigned int t ) { connection_timeout = t ; return *this ; }
-inline GNet::Client::Config & GNet::Client::Config::set_secure_connection_timeout( unsigned int t ) { secure_connection_timeout = t ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_secure_connection_timeout( unsigned int t ) { socket_protocol_config.secure_connection_timeout = t ; return *this ; }
 inline GNet::Client::Config & GNet::Client::Config::set_response_timeout( unsigned int t ) { response_timeout = t ; return *this ; }
 inline GNet::Client::Config & GNet::Client::Config::set_idle_timeout( unsigned int t ) { idle_timeout = t ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_no_throw_on_peer_disconnect( bool b ) { no_throw_on_peer_disconnect = b ; return *this ; }
 
 #endif

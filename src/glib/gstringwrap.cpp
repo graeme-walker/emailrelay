@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,6 +28,10 @@
 #include <clocale>
 #include <locale>
 
+#ifdef emit
+#undef emit
+#endif
+
 struct G::StringWrap::Config /// Private implementation structure for G::StringWrap.
 {
 	string_view prefix_first ;
@@ -47,8 +51,8 @@ public:
 	~WordWrapper() = default ;
 	WordWrapper( const WordWrapper & ) = delete ;
 	WordWrapper( WordWrapper && ) = delete ;
-	void operator=( const WordWrapper & ) = delete ;
-	void operator=( WordWrapper && ) = delete ;
+	WordWrapper & operator=( const WordWrapper & ) = delete ;
+	WordWrapper & operator=( WordWrapper && ) = delete ;
 
 private:
 	string_view prefix() const ;
@@ -117,8 +121,8 @@ std::string G::StringWrap::wrap( const std::string & text_in ,
 	bool preserve_spaces , const std::locale & loc )
 {
 	StringWrap::Config config {
-		{ prefix_first.data() , prefix_first.size() } ,
-		{ prefix_other.data() , prefix_other.size() } ,
+		prefix_first ,
+		prefix_other ,
 		width_first , width_other?width_other:width_first ,
 		preserve_spaces
 	} ;

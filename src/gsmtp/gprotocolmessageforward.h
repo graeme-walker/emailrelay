@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@ public:
 		std::unique_ptr<ProtocolMessage> pm ,
 		const GSmtp::Client::Config & client_config ,
 		const GAuth::SaslClientSecrets & client_secrets ,
-		const std::string & remote_server_address ) ;
+		const std::string & forward_to , int forward_to_family ) ;
 			///< Constructor. The 'store' and 'client-secrets' references
 			///< are kept.
 
@@ -93,8 +93,8 @@ private: // overrides
 public:
 	ProtocolMessageForward( const ProtocolMessageForward & ) = delete ;
 	ProtocolMessageForward( ProtocolMessageForward && ) = delete ;
-	void operator=( const ProtocolMessageForward & ) = delete ;
-	void operator=( ProtocolMessageForward && ) = delete ;
+	ProtocolMessageForward & operator=( const ProtocolMessageForward & ) = delete ;
+	ProtocolMessageForward & operator=( ProtocolMessageForward && ) = delete ;
 
 private:
 	void clientDone( const std::string & ) ; // GNet::Client::doneSignal()

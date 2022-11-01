@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,10 +26,12 @@
 #include "gstoredmessage.h"
 #include "genvelope.h"
 #include "gexception.h"
+#include "gfbuf.h"
 #include "gpath.h"
-#include "gstrings.h"
+#include "gstringarray.h"
 #include <iostream>
 #include <memory>
+#include <cstdio>
 
 namespace GSmtp
 {
@@ -43,10 +45,10 @@ namespace GSmtp
 class GSmtp::StoredFile : public StoredMessage
 {
 public:
-	G_EXCEPTION( FormatError , "invalid envelope file" ) ;
-	G_EXCEPTION( FilenameError , "invalid envelope filename" ) ;
-	G_EXCEPTION( ReadError , "cannot read envelope file" ) ;
-	G_EXCEPTION( EditError , "cannot update envelope file" ) ;
+	G_EXCEPTION( FormatError , tx("invalid envelope file") ) ;
+	G_EXCEPTION( FilenameError , tx("invalid envelope filename") ) ;
+	G_EXCEPTION( ReadError , tx("cannot read envelope file") ) ;
+	G_EXCEPTION( EditError , tx("cannot update envelope file") ) ;
 
 	StoredFile( FileStore & store , const G::Path & envelope_path ) ;
 		///< Constructor.
@@ -85,6 +87,8 @@ private: // overrides
 	std::string authentication() const override ; // Override from GSmtp::StoredMessage.
 	std::string fromAuthIn() const override ; // Override from GSmtp::StoredMessage.
 	std::string fromAuthOut() const override ; // Override from GSmtp::StoredMessage.
+	std::string forwardTo() const override ; // Override from GSmtp::StoredMessage.
+	std::string forwardToAddress() const override ; // Override from GSmtp::StoredMessage.
 	void close() override ; // Override from GSmtp::StoredMessage.
 	std::string reopen() override ; // Override from GSmtp::StoredMessage.
 	void destroy() override ; // Override from GSmtp::StoredMessage.
@@ -94,8 +98,17 @@ private: // overrides
 public:
 	StoredFile( const StoredFile & ) = delete ;
 	StoredFile( StoredFile && ) = delete ;
-	void operator=( const StoredFile & ) = delete ;
-	void operator=( StoredFile && ) = delete ;
+	StoredFile & operator=( const StoredFile & ) = delete ;
+	StoredFile & operator=( StoredFile && ) = delete ;
+
+private:
+	using StreamBuf = G::fbuf<int,BUFSIZ> ;
+	struct Stream : StreamBuf , std::istream
+	{
+		Stream() ;
+		void open( const G::Path & ) ;
+		std::streamoff size() const ;
+	} ;
 
 private:
 	enum class State { Normal , Locked , Bad } ;
@@ -103,12 +116,11 @@ private:
 	G::Path epath( State ) const ;
 	void readEnvelopeCore( bool check_recipients ) ;
 	const std::string & eol() const ;
-	G::Path contentPath() const ;
 	void addReason( const G::Path & path , const std::string & , int ) const ;
 
 private:
 	FileStore & m_store ;
-	std::unique_ptr<std::istream> m_content ;
+	std::unique_ptr<Stream> m_content ;
 	MessageId m_id ;
 	Envelope m_env ;
 	State m_state ;

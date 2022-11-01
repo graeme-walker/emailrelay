@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -50,8 +50,8 @@ public:
 public:
 	EventLoggingContext( const EventLoggingContext & ) = delete ;
 	EventLoggingContext( EventLoggingContext && ) = delete ;
-	void operator=( const EventLoggingContext & ) = delete ;
-	void operator=( EventLoggingContext && ) = delete ;
+	EventLoggingContext & operator=( const EventLoggingContext & ) = delete ;
+	EventLoggingContext & operator=( EventLoggingContext && ) = delete ;
 
 private:
 	static std::string fn( void * ) ;

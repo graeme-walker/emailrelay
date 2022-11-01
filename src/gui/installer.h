@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -109,8 +109,8 @@ public:
 public:
 	Installer( const Installer & ) = delete ;
 	Installer( Installer && ) = delete ;
-	void operator=( const Installer & ) = delete ;
-	void operator=( Installer && ) = delete ;
+	Installer & operator=( const Installer & ) = delete ;
+	Installer & operator=( Installer && ) = delete ;
 
 private:
 	bool doneImp() ;

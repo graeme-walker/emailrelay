@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,12 +23,13 @@
 
 #include "gdef.h"
 #include "gaddress.h"
-#include "gstrings.h"
+#include "gstringarray.h"
 #include "gexceptionsink.h"
 #include "geventhandler.h"
 #include "gfutureevent.h"
 #include "gsocket.h"
 #include <string>
+#include <memory>
 #include <vector>
 
 namespace GNet
@@ -46,8 +47,9 @@ class GNet::Interfaces : public EventHandler , public FutureEventHandler
 public:
 	struct Item /// Used by GNet::Interfaces to describe an interface address binding.
 	{
-		std::string name ;
+		std::string name ; // interface name
 		std::string altname ; // windows friendly name, utf8
+		int ifindex{0} ; // interface 1-based index, 0 on error, family-specific on windows
 		unsigned int address_family{0} ;
 		bool valid_address{false} ;
 		Address address ;
@@ -105,14 +107,22 @@ public:
 			///< found or if found but not up. Does lazy load()ing.
 
 	std::vector<Address> addresses( const G::StringArray & names , unsigned int port ,
-		G::StringArray & used_names , G::StringArray & empty_names ,
-		G::StringArray & bad_names ) const ;
+		G::StringArray * used_names_out = nullptr ,
+		G::StringArray * empty_names_out = nullptr ,
+		G::StringArray * bad_names_out = nullptr ) const ;
 			///< Treats each name given as an address or interface name and
 			///< returns the total set of addresses. Returns by reference
 			///< (1) names that are, or have, addresses, (2) names that might
 			///< be interfaces with no bound addresses, and (3) the remainder,
 			///< ie. names that are not addresses and cannot be a valid
 			///< interface name.
+
+	void addresses( const std::string & name , unsigned int port ,
+		std::vector<GNet::Address> & address_out ,
+		G::StringArray * used_names_out = nullptr ,
+		G::StringArray * empty_names_out = nullptr ,
+		G::StringArray * bad_names_out = nullptr ) const ;
+			///< An overload for a single name.
 
 private: // overrides
 	void readEvent() override ; // GNet::EventHandler
@@ -121,12 +131,13 @@ private: // overrides
 public:
 	Interfaces( const Interfaces & ) = delete ;
 	Interfaces( Interfaces && ) = delete ;
-	void operator=( const Interfaces & ) = delete ;
-	void operator=( Interfaces && ) = delete ;
+	Interfaces operator=( const Interfaces & ) = delete ;
+	Interfaces operator=( Interfaces && ) = delete ;
 
 private:
 	using AddressList = std::vector<Address> ;
 	void loadImp( ExceptionSink , std::vector<Item> & list ) ;
+	static int index( const std::string & ) ;
 
 private:
 	ExceptionSink m_es ;

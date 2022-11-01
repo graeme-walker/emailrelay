@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,7 +22,8 @@
 #define G_AUTH_CRAM_H
 
 #include "gdef.h"
-#include "gstrings.h"
+#include "gstringarray.h"
+#include "gstringview.h"
 #include "gsecret.h"
 #include "gexception.h"
 #include <string>
@@ -50,30 +51,31 @@ namespace GAuth
 class GAuth::Cram
 {
 public:
-	G_EXCEPTION( BadType , "invalid secret type" ) ;
-	G_EXCEPTION( Mismatch , "mismatched hash types" ) ;
-	G_EXCEPTION( NoState , "no intermediate-state hash function available" ) ;
-	G_EXCEPTION( InvalidState , "invalid hash function intermediate state" ) ;
+	G_EXCEPTION( BadType , tx("invalid secret type") ) ;
+	G_EXCEPTION( Mismatch , tx("mismatched hash types") ) ;
+	G_EXCEPTION( NoState , tx("no intermediate-state hash function available") ) ;
+	G_EXCEPTION( InvalidState , tx("invalid hash function intermediate state") ) ;
+	G_EXCEPTION( NoTls , tx("no tls library") ) ;
 
-	static std::string response( const std::string & hash_type , bool hmac ,
-		const Secret & secret , const std::string & challenge ,
-		const std::string & response_prefix ) ;
+	static std::string response( G::string_view hash_type , bool hmac ,
+		const Secret & secret , G::string_view challenge ,
+		G::string_view response_prefix ) ;
 			///< Constructs a response to a challenge comprising the
 			///< response-prefix, space, and digest-or-hmac of
 			///< secretkey-plus-challenge. Returns an empty string on
 			///< error; does not throw.
 
-	static std::string id( const std::string & response ) ;
+	static std::string id( G::string_view response ) ;
 		///< Returns the leading id part of the response. Returns
 		///< the empty string on error.
 
-	static bool validate( const std::string & hash_type , bool hmac ,
-		const Secret & secret , const std::string & challenge ,
-		const std::string & response ) ;
+	static bool validate( G::string_view hash_type , bool hmac ,
+		const Secret & secret , G::string_view challenge ,
+		G::string_view response ) ;
 			///< Validates the response with respect to the original
 			///< challenge. Returns false on error; does not throw.
 
-	static G::StringArray hashTypes( const std::string & prefix = std::string() , bool require_state = false ) ;
+	static G::StringArray hashTypes( G::string_view prefix = {} , bool require_state = false ) ;
 		///< Returns a list of supported hash types, such as "MD5"
 		///< and "SHA1", ordered with the strongest first. Optionally
 		///< adds a prefix to each type, and optionally limits the
@@ -88,7 +90,7 @@ public:
 	Cram() = delete ;
 
 private:
-	static std::string responseImp( const std::string & , bool , const Secret & , const std::string & ) ;
+	static std::string responseImp( G::string_view , bool , const Secret & , G::string_view ) ;
 } ;
 
 #endif

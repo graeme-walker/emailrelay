@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,82 +21,44 @@
 #include "gdef.h"
 #include "gexception.h"
 #include "gstr.h"
-#include "ggettext.h"
 
-namespace G
-{
-	namespace ExceptionImp
-	{
-		std::string join( std::string s1 , const std::string & s2 )
-		{
-			if( !s2.empty() ) s1.append(": ").append(s2) ;
-			return s1 ;
-		}
-		std::string join( std::string s1 , const std::string & s2 , const std::string & s3 )
-		{
-			if( !s2.empty() ) s1.append(": ").append(s2) ;
-			if( !s3.empty() ) s1.append(": ").append(s3) ;
-			return s1 ;
-		}
-		std::string join( std::string s1 , const std::string & s2 , const std::string & s3 ,
-			const std::string & s4 )
-		{
-			if( !s2.empty() ) s1.append(": ").append(s2) ;
-			if( !s3.empty() ) s1.append(": ").append(s3) ;
-			if( !s4.empty() ) s1.append(": ").append(s4) ;
-			return s1 ;
-		}
-		std::string join( std::string s1 , const std::string & s2 , const std::string & s3 ,
-			const std::string & s4 , const std::string & s5 )
-		{
-			if( !s2.empty() ) s1.append(": ").append(s2) ;
-			if( !s3.empty() ) s1.append(": ").append(s3) ;
-			if( !s4.empty() ) s1.append(": ").append(s4) ;
-			if( !s5.empty() ) s1.append(": ").append(s5) ;
-			return s1 ;
-		}
-	}
-}
-
-G::Exception::Exception( const char * what ) :
-	std::runtime_error(what?what:"")
+G::Exception::Exception( std::initializer_list<string_view> args ) :
+	std::runtime_error(join(args))
 {
 }
 
-G::Exception::Exception( const std::string & what ) :
-	std::runtime_error(what)
+G::Exception::Exception( string_view what ) :
+	Exception{what}
 {
 }
 
-G::Exception::Exception( const char * what , const std::string & more ) :
-	std::runtime_error(ExceptionImp::join(what,more))
+G::Exception::Exception( string_view what , string_view more ) :
+	Exception{what,more}
 {
 }
 
-G::Exception::Exception( const std::string & what , const std::string & more ) :
-	std::runtime_error(ExceptionImp::join(what,more))
+G::Exception::Exception( string_view what , string_view more1 , string_view more2 ) :
+	Exception{what,more1,more2}
 {
 }
 
-G::Exception::Exception( const char * what , const std::string & more1 , const std::string & more2 ) :
-	std::runtime_error(ExceptionImp::join(what,more1,more2))
+G::Exception::Exception( string_view what , string_view more1 , string_view more2 ,
+	string_view more3 ) :
+		Exception{what,more1,more2,more3}
 {
 }
 
-G::Exception::Exception( const std::string & what , const std::string & more1 , const std::string & more2 ) :
-	std::runtime_error(ExceptionImp::join(what,more1,more2))
+G::Exception::Exception( string_view what , string_view more1 , string_view more2 ,
+	string_view more3 , string_view more4 ) :
+		Exception{what,more1,more2,more3,more4}
 {
 }
 
-G::Exception::Exception( const char * what , const std::string & more1 , const std::string & more2 ,
-	const std::string & more3 ) :
-	std::runtime_error(ExceptionImp::join(what,more1,more2,more3))
+std::string G::Exception::join( std::initializer_list<string_view> args )
 {
-}
-
-G::Exception::Exception( const std::string & what , const std::string & more1 , const std::string & more2 ,
-	const std::string & more3 ) :
-		std::runtime_error(ExceptionImp::join(what,more1,more2,more3))
-{
+	std::string result ;
+	for( auto arg : args )
+		result.append(": ",result.empty()||arg.empty()?0U:2U).append(arg.data(),arg.size()) ;
+	return result ;
 }
 

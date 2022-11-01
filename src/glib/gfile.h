@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -42,18 +42,18 @@ namespace G
 class G::File
 {
 public:
-	G_EXCEPTION( StatError , "cannot access file" ) ;
-	G_EXCEPTION( CannotRemove , "cannot delete file" ) ;
-	G_EXCEPTION( CannotRename , "cannot rename file" ) ;
-	G_EXCEPTION( CannotCopy , "cannot copy file" ) ;
-	G_EXCEPTION( CannotMkdir , "cannot create directory" ) ;
-	G_EXCEPTION( CannotChmod , "cannot chmod file" ) ;
-	G_EXCEPTION( CannotChgrp , "cannot chgrp file" ) ;
-	G_EXCEPTION( CannotLink , "cannot create symlink" ) ;
-	G_EXCEPTION( CannotCreate , "cannot create file" ) ;
-	G_EXCEPTION( CannotReadLink , "cannot read symlink" ) ;
-	G_EXCEPTION( SizeOverflow , "file size overflow" ) ;
-	G_EXCEPTION( TimeError , "cannot get file modification time" ) ;
+	G_EXCEPTION( StatError , tx("cannot access file") ) ;
+	G_EXCEPTION( CannotRemove , tx("cannot delete file") ) ;
+	G_EXCEPTION( CannotRename , tx("cannot rename file") ) ;
+	G_EXCEPTION( CannotCopy , tx("cannot copy file") ) ;
+	G_EXCEPTION( CannotMkdir , tx("cannot create directory") ) ;
+	G_EXCEPTION( CannotChmod , tx("cannot chmod file") ) ;
+	G_EXCEPTION( CannotChgrp , tx("cannot chgrp file") ) ;
+	G_EXCEPTION( CannotLink , tx("cannot create symlink") ) ;
+	G_EXCEPTION( CannotCreate , tx("cannot create file") ) ;
+	G_EXCEPTION( CannotReadLink , tx("cannot read symlink") ) ;
+	G_EXCEPTION( SizeOverflow , tx("file size overflow") ) ;
+	G_EXCEPTION( TimeError , tx("cannot get file modification time") ) ;
 	enum class InOut { In , Out } ;
 	enum class InOutAppend { In , Out , Append } ;
 	class Append /// An overload discriminator for G::File::open().
@@ -107,7 +107,6 @@ public:
 
 	static bool mkdirs( const Path & dir , std::nothrow_t , int = 100 ) ;
 		///< Creates a directory and all necessary parents.
-		///< Does chmodx() on all created directories.
 		///< Returns false on error, but EEXIST is not
 		///< an error and chmod errors are also ignored.
 		///<
@@ -118,7 +117,6 @@ public:
 
 	static void mkdirs( const Path & dir , int = 100 ) ;
 		///< Creates a directory and all necessary parents.
-		///< Does chmodx() on all created directories.	
 		///< Throws on error, but EEXIST is not an error
 		///< and chmod errors are also ignored.
 
@@ -252,6 +250,9 @@ public:
 	static void close( int fd ) noexcept ;
 		///< Calls ::close() or equivalent.
 
+	static void setNonBlocking( int fd ) noexcept ;
+		///< Sets the file descriptor to non-blocking mode.
+
 public:
 	File() = delete ;
 
@@ -272,7 +273,7 @@ private:
 	static int linkImp( const char * , const char * ) ;
 	static bool linked( const Path & , const Path & ) ;
 	static int mkdirImp( const Path & dir ) noexcept ;
-	static bool mkdirsr( int * , const Path & dir , int ) ;
+	static bool mkdirsr( const Path & dir , int & , int & ) ;
 	static bool chmod( const Path & , const std::string & , std::nothrow_t ) ;
 } ;
 

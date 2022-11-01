@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ namespace G
 	class DirectoryIteratorImp ;
 }
 
-int G::Directory::usable( bool for_creation ) const
+int G::Directory::usable( bool /*for_creation*/ ) const
 {
 	DWORD attributes = ::GetFileAttributesA( m_path.cstr() ) ;
 	if( attributes == INVALID_FILE_ATTRIBUTES )
@@ -77,8 +77,8 @@ public:
 public:
 	DirectoryIteratorImp( const DirectoryIteratorImp & ) = delete ;
 	DirectoryIteratorImp( DirectoryIteratorImp && ) = delete ;
-	void operator=( const DirectoryIteratorImp & ) = delete ;
-	void operator=( DirectoryIteratorImp && ) = delete ;
+	DirectoryIteratorImp & operator=( const DirectoryIteratorImp & ) = delete ;
+	DirectoryIteratorImp & operator=( DirectoryIteratorImp && ) = delete ;
 
 private:
 	WIN32_FIND_DATAA m_context ;
@@ -118,6 +118,11 @@ std::string G::DirectoryIterator::fileName() const
 bool G::DirectoryIterator::isDir() const
 {
 	return m_imp->isDir() ;
+}
+
+bool G::DirectoryIterator::isLink() const
+{
+	return false ;
 }
 
 std::string G::DirectoryIterator::sizeString() const

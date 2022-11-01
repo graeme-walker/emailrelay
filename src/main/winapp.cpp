@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include "gtest.h"
 #include "gcontrol.h"
 #include "gdialog.h"
+#include "ggettext.h"
 #include "resource.h"
 
 namespace Main
@@ -45,22 +46,13 @@ namespace Main
 		unsigned int m_width ;
 		unsigned int m_width2 ;
 	} ;
-} ;
+}
 
 Main::PixelLayout::PixelLayout( bool verbose )
 {
-	if( isWine() )
-	{
-		m_tabstop = verbose ? 37 : 28 ;
-		m_width = verbose ? 60U : 85U ;
-		m_width2 = verbose ? 48U : 65U ;
-	}
-	else
-	{
-		m_tabstop = verbose ? 120 : 90 ;
-		m_width = verbose ? 60U : 80U ;
-		m_width2 = verbose ? 48U : 80U ;
-	}
+    m_tabstop = verbose ? 122 : 90 ;
+    m_width = verbose ? 60U : 80U ;
+    m_width2 = verbose ? 48U : 80U ;
 }
 
 bool Main::PixelLayout::isWine()
@@ -146,7 +138,8 @@ bool Main::WinApp::onCreate()
 		}
 		catch( std::exception & e )
 		{
-			throw G::Exception( e.what() , "try using the --no-daemon option" ) ;
+			using G::txt ;
+			throw G::Exception( e.what() , txt("try using the --no-daemon option") ) ;
 		}
 	}
 	if( m_cfg.open_on_create )
@@ -190,9 +183,9 @@ void Main::WinApp::onTrayDoubleClick()
 	PostMessage( handle() , wm_user() , 2 , static_cast<LPARAM>(IDM_OPEN) ) ;
 }
 
-LRESULT Main::WinApp::onUser( WPARAM wparam , LPARAM lparam )
+LRESULT Main::WinApp::onUser( WPARAM /*wparam*/ , LPARAM lparam )
 {
-	G_DEBUG( "Main::WinApp::onUser: wparam=" << wparam << " lparam=" << lparam ) ;
+	G_DEBUG( "Main::WinApp::onUser: lparam=" << lparam ) ;
 	int id = static_cast<int>(lparam) ;
 	if( id == IDM_OPEN ) doOpen() ;
 	if( id == IDM_CLOSE ) doClose() ;
@@ -329,17 +322,13 @@ void Main::WinApp::onWindowException( std::exception & e )
 	GGui::Window::onWindowException( e ) ;
 }
 
-G::Options::Layout Main::WinApp::outputLayout( bool verbose ) const
+G::OptionsUsage::Config Main::WinApp::outputLayout( bool verbose ) const
 {
-	G::Options::Layout layout ;
+	G::OptionsUsage::Config layout ;
 	layout.separator = "\t" ;
-	//layout.column
 	layout.width = PixelLayout(verbose).width() ;
 	layout.width2 = PixelLayout(verbose).width2() ;
 	layout.margin = 0U ;
-	//layout.level
-	//layout.extra
-	//layout.usage_other
 	return layout ;
 }
 
@@ -353,7 +342,7 @@ void Main::WinApp::output( const std::string & text , bool , bool verbose )
 	if( !m_disable_output )
 	{
 		G::StringArray text_lines ;
-		G::Str::splitIntoFields( text , text_lines , "\r\n" ) ;
+		G::Str::splitIntoFields( G::Str::removedAll(text,'\r') , text_lines , '\n' ) ;
 		if( text_lines.size() > 10U ) // eg. "--help"
 		{
 			Box box( *this , text_lines , PixelLayout(verbose).tabstop() ) ;
@@ -367,11 +356,11 @@ void Main::WinApp::output( const std::string & text , bool , bool verbose )
 	}
 }
 
-void Main::WinApp::onError( const std::string & text )
+void Main::WinApp::onError( const std::string & text , int exit_code )
 {
 	// called from WinMain(), possibly before init()
 	output( text , true , false ) ; // override implemented above
-	m_exit_code = 1 ;
+	m_exit_code = exit_code ;
 }
 
 // ==

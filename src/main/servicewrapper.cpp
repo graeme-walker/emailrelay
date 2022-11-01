@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -154,7 +154,6 @@ struct ServiceEvent
 	}
 	void create()
 	{
-		const DWORD access = DELETE | SYNCHRONIZE | EVENT_MODIFY_STATE | PROCESS_DUP_HANDLE ;
 		m_h = CreateEvent( nullptr , FALSE , FALSE , nullptr ) ;
 		if( m_h == 0 )
 		{
@@ -218,8 +217,8 @@ public:
 public:
 	Service( const Service & ) = delete ;
 	Service( Service && ) = delete ;
-	void operator=( const Service & ) = delete ;
-	void operator=( Service && ) = delete ;
+	Service & operator=( const Service & ) = delete ;
+	Service & operator=( Service && ) = delete ;
 
 private:
 	void setStatus( DWORD ) ;

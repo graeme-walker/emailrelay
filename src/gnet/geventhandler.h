@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,14 +34,14 @@ namespace GNet
 }
 
 //| \class GNet::EventHandler
-/// A base class for classes that handle asynchronous events from the
-/// event loop.
+/// A base class for classes that have a file descriptor and handle
+/// asynchronous events from the event loop.
 ///
-/// An event handler object has its virtual methods called when an
-/// event is detected on the relevant file descriptor.
+/// The event handler virtual methods are called when an event is
+/// detected on the associated file descriptor.
 ///
-/// The EventHandlerList class ensures that if an exception is thrown
-/// out of an event handler it is caught and delivered to an associated
+/// The EventEmitter class ensures that if an exception is thrown out
+/// of an event handler it is caught and delivered to an associated
 /// ExceptionHandler interface (if any).
 ///
 class GNet::EventHandler
@@ -49,6 +49,7 @@ class GNet::EventHandler
 public:
 	enum class Reason
 	{
+		failed , // connection failed
 		closed , // fin packet, clean shutdown
 		down , // network down
 		reset , // rst packet
@@ -56,12 +57,16 @@ public:
 		other // eg. oob data
 	} ;
 
-	virtual ~EventHandler() = default ;
+	EventHandler() ;
+		///< Constructor.
+
+	virtual ~EventHandler() ;
 		///< Destructor.
 
 	virtual void readEvent() ;
 		///< Called for a read event. Overridable. The default
-		///< implementation does nothing.
+		///< implementation does nothing. The descriptor might
+		///< not be valid() if a non-socket event on windows.
 
 	virtual void writeEvent() ;
 		///< Called for a write event. Overrideable. The default
@@ -75,6 +80,33 @@ public:
 	static std::string str( Reason ) ;
 		///< Returns a printable description of the other-event
 		///< reason.
+
+	void setDescriptor( Descriptor ) noexcept ;
+		///< File descriptor setter. Used by the event loop.
+
+	Descriptor descriptor() const noexcept ;
+		///< File descriptor getter. Used by the event loop.
+
+public:
+	EventHandler( const EventHandler & ) = delete ;
+	EventHandler( EventHandler && ) = delete ;
+	EventHandler & operator=( const EventHandler & ) = delete ;
+	EventHandler & operator=( EventHandler && ) = delete ;
+
+private:
+	Descriptor m_fd ;
 } ;
+
+inline
+void GNet::EventHandler::setDescriptor( Descriptor fd ) noexcept
+{
+	m_fd = fd ;
+}
+
+inline
+GNet::Descriptor GNet::EventHandler::descriptor() const noexcept
+{
+	return m_fd ;
+}
 
 #endif

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -41,7 +41,6 @@ public:
 	explicit Address6( unsigned int ) ;
 	explicit Address6( const std::string & ) ;
 	Address6( const std::string & , const std::string & ) ;
-	Address6( const std::string & , unsigned int ) ;
 	Address6( unsigned int port , int /*for overload resolution*/ ) ; // canonical loopback address
 	Address6( const sockaddr * addr , socklen_t len , bool ipv6_scope_id_fixup = false ) ;
 
@@ -66,10 +65,11 @@ public:
 	bool isLocal( std::string & ) const ;
 	bool isLinkLocal() const ;
 	bool isUniqueLocal() const ;
+	bool isMulticast() const ;
 	bool isAny() const ;
 	unsigned int bits() const ;
 	std::string displayString( bool ipv6_with_scope = false ) const ;
-	std::string hostPartString( bool raw = false ) const ;
+	std::string hostPartString() const ;
 	std::string queryString() const ;
 	G::StringArray wildcards() const ;
 

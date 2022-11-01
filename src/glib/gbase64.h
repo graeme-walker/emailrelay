@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2021 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 
 #include "gdef.h"
 #include "gexception.h"
+#include "gstringview.h"
 #include <string>
 
 namespace G
@@ -37,17 +38,17 @@ namespace G
 class G::Base64
 {
 public:
-	G_EXCEPTION( Error , "base64 encoding error" ) ;
+	G_EXCEPTION( Error , tx("base64 encoding error") ) ;
 
-	static std::string encode( const std::string & s , const std::string & line_break = std::string() ) ;
+	static std::string encode( string_view , string_view line_break = {} ) ;
 		///< Encodes the given string, optionally inserting line-breaks
 		///< to limit the line length.
 
-	static std::string decode( const std::string & , bool throw_on_invalid = false , bool strict = true ) ;
+	static std::string decode( string_view , bool throw_on_invalid = false , bool strict = true ) ;
 		///< Decodes the given string. Either throws an exception if
 		///< not a valid() encoding, or returns the empty string.
 
-	static bool valid( const std::string & , bool strict = true ) ;
+	static bool valid( string_view , bool strict = true ) ;
 		///< Returns true if the string is a valid base64 encoding,
 		///< possibly allowing for embedded newlines, carriage returns,
 		///< and space characters. Strict checking permits one or
