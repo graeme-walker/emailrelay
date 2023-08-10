@@ -1,6 +1,22 @@
 E-MailRelay Change Log
 ======================
 
+2.4 -> 2.5
+----------
+
+* Multiple configurations in one process.
+* [SMTP][] PIPELINING ([RFC-2920][]).
+* SMTP CHUNKING/8BITMIME 'BDAT' extension ([RFC-3030][]), disabled by default.
+* SMTP SMTPUTF8 extension ([RFC-6531][]), disabled by default.
+* No 7-bit/8-bit check on received message content (see NEWS file).
+* New built-in filters: `deliver:`, `split:`, `copy:`, `mx:`, `msgid:`.
+* New built-in address verifier: `account:`
+* No `.local` files (see NEWS file).
+* [PAM][] authentication is now enabled with `--server-auth=pam:` not `/pam`.
+* Client authentication details can be given directly from the command-line.
+* Multiple `client` authentication secrets, selected by a new envelope field.
+* Main binary can act as a simple submission tool (`configure --enable-submission`).
+
 2.3 -> 2.4
 ----------
 
@@ -34,7 +50,7 @@ E-MailRelay Change Log
 * New `--log-address` option to aid adaptive firewalling.
 * Dynamic log file rolling when using `--log-file=%d`.
 * Choice of syslog 'facility' on Linux with `--syslog=local0` etc.
-* Pipelined [SMTP][] QUIT commands sent by broken clients are tolerated.
+* Pipelined SMTP QUIT commands sent by broken clients are tolerated.
 * Better handling of overly-verbose or unkillable `--filter` scripts.
 * Optional epoll event loop on Linux (`configure --enable-epoll`).
 * Some internationalisation support (see NEWS file).
@@ -123,7 +139,7 @@ E-MailRelay Change Log
 
 * Added negotiated TLS/SSL for [POP][] (ie. `STLS`).
 * The first two fields in the secrets files are reordered (with backwards compatibility).
-* Added Linux [PAM][] authentication (`configure --with-pam` and then `--server-auth=/pam`).
+* Added Linux PAM authentication (`configure --with-pam` and then `--server-auth=/pam`).
 * Optional protocol-specific `--interface` qualifiers, eg. `--interface smtp=127.0.0.1,pop=192.168.1.1`.
 * Outgoing client connection bound with the first `--interface` or `--interface client=...` address.
 * Support for SMTP-over-TLS on outgoing client connection (`--client-tls-connection`) (cf. `STARTTLS`)
@@ -457,8 +473,11 @@ Windows fixes and improvements...
 [FHS]: https://wiki.linuxfoundation.org/lsb/fhs
 [PAM]: https://en.wikipedia.org/wiki/Linux_PAM
 [POP]: https://en.wikipedia.org/wiki/Post_Office_Protocol
+[RFC-2920]: https://tools.ietf.org/html/rfc2920
+[RFC-3030]: https://tools.ietf.org/html/rfc3030
 [RFC-3848]: https://tools.ietf.org/html/rfc3848
 [RFC-5782]: https://tools.ietf.org/html/rfc5782
+[RFC-6531]: https://tools.ietf.org/html/rfc6531
 [RFC-8314]: https://tools.ietf.org/html/rfc8314
 [SMTP]: https://en.wikipedia.org/wiki/Simple_Mail_Transfer_Protocol
 [SOCKS]: https://en.wikipedia.org/wiki/SOCKS

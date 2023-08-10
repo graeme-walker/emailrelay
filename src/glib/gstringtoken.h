@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -70,7 +70,7 @@ public:
 		///< for the object lifefime.
 
 	bool valid() const noexcept ;
-		///< Returns true if a valid token.
+		///< Returns true if a valid token position.
 
 	explicit operator bool() const noexcept ;
 		///< Returns true if a valid token.
@@ -85,7 +85,8 @@ public:
 		///< Returns the offset of data().
 
 	T operator()() const noexcept(std::is_same<T,string_view>::value) ;
-		///< Returns the current token substring.
+		///< Returns the current token substring or T() if
+		///< not valid().
 
 	StringTokenT<T> & operator++() noexcept ;
 		///< Moves to the next token.
@@ -113,7 +114,7 @@ private:
 
 namespace G
 {
-	namespace StringTokenImp
+	namespace StringTokenImp /// An implementation namespace for G::StringToken.
 	{
 		template <typename T> inline T substr( const T & s ,
 			std::size_t pos , std::size_t len ) noexcept(std::is_same<T,string_view>::value)
@@ -123,10 +124,10 @@ namespace G
 		template <> inline string_view substr<string_view>( const string_view & s ,
 			std::size_t pos , std::size_t len ) noexcept
 		{
-			return s.substr( std::nothrow , pos , len ) ;
+			return sv_substr( s , pos , len ) ;
 		}
 		static_assert( !noexcept(std::string().substr(0,0)) , "" ) ;
-		static_assert( noexcept(string_view().substr(std::nothrow,0,0)) , "" ) ;
+		static_assert( noexcept(sv_substr(string_view(),0,0)) , "" ) ;
 	}
 }
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -82,7 +82,7 @@ public:
 		///< list to those hash functions that support initialisation
 		///< with intermediate state.
 
-	static std::string challenge( unsigned int random ) ;
+	static std::string challenge( unsigned int random , const std::string & challenge_domain ) ;
 		///< Returns a challenge string that incorporates the given
 		///< random number and the current time.
 

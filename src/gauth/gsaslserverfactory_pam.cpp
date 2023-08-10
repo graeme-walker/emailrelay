@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,11 +25,13 @@
 #include "gsaslserverpam.h"
 
 std::unique_ptr<GAuth::SaslServer> GAuth::SaslServerFactory::newSaslServer( const SaslServerSecrets & secrets ,
-	bool allow_pop , const std::string & config , bool no_insecure_mechanisms )
+	bool allow_pop , const std::string & config , const std::string & challenge_domain )
 {
-	if( secrets.source() == "/pam" )
-		return std::make_unique<SaslServerPam>( secrets , allow_pop ) ;
+	if( secrets.source() == "/pam" ) // deprecated
+		return std::make_unique<SaslServerPam>( allow_pop ) ;
+	else if( secrets.source() == "pam:" )
+		return std::make_unique<SaslServerPam>( allow_pop ) ;
 	else
-		return std::make_unique<SaslServerBasic>( secrets , allow_pop , config , no_insecure_mechanisms ) ;
+		return std::make_unique<SaslServerBasic>( secrets , allow_pop , config , challenge_domain ) ;
 }
 

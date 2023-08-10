@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,10 +31,12 @@ bool GNet::Descriptor::valid() const noexcept
 	return m_fd >= 0 ;
 }
 
+#ifndef G_LIB_SMALL
 HANDLE GNet::Descriptor::h() const noexcept
 {
 	return 0 ;
 }
+#endif
 
 void GNet::Descriptor::streamOut( std::ostream & stream ) const
 {

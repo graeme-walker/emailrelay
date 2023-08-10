@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ public:
 	static void put( const std::string & name , const std::string & value ) ;
 		///< Sets the environment variable value.
 
-	static Environment minimal() ;
+	static Environment minimal( bool sbin = false ) ;
 		///< Returns a minimal, safe set of environment variables.
 
 	static Environment inherit() ;

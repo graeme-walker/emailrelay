@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -190,10 +190,12 @@ GNet::Address GNet::Address::parse( const std::string & host_part , unsigned int
 	return { host_part , port } ;
 }
 
+#ifndef G_LIB_SMALL
 GNet::Address GNet::Address::parse( const std::string & host_part , const std::string & port_part )
 {
 	return { host_part , port_part } ;
 }
+#endif
 
 bool GNet::Address::isFamilyLocal( const std::string & s ) noexcept
 {
@@ -210,6 +212,11 @@ GNet::Address GNet::Address::loopback( Family f , unsigned int port )
 	return { f , port , 1 } ;
 }
 
+GNet::Address::operator G::BasicAddress() const
+{
+	return G::BasicAddress( displayString() ) ;
+}
+
 GNet::Address & GNet::Address::setPort( unsigned int port )
 {
 	G_ASSERT( m_ipv4 || m_ipv6 || m_local ) ;
@@ -219,6 +226,7 @@ GNet::Address & GNet::Address::setPort( unsigned int port )
 	return *this ;
 }
 
+#ifndef G_LIB_SMALL
 bool GNet::Address::setZone( const std::string & ipv6_zone )
 {
 	G_ASSERT( m_ipv4 || m_ipv6 || m_local ) ;
@@ -227,6 +235,7 @@ bool GNet::Address::setZone( const std::string & ipv6_zone )
 	if( m_local ) m_local->setZone( ipv6_zone ) ;
 	return true ;
 }
+#endif
 
 GNet::Address & GNet::Address::setScopeId( unsigned long ipv6_scope_id )
 {
@@ -273,6 +282,7 @@ bool GNet::Address::isLinkLocal() const
 		( m_local && m_local->isLinkLocal() ) ;
 }
 
+#ifndef G_LIB_SMALL
 bool GNet::Address::isMulticast() const
 {
 	G_ASSERT( m_ipv4 || m_ipv6 || m_local ) ;
@@ -281,6 +291,7 @@ bool GNet::Address::isMulticast() const
 		( m_ipv6 && m_ipv6->isMulticast() ) ||
 		( m_local && m_local->isMulticast() ) ;
 }
+#endif
 
 bool GNet::Address::isUniqueLocal() const
 {
@@ -333,6 +344,7 @@ bool GNet::Address::operator!=( const Address & other ) const
 	return !( *this == other ) ;
 }
 
+#ifndef G_LIB_SMALL
 bool GNet::Address::sameHostPart( const Address & other ) const
 {
 	G_ASSERT( m_ipv4 || m_ipv6 || m_local ) ;
@@ -341,6 +353,7 @@ bool GNet::Address::sameHostPart( const Address & other ) const
 		( m_ipv6 && other.m_ipv6 && m_ipv6->sameHostPart(*other.m_ipv6) ) ||
 		( m_local && other.m_local && m_local->sameHostPart(*other.m_local) ) ;
 }
+#endif
 
 std::string GNet::Address::displayString( bool ipv6_with_scope_id ) const
 {
@@ -392,6 +405,7 @@ bool GNet::Address::validStrings( const std::string & s1 , const std::string & s
 		AddressLocal::validStrings( s1 , s2 , reason_p ) ;
 }
 
+#ifndef G_LIB_SMALL
 sockaddr * GNet::Address::address()
 {
 	G_ASSERT( m_ipv4 || m_ipv6 || m_local ) ;
@@ -400,6 +414,7 @@ sockaddr * GNet::Address::address()
 	if( m_local ) return m_local->address() ;
 	return nullptr ;
 }
+#endif
 
 const sockaddr * GNet::Address::address() const
 {
@@ -413,8 +428,8 @@ const sockaddr * GNet::Address::address() const
 socklen_t GNet::Address::length() const
 {
 	G_ASSERT( m_ipv4 || m_ipv6 || m_local ) ;
-	if( m_ipv4 ) return m_ipv4->length() ;
-	if( m_ipv6 ) return m_ipv6->length() ;
+	if( m_ipv4 ) return Address4::length() ;
+	if( m_ipv6 ) return Address6::length() ;
 	if( m_local ) return m_local->length() ;
 	return 0 ;
 }
@@ -538,6 +553,7 @@ socklen_t GNet::AddressStorage::n() const
 
 #if ! GCONFIG_HAVE_INET_PTON
 // fallback implementation for inet_pton() using getaddrinfo() -- see gdef.h
+#ifndef G_LIB_SMALL
 int GNet::inet_pton_imp( int f , const char * p , void * result )
 {
 	if( p == nullptr || result == nullptr ) return 0 ; // just in case
@@ -573,9 +589,11 @@ int GNet::inet_pton_imp( int f , const char * p , void * result )
 	return ok ? 1 : 0 ;
 }
 #endif
+#endif
 
 #if ! GCONFIG_HAVE_INET_NTOP
 // fallback implementation for inet_ntop() using inet_ntoa() for ipv4 and by hand for ipv6 -- see gdef.h
+#ifndef G_LIB_SMALL
 const char * GNet::inet_ntop_imp( int f , void * ap , char * buffer , std::size_t n )
 {
 	std::string s ;
@@ -637,5 +655,6 @@ const char * GNet::inet_ntop_imp( int f , void * ap , char * buffer , std::size_
 	std::strncpy( buffer , s.c_str() , n ) ;
 	return buffer ;
 }
+#endif
 #endif
 

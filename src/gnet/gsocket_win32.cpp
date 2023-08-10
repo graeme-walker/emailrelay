@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -219,5 +219,12 @@ bool GNet::Socket::setOptionImp( int level , int op , const void * arg , socklen
 	int rc = ::setsockopt( fd() , level , op , cp , n ) ;
 	bool ok = !error( rc ) ;
 	return ok ;
+}
+
+// ==
+
+std::size_t GNet::DatagramSocket::limit( std::size_t default_in ) const
+{
+	return default_in ;
 }
 

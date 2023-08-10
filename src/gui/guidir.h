@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -47,9 +47,6 @@ public:
 	static G::Path spool() ;
 		///< Returns the spool directory path, eg. "/var/spool".
 
-	static G::Path boot() ;
-		///< Returns the default boot-time autostart directory path, "/etc/init.d".
-
 	static G::Path home() ;
 		///< Returns the user's home directory, eg. "/home/username".
 
@@ -67,19 +64,6 @@ public:
 
 public:
 	Dir() = delete ;
-
-private:
-	static G::Path envPath( const std::string & , const G::Path & = G::Path() ) ;
-	static bool ok( const std::string & ) ;
-	static std::string rebase( const std::string & ) ;
-	static G::Path oneOf( std::string , std::string = {} , std::string = {} ,
-		std::string = {} , std::string = {} ) ;
-	static G::Path os_install() ;
-	static G::Path os_boot() ;
-	static G::Path os_config() ;
-	static G::Path special( const std::string & key ) ;
-	static G::Path os_pid( const G::Path & ) ;
-	static G::Path os_spool() ;
 } ;
 
 #endif

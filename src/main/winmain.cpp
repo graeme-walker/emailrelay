@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 #include "garg.h"
 #include "gslot.h"
 #include "gexception.h"
-#include "gsocket.h"
 #include "winapp.h"
 #include "commandline.h"
 #include "options.h"
@@ -34,24 +33,30 @@ int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous , LPSTR command_lin
 {
 	try
 	{
-		// set the C locale from the environment
-		// (has no effect on the msvc run-time)
-		::setlocale( LC_ALL , "" ) ;
+		#if 0
+			// set the C locale from the environment -- this has very little effect
+			// on C++ code on windows, particularly as we avoid things like atoi(),
+			// tolower(), strtoul() etc. -- however, it is probably best not to
+			// use it at all because of possible interaction between the MBCS
+			// functions and the locale
+			::setlocale( LC_ALL , "" ) ;
+		#endif
 
 		G::Arg arg ;
 		arg.parse( hinstance , command_line ) ;
 
 		Main::WinApp app( hinstance , previous , "E-MailRelay" ) ;
-		Main::Run run( app , arg , true , true ) ;
+		Main::Run run( app , arg , /*has-gui=*/true ) ;
 		try
 		{
-			run.configure() ;
+			G::Options options_spec = Main::Options::spec() ;
+			run.configure( options_spec ) ;
 			if( run.hidden() )
 				app.disableOutput() ;
 
 			if( run.runnable() )
 			{
-				app.init( run.configuration() ) ;
+				app.init( run.configuration(0U) , options_spec ) ;
 				app.createWindow( show_style , /*show=*/false , 10 , 10 ) ; // main window, not shown
 				run.signal().connect( G::Slot::slot(app,&Main::WinApp::onRunEvent) ) ;
 				run.run() ;
@@ -65,6 +70,7 @@ int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous , LPSTR command_lin
 		{
 			app.onError( e.what() , 1 ) ;
 		}
+
 		return app.exitCode() ;
 	}
 	catch(...)

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -58,6 +58,7 @@ G::LogStream & G::operator<<( LogStream & s , char value ) noexcept
 	return s ;
 }
 
+#ifndef G_LIB_SMALL
 G::LogStream & G::operator<<( LogStream & s , unsigned char value ) noexcept
 {
 	try
@@ -69,6 +70,7 @@ G::LogStream & G::operator<<( LogStream & s , unsigned char value ) noexcept
 	}
 	return s ;
 }
+#endif
 
 G::LogStream & G::operator<<( LogStream & s , int value ) noexcept
 {

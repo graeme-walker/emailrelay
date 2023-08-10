@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -66,11 +66,11 @@ public:
 private:
 	struct Slot
 	{
-		Proc proc ;
-		HWND hwnd ;
-		void * context ;
-		Slot() : proc(0) , hwnd(0) , context(nullptr) {}
-		Slot( Proc proc_ , HWND hwnd_ , void * context_ ) : proc(proc_) , hwnd(hwnd_) , context(context_) {}
+		Proc proc {0} ;
+		HWND hwnd {0} ;
+		void * context {nullptr} ;
+		Slot() = default ;
+		Slot( Proc proc_in , HWND hwnd_in , void * context_in ) : proc(proc_in) , hwnd(hwnd_in) , context(context_in) {}
 	} ;
 	std::vector<Slot> m_list ;
 } ;

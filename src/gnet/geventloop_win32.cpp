@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -202,7 +202,7 @@ void GNet::EventLoopImp::runOnce()
 	if( handles.overflow( m_list.size() ) )
 		throw Overflow( handles.help(m_list,false) ) ;
 
-	auto rc = handles.waitForMultipleObjects( ms() ) ;
+	auto rc = handles.wait( ms() ) ;
 
 	if( rc == RcType::timeout )
 	{
@@ -234,6 +234,10 @@ void GNet::EventLoopImp::runOnce()
 		DWORD e = GetLastError() ;
 		throw Error( "wait-for-multiple-objects failed" ,
 			G::Str::fromUInt(static_cast<unsigned int>(e)) ) ;
+	}
+	else // rc == RcType::other
+	{
+		; // no-op
 	}
 
 	// garbage collection

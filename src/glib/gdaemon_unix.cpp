@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -45,10 +45,12 @@ namespace G
 	}
 }
 
+#ifndef G_LIB_SMALL
 void G::Daemon::detach()
 {
 	detach( G::Path() ) ;
 }
+#endif
 
 void G::Daemon::detach( const G::Path & pid_file )
 {

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -176,7 +176,7 @@ namespace GNet
 
 namespace GNet
 {
-	namespace LineStoreImp
+	namespace LineStoreImp /// An implementation namespace for GNet::LineStore.
 	{
 		template <typename T1, typename T2> bool std_equal( T1 p1 , T1 end1 , T2 p2 , T2 end2 )
 		{
@@ -402,6 +402,7 @@ const char * GNet::LineStore::dataimp( std::size_t pos , std::size_t n )
 	}
 }
 
+#ifndef G_LIB_SMALL
 std::string GNet::LineStore::str() const
 {
 	std::string result( m_store ) ;
@@ -409,6 +410,7 @@ std::string GNet::LineStore::str() const
 		result.append( m_extra_data , m_extra_size ) ;
 	return result ;
 }
+#endif
 
 std::string GNet::LineStore::head( std::size_t n ) const
 {

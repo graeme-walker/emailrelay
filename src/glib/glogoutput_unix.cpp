@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -88,9 +88,11 @@ void G::LogOutput::osinit()
 		::openlog( nullptr , LOG_PID , LogOutputImp::decode(m_config.m_facility) ) ;
 }
 
+#ifndef G_LIB_SMALL
 void G::LogOutput::register_( const std::string & )
 {
 }
+#endif
 
 void G::LogOutput::oscleanup() const noexcept
 {

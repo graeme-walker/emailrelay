@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -15,24 +15,32 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+noinst_LIBRARIES = libgauth.a
+
+EXTRA_LIBRARIES = libgauthextra.a
+
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/glib \
 	-I$(top_srcdir)/src/gssl \
 	-I$(top_srcdir)/src/gnet \
-	-D "G_SPOOLDIR=$(e_spooldir)"
-
-noinst_LIBRARIES = libgauth.a
+	-D "G_SPOOLDIR=$(e_spooldir)" \
+	-D G_LIB_SMALL
 
 if GCONFIG_PAM
  PAM_SOURCES = \
 	gsaslserverfactory_pam.cpp \
 	gsaslserverpam.cpp \
 	gsaslserverpam.h
+ PAM_EXTRA_SOURCES = \
+	gsaslserverfactory_basic.cpp
  PAM_EXTRA_DIST = \
 	gsaslserverfactory_basic.cpp
 else
  PAM_SOURCES = \
 	gsaslserverfactory_basic.cpp
+ PAM_EXTRA_SOURCES = \
+	gsaslserverfactory_pam.cpp \
+	gsaslserverpam.cpp
  PAM_EXTRA_DIST = \
 	gsaslserverfactory_pam.cpp \
 	gsaslserverpam.cpp \
@@ -62,7 +70,10 @@ libgauth_a_SOURCES = \
 	gsecrets.h \
 	gsecrets.cpp \
 	gsecretsfile.cpp \
-	gsecretsfile.h \
-	gvalid.cpp \
-	gvalid.h
+	gsecretsfile.h
+
+libgauthextra_a_SOURCES = \
+	$(PAM_EXTRA_SOURCES)
+
+extra-local: libgauthextra.a
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -43,10 +43,10 @@ void G::Environment::put( const std::string & name , const std::string & value )
 	::putenv( deliberately_leaky_copy ) ;
 } // NOLINT
 
-G::Environment G::Environment::minimal()
+G::Environment G::Environment::minimal( bool sbin )
 {
 	Environment env ;
-	env.add( "PATH" , "/usr/bin:/bin" ) ; // no "."
+	env.add( "PATH" , sbin ? "/usr/bin:/bin:/usr/sbin:/sbin" : "/usr/bin:/bin" ) ; // no "."
 	env.add( "IFS" , " \t\n" ) ;
 	return env ;
 }

@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -22,24 +22,21 @@ txt_files_install=\
 	userguide.txt userguide.md userguide.rst \
 	windows.txt windows.md windows.rst \
 	changelog.txt changelog.md changelog.rst \
-	doxygen.cfg.in \
-	index.rst conf.py.sphinx
+	doxygen.cfg.in
+
+txt_files_noinstall=\
+	index.rst \
+	conf.py
 
 man_files_install=\
 	emailrelay.1 \
 	emailrelay-passwd.1 \
-	emailrelay-submit.1 \
-	emailrelay-filter-copy.1
+	emailrelay-submit.1
 
 man_files_clean=\
 	emailrelay.1.gz \
 	emailrelay-passwd.1.gz \
-	emailrelay-submit.1.gz \
-	emailrelay-filter-copy.1.gz
-
-html_files_noinstall=\
-	man2html-missing.html \
-	doxygen-missing.html
+	emailrelay-submit.1.gz
 
 html_files_install=\
 	index.html \
@@ -51,6 +48,10 @@ html_files_install=\
 	windows.html \
 	changelog.html
 
+html_files_noinstall=\
+	man2html-missing.html \
+	doxygen-missing.html
+
 css_files_install=\
 	emailrelay.css \
 	emailrelay-doxygen.css
@@ -59,25 +60,28 @@ svg_files_noinstall=\
 	authentication.svg \
 	forwardto.svg \
 	serverclient.svg \
-	whatisit.svg
+	whatisit.svg \
+	mailserver.svg \
+	popbyname.svg
 
 png_files_install=\
 	authentication.png \
 	forwardto.png \
 	serverclient.png \
 	whatisit.png \
-	download-button.png
-
+	download-button.png \
+	mailserver.png \
+	popbyname.png
 
 EXTRA_DIST = \
 	$(man_files_install) \
 	$(txt_files_install) \
+	$(txt_files_noinstall) \
 	$(css_files_install) \
 	$(png_files_install) \
 	$(svg_files_noinstall) \
 	$(html_files_install) \
-	$(html_files_noinstall) \
-	make-website
+	$(html_files_noinstall)
 
 noinst_SCRIPTS = .dox
 man1_MANS = $(man_files_install)
@@ -86,7 +90,7 @@ CLEANFILES = $(noinst_SCRIPTS) $(man_files_clean) emailrelay-man.html doxygen.ou
 
 SUFFIXES = .txt .html
 
-run_doxygen=$(top_srcdir)/bin/doxygen.sh
+run_doxygen=$(top_srcdir)/libexec/doxygen.sh
 
 .dox:
 	-@chmod +x $(run_doxygen)
@@ -103,9 +107,6 @@ emailrelay-passwd.1.gz : emailrelay-passwd.1
 
 emailrelay-submit.1.gz : emailrelay-submit.1
 	if test -n "$(GZIP)" ; then $(GZIP) -c "$(top_srcdir)/doc/emailrelay-submit.1" > emailrelay-submit.1.gz ; fi
-
-emailrelay-filter-copy.1.gz : emailrelay-filter-copy.1
-	if test -n "$(GZIP)" ; then $(GZIP) -c "$(top_srcdir)/doc/emailrelay-filter-copy.1" > emailrelay-filter-copy.1.gz ; fi
 
 install-data-local: install-e_docDATA
 	$(mkinstalldirs) "$(DESTDIR)$(e_docdir)/doxygen"
@@ -126,11 +127,10 @@ md:
 
 .PHONY: sphinx
 sphinx:
-	cp conf.py.sphinx conf.py
 	sphinx-build -b html . ./_build
 
 .PHONY: website
 website:
-	@chmod +x $(top_srcdir)/doc/make-website || true
-	$(top_srcdir)/doc/make-website `cat $(top_srcdir)/VERSION`
+	@chmod +x $(top_srcdir)/libexec/make-website || true
+	$(top_srcdir)/libexec/make-website `cat $(top_srcdir)/VERSION`
 

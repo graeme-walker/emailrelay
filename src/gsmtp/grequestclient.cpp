@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,8 +23,9 @@
 #include "grequestclient.h"
 
 GSmtp::RequestClient::RequestClient( GNet::ExceptionSink es , const std::string & key , const std::string & ok ,
-	const GNet::Location & location , unsigned int connect_timeout , unsigned int response_timeout ) :
-		GNet::Client(es,location,netConfig(connect_timeout,response_timeout)) ,
+	const GNet::Location & location , unsigned int connect_timeout , unsigned int response_timeout ,
+	unsigned int idle_timeout ) :
+		GNet::Client(es,location,netConfig(connect_timeout,response_timeout,idle_timeout)) ,
 		m_eol(1U,'\n') ,
 		m_key(key) ,
 		m_ok(ok) ,
@@ -34,12 +35,14 @@ GSmtp::RequestClient::RequestClient( GNet::ExceptionSink es , const std::string 
 		<< connect_timeout << " " << response_timeout ) ;
 }
 
-GNet::Client::Config GSmtp::RequestClient::netConfig( unsigned int connection_timeout , unsigned int response_timeout )
+GNet::Client::Config GSmtp::RequestClient::netConfig( unsigned int connection_timeout ,
+	unsigned int response_timeout , unsigned int idle_timeout )
 {
 	GNet::Client::Config net_config ;
 	net_config.line_buffer_config = GNet::LineBufferConfig::newline() ;
 	net_config.connection_timeout = connection_timeout ;
 	net_config.response_timeout = response_timeout ;
+	net_config.idle_timeout = idle_timeout ;
 	return net_config ;
 }
 
@@ -47,7 +50,7 @@ void GSmtp::RequestClient::onConnect()
 {
 	G_DEBUG( "GSmtp::RequestClient::onConnect" ) ;
 	if( busy() )
-		send( requestLine(m_request) ) ;
+		send( requestLine(m_request) ) ; // GNet::Client::send()
 }
 
 void GSmtp::RequestClient::request( const std::string & request_payload )
@@ -60,15 +63,15 @@ void GSmtp::RequestClient::request( const std::string & request_payload )
 	m_timer.startTimer( 0U ) ;
 
 	// clear the base-class line buffer of any incomplete line
-	// data from a previous request -- this is racy for servers
-	// which incorrectly reply with more than one line
+	// data from a previous request -- this is racey for servers
+	// that incorrectly reply with more than one line
 	clearInput() ;
 }
 
 void GSmtp::RequestClient::onTimeout()
 {
 	if( connected() )
-		send( requestLine(m_request) ) ;
+		send( requestLine(m_request) ) ; // GNet::Client::send()
 }
 
 bool GSmtp::RequestClient::busy() const

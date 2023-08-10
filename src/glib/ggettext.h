@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,16 +25,17 @@
 #include "gstringview.h"
 #include <string>
 
-// Strings should be marked for translation using gettext() or gettext_noop(),
-// but not using the namespace scoping so that 'xgettext(1)' will still work.
-// For brevity G::txt() or G::tx() can be used instead. See also G::format.
+// String literals should be marked for translation using gettext() or
+// gettext_noop(), but not using the "G::" namespace scoping so that
+// 'xgettext(1)' will still work. For brevity G::txt() or G::tx()
+// can be used instead. See also G::format.
 //
 // Eg:
 /// \code
 /// #include "ggettext.h"
 /// using G::tx ;
 /// using G::txt ;
-/// Message msg( tx("world") ) ;
+/// Message msg( tx("world") ) ; // Message ctor calls gettext()
 /// std::cout << txt("hello") << msg.translated() << "\n" ;
 /// \endcode
 
@@ -51,8 +52,14 @@ namespace G
 		///< necessary.
 
 	constexpr const char * gettext_noop( const char * p ) ;
-		///< Returns the parameter. Used as a marker for xgettext
-		///< for potential translation at build-time.
+		///< Returns the parameter. Used to mark a string-literal for
+		///< translation, with the conversion at run-time done with
+		///< a call to gettext() elsewhere in the code.
+		///<
+		///< \code
+		///< using G::gettext_noop ;
+		///< std::cout << call_gettext( gettext_noop("hello, world") ) ;
+		///< \endcode
 
 	const char * txt( const char * p ) ;
 		///< A briefer alternative to G::gettext().

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 //   ip address add fe80::dead:beef/64 dev eth0
 //   ip address del fe80::dead:beef/64 dev eth0
 //
-// BSD...
+// BSD:
 //   ifconfig lo0 inet 127.0.0.2 alias netmask 255.0.0.0
 //   ifconfig lo0 inet 127.0.0.2 -alias
 //   ifconfig em0 inet6 fe80::dead:beef/64 alias

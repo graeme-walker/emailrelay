@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -59,6 +59,7 @@ GNet::Client::~Client()
 	Monitor::removeClient( *this ) ;
 }
 
+#ifndef G_LIB_SMALL
 void GNet::Client::disconnect()
 {
 	G_DEBUG( "GNet::Client::disconnect" ) ;
@@ -76,6 +77,7 @@ void GNet::Client::disconnect()
 	m_socket.reset() ;
 	m_resolver.reset() ;
 }
+#endif
 
 G::Slot::Signal<const std::string&,const std::string&,const std::string&> & GNet::Client::eventSignal() noexcept
 {
@@ -441,6 +443,19 @@ GNet::Address GNet::Client::peerAddress() const
 	return pair.second ;
 }
 
+std::string GNet::Client::peerAddressString( bool with_port ) const
+{
+	if( m_state == State::Connected )
+	{
+		auto pair = socket().getPeerAddress() ;
+		if( pair.first && with_port )
+			return pair.second.displayString() ;
+		else if( pair.first )
+			return pair.second.hostPartString() ;
+	}
+	return {} ;
+}
+
 std::string GNet::Client::connectionState() const
 {
 	if( m_state == State::Connected )
@@ -453,6 +468,13 @@ std::string GNet::Client::peerCertificate() const
 {
 	return m_sp->peerCertificate() ;
 }
+
+#ifndef G_LIB_SMALL
+bool GNet::Client::secureConnectCapable() const
+{
+	return m_sp && m_sp->secureConnectCapable() ;
+}
+#endif
 
 void GNet::Client::secureConnect()
 {
@@ -475,6 +497,7 @@ bool GNet::Client::send( G::string_view data )
 	return m_sp->send( data ) ;
 }
 
+#ifndef G_LIB_SMALL
 bool GNet::Client::send( const std::vector<G::string_view> & data , std::size_t offset )
 {
     std::size_t total_size = std::accumulate( data.begin() , data.end() , std::size_t(0) ,
@@ -483,11 +506,14 @@ bool GNet::Client::send( const std::vector<G::string_view> & data , std::size_t 
 		m_response_timer.startTimer( m_config.response_timeout ) ;
 	return m_sp->send( data , offset ) ;
 }
+#endif
 
+#ifndef G_LIB_SMALL
 GNet::LineBufferState GNet::Client::lineBuffer() const
 {
 	return m_line_buffer.state() ;
 }
+#endif
 
 void GNet::Client::onPeerDisconnect()
 {
@@ -495,7 +521,8 @@ void GNet::Client::onPeerDisconnect()
 
 // ==
 
-GNet::Client::Config & GNet::Client::Config::set_all_timeouts( unsigned int all_timeouts )
+#ifndef G_LIB_SMALL
+GNet::Client::Config & GNet::Client::Config::set_all_timeouts( unsigned int all_timeouts ) noexcept
 {
 	socket_protocol_config.secure_connection_timeout = all_timeouts ;
 	connection_timeout = all_timeouts ;
@@ -503,4 +530,5 @@ GNet::Client::Config & GNet::Client::Config::set_all_timeouts( unsigned int all_
 	idle_timeout = all_timeouts * 2U ;
 	return *this ;
 }
+#endif
 

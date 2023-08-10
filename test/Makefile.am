@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -37,20 +37,26 @@
 # re-run individual tests with "emailrelay_test.sh -q -v -t <test-name>".
 #
 
-utility_programs = \
-	emailrelay_test_keygen
-
 helper_programs = \
 	emailrelay_test_scanner \
 	emailrelay_test_client \
 	emailrelay_test_server \
+	emailrelay_test_dnsserver \
 	emailrelay_test_verifier
+
+helper_programs_win32 = \
+	emailrelay_test_scanner.exe \
+	emailrelay_test_client.exe \
+	emailrelay_test_server.exe \
+	emailrelay_test_dnsserver.exe \
+	emailrelay_test_verifier.exe
 
 helper_sources = \
 	emailrelay_test_keygen.cpp \
 	emailrelay_test_scanner.cpp \
 	emailrelay_test_client.cpp \
 	emailrelay_test_server.cpp \
+	emailrelay_test_dnsserver.cpp \
 	emailrelay_test_verifier.cpp
 
 other_scripts = \
@@ -59,8 +65,6 @@ other_scripts = \
 
 test_scripts = \
 	emailrelay_chain_test.sh
-
-test_programs =
 
 test_names = \
 	testServerShowsHelp.test \
@@ -84,6 +88,7 @@ test_names = \
 	testServerPolling.test \
 	testServerWithBadClient.test \
 	testServerSizeLimit.test \
+	testClientAccountSelection.test \
 	testClientContinuesIfNoSecrets.test \
 	testClientSavesReasonCode.test \
 	testFilter.test \
@@ -101,6 +106,16 @@ test_names = \
 	testNetworkVerifierPass.test \
 	testNetworkVerifierFail.test \
 	testProxyConnectsOnce.test \
+	testProxyServerRejection.test \
+	testProxyClientFilterFails.test \
+	testProxyRoutingFilterFails.test \
+	testDelivery.test \
+	testSplitFilter.test \
+	testSplitFilterRaw.test \
+	testSplitFilterWithVerifier.test \
+	testRouting.test \
+	testRoutingWithClientAccountSelection.test \
+	testRoutingWithSplitAndMxFilters.test \
 	testClientFilterPass.test \
 	testClientFilterBlock.test \
 	testClientNetworkFilter.test \
@@ -109,6 +124,7 @@ test_names = \
 	testClientMessageFailure.test \
 	testClientInvalidRecipients.test \
 	testClientInvalidRecipientsWithForwardToSome.test \
+	testClientFailsMessagesWithNoRemoteRecipients.test \
 	testTlsServerNoClientCertificateNoVerifyAccepted.test \
 	testTlsServerNoClientCertificateVerifyRejected.test \
 	testTlsServerNoCaAccepted.test \
@@ -130,6 +146,7 @@ test_names = \
 modules = \
 	AdminClient.pm \
 	Check.pm \
+	DnsServer.pm \
 	Filter.pm \
 	Helper.pm \
 	NetClient.pm \
@@ -148,7 +165,7 @@ modules = \
 if GCONFIG_TESTING
 TESTING_EXTRA_DIST = $(test_scripts)
 TESTING_TESTS = $(test_names) $(test_scripts)
-TESTING_HELPERS = $(helper_programs) $(test_programs)
+TESTING_HELPERS = $(helper_programs)
 else
 TESTING_EXTRA_DIST = $(test_scripts) $(helper_sources)
 TESTING_TESTS =
@@ -162,7 +179,6 @@ EXTRA_DIST = \
 
 SUBDIRS = certificates
 
-noinst_PROGRAMS = $(utility_programs)
 check_PROGRAMS = $(TESTING_HELPERS)
 check_SCRIPTS = $(TESTING_TESTS)
 CLEANFILES = $(test_names) .tmp.port
@@ -181,8 +197,6 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/glib \
 	-I$(top_srcdir)/src/gssl \
 	-I$(top_srcdir)/src/gnet \
-	-I$(top_srcdir)/src/gauth \
-	-I$(top_srcdir)/src/gsmtp \
 	-D "G_SPOOLDIR=$(e_spooldir)"
 
 COMMON_LDADD = \
@@ -194,16 +208,6 @@ else
  SYS_LIBS=
 endif
 
-emailrelay_test_keygen_SOURCES = emailrelay_test_keygen.cpp
-if GCONFIG_WINDOWS
-emailrelay_test_keygen_LDFLAGS = -static
-endif
-emailrelay_test_keygen_LDADD = \
-	$(top_builddir)/src/gssl/libgssl.a \
-	$(COMMON_LDADD) \
-	$(GCONFIG_TLS_LIBS) \
-	$(SYS_LIBS)
-
 emailrelay_test_scanner_SOURCES = emailrelay_test_scanner.cpp
 if GCONFIG_WINDOWS
 emailrelay_test_scanner_LDFLAGS = -static
@@ -211,7 +215,7 @@ endif
 emailrelay_test_scanner_LDADD = \
 	$(top_builddir)/src/gnet/libgnet.a \
 	$(top_builddir)/src/gssl/libgssl.a \
-	$(top_builddir)/src/win32/libextra.a \
+	$(top_builddir)/src/win32/libwin32.a \
 	$(COMMON_LDADD) \
 	$(GCONFIG_TLS_LIBS) \
 	$(SYS_LIBS)
@@ -223,7 +227,19 @@ endif
 emailrelay_test_server_LDADD = \
 	$(top_builddir)/src/gnet/libgnet.a \
 	$(top_builddir)/src/gssl/libgssl.a \
-	$(top_builddir)/src/win32/libextra.a \
+	$(top_builddir)/src/win32/libwin32.a \
+	$(COMMON_LDADD) \
+	$(GCONFIG_TLS_LIBS) \
+	$(SYS_LIBS)
+
+emailrelay_test_dnsserver_SOURCES = emailrelay_test_dnsserver.cpp
+if GCONFIG_WINDOWS
+emailrelay_test_dnsserver_LDFLAGS = -static
+endif
+emailrelay_test_dnsserver_LDADD = \
+	$(top_builddir)/src/gnet/libgnet.a \
+	$(top_builddir)/src/gssl/libgssl.a \
+	$(top_builddir)/src/win32/libwin32.a \
 	$(COMMON_LDADD) \
 	$(GCONFIG_TLS_LIBS) \
 	$(SYS_LIBS)
@@ -242,16 +258,16 @@ endif
 emailrelay_test_verifier_LDADD = \
 	$(top_builddir)/src/gnet/libgnet.a \
 	$(top_builddir)/src/gssl/libgssl.a \
-	$(top_builddir)/src/win32/libextra.a \
+	$(top_builddir)/src/win32/libwin32.a \
 	$(COMMON_LDADD) \
 	$(GCONFIG_TLS_LIBS) \
 	$(SYS_LIBS)
 
 .PHONY: programs
 if GCONFIG_WINDOWS
-programs: emailrelay_test_keygen.exe emailrelay_test_scanner.exe emailrelay_test_client.exe emailrelay_test_server.exe emailrelay_test_verifier.exe
+programs: $(helper_programs_win32) emailrelay_test_keygen.exe
 else
-programs: $(utility_programs) $(helper_programs) $(test_programs)
+programs: $(helper_programs)
 endif
 
 # the .test files are empty files passed to emailrelay_test.sh

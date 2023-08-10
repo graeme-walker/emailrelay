@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,8 +30,10 @@
 #include <functional>
 #include <sstream>
 
+#ifndef G_LIB_SMALL
 GNet::TimerList::Value::Value()
 = default;
+#endif
 
 GNet::TimerList::Value::Value( TimerBase * t , ExceptionSink es ) :
 	m_timer(t) ,
@@ -173,10 +175,12 @@ GNet::TimerList * GNet::TimerList::ptr() noexcept
 	return m_this ;
 }
 
+#ifndef G_LIB_SMALL
 bool GNet::TimerList::exists()
 {
 	return m_this != nullptr ;
 }
+#endif
 
 GNet::TimerList & GNet::TimerList::instance()
 {

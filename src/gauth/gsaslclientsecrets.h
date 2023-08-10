@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 #define G_SASL_CLIENT_SECRETS_H
 
 #include "gdef.h"
-#include "gvalid.h"
 #include "gsecret.h"
 #include "gstringview.h"
 
@@ -36,13 +35,25 @@ namespace GAuth
 /// its authentication secret. Conceptually there is one client and
 /// they can have secrets encoded in multiple ways.
 ///
-class GAuth::SaslClientSecrets : public virtual Valid
+class GAuth::SaslClientSecrets
 {
 public:
-	virtual Secret clientSecret( G::string_view type ) const = 0 ;
-		///< Returns the client secret for the given type.
-		///< The type is "plain" or the CRAM hash algorithm or "oauth".
-		///< Returns an invalid secret if none.
+	virtual ~SaslClientSecrets() = default ;
+		///< Destructor.
+
+	virtual bool validSelector( G::string_view selector ) const = 0 ;
+		///< Returns true if the selector is valid.
+
+	virtual bool mustAuthenticate( G::string_view selector ) const = 0 ;
+		///< Returns true if authentication is required.
+		///< Precondition: validSelector()
+
+	virtual Secret clientSecret( G::string_view type , G::string_view selector ) const = 0 ;
+		///< Returns the client secret for the given type. The
+		///< type is "plain" or the CRAM hash algorithm or "oauth".
+		///< The optional selector is used to choose between
+		///< available client accounts. Returns an invalid secret
+		///< if none.
 } ;
 
 #endif

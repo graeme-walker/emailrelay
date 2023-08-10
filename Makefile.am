@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -59,9 +59,10 @@ EXTRA_DIST = \
 	autogen.sh \
 	winbuild.bat \
 	winbuild.pl \
-	runperl.bat
+	runperl.bat \
+	.readthedocs.yaml
 
-SUBDIRS = bin src etc doc debian test m4 bsd po unity
+SUBDIRS = libexec bin src etc doc debian test m4 bsd po unity
 
 # work-round PKG_CHECK_MODULES if no pkg-config
 ACLOCAL_AMFLAGS = -I m4
@@ -104,7 +105,7 @@ deb: $(DEB)
 $(DEB): dist
 	-mv emailrelay-$(VERSION) emailrelay-$(VERSION).old.$$$$ || true
 	tar -xzf $(TAR)
-	cd emailrelay-$(VERSION) && fakeroot debian/rules binary
+	cd emailrelay-$(VERSION) && fakeroot debian/rules binary # or dpkg-buildpackage -b --jobs=10
 	mkdir emailrelay-$(VERSION)/debian/source
 
 .PHONY: deb-src
@@ -119,8 +120,8 @@ deb-src: dist
 tidy:
 	$(MAKE) -C unity tidy
 
-.PHONY: unitybuild
-unitybuild:
+.PHONY: unity
+unity:
 	$(MAKE) -C unity programs
 
 .PHONY: format
@@ -129,8 +130,8 @@ format:
 
 .PHONY: cmake
 cmake:
-	@chmod +x bin/make2cmake || true
-	bin/make2cmake
+	@chmod +x libexec/make2cmake || true
+	libexec/make2cmake
 	test -d build || mkdir build
 	cd build && cmake -DCMAKE_MAKE_PROGRAM:FILEPATH=/usr/bin/make -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
 	@echo now run make from the '"build"' directory
@@ -145,8 +146,10 @@ $(TAR):
 zip: $(ZIP)
 
 $(ZIP): $(TAR)
-	tar -xzf $(TAR)
-	sh -c "cd emailrelay-$(VERSION) && zip -r ../$(ZIP) ."
+	-mkdir zip.d 2>/dev/null
+	-@rm -rf zip.d/* 2>/dev/null
+	tar -C zip.d --strip-components=1 -xzf $(TAR)
+	sh -c "cd zip.d && zip -r ../$(ZIP) ."
 
 .PHONY: mbedtls
 mbedtls:

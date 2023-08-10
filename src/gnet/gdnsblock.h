@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #include "gstringarray.h"
 #include "gtimer.h"
 #include "gsocket.h"
+#include "gstringview.h"
 #include <memory>
 #include <vector>
 
@@ -127,7 +128,7 @@ public:
 
 private:
 	using ResultList = std::vector<DnsBlockServerResult> ;
-	Type m_type{Type::Inactive} ;
+	Type m_type {Type::Inactive} ;
 	std::size_t m_threshold{0U} ;
 	Address m_address ;
 	ResultList m_list ;
@@ -137,10 +138,9 @@ private:
 /// Implements DNS blocklisting, as per RFC-5782. The implementation
 /// sends DNS requests for each configured block-list server
 /// incorporating the IP address to be tested, for example
-/// "1.0.0.127.nospam.com" and "1.0.0.127.blockme.org". All requests
-/// go to the same DNS server and are cached or routed in the
-/// normal way, so the block-list servers are not contacted
-/// directly.
+/// "1.0.168.192.nospam.com". All requests go to the same DNS
+/// server and are cached or routed in the normal way, so the
+/// block-list servers are not contacted directly.
 ///
 class GNet::DnsBlock : private EventHandler
 {
@@ -156,8 +156,8 @@ public:
 		///< Constructor. Use configure() if necessary and then start(),
 		///< one time only.
 
-	void configure( const Address & dns_server , std::size_t threshold , bool allow_on_timeout ,
-		G::TimeInterval timeout , const G::StringArray & servers ) ;
+	void configure( const Address & dns_server , unsigned int threshold ,
+		bool allow_on_timeout , G::TimeInterval timeout , const G::StringArray & servers ) ;
 			///< Configures the object after construction.
 
 	void configure( G::string_view ) ;
@@ -191,6 +191,11 @@ private:
 	static std::string queryString( const Address & ) ;
 	static std::size_t countResponders( const ResultList & ) ;
 	static std::size_t countDeniers( const ResultList & ) ;
+	static Address nameServerAddress() ;
+	static Address nameServerAddress( const std::string & ) ;
+	static bool isDomain( G::string_view ) noexcept ;
+	static bool isPositive( G::string_view ) noexcept ;
+	static unsigned int ms( G::string_view ) ;
 
 private:
 	DnsBlockCallback & m_callback ;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -93,7 +93,7 @@ void G::MapFile::readFrom( std::istream & stream )
 	std::string line ;
 	while( stream.good() )
 	{
-		Str::readLineFrom( stream , "\n"_sv , line ) ;
+		Str::readLine( stream , line ) ;
 		Str::trimRight( line , "\r"_sv ) ;
 		if( line.empty() )
 			continue ;
@@ -192,7 +192,7 @@ G::MapFile::List G::MapFile::read( const Path & path , string_view kind , bool a
 		throw readError( path , kind ) ;
 	while( file_in.good() )
 	{
-		std::string line = Str::readLineFrom( file_in , "\n" ) ;
+		std::string line = Str::readLineFrom( file_in ) ;
 		Str::trimRight( line , "\r"_sv ) ;
 		if( !file_in ) break ;
 		line_list.push_back( line ) ;
@@ -333,7 +333,7 @@ std::string G::MapFile::expand( string_view value_in ) const
 
 namespace G
 {
-	namespace MapFileImp
+	namespace MapFileImp /// An implementation namespace for G::MapFile.
 	{
 		std::size_t find_single( std::string & s , char c , std::size_t start_pos )
 		{

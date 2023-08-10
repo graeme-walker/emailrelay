@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,20 +28,24 @@
 #include <functional>
 #include <iterator> // std::distance
 
+#ifndef G_LIB_SMALL
 G::Directory::Directory() :
 	m_path(".")
 {
 }
+#endif
 
 G::Directory::Directory( const Path & path ) :
 	m_path(path)
 {
 }
 
+#ifndef G_LIB_SMALL
 G::Directory::Directory( const std::string & path ) :
 	m_path(path)
 {
 }
+#endif
 
 G::Path G::Directory::path() const
 {
@@ -66,26 +70,41 @@ bool G::Directory::valid( bool for_creation ) const
 G::DirectoryList::DirectoryList()
 = default;
 
+#ifndef G_LIB_SMALL
 void G::DirectoryList::readAll( const G::Path & dir , std::vector<G::DirectoryList::Item> & out )
 {
 	DirectoryList list ;
 	list.readAll( dir ) ;
 	list.m_list.swap( out ) ;
 }
+#endif
 
-void G::DirectoryList::readAll( const G::Path & dir )
+std::size_t G::DirectoryList::readAll( const G::Path & dir )
 {
 	readType( dir , {} ) ;
+	return m_list.size() ;
 }
 
-void G::DirectoryList::readType( const G::Path & dir , G::string_view suffix , unsigned int limit )
+std::size_t G::DirectoryList::readDirectories( const G::Path & dir , unsigned int limit )
+{
+	readImp( dir , true , {} , limit ) ;
+	return m_list.size() ;
+}
+
+std::size_t G::DirectoryList::readType( const G::Path & dir , G::string_view suffix , unsigned int limit )
+{
+	readImp( dir , false , suffix , limit ) ;
+	return m_list.size() ;
+}
+
+void G::DirectoryList::readImp( const G::Path & dir , bool sub_dirs , G::string_view suffix , unsigned int limit )
 {
 	Directory directory( dir ) ;
 	DirectoryIterator iter( directory ) ;
 	for( unsigned int i = 0U ; iter.more() && !iter.error() ; ++i )
 	{
 		// (we do our own filename matching here to avoid glob())
-		if( suffix.empty() || Str::tailMatch(iter.fileName(),suffix) )
+		if( sub_dirs ? iter.isDir() : ( suffix.empty() || Str::tailMatch(iter.fileName(),suffix) ) )
 		{
 			if( limit == 0U || m_list.size() < limit )
 			{
@@ -118,10 +137,12 @@ bool G::DirectoryList::more()
 	return more ;
 }
 
+#ifndef G_LIB_SMALL
 bool G::DirectoryList::isLink() const
 {
 	return m_list.at(m_index).m_is_link ;
 }
+#endif
 
 bool G::DirectoryList::isDir() const
 {

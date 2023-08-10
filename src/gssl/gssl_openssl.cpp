@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -77,16 +77,6 @@ std::string GSsl::OpenSSL::LibraryImp::sid()
 std::string GSsl::OpenSSL::LibraryImp::id() const
 {
 	return sid() ;
-}
-
-bool GSsl::OpenSSL::LibraryImp::generateKeyAvailable() const
-{
-	return false ;
-}
-
-std::string GSsl::OpenSSL::LibraryImp::generateKey( const std::string & ) const
-{
-	return std::string() ;
 }
 
 GSsl::OpenSSL::Config GSsl::OpenSSL::LibraryImp::config() const
@@ -224,17 +214,17 @@ GSsl::OpenSSL::DigesterImp::~DigesterImp()
 		EVP_MD_CTX_destroy( m_evp_ctx ) ;
 }
 
-std::size_t GSsl::OpenSSL::DigesterImp::blocksize() const
+std::size_t GSsl::OpenSSL::DigesterImp::blocksize() const noexcept
 {
 	return m_block_size ;
 }
 
-std::size_t GSsl::OpenSSL::DigesterImp::valuesize() const
+std::size_t GSsl::OpenSSL::DigesterImp::valuesize() const noexcept
 {
 	return m_value_size ;
 }
 
-std::size_t GSsl::OpenSSL::DigesterImp::statesize() const
+std::size_t GSsl::OpenSSL::DigesterImp::statesize() const noexcept
 {
 	return m_state_size ;
 }

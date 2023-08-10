@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -115,7 +115,7 @@
 #include "installer.h"
 #include "guidir.h"
 #include "guilink.h"
-#include "pages.h"
+#include "guipages.h"
 #include "guiboot.h"
 #include "serverconfiguration.h"
 #include "glogoutput.h"
@@ -157,7 +157,7 @@ static void errorBox( const std::string & what )
 	QString qwhat = GQt::qstr( what ) ;
 	QMessageBox::critical( nullptr , title ,
 		QMessageBox::tr("Failed with the following exception: %1").arg(qwhat) ,
-		QMessageBox::Abort , QMessageBox::NoButton , QMessageBox::NoButton ) ;
+		QMessageBox::Abort ) ;
 }
 
 static QString tr( const char * text )
@@ -170,7 +170,7 @@ static void infoBox( const std::string & text )
 	QString title( GQt::qstr("E-MailRelay") ) ;
 	QString qtext = GQt::qstr( text ) ;
 	QMessageBox::information( nullptr , title , qtext ,
-		QMessageBox::Ok , QMessageBox::NoButton , QMessageBox::NoButton ) ;
+		QMessageBox::Ok ) ;
 }
 
 static bool isMac()
@@ -194,10 +194,10 @@ static bool isWindows()
 class Application : public QApplication
 {
 public:
-	Application( int & argc , char * argv [] ) ;
+	Application( int & argc , char * argv [] ) ; // NOLINT std::array
 	bool notify( QObject * p1 , QEvent * p2 ) override ;
 } ;
-Application::Application( int & argc , char * argv [] ) :
+Application::Application( int & argc , char * argv [] ) : // NOLINT std::array
 	QApplication(argc,argv)
 {
 }
@@ -424,19 +424,29 @@ int main( int argc , char * argv [] )
 			pages_config.add( "=dir-config" , dir_config.str() ) ;
 			pages_config.add( "=dir-install" , dir_install.str() ) ;
 			pages_config.add( "=dir-run" , dir_run.str() ) ;
-			pages_config.add( "=dir-boot" , Gui::Dir::boot().str() ) ;
-			pages_config.add( "=dir-boot-enabled" , Gui::Boot::installable(Gui::Dir::boot()) ? "y" : "n" ) ;
+			pages_config.add( "=dir-boot-enabled" , Gui::Boot::installable() ? "y" : "n" ) ;
+			pages_config.add( "=dir-autostart-enabled" , !Gui::Dir::autostart().str().empty() ? "y" : "n" ) ;
+			pages_config.add( "=dir-menu-enabled" , !Gui::Dir::menu().str().empty() ? "y" : "n" ) ;
+			pages_config.add( "=dir-desktop-enabled" , !Gui::Dir::desktop().str().empty() ? "y" : "n" ) ;
 			if( !pages_config.contains("spool-dir") )
 				pages_config.add( "spool-dir" , Gui::Dir::spool().str() ) ;
 
-			// set widget states based on the current file-system state
+			// set widget states
 			if( configure_mode )
 			{
+				// ... based on the current file-system state
 				std::string fname = Gui::Link::filename( "E-MailRelay" ) ;
-				pages_config.add( "start-on-boot" , Gui::Boot::installed(Gui::Dir::boot(),"emailrelay") ? "y" : "n" ) ;
-				pages_config.add( "start-link-desktop" , Gui::Link::exists(Gui::Dir::desktop()+fname) ? "y" : "n" ) ;
-				pages_config.add( "start-link-menu" , Gui::Link::exists(Gui::Dir::menu()+fname) ? "y" : "n" ) ;
-				pages_config.add( "start-at-login" , Gui::Link::exists(Gui::Dir::autostart()+fname) ? "y" : "n" ) ;
+				pages_config.add( "start-on-boot" , Gui::Boot::installed("emailrelay") ? "y" : "n" ) ;
+				pages_config.add( "start-at-login" , Gui::Link::exists(Gui::Dir::autostart(),fname) ? "y" : "n" ) ;
+				pages_config.add( "start-link-menu" , Gui::Link::exists(Gui::Dir::menu(),fname) ? "y" : "n" ) ;
+				pages_config.add( "start-link-desktop" , Gui::Link::exists(Gui::Dir::desktop(),fname) ? "y" : "n" ) ;
+			}
+			else
+			{
+				pages_config.add( "start-on-boot" , Gui::Boot::installable() ? "y" : "n" ) ;
+				pages_config.add( "start-at-login" , "n" ) ;
+				pages_config.add( "start-link-menu" , !Gui::Dir::menu().str().empty() ? "y" : "n" ) ;
+				pages_config.add( "start-link-desktop" , "n" ) ;
 			}
 
 			// check the config file (or windows batch file) will be writeable

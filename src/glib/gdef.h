@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+   Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -93,6 +93,9 @@
 				#define GCONFIG_HAVE_CXX_STD_MAKE_UNIQUE 0
 			#endif
 		#endif
+	#endif
+	#if !defined(GCONFIG_HAVE_CXX_STRING_VIEW)
+		#define GCONFIG_HAVE_CXX_STRING_VIEW 0
 	#endif
 	#if !defined(GCONFIG_HAVE_SYS_UTSNAME_H)
 		#ifdef G_UNIX
@@ -526,11 +529,25 @@
 			#define GCONFIG_HAVE_X11 0
 		#endif
 	#endif
+	#if !defined(GCONFIG_HAVE_WAYLAND)
+		#ifdef G_UNIX
+			#define GCONFIG_HAVE_WAYLAND 0
+		#else
+			#define GCONFIG_HAVE_WAYLAND 0
+		#endif
+	#endif
 	#if !defined(GCONFIG_HAVE_MBEDTLS)
 		#define GCONFIG_HAVE_MBEDTLS 1
 	#endif
 	#if !defined(GCONFIG_HAVE_MBEDTLS_NET_H)
 		#define GCONFIG_HAVE_MBEDTLS_NET_H 0
+	#endif
+	#if !defined(GCONFIG_MBEDTLS_DISABLE_PSA_HEADER)
+		#ifdef G_UNIX
+			#define GCONFIG_MBEDTLS_DISABLE_PSA_HEADER 0
+		#else
+			#define GCONFIG_MBEDTLS_DISABLE_PSA_HEADER 1
+		#endif
 	#endif
 	#if !defined(GCONFIG_HAVE_OPENSSL)
 		#ifdef G_UNIX
@@ -629,6 +646,13 @@
 			#define GCONFIG_HAVE_FSOPEN 0
 		#else
 			#define GCONFIG_HAVE_FSOPEN 1
+		#endif
+	#endif
+	#if !defined(GCONFIG_HAVE_FOPEN_S)
+		#if defined(G_WINDOWS)
+			#define GCONFIG_HAVE_FOPEN_S 1
+		#else
+			#define GCONFIG_HAVE_FOPEN_S 0
 		#endif
 	#endif
 	#if !defined(GCONFIG_HAVE_SOPEN)
@@ -820,16 +844,14 @@
 		#ifdef alignas
 			#undef alignas
 		#endif
-		#ifdef G_WINDOWS
-			#ifdef stdin
-				#undef stdin
-			#endif
-			#ifdef stdout
-				#undef stdout
-			#endif
-			#ifdef stderr
-				#undef stderr
-			#endif
+		#ifdef stdin
+			#undef stdin
+		#endif
+		#ifdef stdout
+			#undef stdout
+		#endif
+		#ifdef stderr
+			#undef stderr
 		#endif
 
 		/* Define a few Windows-style types under unix

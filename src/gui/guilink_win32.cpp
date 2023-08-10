@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
-///
-/// \file guilink_win32.cpp
-///
+//
+// guilink_win32.cpp
+//
 
 #include "gdef.h"
 #include "guilink.h"
@@ -99,12 +99,12 @@ Gui::LinkImp::bstr::bstr( const std::string & s )
 {
 	std::wstring ws ;
 	G::Convert::convert( ws , s ) ;
-	m_p = SysAllocString( ws.c_str() ) ;
+	m_p = SysAllocString( ws.c_str() ) ; // oleaut32.lib
 }
 
 Gui::LinkImp::bstr::~bstr()
 {
-	SysFreeString( m_p ) ;
+	SysFreeString( m_p ) ; // oleaut32.lib
 }
 
 BSTR Gui::LinkImp::bstr::p()
@@ -254,3 +254,4 @@ bool Gui::Link::remove( const G::Path & link_path )
 	return G::File::remove( link_path , std::nothrow ) ;
 }
 
+/// \file glink_win32.cpp

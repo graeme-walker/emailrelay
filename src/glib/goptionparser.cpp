@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,12 +29,14 @@
 #include <stdexcept>
 #include <utility>
 
+#ifndef G_LIB_SMALL
 G::OptionParser::OptionParser( const Options & spec , OptionMap & values_out , StringArray & errors_out ) :
 	m_spec(spec) ,
 	m_map(values_out) ,
 	m_errors(&errors_out)
 {
 }
+#endif
 
 G::OptionParser::OptionParser( const Options & spec , OptionMap & values_out , StringArray * errors_out ) :
 	m_spec(spec) ,
@@ -45,14 +47,14 @@ G::OptionParser::OptionParser( const Options & spec , OptionMap & values_out , S
 
 G::StringArray G::OptionParser::parse( const StringArray & args_in , const Options & spec ,
 	OptionMap & map_out , StringArray * errors_out , std::size_t start_position ,
-	std::size_t ignore_non_options )
+	std::size_t ignore_non_options , std::function<std::string(const std::string&,bool)> callback_fn )
 {
 	OptionParser parser( spec , map_out , errors_out ) ;
-	return parser.parse( args_in , start_position , ignore_non_options ) ;
+	return parser.parse( args_in , start_position , ignore_non_options , callback_fn ) ;
 }
 
 G::StringArray G::OptionParser::parse( const StringArray & args_in , std::size_t start ,
-	std::size_t ignore_non_options )
+	std::size_t ignore_non_options , std::function<std::string(const std::string&,bool)> callback_fn )
 {
 	StringArray args_out ;
 	std::size_t i = start ;
@@ -69,38 +71,52 @@ G::StringArray G::OptionParser::parse( const StringArray & args_in , std::size_t
 		if( isAnOptionSet(arg) ) // eg. "-ltv"
 		{
 			for( std::size_t n = 1U ; n < arg.length() ; n++ )
-				processOptionOn( arg.at(n) ) ;
+			{
+				char c = arg.at( n ) ;
+				bool discard = callback_fn ? callback_fn(m_spec.lookup(c),true).substr(0,1) == "-" : false ;
+				if( !discard )
+					processOptionOn( c ) ;
+			}
 		}
 		else if( isOldOption(arg) ) // eg. "-v"
 		{
 			char c = arg.at(1U) ;
-			if( m_spec.valued(c) && (i+1U) >= args_in.size() )
+			bool discard = callback_fn ? callback_fn(m_spec.lookup(c),true).substr(0,1) == "-" : false ;
+			if( discard )
+				i += ( ( m_spec.valued(c) && !m_spec.defaulting(c) ) ? 1U : 0U ) ;
+			else if( m_spec.valued(c) && !m_spec.defaulting(c) && (i+1U) >= args_in.size() )
 				errorNoValue( c ) ;
-			else if( m_spec.valued(c) )
+			else if( m_spec.valued(c) && !m_spec.defaulting(c) )
 				processOption( c , args_in.at(++i) ) ;
 			else
 				processOptionOn( c ) ;
 		}
 		else if( isNewOption(arg) ) // eg. "--foo"
 		{
-			std::string name = arg.substr( 2U ) ; // eg. "--foo" or "--foo=..."
-			std::string::size_type pos_eq = eqPos( name ) ;
+			std::string key_value = arg.substr( 2U ) ; // "foo" or "foo=..."
+			std::size_t pos_eq = eqPos( key_value ) ;
 			bool has_eq = pos_eq != std::string::npos ;
-			std::string key = has_eq ? name.substr(0U,pos_eq) : name ;
-			if( has_eq && m_spec.unvalued(key) && Str::isPositive(eqValue(name,pos_eq)) ) // "foo=yes"
+			std::string key_in = has_eq ? key_value.substr(0U,pos_eq) : key_value ; // "foo"
+			std::string value = eqValue( key_value , pos_eq ) ; // "..."
+			std::string key = callback_fn ? callback_fn(key_in,false) : key_in ;
+			bool discard = !key.empty() && key.at( 0U ) == '-' ;
+			key = key.substr( discard ? 1U : 0U ) ;
+			if( discard )
+				i += ( (m_spec.valued(key) && !m_spec.defaulting(key) && !has_eq) ? 1U : 0U ) ;
+			else if( has_eq && m_spec.unvalued(key) && Str::isPositive(value) ) // "foo=yes"
 				processOptionOn( key ) ;
-			else if( has_eq && m_spec.unvalued(key) && Str::isNegative(eqValue(name,pos_eq)) ) // "foo=no"
+			else if( has_eq && m_spec.unvalued(key) && Str::isNegative(value) ) // "foo=no"
 				processOptionOff( key ) ;
 			else if( has_eq ) // "foo=bar"
-				processOption( key , eqValue(name,pos_eq) , false ) ;
-			else if( m_spec.defaulting(name) )
+				processOption( key , value , false ) ;
+			else if( m_spec.defaulting(key) )
 				processOption( key , std::string() , false ) ;
-			else if( m_spec.valued(name) && (i+1U) >= args_in.size() )
-				errorNoValue( name ) ;
-			else if( m_spec.valued(name) )
-				processOption( name , args_in.at(++i) , true ) ;
+			else if( m_spec.valued(key) && (i+1U) >= args_in.size() )
+				errorNoValue( key ) ;
+			else if( m_spec.valued(key) )
+				processOption( key , args_in.at(++i) , true ) ;
 			else
-				processOptionOn( name ) ;
+				processOptionOn( key ) ;
 		}
 		else if( ignore_non_options != 0U )
 		{
@@ -121,7 +137,7 @@ void G::OptionParser::processOptionOn( const std::string & name )
 {
 	if( !m_spec.valid(name) )
 		errorUnknownOption( name ) ;
-	else if( m_spec.valued(name) )
+	else if( m_spec.valued(name) && !m_spec.defaulting(name) )
 		errorNoValue( name ) ;
 	else if( haveSeenOff(name) )
 		errorConflict( name ) ;
@@ -169,7 +185,7 @@ void G::OptionParser::processOptionOn( char c )
 	std::string name = m_spec.lookup( c ) ;
 	if( !m_spec.valid(name) )
 		errorUnknownOption( c ) ;
-	else if( m_spec.valued(name) )
+	else if( m_spec.valued(name) && !m_spec.defaulting(name) )
 		errorNoValue( c ) ;
 	else if( haveSeenOff(name) )
 		errorConflict( name ) ;
@@ -244,10 +260,12 @@ void G::OptionParser::errorDuplicate( const std::string & name )
 	error( str( format(txt("duplicate use of %1%")) % ("\"--"+name+"\"") ) ) ;
 }
 
+#ifndef G_LIB_SMALL
 void G::OptionParser::errorExtraValue( char c , const std::string & )
 {
 	error( str( format(txt("cannot give a value with %1%")) % ("\"-"+std::string(1U,c)+"\"") ) ) ;
 }
+#endif
 
 void G::OptionParser::errorExtraValue( const std::string & name , const std::string & value )
 {
@@ -312,4 +330,5 @@ std::size_t G::OptionParser::valueCount( const std::string & s )
 {
 	return 1U + std::count( s.begin() , s.end() , ',' ) ;
 }
+
 

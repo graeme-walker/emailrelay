@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -46,25 +46,8 @@ public:
 		///< Defaults to "<hostname>.localnet" if DNS does not provide
 		///< a canonical network name.
 
-	static void canonicalName( const std::string & override ) ;
-		///< Sets the canonicalName() override.
-
-	static bool isLocal( const Address & , std::string & reason ) ;
-		///< Returns true if the given address appears to be 'local',
-		///< or a helpful error message if not.
-
-	static bool isLocal( const Address & ) ;
-		///< Overload without an explanation.
-
 public:
 	Local() = delete ;
-
-private:
-	static std::string resolvedHostname() ;
-
-private:
-	static std::string m_name_override ;
-	static bool m_name_override_set ;
 } ;
 
 #endif

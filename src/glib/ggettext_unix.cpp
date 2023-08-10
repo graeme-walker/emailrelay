@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -37,6 +37,6 @@ void G::gettext_init( const std::string & localedir , const std::string & appnam
 
 const char * G::gettext( const char * p ) noexcept
 {
-	return ::gettext( p ) ;
+		return ::gettext( p ) ;
 }
 

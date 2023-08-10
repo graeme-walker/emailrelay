@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -50,16 +50,6 @@ bool GSsl::Library::real()
 std::string GSsl::Library::id() const
 {
 	return ids() ;
-}
-
-bool GSsl::Library::generateKeyAvailable() const
-{
-	return false ;
-}
-
-std::string GSsl::Library::generateKey( const std::string & ) const
-{
-	return {} ;
 }
 
 GSsl::Library * GSsl::Library::instance()
@@ -198,17 +188,17 @@ std::string GSsl::Digester::state()
 	return {} ;
 }
 
-std::size_t GSsl::Digester::blocksize() const
+std::size_t GSsl::Digester::blocksize() const noexcept
 {
 	return 1U ;
 }
 
-std::size_t GSsl::Digester::valuesize() const
+std::size_t GSsl::Digester::valuesize() const noexcept
 {
 	return 1U ;
 }
 
-std::size_t GSsl::Digester::statesize() const
+std::size_t GSsl::Digester::statesize() const noexcept
 {
 	return 0U ;
 }

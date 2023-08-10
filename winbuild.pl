@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -48,20 +48,28 @@ use FileHandle ;
 use File::Find ;
 use File::Basename ;
 use File::Copy ;
-use lib dirname($0) , dirname($0)."/bin" ;
+use lib dirname($0) , dirname($0)."/libexec" ;
 require "winbuild.pm" ;
 
 # configuration ...
+
+my $cfg_x64 = 1 ;
+my $cfg_x86 = 0 ;
+die unless ($cfg_x64 || $cfg_x86) ;
+my $cfg_debug = 0 ;
+my $cfg_add_runtime = 1 ;
 
 # cmake command-line options
 my $cmake_args = {
 	x64 => [
 		# try these in turn...
+		[ "-G" , "Visual Studio 17 2022" , "-A" , "x64" ] ,
 		[ "-G" , "Visual Studio 16 2019" , "-A" , "x64" ] ,
 		[ "-A" , "x64" ] ,
 	] ,
 	x86 => [
 		# try these in turn...
+		[ "-G" , "Visual Studio 17 2022" , "-A" , "Win32" ] ,
 		[ "-G" , "Visual Studio 16 2019" , "-A" , "Win32" ] ,
 		[ "-A" , "Win32" ] ,
 		[]
@@ -69,7 +77,7 @@ my $cmake_args = {
 } ;
 
 # version
-chomp( my $version = eval { FileHandle->new("VERSION")->gets() } || "2.4" ) ;
+chomp( my $version = eval { FileHandle->new("VERSION")->gets() } || "2.5" ) ;
 
 # makefile conditionals
 my %switches = (
@@ -83,6 +91,7 @@ my %switches = (
 	GCONFIG_INTERFACE_NAMES => 1 ,
 	GCONFIG_MAC => 0 ,
 	GCONFIG_PAM => 0 ,
+	GCONFIG_POP => 1 ,
 	GCONFIG_TESTING => 1 ,
 	GCONFIG_TLS_USE_MBEDTLS => 1 , # << zero if no mbedtls source
 	GCONFIG_TLS_USE_OPENSSL => 0 ,
@@ -107,7 +116,7 @@ my %vars = (
 	e_icondir => "c:/emailrelay" ,
 	e_trdir => "c:/emailrelay" ,
 	e_examplesdir => "c:/emailrelay" ,
-	e_libexecdir => "c:/emailrelay" ,
+	e_libdir => "c:/emailrelay" ,
 	e_pamdir => "c:/emailrelay" ,
 	e_sysconfdir => "c:/emailrelay" ,
 	GCONFIG_WINDRES => "windres" ,
@@ -131,19 +140,24 @@ $switches{GCONFIG_TLS_USE_BOTH} = 1 if (
 	$switches{GCONFIG_TLS_USE_MBEDTLS} == 1 &&
 	$switches{GCONFIG_TLS_USE_OPENSSL} == 1 ) ;
 
+# pre-find ...
+
+winbuild::spit_out_batch_files( "find" ) ;
+winbuild::fcache_delete() if $ARGV[0] eq "find" ;
+
 # find stuff ...
 
 my $need_mbedtls = ( $switches{GCONFIG_TLS_USE_MBEDTLS} || $switches{GCONFIG_TLS_USE_BOTH} ) ;
 my $need_qt = $switches{GCONFIG_GUI} ;
 
-my $cmake = winbuild::find_cmake() ;
 my $msbuild = winbuild::find_msbuild() ;
-my $qt_dirs = $need_qt ? winbuild::find_qt() : undef ; # hash-ref keyed by architecture
+my $cmake = winbuild::find_cmake( $msbuild ) ;
+my $qt_info = $need_qt ? winbuild::find_qt() : undef ;
 my $mbedtls = $need_mbedtls ? winbuild::find_mbedtls() : undef ;
 
 my $no_cmake = !$cmake ;
 my $no_msbuild = !$msbuild ;
-my $no_qt = ( $need_qt && !$qt_dirs->{x86} && !$qt_dirs->{x64} ) ;
+my $no_qt = ( $need_qt && $cfg_x86 && !$qt_info->{x86} ) || ( $need_qt && $cfg_x64 && !$qt_info->{x64} ) ;
 my $no_mbedtls = ( $need_mbedtls && !$mbedtls ) ;
 
 warn "error: cannot find cmake.exe: please download from cmake.org\n" if $no_cmake ;
@@ -154,8 +168,9 @@ warn "error: cannot find mbedtls source: please download from tls.mbed.org " .
 
 if( $no_cmake || $no_msbuild || $no_qt || $no_mbedtls )
 {
-	warn "error: missing prerequisites: please install the missing components" ,
-		( -f "winbuild.cfg" ? "" : " or use a winbuild.cfg configuration file" ) ,
+	winbuild::fcache_write() if $ARGV[0] eq "find" ;
+	warn "error: missing prerequisites: please install the missing components " ,
+		"or " . (-f "winbuild.cfg"?"edit the":"use a") . " winbuild.cfg configuration file" ,
 		( ($no_qt||$no_mbedtls) ? " or unset configuration items in winbuild.pl\n" : "\n" ) ;
 	die "error: missing prerequisites\n" unless ( scalar(@ARGV) > 0 && $ARGV[0] eq "mingw" ) ;
 }
@@ -164,8 +179,8 @@ if( $no_cmake || $no_msbuild || $no_qt || $no_mbedtls )
 
 my @default_parts =
 	$need_mbedtls ?
-		qw( batchfiles generate mbedtls cmake msbuild ) :
-		qw( batchfiles generate cmake msbuild ) ;
+		qw( batchfiles generate mbedtls cmake build ) :
+		qw( batchfiles generate cmake build ) ;
 
 # run stuff ...
 
@@ -179,44 +194,39 @@ for my $part ( @run_parts )
 {
 	if( $part eq "find" )
 	{
-		winbuild::fcache_delete() ;
-		winbuild::find_cmake() ;
-		winbuild::find_msbuild() ;
-		winbuild::find_qt() if $need_qt ;
-		winbuild::find_mbedtls() if $need_mbedtls ;
 		winbuild::fcache_write() ;
 	}
 	elsif( $part eq "batchfiles" )
 	{
 		winbuild::spit_out_batch_files( qw(
-			find generate cmake msbuild
+			find generate cmake build
 			debug-build debug-test test
 			mbedtls clean vclean install ) ) ;
 	}
 	elsif( $part eq "generate" )
 	{
-		run_generate( $project , \%switches , \%vars ) ;
+		run_generate( $project , \%switches , \%vars , $qt_info ) ;
 	}
 	elsif( $part eq "mbedtls" )
 	{
-		run_mbedtls_cmake( $mbedtls , $cmake , "x64" ) ;
-		run_mbedtls_cmake( $mbedtls , $cmake , "x86" ) ;
-		run_mbedtls_msbuild( $mbedtls , $msbuild , "x64" , "Debug" ) ;
-		run_mbedtls_msbuild( $mbedtls , $msbuild , "x64" , "Release" ) ;
-		run_mbedtls_msbuild( $mbedtls , $msbuild , "x86" , "Debug" ) ;
-		run_mbedtls_msbuild( $mbedtls , $msbuild , "x86" , "Release" ) ;
+		run_mbedtls_cmake( $mbedtls , $cmake , "x64" ) if $cfg_x64 ;
+		run_mbedtls_cmake( $mbedtls , $cmake , "x86" ) if $cfg_x86 ;
+		run_mbedtls_msbuild( $mbedtls , $msbuild , "x64" , "Debug" ) if ( $cfg_x64 && $cfg_debug ) ;
+		run_mbedtls_msbuild( $mbedtls , $msbuild , "x64" , "Release" ) if $cfg_x64 ;
+		run_mbedtls_msbuild( $mbedtls , $msbuild , "x86" , "Debug" ) if ( $cfg_x86 && $cfg_debug ) ;
+		run_mbedtls_msbuild( $mbedtls , $msbuild , "x86" , "Release" ) if $cfg_x86 ;
 	}
 	elsif( $part eq "cmake" )
 	{
-		run_cmake( $cmake , $mbedtls , $qt_dirs , "x64" ) ;
-		run_cmake( $cmake , $mbedtls , $qt_dirs , "x86" ) ;
+		run_cmake( $cmake , $mbedtls , $qt_info , "x64" ) if $cfg_x64 ;
+		run_cmake( $cmake , $mbedtls , $qt_info , "x86" ) if $cfg_x86 ;
 	}
-	elsif( $part eq "msbuild" )
+	elsif( $part eq "build" )
 	{
-		winbuild::run_msbuild( $msbuild , $project , "x64" , "Release" ) ;
-		winbuild::run_msbuild( $msbuild , $project , "x64" , "Debug" ) ;
-		winbuild::run_msbuild( $msbuild , $project , "x86" , "Release" ) ;
-		winbuild::run_msbuild( $msbuild , $project , "x86" , "Debug" ) ;
+		winbuild::run_msbuild( $msbuild , $project , "x64" , "Release" ) if $cfg_x64 ;
+		winbuild::run_msbuild( $msbuild , $project , "x64" , "Debug" ) if ( $cfg_x64 && $cfg_debug ) ;
+		winbuild::run_msbuild( $msbuild , $project , "x86" , "Release" , "Win32" ) if $cfg_x86 ;
+		winbuild::run_msbuild( $msbuild , $project , "x86" , "Debug" , "Win32" ) if ( $cfg_x86 && $cfg_debug ) ;
 	}
 	elsif( $part eq "debug-build" )
 	{
@@ -225,30 +235,32 @@ for my $part ( @run_parts )
 	elsif( $part eq "clean" )
 	{
 		clean_test_files() ;
-		winbuild::run_msbuild( $msbuild , $project , "x64" , "Debug" , "Clean" ) ;
-		winbuild::run_msbuild( $msbuild , $project , "x64" , "Release" , "Clean" ) ;
-		winbuild::run_msbuild( $msbuild , $project , "x86" , "Debug" , "Clean" ) ;
-		winbuild::run_msbuild( $msbuild , $project , "x86" , "Release" , "Clean" ) ;
+		winbuild::run_msbuild( $msbuild , $project , "x64" , "Debug" , undef , "Clean" ) if ( $cfg_x64 && $cfg_debug ) ;
+		winbuild::run_msbuild( $msbuild , $project , "x64" , "Release" , undef , "Clean" ) if $cfg_x64 ;
+		winbuild::run_msbuild( $msbuild , $project , "x86" , "Debug" , "Win32" , "Clean" ) if ( $cfg_x86 && $cfg_debug ) ;
+		winbuild::run_msbuild( $msbuild , $project , "x86" , "Release" , "Win32" , "Clean" ) if $cfg_x86 ;
 	}
 	elsif( $part eq "vclean" )
 	{
 		clean_test_files() ;
 		winbuild::clean_cmake_files() ;
 		winbuild::clean_cmake_cache_files() ;
-		winbuild::run_msbuild( $msbuild , $project , "x64" , "Debug" , "Clean" ) ;
-		winbuild::run_msbuild( $msbuild , $project , "x64" , "Release" , "Clean" ) ;
-		winbuild::run_msbuild( $msbuild , $project , "x86" , "Debug" , "Clean" ) ;
-		winbuild::run_msbuild( $msbuild , $project , "x86" , "Release" , "Clean" ) ;
-		winbuild::deltree( $install_x64 ) ;
-		winbuild::deltree( $install_x86 ) ;
-		winbuild::deltree( "$mbedtls/x64" ) ;
-		winbuild::deltree( "$mbedtls/x86" ) ;
+		winbuild::run_msbuild( $msbuild , $project , "x64" , "Debug" , undef , "Clean" ) ;
+		winbuild::run_msbuild( $msbuild , $project , "x64" , "Release" , undef , "Clean" ) ;
+		winbuild::run_msbuild( $msbuild , $project , "x86" , "Debug" , "Win32" , "Clean" ) ;
+		winbuild::run_msbuild( $msbuild , $project , "x86" , "Release" , "Win32" , "Clean" ) ;
+		winbuild::deltree( $install_x64 ) if $cfg_x64 ;
+		winbuild::deltree( $install_x86 ) if $cfg_x86 ;
+		winbuild::deltree( "$mbedtls/x64" ) if $cfg_x64 ;
+		winbuild::deltree( "$mbedtls/x86" ) if $cfg_x86 ;
 		winbuild::fcache_delete() ;
 	}
 	elsif( $part eq "install" )
 	{
-		install( $install_x64 , "x64" , $qt_dirs , $switches{GCONFIG_GUI} ) ;
-		install( $install_x86 , "x86" , $qt_dirs , $switches{GCONFIG_GUI} ) ;
+		my $with_gui = $switches{GCONFIG_GUI} ;
+		my $with_mbedtls = $switches{GCONFIG_TLS_USE_MBEDTLS} || $switches{GCONFIG_TLS_USE_BOTH} ;
+		install( $install_x64 , "x64" , $qt_info , $with_gui , $with_mbedtls , $cfg_add_runtime ) if $cfg_x64 ;
+		install( $install_x86 , "x86" , $qt_info , $with_gui , $with_mbedtls , $cfg_add_runtime ) if $cfg_x86 ;
 	}
 	elsif( $part eq "mingw" )
 	{
@@ -272,7 +284,7 @@ for my $part ( @run_parts )
 winbuild::create_touchfile( winbuild::default_touchfile($0) ) ;
 
 # show a helpful message
-if( (grep {$_ eq "msbuild"} @run_parts) && !(grep {$_ eq "install"} @run_parts) )
+if( (grep {$_ eq "build"} @run_parts) && !(grep {$_ eq "install"} @run_parts) )
 {
 	print "build finished -- try winbuild-install.bat for packaging\n"
 }
@@ -281,7 +293,7 @@ if( (grep {$_ eq "msbuild"} @run_parts) && !(grep {$_ eq "install"} @run_parts) 
 
 sub create_cmake_file
 {
-	my ( $project , $m , $switches ) = @_ ;
+	my ( $project , $m , $switches , $qt_info ) = @_ ;
 
 	my $path = join( "/" , dirname($m->path()) , "CMakeLists.txt" ) ;
 
@@ -293,10 +305,15 @@ sub create_cmake_file
 	{
 		print $fh "cmake_minimum_required(VERSION 3.1.0)\n" ; # was 2.8.11
 		print $fh "project($project)\n" ;
-		if( $switches{GCONFIG_GUI} )
+		if( $switches{GCONFIG_GUI} && $qt_info->{v} == 5 )
 		{
 			# see https://doc.qt.io/qt-5/cmake-get-started.html
-			print $fh "find_package(Qt5 COMPONENTS Widgets Gui Core OpenGL REQUIRED)\n" ;
+			print $fh "find_package(Qt5 COMPONENTS Widgets REQUIRED)\n" ;
+		}
+		elsif( $switches{GCONFIG_GUI} )
+		{
+			# see https://doc.qt.io/qt-6/cmake-get-started.html
+			print $fh "find_package(Qt6 REQUIRED COMPONENTS Widgets)\n" ;
 		}
 		if( $switches{GCONFIG_TLS_USE_MBEDTLS} || $switches{GCONFIG_TLS_USE_BOTH} )
 		{
@@ -311,13 +328,12 @@ sub create_cmake_file
 		print $fh "set(CMAKE_INCLUDE_CURRENT_DIR ON)\n" ;
 	}
 
-	# force static or dynamic linking of the c++ runtime by
-	# switching between /MD and /MT -- use static linking
-	# by default but keep the gui dynamically linked so that
-	# it can use the Qt binary distribution -- for public
-	# distribution of a statically linked gui program use
-	# "emailrelay-gui.pro" -- note that the gui build is
-	# self-contained by virtue of "glibsources.cpp"
+	# force static or dynamic linking of the c++ runtime by switching
+	# between /MD and /MT -- use static linking by default but keep
+	# the gui dynamically linked so that it can use the Qt binary
+	# distribution -- for public distribution of a statically linked
+	# gui program use "emailrelay-gui.pro" -- note that the gui build
+	# is self-contained by virtue of "glibsources.cpp"
 	#
 	my $dynamic_runtime = ( $m->path() =~ m/gui/ ) ;
 	{
@@ -348,19 +364,24 @@ sub create_cmake_file
 		print $fh "add_subdirectory($subdir)\n" ;
 	}
 
-	my $definitions = join( " " , "G_WINDOWS=1" , $m->definitions() ) ;
+	my $definitions = join( " " , "G_WINDOWS=1" , grep {!m/G_LIB_SMALL/} $m->definitions() ) ;
 	my $includes = join( " " , "." , ".." , $m->includes($m->base()) , '"${MBEDTLS_INCLUDE_DIRS}"' ) ;
 
 	my @libraries = $m->libraries() ;
 	for my $library ( @libraries )
 	{
 		my $sources = join( " " , $m->sources( $library ) ) ;
-
-		( my $library_key = $library ) =~ s/\.a$// ; $library_key =~ s/^lib// ;
-		print $fh "\n" ;
-		print $fh "add_library($library_key $sources)\n" ;
-		print $fh "target_include_directories($library_key PUBLIC $includes)\n" ;
-		print $fh "target_compile_definitions($library_key PUBLIC $definitions)\n" ;
+		if( $sources )
+		{
+			( my $library_key = $library ) =~ s/\.a$// ; $library_key =~ s/^lib// ;
+			if( $library_key !~ m/extra$/ )
+			{
+				print $fh "\n" ;
+				print $fh "add_library($library_key $sources)\n" ;
+				print $fh "target_include_directories($library_key PUBLIC $includes)\n" ;
+				print $fh "target_compile_definitions($library_key PUBLIC $definitions)\n" ;
+			}
+		}
 	}
 
 	my $tls_libs_fixed ;
@@ -372,7 +393,7 @@ sub create_cmake_file
 		my $sys_libs = join( " " , $m->sys_libs( $program ) ) ;
 
 		my $tls_libs = "" ;
-		if( ( $our_libs =~ m/gssl/ ) &&
+		if( ( $our_libs =~ m/gssl/ || $our_libs =~ m/keygen/ ) &&
 			( $switches->{GCONFIG_TLS_USE_MBEDTLS} || $switches->{GCONFIG_TLS_USE_BOTH} ) )
 		{
 			if( ! $tls_libs_fixed )
@@ -388,10 +409,8 @@ sub create_cmake_file
 				'optimized ${MBEDCRYPTO_LIBRARY} debug ${MBEDCRYPTO_LIBRARY_DEBUG}' ;
 		}
 
-		my $qt_libs = ( $m->path() =~ m/gui/ ) ? "Qt5::OpenGL Qt5::Widgets Qt5::Gui Qt5::Core" : "" ;
-
+		my $qt_libs = ( $m->path() =~ m/gui/ ) ? $qt_info->{libs} : "" ;
 		my $win32 = ( $m->path() =~ m/gui/ || $program eq "emailrelay" ) ? "WIN32 " : "" ;
-		$win32 = "" if ( $program =~ m/textmode/ ) ;
 
 		my $resources = "" ;
 		my $resource_includes = "" ;
@@ -436,13 +455,13 @@ sub create_cmake_file
 
 sub create_cmake_files
 {
-	my ( $project , $switches , $vars ) = @_ ;
+	my ( $project , $switches , $vars , $qt_info ) = @_ ;
 
 	my @makefiles = winbuild::read_makefiles( $switches , $vars ) ;
 	my $first = 1 ;
 	for my $m ( @makefiles )
 	{
-		create_cmake_file( $first?$project:undef , $m , $switches ) ;
+		create_cmake_file( $first?$project:undef , $m , $switches , $qt_info ) ;
 		$first = 0 ;
 	}
 	create_cmake_find_mbedtls_file() ;
@@ -473,14 +492,14 @@ sub clean_test_files
 
 sub run_generate
 {
-	my ( $project , $switches , $vars ) = @_ ;
-	create_cmake_files( $project , $switches , $vars ) ;
+	my ( $project , $switches , $vars , $qt_info ) = @_ ;
+	create_cmake_files( $project , $switches , $vars , $qt_info ) ;
 	create_gconfig_header() ;
 }
 
 sub run_cmake
 {
-	my ( $cmake , $mbedtls , $qt_dirs , $arch ) = @_ ;
+	my ( $cmake , $mbedtls , $qt_info , $arch ) = @_ ;
 	$mbedtls ||= "." ;
 	$arch ||= "x64" ;
 
@@ -488,8 +507,8 @@ sub run_cmake
 	my $mbedtls_dir = Cwd::realpath( $mbedtls ) ;
 	my $mbedtls_include_dir = "$mbedtls_dir/include" ;
 	my $mbedtls_lib_dir = "$mbedtls_dir/$arch/library/Release" ; # fixed up to Debug elsewhere
-	my $qt_dir = defined($qt_dirs) ? Cwd::realpath( $qt_dirs->{$arch} ) : "." ;
-	my $module_path = Cwd::realpath( "." ) ;
+	my $qt_dir = defined($qt_info) ? Cwd::realpath( $qt_info->{$arch} ) : "." ;
+	my $module_path = Cwd::realpath( "." ) ; # see create_cmake_find_mbedtls_file()
 
 	my @arch_args = @{$cmake_args->{$arch}} ;
 	my $rc ;
@@ -501,7 +520,16 @@ sub run_cmake
 		unshift @args , "-DCMAKE_MODULE_PATH:FILEPATH=$module_path" ;
 		unshift @args , "-DCMAKE_INCLUDE_PATH:FILEPATH=$mbedtls_include_dir" ;
 		unshift @args , "-DCMAKE_LIBRARY_PATH:FILEPATH=$mbedtls_lib_dir" ;
-		unshift @args , "-DQt5_DIR:FILEPATH=$qt_dir" ;
+		if( $qt_info->{v} == 5 )
+		{
+			unshift @args , "-DQt5_DIR:FILEPATH=$qt_dir" ;
+		}
+		else
+		{
+			unshift @args , "-DQt6_DIR:FILEPATH=$qt_dir" ;
+			unshift @args , "-DQt6CoreTools_DIR:FILEPATH=".Cwd::realpath("$qt_dir/../qt6coretools") ;
+			unshift @args , "-DQt6GuiTools_DIR:FILEPATH=".Cwd::realpath("$qt_dir/../qt6guitools") ;
+		}
 		unshift @args , "-DCMAKE_MC_COMPILER:FILEPATH=mc" ;
 
 		my $build_dir = $arch ;
@@ -545,6 +573,7 @@ sub run_mbedtls_cmake
 		{
 			my @args = (
 				@$arch_args ,
+				"-DENABLE_TESTING=Off" ,
 				"-DCMAKE_C_FLAGS_DEBUG=/MTd" ,
 				"-DCMAKE_C_FLAGS_RELEASE=/MT" ,
 			) ;
@@ -571,7 +600,7 @@ sub run_mbedtls_msbuild
 	my $output_file = "library/$confname/mbedtls.lib" ;
 	if( -f $output_file )
 	{
-		print "mbedtls-msbuild($arch,confname): already got [$arch/$output_file]: not running msbuild\n" ;
+		print "mbedtls-msbuild($arch,$confname): already got [$arch/$output_file]: not running msbuild\n" ;
 	}
 	else
 	{
@@ -595,49 +624,59 @@ sub clean_mbedtls_files
 
 sub install
 {
-	my ( $install , $arch , $qt_dirs , $with_gui ) = @_ ;
+	my ( $install , $arch , $qt_info , $with_gui , $with_mbedtls , $add_runtime ) = @_ ;
 
 	my $msvc_base = winbuild::find_msvc_base( $arch ) ;
 	print "msvc-base=[$msvc_base]\n" ;
 
-	my $runtime = winbuild::find_runtime( $msvc_base , $arch , "vcruntime140.dll" , "msvcp140.dll" ) ;
-	if( scalar(keys %$runtime) != 2 )
+	my $runtime = $add_runtime ? winbuild::find_runtime( $msvc_base , $arch , "vcruntime140.dll" , "msvcp140.dll" ) : undef ;
+	if( $add_runtime && scalar(keys %$runtime) != 2 )
 	{
 		die "error: install: cannot find msvc [$arch] runtime dlls under [$msvc_base]\n" ;
 	}
 
+	# copy the core files -- the main programs are always statically linked so they
+	# can go into a "programs" sub-directory -- the gui/setup executable may be
+	# dynamically linked so it must go alongside the run-time dlls
+	#
 	install_core( "$arch/src/main/Release" , $install ) ;
 
 	if( $with_gui )
 	{
 		install_copy( "$arch/src/gui/Release/emailrelay-gui.exe" , "$install/emailrelay-setup.exe" ) ;
-		install_copy( "$arch/test/Release/emailrelay_test_keygen.exe" , "$install" ) ;
 
-		install_mkdir( "$install/payload" ) ;
+		install_copy( "$arch/src/main/Release/emailrelay-keygen.exe" , "$install/programs/" ) if $with_mbedtls ;
+
 		install_payload_cfg( "$install/payload/payload.cfg" ) ;
-		install_core( "$arch/src/main/Release" , "$install/payload/files" ) ;
+		install_core( "$arch/src/main/Release" , "$install/payload/files" , 1 ) ;
 
-		install_copy( "$arch/src/gui/Release/emailrelay-gui.exe" , "$install/payload/files" ) ;
-		install_copy( "$arch/test/Release/emailrelay_test_keygen.exe" , "$install/payload/files" ) ;
+		install_copy( "$arch/src/gui/Release/emailrelay-gui.exe" , "$install/payload/files/gui/" ) ;
+		install_copy( "$arch/src/main/Release/emailrelay-keygen.exe" , "$install/payload/files/programs/" ) if $with_mbedtls ;
 
-		install_gui_dependencies( $msvc_base , $arch ,
-			{ exe => "$install/emailrelay-setup.exe" } ,
-			{ exe => "$install/payload/files/emailrelay-gui.exe" } ) ;
+		if( $add_runtime )
+		{
+			install_gui_dependencies( $msvc_base , $arch , $qt_info->{v} ,
+				{ exe => "$install/emailrelay-setup.exe" } ,
+				{ exe => "$install/payload/files/gui/emailrelay-gui.exe" } ) ;
+		}
 
-		winbuild::translate( $arch , $qt_dirs , "no_NO" , "no" ) ;
-		install_copy( "src/gui/emailrelay.no.qm" , "$install/translations" ) ;
-		install_copy( "src/gui/emailrelay.no.qm" , "$install/payload/files/translations" ) ;
+		winbuild::translate( $arch , $qt_info , "no_NO" , "no" ) ;
+		install_copy( "src/gui/emailrelay.no.qm" , "$install/gui/translations/" ) ;
+		install_copy( "src/gui/emailrelay.no.qm" , "$install/payload/files/gui/translations/" ) ;
 	}
 
-	install_runtime( $runtime , $arch , $install ) ;
-	install_runtime( $runtime , $arch , "$install/payload/files" ) ;
+	if( $add_runtime )
+	{
+		install_runtime( $runtime , $arch , $install ) ;
+		install_runtime( $runtime , $arch , "$install/payload/files/gui" ) if $with_gui ;
+	}
 
 	print "$arch distribution in [$install]\n" ;
 }
 
 sub install_mingw
 {
-	install_core( "src/main" , $install_mingw ) ;
+	install_core( "src/main" , $install_mingw , 0 , "." ) ;
 	{
 		my $fh = new FileHandle( "$install_mingw/emailrelay-start.bat" , "w" ) or die ;
 		print $fh "start \"emailrelay\" emailrelay.exe \@app/config.txt\r\n" ;
@@ -646,9 +685,10 @@ sub install_mingw
 	{
 		my $fh = new FileHandle( "$install_mingw/config.txt" , "w" ) or die ;
 		print $fh "#\r\n# config.txt\r\n#\r\n\r\n" ;
-		print $fh "# For demo purposes this does loopback forwarding on startup\r\n" ;
-		print $fh "# only. Change 'forward' to 'forward-on-disconnect' when you\r\n" ;
-		print $fh "# have set the 'forward-to' address.\r\n" ;
+		print $fh "# Use emailrelay-start.bat to run emailrelay with this config.\r\n" ;
+		print $fh "# For demo purposes this only does forwarding once on startup.\r\n" ;
+		print $fh "# Change 'forward' to 'forward-on-disconnect' once you\r\n" ;
+		print $fh "# have set a valid 'forward-to' address.\r\n" ;
 		for my $item ( qw(
 			show=window,tray
 			log
@@ -659,6 +699,7 @@ sub install_mingw
 			close-stderr
 			spool-dir=@app
 			port=25
+			interface=0.0.0.0
 			forward
 			forward-to=127.0.0.1:25
 			pop
@@ -717,9 +758,9 @@ sub install_runtime
 
 sub install_gui_dependencies
 {
-	my ( $msvc_base , $arch , @tasks ) = @_ ;
+	my ( $msvc_base , $arch , $qtv , @tasks ) = @_ ;
 
-	my $qt_bin = find_qt_bin( $arch ) ;
+	my $qt_bin = find_qt_bin( $arch , $qtv ) ;
 	print "qt-bin=[$qt_bin]\n" ;
 
 	$ENV{VCINSTALLDIR} = $msvc_base ;
@@ -739,8 +780,8 @@ sub install_gui_dependencies
 
 sub find_qt_bin
 {
-	my ( $arch ) = @_ ;
-	my $qt_core = cache_value_qt_core( $arch ) ;
+	my ( $arch , $qtv ) = @_ ;
+	my $qt_core = cache_value_qt_core( $arch , $qtv ) ;
 	my $dir = $qt_core ;
 	for( 1..10 )
 	{
@@ -753,74 +794,74 @@ sub find_qt_bin
 
 sub cache_value_qt_core
 {
-	my ( $arch ) = @_ ;
-	my $qt5_core_dir = winbuild::cache_value( $arch , qr/^Qt5Core_DIR:[A-Z]+=(.*)/ ) ;
-	$qt5_core_dir or die "error: install: cannot read qt path from CMakeCache.txt\n" ;
-	return $qt5_core_dir ;
+	my ( $arch , $qtv ) = @_ ;
+	my $qt_core_dir = winbuild::cache_value( $arch , qr/^Qt[56]Core_DIR:[A-Z]+=(.*)/ ) ;
+	$qt_core_dir or die "error: install: cannot read qt path from CMakeCache.txt\n" ;
+	return $qt_core_dir ;
 }
 
 sub install_payload_cfg
 {
 	my ( $file ) = @_ ;
-	my $fh = new FileHandle( $file , "w" ) or die ;
-	print $fh 'files/= %dir-install%/' , "\n" ;
+	File::Path::make_path( File::Basename::dirname($file) ) ;
+	my $fh = new FileHandle( $file , "w" ) or die "error: install: cannot create [$file]\n" ;
+	print $fh "files/programs/=\%dir-install\%/\n" ;
+	print $fh "files/examples/=\%dir-install\%/examples/\n" ;
+	print $fh "files/doc/=\%dir-install\%/doc/\n" ;
+	print $fh "files/txt/=\%dir-install\%/\n" ;
+	print $fh "files/gui/=\%dir-install\%/\n" ;
 	$fh->close() or die ;
 }
 
 sub install_core
 {
-	my ( $main_bin_dir , $root ) = @_ ;
+	my ( $src_main_bin_dir , $root , $is_payload , $programs ) = @_ ;
 
-	install_mkdir( $root ) ;
-
-	my @tree = qw(
-		doc
-		doc/doxygen
-		examples
-	) ;
-	map { install_mkdir("$root/$_") } @tree ;
-
+	$programs ||= "programs" ;
+	my $txt = $is_payload ? "txt" : "." ;
 	my %copy = qw(
-		README readme.txt
-		COPYING copying.txt
-		AUTHORS authors.txt
-		LICENSE license.txt
-		NEWS news.txt
-		ChangeLog changelog.txt
+		README __txt__/readme.txt
+		COPYING __txt__/copying.txt
+		AUTHORS __txt__/authors.txt
+		LICENSE __txt__/license.txt
+		NEWS __txt__/news.txt
+		ChangeLog __txt__/changelog.txt
 		doc/doxygen-missing.html doc/doxygen/index.html
-		__main_bin_dir__/emailrelay-service.exe .
-		__main_bin_dir__/emailrelay.exe .
-		__main_bin_dir__/emailrelay-submit.exe .
-		__main_bin_dir__/emailrelay-filter-copy.exe .
-		__main_bin_dir__/emailrelay-passwd.exe .
-		__main_bin_dir__/emailrelay-textmode.exe .
-		bin/emailrelay-bcc-check.pl examples
-		bin/emailrelay-service-install.js .
-		bin/emailrelay-edit-content.js examples
-		bin/emailrelay-edit-envelope.js examples
-		bin/emailrelay-resubmit.js examples
-		bin/emailrelay-set-from.pl examples
-		bin/emailrelay-set-from.js examples
-		doc/authentication.png doc
-		doc/forwardto.png doc
-		doc/whatisit.png doc
-		doc/serverclient.png doc
-		doc/*.html doc
-		doc/developer.txt doc
-		doc/reference.txt doc
-		doc/userguide.txt doc
-		doc/windows.txt doc
-		doc/windows.txt readme-windows.txt
+		__src_main_bin_dir__/emailrelay-service.exe __programs__/
+		__src_main_bin_dir__/emailrelay.exe __programs__/
+		__src_main_bin_dir__/emailrelay-submit.exe __programs__/
+		__src_main_bin_dir__/emailrelay-passwd.exe __programs__/
+		__src_main_bin_dir__/emailrelay-textmode.exe __programs__/
+		bin/emailrelay-service-install.js __programs__/
+		bin/emailrelay-bcc-check.pl examples/
+		bin/emailrelay-edit-content.js examples/
+		bin/emailrelay-edit-envelope.js examples/
+		bin/emailrelay-resubmit.js examples/
+		bin/emailrelay-set-from.pl examples/
+		bin/emailrelay-set-from.js examples/
+		doc/authentication.png doc/
+		doc/forwardto.png doc/
+		doc/whatisit.png doc/
+		doc/serverclient.png doc/
+		doc/*.html doc/
+		doc/developer.txt doc/
+		doc/reference.txt doc/
+		doc/userguide.txt doc/
+		doc/windows.txt doc/
+		doc/windows.txt __txt__/readme-windows.txt
 		doc/doxygen-missing.html doc/doxygen/index.html
 	) ;
 	while( my ($src,$dst) = each %copy )
 	{
 		$dst = "" if $dst eq "." ;
-		$src =~ s:__main_bin_dir__:$main_bin_dir:g ;
+		$src =~ s:__src_main_bin_dir__:$src_main_bin_dir:g ;
+		$dst =~ s:__programs__:$programs:g ;
+		$dst =~ s:__txt__:$txt:g ;
 		map { install_copy( $_ , "$root/$dst" ) } glob( $src ) ;
 	}
+	# fix up inter-document references in readme.txt and license.txt
 	winbuild::fixup( $root ,
-		[ "readme.txt" , "license.txt" ] ,
+		[ "$txt/readme.txt" , "$txt/license.txt" ] ,
 		{
 			README => 'readme.txt' ,
 			COPYING => 'copying.txt' ,

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 
 namespace G
 {
-	namespace StringListImp
+	namespace StringListImp /// An implementation namespace for G::StringList.
 	{
 		bool inList( StringArray::const_iterator begin , StringArray::const_iterator end ,
 			const std::string & s , bool i ) ;
@@ -53,7 +53,7 @@ bool G::StringListImp::notInList( StringArray::const_iterator begin , StringArra
 
 bool G::StringListImp::match( const std::string & a , const std::string & b , bool ignore_case )
 {
-	return ignore_case ? string_view(a).imatch( b ) : (a==b) ;
+	return ignore_case ? sv_imatch(string_view(a),string_view(b)) : (a==b) ;
 }
 
 void G::StringList::keepMatch( StringArray & list , const StringArray & match_list , Ignore ignore )
@@ -81,11 +81,13 @@ bool G::StringList::headMatch( const StringArray & in , string_view head )
 		[&head](const std::string &x){return Str::headMatch(x,head);} ) ;
 }
 
+#ifndef G_LIB_SMALL
 bool G::StringList::tailMatch( const StringArray & in , string_view tail )
 {
 	return std::any_of( in.begin() , in.end() ,
 		[&tail](const std::string &x){return Str::tailMatch(x,tail);} ) ;
 }
+#endif
 
 std::string G::StringList::headMatchResidue( const StringArray & in , string_view head )
 {

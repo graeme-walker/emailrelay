@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 #include "gpath.h"
 #include "gexception.h"
 #include "gdatetime.h"
-#include <cstdio> // std::remove()
+#include <cstdio> // std::remove(), std::FILE
 #include <new> // std::nothrow
 #include <fstream>
 
@@ -56,9 +56,12 @@ public:
 	G_EXCEPTION( TimeError , tx("cannot get file modification time") ) ;
 	enum class InOut { In , Out } ;
 	enum class InOutAppend { In , Out , Append } ;
+	enum class Seek { Start , Current , End } ;
 	class Append /// An overload discriminator for G::File::open().
 		{} ;
 	class Text /// An overload discriminator for G::File::open().
+		{} ;
+	struct CreateExclusive /// An overload discriminator for G::File::open().
 		{} ;
 	struct Stat /// A portable 'struct stat'.
 	{
@@ -74,6 +77,9 @@ public:
 		unsigned long mode {0} ;
 		unsigned long long size {0} ;
 		unsigned long long blocks {0} ;
+		uid_t uid {0} ; // unix
+		gid_t gid {0} ; // unix
+		bool inherit {false} ; // unix, directory group ownership passed on to new files
 	} ;
 
 	static bool remove( const Path & path , std::nothrow_t ) noexcept ;
@@ -83,13 +89,18 @@ public:
 		///< Deletes the file or directory. Throws an exception on error.
 
 	static bool rename( const Path & from , const Path & to , std::nothrow_t ) noexcept ;
-		///< Renames the file. Returns false on error. Tries to
-		///< delete the target 'to' file if necessary.
+		///< Renames the file. Whether it fails if 'to' already
+		///< exists depends on the o/s (see also renameOnto()).
+		///< Returns false on error.
 
 	static void rename( const Path & from , const Path & to , bool ignore_missing = false ) ;
 		///< Renames the file. Throws on error, but optionally
 		///< ignores errors caused by a missing 'from' file or
 		///< missing 'to' directory component.
+
+	static bool renameOnto( const Path & from , const Path & to , std::nothrow_t ) noexcept ;
+		///< Renames the file, deleting 'to' first if necessary.
+		///< Returns false on error.
 
 	static bool copy( const Path & from , const Path & to , std::nothrow_t ) ;
 		///< Copies a file. Returns false on error.
@@ -98,7 +109,7 @@ public:
 		///< Copies a file.
 
 	static void copy( std::istream & from , std::ostream & to ,
-		std::streamsize limit = 0U , std::string::size_type block = 0U ) ;
+		std::streamsize limit = 0U , std::size_t block = 0U ) ;
 			///< Copies a stream with an optional size limit.
 
 	static bool copyInto( const Path & from , const Path & to_dir , std::nothrow_t ) ;
@@ -117,8 +128,7 @@ public:
 
 	static void mkdirs( const Path & dir , int = 100 ) ;
 		///< Creates a directory and all necessary parents.
-		///< Throws on error, but EEXIST is not an error
-		///< and chmod errors are also ignored.
+		///< Throws on error, but EEXIST is not an error.
 
 	static bool mkdir( const Path & dir , std::nothrow_t ) ;
 		///< Creates a directory. Returns false on error
@@ -160,6 +170,11 @@ public:
 		///< Returns true if the path exists() and is a directory.
 		///< Symlinks are followed. Returns false on error.
 
+	static Stat stat( const Path & path , bool read_symlink = false ) ;
+		///< Returns a file status structure. Returns with
+		///< the 'error' field set on error. Always fails if
+		///< 'read-link' on Windows.
+
 	static SystemTime time( const Path & file ) ;
 		///< Returns the file's timestamp. Throws on error.
 
@@ -184,6 +199,9 @@ public:
 	static bool chgrp( const Path & file , const std::string & group , std::nothrow_t ) ;
 		///< Sets the file group ownership. Returns false on error.
 
+	static bool chgrp( const Path & file , gid_t group_id , std::nothrow_t ) ;
+		///< Sets the file group ownership. Returns false on error.
+
 	static G::Path readlink( const Path & link ) ;
 		///< Reads a symlink. Throws on error.
 
@@ -197,6 +215,10 @@ public:
 
 	static bool link( const Path & target , const Path & new_link , std::nothrow_t ) ;
 		///< Creates a symlink. Returns false on error.
+
+	static bool hardlink( const Path & src , const Path & dst , std::nothrow_t ) ;
+		///< Creates a hard link. Returns false on error or if
+		///< not implemented.
 
 	static void create( const Path & ) ;
 		///< Creates the file if it does not exist. Leaves it
@@ -237,6 +259,14 @@ public:
 		///< Opens a file descriptor. Returns -1 on error.
 		///< Uses SH_DENYNO and O_BINARY on windows.
 
+	static int open( const char * , CreateExclusive ) noexcept ;
+		///< Creates a file and returns a writable file descriptor.
+		///< Fails if the file already exists. Returns -1 on error.
+		///< Uses SH_DENYNO and O_BINARY on windows.
+
+	static std::FILE * fopen( const char * , const char * mode ) noexcept ;
+		///< Calls std::fopen().
+
 	static bool probe( const char * ) noexcept ;
 		///< Creates and deletes a temporary probe file. Fails if
 		///< the file already exists. Returns false on error.
@@ -249,6 +279,9 @@ public:
 
 	static void close( int fd ) noexcept ;
 		///< Calls ::close() or equivalent.
+
+	static std::streamoff seek( int fd , std::streamoff offset , Seek ) noexcept ;
+		///< Does ::lseek() or equivalent.
 
 	static void setNonBlocking( int fd ) noexcept ;
 		///< Sets the file descriptor to non-blocking mode.

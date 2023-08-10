@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,8 +30,10 @@
 #include <string>
 #include <array>
 
+#ifndef G_LIB_SMALL
 G::PidFile::PidFile()
 = default;
+#endif
 
 G::PidFile::PidFile( const Path & path ) :
 	m_path((!path.empty()&&path.isRelative())?Path::join(Process::cwd(),path):path)

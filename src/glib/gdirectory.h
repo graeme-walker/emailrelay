@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -158,16 +158,19 @@ public:
 
 	DirectoryList() ;
 		///< Default constructor for an empty list. Initialise with one
-		///< of the two read methods to do all the file i/o in one go.
+		///< of the three read methods to do all the file i/o in one go.
 
-	void readAll( const Path & dir ) ;
+	std::size_t readAll( const Path & dir ) ;
 		///< An initialiser that is to be used after default construction.
 		///< Reads all files in the directory.
 
-	void readType( const Path & dir , string_view suffix , unsigned int limit = 0U ) ;
+	std::size_t readType( const Path & dir , string_view suffix , unsigned int limit = 0U ) ;
 		///< An initialiser that is to be used after default
 		///< construction. Reads all files that have the given
 		///< suffix (unsorted).
+
+	std::size_t readDirectories( const Path & dir , unsigned int limit = 0U ) ;
+		///< An initialiser that reads all sub-directories.
 
 	bool more() ;
 		///< Returns true if more and advances by one.
@@ -189,6 +192,9 @@ public:
 	static void readAll( const Path & dir , std::vector<Item> & out ) ;
 		///< A static overload returning by reference a collection
 		///< of Items, sorted by name.
+
+private:
+	void readImp( const Path & , bool , string_view , unsigned int ) ;
 
 private:
 	bool m_first{true} ;

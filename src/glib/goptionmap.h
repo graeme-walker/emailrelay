@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -97,6 +97,9 @@ public:
 		///< option-values matching the key then a single value is returned
 		///< corresponding to the first one, being G::Str::positive() if 'on'
 		///< or the supplied default if 'off'.
+
+	unsigned int number( string_view key , unsigned int default_ ) const ;
+		///< Returns the matching value as a number.
 
 private:
 	using Range = std::pair<Map::const_iterator,Map::const_iterator> ;

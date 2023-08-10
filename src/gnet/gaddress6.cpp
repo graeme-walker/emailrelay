@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@
 
 namespace GNet
 {
-	namespace Address6Imp
+	namespace Address6Imp /// An implementation namespace for GNet::Address6.
 	{
 		const char * port_separators = ":." ;
 		char port_separator = '.' ;
@@ -266,12 +266,14 @@ bool GNet::Address6::validStrings( const std::string & host_part , const std::st
 	return reason == nullptr ;
 }
 
+#ifndef G_LIB_SMALL
 bool GNet::Address6::validPort( unsigned int port )
 {
 	sockaddr_type inet {} ;
 	const char * reason = setPort( inet , port ) ;
 	return reason == nullptr ;
 }
+#endif
 
 bool GNet::Address6::same( const Address6 & other , bool with_scope ) const
 {
@@ -312,12 +314,14 @@ unsigned long GNet::Address6::scopeId( unsigned long /*default*/ ) const
 	return m_inet.sin6_scope_id ;
 }
 
+#ifndef G_LIB_SMALL
 const sockaddr * GNet::Address6::address() const
 {
 	// core guidelines: C.183
 	// type-punning allowed by "common initial sequence" rule
 	return reinterpret_cast<const sockaddr*>( &m_inet ) ;
 }
+#endif
 
 sockaddr * GNet::Address6::address()
 {
@@ -406,7 +410,7 @@ G::StringArray GNet::Address6::wildcards() const
 	struct in6_addr mask {} ;
 	imp::fill( mask ) ;
 
-	for( int bit = 0 ; bit < 128 ; bit++ )
+	for( int bit = 0 ; bit <= 128 ; bit++ )
 	{
 		std::ostringstream ss ;
 		ss << a.hostPartString() << "/" << (128-bit) ;

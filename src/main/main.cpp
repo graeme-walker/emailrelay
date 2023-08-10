@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,7 +22,10 @@
 #include "gstr.h"
 #include "garg.h"
 #include "run.h"
+#include "options.h"
+#include "submission.h"
 #include "commandline.h"
+#include "gsocket.h"
 #include <exception>
 #include <cstdlib>
 
@@ -61,9 +64,15 @@ int main( int argc , char * argv [] )
 	try
 	{
 		G::Arg arg( argc , argv ) ;
+
+		#if GCONFIG_ENABLE_SUBMISSION
+			if( Main::Submission::enabled(arg) )
+				return Main::Submission::submit( arg ) ;
+		#endif
+
 		Main::App app ;
-		Main::Run run( app , arg , G::is_windows() ) ;
-		run.configure() ;
+		Main::Run run( app , arg ) ;
+		run.configure( Main::Options::spec() ) ;
 		if( run.runnable() )
 		{
 			run.run() ;
@@ -78,11 +87,13 @@ int main( int argc , char * argv [] )
 	catch( std::exception & e )
 	{
 		std::cerr << G::Arg::prefix(argv) << ": error: " << e.what() << std::endl ;
+		return 1 ;
 	}
 	catch(...)
 	{
 		std::cerr << G::Arg::prefix(argv) << ": fatal exception" << std::endl ;
+		return 1 ;
 	}
-	return ok ? EXIT_SUCCESS : EXIT_FAILURE ;
+	return ok ? 0 : 1 ;
 }
 

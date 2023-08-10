@@ -1,4 +1,4 @@
-.\" Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+.\" Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 .\" 
 .\" This program is free software: you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -52,6 +52,9 @@ Adds a \fIDate:\fR content header if there is none.
 .TP
 .B \-F, --content-from
 Adds the envelope 'from' addresses as a \fIFrom:\fR content header.
+.TP
+.B \-I, --content-message-id \fI<domain-part>\fR
+Adds a \fIMessage-ID:\fR content header if there is none.
 .TP
 .B \-t, --content-to
 Adds the envelope 'to' addresses as \fITo:\fR content headers.

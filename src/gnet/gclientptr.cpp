@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,29 +24,19 @@
 GNet::ClientPtrBase::ClientPtrBase()
 = default;
 
-void GNet::ClientPtrBase::connectSignals( Client & client )
-{
-	client.eventSignal().connect( G::Slot::slot(*this,&ClientPtrBase::eventSlot) ) ;
-}
-
-G::Slot::Signal<const std::string&> & GNet::ClientPtrBase::deletedSignal()
+G::Slot::Signal<const std::string&> & GNet::ClientPtrBase::deletedSignal() noexcept
 {
 	return m_deleted_signal ;
 }
 
-G::Slot::Signal<const std::string&,const std::string&,const std::string&> & GNet::ClientPtrBase::eventSignal()
+G::Slot::Signal<const std::string&,const std::string&,const std::string&> & GNet::ClientPtrBase::eventSignal() noexcept
 {
 	return m_event_signal ;
 }
 
-G::Slot::Signal<const std::string&> & GNet::ClientPtrBase::deleteSignal()
+G::Slot::Signal<const std::string&> & GNet::ClientPtrBase::deleteSignal() noexcept
 {
 	return m_delete_signal ;
-}
-
-void GNet::ClientPtrBase::disconnectSignals( Client & client ) noexcept
-{
-	client.eventSignal().disconnect() ;
 }
 
 void GNet::ClientPtrBase::eventSlot( const std::string & s1 , const std::string & s2 , const std::string & s3 )

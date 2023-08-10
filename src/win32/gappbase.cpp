@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "gappbase.h"
 #include "gappinst.h"
 #include "gwindow.h"
+#include "gconvert.h"
 #include "gpump.h"
 #include "glog.h"
 
@@ -47,9 +48,9 @@ std::string GGui::ApplicationBase::createWindow( int show_style , bool do_show ,
 		initFirst() ;
 	}
 
-	// create the main window
-	dx = dx ? dx : CW_USEDEFAULT ;
-	dy = dy ? dy : CW_USEDEFAULT ;
+	// create the main window (GGui::Window::create())
+	dx = dx ? dx : CW_USEDEFAULT ; // outer width
+	dy = dy ? dy : CW_USEDEFAULT ; // outer height
 	if( !create( className() , title() , windowStyle() ,
 			CW_USEDEFAULT , CW_USEDEFAULT , // position (x,y)
 			dx , dy , // size
@@ -65,8 +66,8 @@ std::string GGui::ApplicationBase::createWindow( int show_style , bool do_show ,
 
 	if( do_show )
 	{
-		show( show_style ) ;
-		update() ;
+		show( show_style ) ; // GGui::Window::show(), ShowWindow()
+		update() ; // GGui::Window::update(), UpdateWindow()
 	}
 	return std::string() ;
 }
@@ -105,12 +106,9 @@ void GGui::ApplicationBase::close() const
 	SendMessage( handle() , WM_CLOSE , 0 , 0 ) ;
 }
 
-void GGui::ApplicationBase::run( bool with_idle )
+void GGui::ApplicationBase::run()
 {
-	if( with_idle )
-		GGui::Pump::run( handle() , GGui::Cracker::wm_idle() ) ;
-	else
-		GGui::Pump::run() ;
+	GGui::Pump::run() ;
 }
 
 void GGui::ApplicationBase::onDestroy()
@@ -178,7 +176,11 @@ void GGui::ApplicationBase::messageBox( const std::string & title , const std::s
 bool GGui::ApplicationBase::messageBoxCore( HWND parent , unsigned int type ,
 	const std::string & title , const std::string & message )
 {
-	int rc = MessageBoxA( parent , message.c_str() , title.c_str() , type ) ;
+	std::wstring wtitle ;
+	std::wstring wmessage ;
+	G::Convert::convert( wtitle , title ) ;
+	G::Convert::convert( wmessage , message ) ;
+	int rc = MessageBoxW( parent , wmessage.c_str() , wtitle.c_str() , type ) ;
 	return rc == IDOK || rc == IDYES ;
 }
 

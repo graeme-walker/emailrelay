@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -72,10 +72,12 @@ void G::File::open( std::ifstream & ifstream , const Path & path )
 	ifstream.open( path.cstr() , std::ios_base::in | std::ios_base::binary ) ;
 }
 
+#ifndef G_LIB_SMALL
 void G::File::open( std::ifstream & ifstream , const Path & path , Text )
 {
 	ifstream.open( path.cstr() , std::ios_base::in ) ;
 }
+#endif
 
 std::filebuf * G::File::open( std::filebuf & fb , const Path & path , InOut inout )
 {
@@ -94,6 +96,20 @@ int G::File::open( const char * path , InOutAppend mode ) noexcept
 	else
 		return ::open( path , O_WRONLY|O_CREAT|O_APPEND , 0666 ) ; // NOLINT
 }
+
+#ifndef G_LIB_SMALL
+int G::File::open( const char * path , CreateExclusive ) noexcept
+{
+	return ::open( path , O_WRONLY|O_CREAT|O_EXCL , 0666 ) ; // NOLINT
+}
+#endif
+
+#ifndef G_LIB_SMALL
+std::FILE * G::File::fopen( const char * path , const char * mode ) noexcept
+{
+	return std::fopen( path , mode ) ;
+}
+#endif
 
 bool G::File::probe( const char * path ) noexcept
 {
@@ -114,6 +130,11 @@ void G::File::create( const Path & path )
 	::close( fd ) ;
 }
 #endif
+
+bool G::File::renameOnto( const Path & from , const Path & to , std::nothrow_t ) noexcept
+{
+	return 0 == std::rename( from.cstr() , to.cstr() ) ; // overwrites 'to'
+}
 
 ssize_t G::File::read( int fd , char * p , std::size_t n ) noexcept
 {
@@ -145,11 +166,11 @@ int G::File::mkdirImp( const Path & dir ) noexcept
 	}
 }
 
-G::File::Stat G::File::statImp( const char * path , bool link ) noexcept
+G::File::Stat G::File::statImp( const char * path , bool read_symlink ) noexcept
 {
 	Stat s ;
 	struct stat statbuf {} ;
-	if( 0 == ( link ? (::lstat(path,&statbuf)) : (::stat(path,&statbuf)) ) )
+	if( 0 == ( read_symlink ? (::lstat(path,&statbuf)) : (::stat(path,&statbuf)) ) )
 	{
 		s.error = 0 ;
 		s.enoent = false ;
@@ -163,6 +184,9 @@ G::File::Stat G::File::statImp( const char * path , bool link ) noexcept
 		s.mode = static_cast<unsigned long>( statbuf.st_mode & mode_t(07777) ) ; // NOLINT
 		s.size = static_cast<unsigned long long>( statbuf.st_size ) ;
 		s.blocks = static_cast<unsigned long long>(statbuf.st_size) >> 24U ;
+		s.uid = statbuf.st_uid ;
+		s.gid = statbuf.st_gid ;
+		s.inherit = s.is_dir && ( G::is_bsd() || ( statbuf.st_mode & S_ISGID ) ) ;
 	}
 	else
 	{
@@ -212,7 +236,6 @@ void G::File::chmod( const Path & path , const std::string & spec )
 }
 #endif
 
-#ifndef G_LIB_SMALL
 bool G::File::chmod( const Path & path , const std::string & spec , std::nothrow_t )
 {
 	if( spec.empty() )
@@ -233,9 +256,7 @@ bool G::File::chmod( const Path & path , const std::string & spec , std::nothrow
 		return pair.first && 0 == ::chmod( path.cstr() , pair.second ) ;
 	}
 }
-#endif
 
-#ifndef G_LIB_SMALL
 std::pair<bool,mode_t> G::FileImp::newmode( mode_t mode , const std::string & spec_in )
 {
 	mode &= mode_t(07777) ;
@@ -304,7 +325,6 @@ std::pair<bool,mode_t> G::FileImp::newmode( mode_t mode , const std::string & sp
 	}
 	return { ok , mode } ;
 }
-#endif
 
 #ifndef G_LIB_SMALL
 void G::File::chgrp( const Path & path , const std::string & group )
@@ -321,6 +341,16 @@ bool G::File::chgrp( const Path & path , const std::string & group , std::nothro
 	return 0 == ::chown( path.cstr() , -1 , Identity::lookupGroup(group) ) ;
 }
 #endif
+
+bool G::File::chgrp( const Path & path , gid_t group_id , std::nothrow_t )
+{
+	return 0 == ::chown( path.cstr() , -1 , group_id ) ;
+}
+
+bool G::File::hardlink( const Path & src , const Path & dst , std::nothrow_t )
+{
+	return 0 == ::link( src.cstr() , dst.cstr() ) ;
+}
 
 #ifndef G_LIB_SMALL
 void G::File::link( const Path & target , const Path & new_link )
@@ -355,14 +385,12 @@ bool G::File::link( const Path & target , const Path & new_link , std::nothrow_t
 }
 #endif
 
-#ifndef G_LIB_SMALL
 int G::File::linkImp( const char * target , const char * new_link )
 {
 	int rc = ::symlink( target , new_link ) ;
 	int error = Process::errno_() ;
 	return rc == 0 ? 0 : (error?error:EINVAL) ;
 }
-#endif
 
 #ifndef G_LIB_SMALL
 G::Path G::File::readlink( const Path & link )
@@ -395,13 +423,18 @@ G::Path G::File::readlink( const Path & link , std::nothrow_t )
 	return result ;
 }
 
-#ifndef G_LIB_SMALL
 bool G::File::linked( const Path & target , const Path & new_link )
 {
 	// see if already linked correctly - errors and overflows are not fatal
 	return readlink(new_link,std::nothrow) == target ;
 }
-#endif
+
+std::streamoff G::File::seek( int fd , std::streamoff offset , Seek origin ) noexcept
+{
+	off_t rc = ::lseek( fd , static_cast<off_t>(offset) ,
+		origin == Seek::Start ? SEEK_SET : ( origin == Seek::End ? SEEK_END : SEEK_CUR ) ) ;
+	return static_cast<std::streamoff>(rc) ;
+}
 
 #ifndef G_LIB_SMALL
 void G::File::setNonBlocking( int fd ) noexcept

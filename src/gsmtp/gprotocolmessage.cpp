@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,9 +20,19 @@
 
 #include "gdef.h"
 #include "gprotocolmessage.h"
+#include "gsmtpserverparser.h"
 
-bool GSmtp::ProtocolMessage::addTextLine( const std::string & line )
+#ifndef G_LIB_SMALL
+void GSmtp::ProtocolMessage::addContentLine( const std::string & line )
 {
-	return addText( line.data() , line.size() ) && addText( "\r\n" , 2U ) ;
+	addContent( line.data() , line.size() ) ;
+	addContent( "\r\n" , 2U ) ;
+}
+#endif
+
+GSmtp::ProtocolMessage::ToInfo::ToInfo( const VerifierStatus & status_in ) :
+	status(status_in) ,
+	utf8address(status_in.utf8address())
+{
 }
 

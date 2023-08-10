@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+  Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 */
 
 /*
@@ -28,7 +28,6 @@ h2
 
 h3
 {
-	font-size: smaller ;
 	color: #09c ;
 }
 
@@ -40,12 +39,15 @@ div.div-main
 
 div.div-footer
 {
+	margin-top: 60px ;
+	color: #888 ;
+	font-size: smaller ;
 }
 
 div.div-pre
 {
 	margin-left: 3% ;
-	background-color: #ddd ;
+	background-color: #eee ;
 	padding: 0.5em ;
 	border: none ;
 }

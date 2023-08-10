@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2022 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 #include "gsaslserver.h"
 #include "gtimer.h"
 #include "gexception.h"
+#include <memory>
 
 namespace GPop
 {
@@ -52,7 +53,7 @@ public:
 	class Sender /// An interface used by ServerProtocol to send protocol replies.
 	{
 	public:
-		virtual bool protocolSend( const std::string & s , std::size_t offset ) = 0 ;
+		virtual bool protocolSend( G::string_view , std::size_t offset ) = 0 ;
 		virtual ~Sender() = default ;
 	} ;
 
@@ -66,9 +67,13 @@ public:
 		virtual ~Text() = default ;
 	} ;
 
-	struct Config /// A structure containing configuration parameters for ServerProtocol, currently empty.
+	struct Config /// A structure containing configuration parameters for ServerProtocol.
 	{
-		Config() = default ;
+		Config() ;
+		bool crlf_only {true} ; // (RFC-2821 2.3.7 does not apply to POP)
+		std::string sasl_server_challenge_domain ;
+		Config & set_crlf_only( bool = true ) ;
+		Config & set_sasl_server_challenge_domain( const std::string & ) ;
 	} ;
 
 	class Security /// An interface used by ServerProtocol to enable TLS.
@@ -102,7 +107,7 @@ public:
 
 	void resume() ;
 		///< Called when the Sender can send again. The Sender returns
-		///< false from protocolSend() when blocked, and calls
+		///< false from Sender::protocolSend() when blocked, and calls
 		///< resume() when unblocked.
 
 	void secure() ;
@@ -176,8 +181,7 @@ private:
 	void sendError() ;
 	void sendError( const std::string & ) ;
 	void sendOk() ;
-	static const std::string & crlf() ;
-	Event commandEvent( const std::string & ) const ;
+	Event commandEvent( G::string_view ) const ;
 	int commandNumber( const std::string & , int , std::size_t index = 1U ) const ;
 	void sendList( const std::string & , bool ) ;
 	std::string commandWord( const std::string & ) const ;
@@ -185,9 +189,10 @@ private:
 	std::string commandPart( const std::string & , std::size_t index ) const ;
 	void sendContent() ;
 	bool sendContentLine( std::string & , bool & ) ;
-	void sendLine( std::string ) ;
+	void sendLine( G::string_view , bool has_crlf = false ) ;
+	void sendLine( std::string && ) ;
 	void sendLines( std::ostringstream & ) ;
-	void lockStore() ;
+	void readStore( const std::string & ) ;
 	std::string mechanisms() const ;
 	bool mechanismsIncludePlain() const ;
 
@@ -196,8 +201,10 @@ private:
 	Sender & m_sender ;
 	Security & m_security ;
 	Store & m_store ;
-	StoreLock m_store_lock ;
-	std::unique_ptr<GAuth::SaslServer> m_sasl_server ;
+	Config m_config ;
+	std::unique_ptr<StoreUser> m_store_user ;
+	StoreList m_store_list ;
+	std::unique_ptr<GAuth::SaslServer> m_sasl ;
 	GNet::Address m_peer_address ;
 	Fsm m_fsm ;
 	std::string m_user ;
@@ -205,7 +212,7 @@ private:
 	long m_body_limit ;
 	bool m_in_body ;
 	bool m_secure ;
-	bool m_sasl_server_init_apop ;
+	bool m_sasl_init_apop ;
 } ;
 
 //| \class GPop::ServerProtocolText
@@ -230,5 +237,8 @@ private: // overrides
 	std::string capa() const override ; // Override from GPop::ServerProtocol::Text.
 	std::string user( const std::string & id ) const override ; // Override from GPop::ServerProtocol::Text.
 } ;
+
+inline GPop::ServerProtocol::Config & GPop::ServerProtocol::Config::set_crlf_only( bool b ) { crlf_only = b ; return *this ; }
+inline GPop::ServerProtocol::Config & GPop::ServerProtocol::Config::set_sasl_server_challenge_domain( const std::string & s ) { sasl_server_challenge_domain = s ; return *this ; }
 
 #endif
