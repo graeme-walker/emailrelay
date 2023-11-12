@@ -1,11 +1,21 @@
 E-MailRelay Change Log
 ======================
 
+2.5 -> 2.5.1
+------------
+
+* Filters can control the [SMTP][] server's error response code.
+* Proxying with `--immediate` passes back SMTP reponses more faithfully.
+* The `--disable-admin` build-time configure option is restored.
+* New `smtp disable` admin command to disable new SMTP sessions.
+* Fewer Windows handles inherited by filter programs [bug-id #55].
+* Fix for `--dnsbl` option parsing.
+
 2.4 -> 2.5
 ----------
 
 * Multiple configurations in one process.
-* [SMTP][] PIPELINING ([RFC-2920][]).
+* SMTP PIPELINING ([RFC-2920][]).
 * SMTP CHUNKING/8BITMIME 'BDAT' extension ([RFC-3030][]), disabled by default.
 * SMTP SMTPUTF8 extension ([RFC-6531][]), disabled by default.
 * No 7-bit/8-bit check on received message content (see NEWS file).

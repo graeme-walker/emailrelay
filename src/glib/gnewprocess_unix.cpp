@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -45,13 +45,17 @@
 #define WIFCONTINUED(wstatus) 0
 #endif
 
-//| \class G::Pipe
-/// A private implementation class used by G::NewProcess that wraps
-/// a unix pipe.
-///
-class G::Pipe
+namespace G
 {
-public:
+	namespace NewProcessUnixImp
+	{
+		class Pipe ;
+	}
+}
+
+class G::NewProcessUnixImp::Pipe
+{
+	public:
 	Pipe() ;
 	~Pipe() ;
 	void inChild() ; // writer
@@ -71,13 +75,11 @@ private:
 	int m_fd{-1} ;
 } ;
 
-//| \class G::NewProcessImp
-/// A pimple-pattern implementation class used by G::NewProcess.
-///
 class G::NewProcessImp
 {
 public:
 	using Fd = NewProcess::Fd ;
+	using Pipe = NewProcessUnixImp::Pipe ;
 	NewProcessImp( const Path & , const StringArray & , const NewProcess::Config & ) ;
 	int id() const noexcept ;
 	static std::pair<bool,pid_t> fork() ;
@@ -333,39 +335,39 @@ bool G::NewProcessImp::duplicate( Fd fd , int fd_std )
 
 // ==
 
-G::Pipe::Pipe()
+G::NewProcessUnixImp::Pipe::Pipe()
 {
 	if( ::socketpair( AF_UNIX , SOCK_STREAM , 0 , &m_fds[0] ) < 0 ) // must be a stream to dup() onto stdout
 		throw NewProcess::PipeError() ;
 	G_DEBUG( "G::Pipe::ctor: " << m_fds[0] << " " << m_fds[1] ) ;
 }
 
-G::Pipe::~Pipe()
+G::NewProcessUnixImp::Pipe::~Pipe()
 {
 	if( m_fds[0] >= 0 ) ::close( m_fds[0] ) ;
 	if( m_fds[1] >= 0 ) ::close( m_fds[1] ) ;
 }
 
-void G::Pipe::inChild()
+void G::NewProcessUnixImp::Pipe::inChild()
 {
 	::close( m_fds[0] ) ; // close read end
 	m_fds[0] = -1 ;
 	m_fd = m_fds[1] ; // writer
 }
 
-void G::Pipe::inParent()
+void G::NewProcessUnixImp::Pipe::inParent()
 {
 	::close( m_fds[1] ) ; // close write end
 	m_fds[1] = -1 ;
 	m_fd = m_fds[0] ; // reader
 }
 
-int G::Pipe::fd() const
+int G::NewProcessUnixImp::Pipe::fd() const
 {
 	return m_fd ;
 }
 
-void G::Pipe::dupTo( int fd_std )
+void G::NewProcessUnixImp::Pipe::dupTo( int fd_std )
 {
 	if( NewProcessImp::duplicate( NewProcess::Fd::fd(m_fd) , fd_std ) )
 	{

@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -81,7 +81,7 @@ protected:
 	void sendBadTo( const std::string & , const std::string & , bool ) ;
 	void sendBadDataOutOfSequence() ;
 	void sendOutOfSequence() ;
-	void sendGreeting( const std::string & ) ;
+	void sendGreeting( const std::string & , bool ) ;
 	void sendQuitOk() ;
 	void sendUnrecognised( const std::string & ) ;
 	void sendNotImplemented() ;
@@ -91,11 +91,12 @@ protected:
 	void sendMailReply( const std::string & from ) ;
 	void sendRcptReply( const std::string & to , bool local ) ;
 	void sendDataReply() ;
-	void sendCompletionReply( bool ok , const std::string & ) ;
+	void sendCompletionReply( bool ok , int , const std::string & ) ;
 	void sendFailed() ;
 	void sendInvalidArgument() ;
 	void sendAuthenticationCancelled() ;
 	void sendAuthRequired( bool = false ) ;
+	void sendDisabled() ;
 	void sendNoRecipients() ;
 	void sendMissingParameter() ;
 	void sendVerified( const std::string & ) ;

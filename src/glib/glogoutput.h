@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -87,6 +87,7 @@ public:
 		bool m_quiet_stderr {false} ;
 		bool m_use_syslog {false} ;
 		bool m_allow_bad_syslog {false} ;
+		bool m_stdout {false} ;
 		SyslogFacility m_facility {SyslogFacility::User} ;
 		Process::Umask::Mode m_umask {Process::Umask::Mode::NoChange} ;
 		Config() ;
@@ -104,6 +105,7 @@ public:
 		Config & set_allow_bad_syslog( bool value = true ) ;
 		Config & set_facility( SyslogFacility ) ;
 		Config & set_umask( Process::Umask::Mode ) ;
+		Config & set_stdout( bool value = true ) ;
 	} ;
 
 	LogOutput( const std::string & exename , const Config & config ,

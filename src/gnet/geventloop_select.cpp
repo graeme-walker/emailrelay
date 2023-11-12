@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -104,12 +104,12 @@ std::unique_ptr<GNet::EventLoop> GNet::EventLoop::create()
 
 GNet::EventLoopImp::EventLoopImp() // NOLINT cppcoreguidelines-pro-type-member-init
 {
-	FD_ZERO( &m_read_set ) ;
-	FD_ZERO( &m_write_set ) ;
-	FD_ZERO( &m_other_set ) ;
-	FD_ZERO( &m_read_set_copy ) ;
-	FD_ZERO( &m_write_set_copy ) ;
-	FD_ZERO( &m_other_set_copy ) ;
+	FD_ZERO( &m_read_set ) ; // NOLINT
+	FD_ZERO( &m_write_set ) ; // NOLINT
+	FD_ZERO( &m_other_set ) ; // NOLINT
+	FD_ZERO( &m_read_set_copy ) ; // NOLINT
+	FD_ZERO( &m_write_set_copy ) ; // NOLINT
+	FD_ZERO( &m_other_set_copy ) ; // NOLINT
 }
 
 std::string GNet::EventLoopImp::run()
@@ -152,7 +152,7 @@ void GNet::EventLoopImp::runOnce()
 	if( TimerList::ptr() != nullptr )
 	{
 		G::TimeInterval interval = G::TimeInterval::zero() ;
-		bool infinite ;
+		bool infinite = false ;
 		std::tie( interval , infinite ) = TimerList::instance().interval() ;
 		timeout.tv_sec = interval.s() ;
 		timeout.tv_usec = interval.us() ;

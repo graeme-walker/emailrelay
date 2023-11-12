@@ -38,6 +38,7 @@
 #  $makefile->compile_options() ;
 #  $makefile->sources('foo') ;
 #  $makefile->our_libs('foo') ;
+#  $makefile->libpath('foo') ;
 #  $makefile->sys_libs('foo') ;
 #
 # Typical directories in a autoconf vpath build (see includes()):
@@ -176,6 +177,17 @@ sub our_libs
 		$this->value( "${prefix}_LDADD" ) ;
 }
 
+sub libpath
+{
+	my ( $this , $program , $base ) = @_ ;
+	$base = "" if !defined($base) ;
+	( my $prefix = $program ) =~ s/[-.]/_/g ;
+	return
+		map { simplepath(File::Basename::dirname(join("/",$base,$_))) }
+		grep { my $x = File::Basename::basename($_) ; $x =~ m/^lib.*\.a$/ }
+		$this->value( "${prefix}_LDADD" ) ;
+}
+
 sub sys_libs
 {
 	my ( $this , $program ) = @_ ;
@@ -258,7 +270,7 @@ sub includes
 	# Returns a list of include directories derived from the
 	# AM_CPPFLAGS and CXXFLAGS macros. The returned list also
 	# optionally starts with the autoconf header directory,
-	# obtained by expanding top_srcdir.
+	# obtained by expanding "$(top_srcdir)/src".
 	#
 	# Include paths need to vary through the source tree,
 	# so a 'base' parameter is provided here which is used
@@ -267,9 +279,9 @@ sub includes
 	# autoconf header directory.
 	#
 	# For example, if CXXFLAGS is "-I$(top_srcdir)/src/sub"
-	# and top_srcdir is "." then includes(base()) will
-	# will yield ("./..",".././src/sub") for one makefile and
-	# ("./../..","../.././src/sub") for another.
+	# and top_srcdir is "." then includes(base()) will yield
+	# ".././src/sub" for one makefile and "../.././src/sub"
+	# for another.
 	#
 	# In practice the value for top_srcdir should be carefully
 	# chosen as some "base-to-top" relative path that makes things
@@ -278,7 +290,8 @@ sub includes
 	#
 	my ( $this , $base , $full_paths , $add_autoconf_dir ) = @_ ;
 	$base ||= "" ;
-	my $autoconf_dir = simplepath( join( "/" , $this->value("top_srcdir") , $base ) ) ;
+	my $autoconf_dir = simplepath( join( "/" , $this->value("top_srcdir") , $base , "src" ) ) ;
+	$autoconf_dir = $this->fullpath( $autoconf_dir ) if $full_paths ;
 	my @a = $this->_includes_imp( $base , "AM_CPPFLAGS" , $this->{m_vars} , $full_paths ) ;
 	my @b = $this->_includes_imp( $base , "CXXFLAGS" , $this->{m_vars} , $full_paths ) ;
 	my @c = ( $autoconf_dir && $add_autoconf_dir ) ? ( $autoconf_dir ) : () ;
@@ -312,7 +325,7 @@ sub simplepath
 	my ( $path ) = @_ ;
 	my $first = ( $path =~ m;^/; ) ? "/" : "" ;
 	my @out = () ;
-	my @split = split( "/" , $path ) ;
+	my @split = grep {m/./} split( "/" , $path ) ;
 	for my $x ( @split )
 	{
 		next if( $x eq "" || $x eq "." ) ;

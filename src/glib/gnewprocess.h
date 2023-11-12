@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -39,8 +39,6 @@ namespace G
 	class NewProcess ;
 	class NewProcessImp ;
 	class NewProcessWaitable ;
-	struct NewProcessConfig ;
-	class Pipe ;
 }
 
 //| \class G::NewProcess
@@ -154,9 +152,6 @@ public:
 		///< function does text substitution for "__errno__" and "__strerror__"
 		///< substrings that appear within the error format string.
 
-	explicit NewProcess( const NewProcessConfig & ) ;
-		///< Constructor overload with parameters packaged into a structure.
-
 	~NewProcess() ;
 		///< Destructor. Kills the spawned process if the Waitable has
 		///< not been resolved.
@@ -174,8 +169,8 @@ public:
 
 	static std::pair<bool,pid_t> fork() ;
 		///< A utility function that forks the calling process and returns
-		///< twice; once in the parent and once in the child. Returns
-		///< an "is-in-child/child-pid" pair.
+		///< twice; once in the parent and once in the child. Not implemented
+		///< on windows. Returns an "is-in-child/child-pid" pair.
 		/// \see G::Daemon
 
 public:
@@ -192,8 +187,7 @@ private:
 } ;
 
 //| \class G::NewProcessWaitable
-/// Holds the parameters and future results of a waitpid() system call,
-/// as performed by the NewProcess wait() method.
+/// Holds the parameters and future results of a waitpid() system call.
 ///
 /// The wait() method can be called from a worker thread and the results
 /// collected by the main thread using get() once the worker thread has

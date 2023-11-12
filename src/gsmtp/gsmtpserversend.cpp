@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -40,9 +40,12 @@ void GSmtp::ServerSend::sendChallenge( const std::string & challenge )
 	send( "334 " + G::Base64::encode(challenge) ) ;
 }
 
-void GSmtp::ServerSend::sendGreeting( const std::string & text )
+void GSmtp::ServerSend::sendGreeting( const std::string & text , bool enabled )
 {
-	send( "220 " + text ) ;
+	if( enabled )
+		send( "220 " + text ) ;
+	else
+		sendDisabled() ;
 }
 
 void GSmtp::ServerSend::sendReadyForTls()
@@ -142,6 +145,11 @@ void GSmtp::ServerSend::sendAuthRequired( bool with_starttls_help )
 		send( "530 authentication required" ) ;
 }
 
+void GSmtp::ServerSend::sendDisabled()
+{
+	send( "421 service not available" ) ;
+}
+
 void GSmtp::ServerSend::sendEncryptionRequired( bool with_starttls_help )
 {
 	if( with_starttls_help )
@@ -175,13 +183,14 @@ void GSmtp::ServerSend::sendMailReply( const std::string & from )
 	sendOk( "sender <" + from + "> OK" ) ; // RFC-2920 3.2 (10)
 }
 
-void GSmtp::ServerSend::sendCompletionReply( bool ok , const std::string & response )
+void GSmtp::ServerSend::sendCompletionReply( bool ok , int response_code , const std::string & response )
 {
 	if( ok )
 		sendOk( "message processed" ) ;
+	else if( response_code >= 400 && response_code < 600 )
+		send( G::Str::fromInt(response_code).append(1U,' ').append(response) ) ;
 	else
-		// 452=>"action not taken", or perhaps 554=>"transaction failed" (so don't try again)
-		send( "452 " + response ) ;
+		send( "452 " + response ) ; // 452=>"action not taken"
 }
 
 void GSmtp::ServerSend::sendFailed()

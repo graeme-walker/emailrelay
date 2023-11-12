@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -51,7 +51,7 @@ GSmtp::Filter::Result GFilters::SplitFilter::run( const GStore::MessageId & mess
 	G::Path content_path = m_store.contentPath( message_id ) ;
 	G::Path envelope_path = m_store.envelopePath( message_id , e_state ) ;
 
-	GStore::Envelope envelope = m_store.readEnvelope( envelope_path ) ;
+	GStore::Envelope envelope = GStore::FileStore::readEnvelope( envelope_path ) ;
 
 	// group-by domain
 	G::StringArray domains ;
@@ -78,9 +78,9 @@ GSmtp::Filter::Result GFilters::SplitFilter::run( const GStore::MessageId & mess
 	std::stringstream extra_headers ;
 	if( ids.size() > 1U )
 	{
-		extra_headers << m_store.x() << "SplitGroupCount: " << ids.size() << "\n" ;
+		extra_headers << GStore::FileStore::x() << "SplitGroupCount: " << ids.size() << "\n" ;
 		for( const auto & id : ids )
-			extra_headers << m_store.x() << "SplitGroup: " << id << "\n" ;
+			extra_headers << GStore::FileStore::x() << "SplitGroup: " << id << "\n" ;
 	}
 
 	// create new messages for each domain

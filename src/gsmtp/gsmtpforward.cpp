@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -174,7 +174,7 @@ void GSmtp::Forward::routingFilterDone( int filter_result )
 	if( continue_ )
 	{
 		if( m_store == nullptr )
-			m_message_done_signal.emit( std::string(abandon?"":"routing filter failed") , false ) ;
+			m_message_done_signal.emit( { 0 , abandon?"":"routing failed" , false } ) ;
 		else
 			m_continue_timer.startTimer( 0U ) ;
 	}
@@ -276,7 +276,7 @@ void GSmtp::Forward::onErrorTimeout()
 	throw G::Exception( m_error ) ; // terminates us
 }
 
-void GSmtp::Forward::onMessageDoneSignal( const std::string & reason , bool special )
+void GSmtp::Forward::onMessageDoneSignal( const Client::MessageDoneInfo & info )
 {
 	// optimise away repeated DNS queries on the default forward-to address
 	G_ASSERT( m_client_ptr.get() ) ;
@@ -296,7 +296,7 @@ void GSmtp::Forward::onMessageDoneSignal( const std::string & reason , bool spec
 	}
 	else
 	{
-		m_message_done_signal.emit( std::string(reason) , special ) ;
+		m_message_done_signal.emit( info ) ;
 	}
 }
 
@@ -358,7 +358,7 @@ std::string GSmtp::Forward::messageInfo( const GStore::StoredMessage & message )
 	return ss.str() ;
 }
 
-G::Slot::Signal<const std::string&,bool> & GSmtp::Forward::messageDoneSignal() noexcept
+G::Slot::Signal<const GSmtp::Client::MessageDoneInfo&> & GSmtp::Forward::messageDoneSignal() noexcept
 {
 	return m_message_done_signal ;
 }

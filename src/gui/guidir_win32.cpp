@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -114,7 +114,6 @@ int Gui::DirImp::special_id( const std::string & type )
 	if( type == "programs" ) return sizeof(void*) == 4 ? CSIDL_PROGRAM_FILESX86 : CSIDL_PROGRAM_FILES ; // "c:/program files"
 	if( type == "data" ) return CSIDL_COMMON_APPDATA ; // "c:/programdata"
 	throw std::runtime_error("internal error") ;
-	return 0 ;
 }
 
 G::Path Gui::DirImp::envPath( const std::string & key , const G::Path & default_ )

@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -270,8 +270,8 @@ G::IdentityImp::Account G::IdentityImp::lookup( const std::string & name , bool 
 		if( LookupAccountSidA( NULL , sid_p , NULL , &namebuffersize , NULL , &domainbuffersize , &type ) )
 			return error ;
 		std::vector<char> namebuffer( std::max(DWORD(1),namebuffersize) ) ;
-		std::vector<char> domainbuffer( std::max(DWORD(1),domainbuffersize) ) ; // not used
-		if( !LookupAccountSidA( NULL , sid_p , &namebuffer[0] , &namebuffersize , &domainbuffer[0] , &domainbuffersize , &type ) )
+		std::vector<char> domainbuffer2( std::max(DWORD(1),domainbuffersize) ) ; // not used
+		if( !LookupAccountSidA( NULL , sid_p , &namebuffer[0] , &namebuffersize , &domainbuffer2[0] , &domainbuffersize , &type ) )
 			return error ;
 		namebuffer[namebuffer.size()-1U] = '\0' ;
 		canonical_name = std::string( &namebuffer[0] ) ;

@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -45,14 +45,13 @@ namespace G
 ///
 /// Usage:
 /// \code
-///  using Layout = G::OptionsOutputLayout ;
-///  using Output = G::OptionsOutput ;
 ///  G::Arg arg( argc , argv ) ;
 ///  G::GetOpt opt( arg , "e!extra!does something! extra!1!something!1" "|" "h!help!shows help!!0!!1" ) ;
 ///  if( opt.hasErrors() ) { opt.showErrors( std::cerr ) ; exit( 2 ) ; }
-///  if( opt.contains("help"sv) ) { Output(opt.options()).showUsage( Layout().set_whatever() ,
-///    std::cout , arg.prefix() , " [<more>]" ) ; exit( 0 ) ; }
-///  run( opt.args() , opt.contains("extra"sv) ? opt.value("extra"sv) : std::string() ) ;
+///  if( opt.contains("help") ) { G::OptionsUsage usage( opt.options() ) ;
+///    usage.output( {} , std::cout , arg.prefix() , " [<more>]" ) ;
+///    exit( 0 ) ; }
+///  run( opt.args() , opt.value("extra","default") ) ;
 /// \endcode
 ///
 /// This class is a thin layer over G::Options, G::OptionMap, G::OptionParser etc,

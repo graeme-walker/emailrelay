@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -75,6 +75,11 @@ std::string GFilters::ExecutableFilter::response() const
 		return m_response ;
 }
 
+int GFilters::ExecutableFilter::responseCode() const
+{
+	return m_response_code ;
+}
+
 std::string GFilters::ExecutableFilter::reason() const
 {
 	G_ASSERT( m_exit.ok() || m_exit.abandon() || !m_reason.empty() ) ;
@@ -109,6 +114,7 @@ void GFilters::ExecutableFilter::onTimeout()
 	m_exit = Exit( 1 , m_filter_type ) ;
 	G_ASSERT( m_exit.fail() ) ;
 	m_response = "error" ;
+	m_response_code = 0 ;
 	m_reason = "timeout" ;
 	m_done_signal.emit( static_cast<int>(m_exit.result) ) ;
 }
@@ -118,25 +124,27 @@ void GFilters::ExecutableFilter::onTaskDone( int exit_code , const std::string &
 	m_timer.cancelTimer() ;
 
 	// search the output for diagnostics
-	std::tie(m_response,m_reason) = parseOutput( output , "rejected" ) ;
-	if( m_response.find("filter exec error") == 0U ) // see ctor
+	std::tie(m_response,m_response_code,m_reason) = parseOutput( output , "rejected" ) ;
+	if( m_response.find("filter exec error:") == 0U ) // see ctor
 	{
-		m_reason = m_response ;
-		m_response = "rejected" ;
+		m_reason = m_response ; // first
+		m_response = "rejected" ; // second
+		m_response_code = 0 ;
 	}
 
 	m_exit = Exit( exit_code , m_filter_type ) ;
 	if( !m_exit.ok() )
 	{
 		G_WARNING( "GFilters::ExecutableFilter::onTaskDone: " << prefix() << " failed: "
-			<< "exit code " << exit_code << ": [" << m_response << "]" ) ;
+			<< "exit code " << exit_code << ": [" << m_response << "]"
+			<< (m_response_code?("("+G::Str::fromInt(m_response_code)+")"):"") ) ;
 	}
 
 	// callback
 	m_done_signal.emit( static_cast<int>(m_exit.result) ) ;
 }
 
-std::pair<std::string,std::string> GFilters::ExecutableFilter::parseOutput( std::string s ,
+std::tuple<std::string,int,std::string> GFilters::ExecutableFilter::parseOutput( std::string s ,
 	const std::string & default_ ) const
 {
 	G_DEBUG( "GFilters::ExecutableFilter::parseOutput: in: \"" << G::Str::printable(s) << "\"" ) ;
@@ -174,8 +182,18 @@ std::pair<std::string,std::string> GFilters::ExecutableFilter::parseOutput( std:
 	G_DEBUG( "GFilters::ExecutableFilter::parseOutput: out: [" << G::Str::join("|",lines) << "]" ) ;
 
 	std::string response = ( !lines.empty() && !lines.at(0U).empty() ) ? lines.at(0U) : default_ ;
+	int response_code = 0 ;
+	if( response.size() >= 3U &&
+		( response[0] == '4' || response[0] == '5' ) &&
+		( response[1] >= '0' && response[1] <= '9' ) &&
+		( response[2] >= '0' && response[2] <= '9' ) &&
+		( response.size() == 3U || response[3] == ' ' || response[3] == '\t' ) )
+	{
+		response_code = G::Str::toInt( response.substr(0U,3U) ) ;
+		response.erase( 0U , response.size() == 3U ? 3U : 4U ) ;
+	}
 	std::string reason = ( lines.size() > 1U && !lines.at(1U).empty() ) ? lines.at(1U) : response ;
-	return { response , reason } ;
+	return { response , response_code , reason } ;
 }
 
 G::Slot::Signal<int> & GFilters::ExecutableFilter::doneSignal() noexcept

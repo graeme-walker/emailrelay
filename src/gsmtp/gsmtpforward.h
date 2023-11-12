@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -98,10 +98,9 @@ public:
 	void quitAndFinish() ;
 		///< Finishes a sendMessage() sequence.
 
-	G::Slot::Signal<const std::string&,bool> & messageDoneSignal() noexcept ;
+	G::Slot::Signal<const Client::MessageDoneInfo&> & messageDoneSignal() noexcept ;
 		///< Returns a signal that indicates that sendMessage()
-		///< has completed or failed. The boolean value is set
-		///< if the filter completed with its special value.
+		///< has completed or failed.
 
 	G::Slot::Signal<const std::string&,const std::string&,const std::string&> & eventSignal() noexcept ;
 		///< See GNet::Client::eventSignal()
@@ -126,7 +125,7 @@ private:
 	void onContinueTimeout() ;
 	bool sendNext() ;
 	void start( std::unique_ptr<GStore::StoredMessage> ) ;
-	void onMessageDoneSignal( const std::string & , bool ) ;
+	void onMessageDoneSignal( const Client::MessageDoneInfo & ) ;
 	void onEventSignal( const std::string & , const std::string & , const std::string & ) ;
 	void onDelete( const std::string & reason ) ;
 	void onDeleteSignal( const std::string & ) ;
@@ -160,7 +159,7 @@ private:
 	std::string m_selector ;
 	bool m_has_connected ;
 	bool m_finished ;
-	G::Slot::Signal<const std::string&,bool> m_message_done_signal ;
+	G::Slot::Signal<const Client::MessageDoneInfo&> m_message_done_signal ;
 	G::Slot::Signal<const std::string&,const std::string&,const std::string&> m_event_signal ;
 } ;
 

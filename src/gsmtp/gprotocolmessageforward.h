@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -48,7 +48,7 @@ namespace GSmtp
 ///
 /// The implementation delegates to an instance of the ProtocolMessageStore
 /// class (ie. its sibling class) to do the storage, and to an instance
-/// of the GSmtp::Client class to do the forwarding.
+/// of the GSmtp::Forward class to do the forwarding.
 ///
 /// \see GSmtp::ProtocolMessageStore
 ///
@@ -66,21 +66,8 @@ public:
 	~ProtocolMessageForward() override ;
 		///< Destructor.
 
-protected:
-	ProtocolMessage::DoneSignal & storageDoneSignal() noexcept ;
-		///< Returns the signal which is used to signal that the storage
-		///< is complete. Derived classes can use this to
-		///< intercept the storage-done signal emit()ed by
-		///< the ProtocolMessageStore object.
-
-	void processDone( bool , const GStore::MessageId & , const std::string & ,
-		const std::string & ) ;
-			///< Called by derived classes that have intercepted
-			///< the storageDoneSignal() when their own post-storage
-			///< processing is complete.
-
 private: // overrides
-	ProtocolMessage::DoneSignal & doneSignal() noexcept override ; // GSmtp::ProtocolMessage
+	ProtocolMessage::ProcessedSignal & processedSignal() noexcept override ; // GSmtp::ProtocolMessage
 	void reset() override ; // GSmtp::ProtocolMessage
 	void clear() override ; // GSmtp::ProtocolMessage
 	GStore::MessageId setFrom( const std::string & from_user , const FromInfo & ) override ; // GSmtp::ProtocolMessage
@@ -102,7 +89,8 @@ public:
 
 private:
 	void clientDone( const std::string & ) ; // GNet::Client::doneSignal()
-	void messageDone( const std::string & , bool ) ; // GSmtp::Client::messageDoneSignal()
+	void messageDone( const Client::MessageDoneInfo & ) ; // GSmtp::Client::messageDoneSignal()
+	void protocolMessageProcessed( const ProtocolMessage::ProcessedInfo & ) ; // GSmtp::ProtocolMessage::processedSignal()
 	std::string forward( const GStore::MessageId & , bool & ) ;
 
 private:
@@ -116,7 +104,7 @@ private:
 	std::unique_ptr<ProtocolMessage> m_pm ;
 	GNet::ClientPtr<GSmtp::Forward> m_client_ptr ;
 	GStore::MessageId m_id ;
-	ProtocolMessage::DoneSignal m_done_signal ;
+	ProtocolMessage::ProcessedSignal m_processed_signal ;
 } ;
 
 #endif

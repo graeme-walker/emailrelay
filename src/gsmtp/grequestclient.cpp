@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -23,27 +23,21 @@
 #include "grequestclient.h"
 
 GSmtp::RequestClient::RequestClient( GNet::ExceptionSink es , const std::string & key , const std::string & ok ,
-	const GNet::Location & location , unsigned int connect_timeout , unsigned int response_timeout ,
+	const GNet::Location & location , unsigned int connection_timeout , unsigned int response_timeout ,
 	unsigned int idle_timeout ) :
-		GNet::Client(es,location,netConfig(connect_timeout,response_timeout,idle_timeout)) ,
+		GNet::Client(es,location,
+			GNet::Client::Config()
+				.set_line_buffer_config(GNet::LineBuffer::Config::newline())
+				.set_connection_timeout(connection_timeout)
+				.set_response_timeout(response_timeout)
+				.set_idle_timeout(idle_timeout)) ,
 		m_eol(1U,'\n') ,
 		m_key(key) ,
 		m_ok(ok) ,
 		m_timer(*this,&RequestClient::onTimeout,es)
 {
 	G_DEBUG( "GSmtp::RequestClient::ctor: " << location.displayString() << ": "
-		<< connect_timeout << " " << response_timeout ) ;
-}
-
-GNet::Client::Config GSmtp::RequestClient::netConfig( unsigned int connection_timeout ,
-	unsigned int response_timeout , unsigned int idle_timeout )
-{
-	GNet::Client::Config net_config ;
-	net_config.line_buffer_config = GNet::LineBufferConfig::newline() ;
-	net_config.connection_timeout = connection_timeout ;
-	net_config.response_timeout = response_timeout ;
-	net_config.idle_timeout = idle_timeout ;
-	return net_config ;
+		<< connection_timeout << " " << response_timeout ) ;
 }
 
 void GSmtp::RequestClient::onConnect()

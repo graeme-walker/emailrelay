@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -62,19 +62,35 @@ namespace G
 				#endif
 			#endif
 		}
+		void uninherited( HANDLE h )
+		{
+			if( h )
+				SetHandleInformation( h , HANDLE_FLAG_INHERIT , 0 ) ;
+		}
+		HANDLE handle( int fd )
+		{
+			return fd >= 0 ? reinterpret_cast<HANDLE>( _get_osfhandle(fd) ) : HNULL ;
+		}
+		int fd( std::FILE * fp )
+		{
+			return fp ? _fileno( fp ) : -1 ;
+		}
 		std::FILE * fopen( const char * path , const char * mode ) noexcept
 		{
+			std::FILE * fp = nullptr ;
 			#if GCONFIG_HAVE_FSOPEN
-				return _fsopen( path , mode , _SH_DENYNO ) ;
+				fp = _fsopen( path , mode , _SH_DENYNO ) ;
 			#else
 				#if GCONFIG_HAVE_FOPEN_S
-					std::FILE * fp = nullptr ;
 					errno_t e = fopen_s( &fp , path , mode ) ;
-					return e ? nullptr : fp ;
+					if( e )
+						fp = nullptr ;
 				#else
-					return std::fopen( path , mode ) ;
+					fp = std::fopen( path , mode ) ;
 				#endif
 			#endif
+			uninherited( handle(fd(fp)) ) ; // or add "N" to mode
+			return fp ;
 		}
 	}
 }

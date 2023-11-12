@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -49,7 +49,7 @@ public:
 	G_EXCEPTION( ProtocolError , tx("protocol error") ) ;
 
 	RequestClient( GNet::ExceptionSink , const std::string & key , const std::string & ok ,
-		const GNet::Location & host_and_service , unsigned int connect_timeout ,
+		const GNet::Location & host_and_service , unsigned int connection_timeout ,
 		unsigned int response_timeout , unsigned int idle_timeout ) ;
 			///< Constructor.  The 'key' parameter is used in the callback
 			///< signal. The 'ok' parameter is a response string that is
@@ -95,7 +95,6 @@ private:
 	void onTimeout() ;
 	std::string requestLine( const std::string & ) const ;
 	std::string result( std::string ) const ;
-	static GNet::Client::Config netConfig( unsigned int , unsigned int , unsigned int ) ;
 
 private:
 	std::string m_eol ;

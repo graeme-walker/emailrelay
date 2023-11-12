@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -27,7 +27,7 @@
 #include <sstream>
 #include <utility>
 
-GNet::ServerPeer::ServerPeer( ExceptionSink es , ServerPeerInfo && peer_info , const LineBufferConfig & line_buffer_config ) :
+GNet::ServerPeer::ServerPeer( ExceptionSink es , ServerPeerInfo && peer_info , const LineBuffer::Config & line_buffer_config ) :
 	m_es(es) ,
 	m_address(peer_info.m_address) ,
 	m_socket(std::move(peer_info.m_socket)) ,
@@ -122,17 +122,23 @@ std::string GNet::ServerPeer::peerCertificate() const
 
 bool GNet::ServerPeer::send( const std::string & data )
 {
+	if( m_config.kick_idle_timer_on_send && m_config.idle_timeout )
+		m_idle_timer.startTimer( m_config.idle_timeout ) ;
 	return m_sp.send( data , 0U ) ;
 }
 
 bool GNet::ServerPeer::send( G::string_view data )
 {
+	if( m_config.kick_idle_timer_on_send && m_config.idle_timeout )
+		m_idle_timer.startTimer( m_config.idle_timeout ) ;
 	return m_sp.send( data ) ;
 }
 
 #ifndef G_LIB_SMALL
 bool GNet::ServerPeer::send( const std::vector<G::string_view> & segments , std::size_t offset )
 {
+	if( m_config.kick_idle_timer_on_send && m_config.idle_timeout )
+		m_idle_timer.startTimer( m_config.idle_timeout ) ;
 	return m_sp.send( segments , offset ) ;
 }
 #endif

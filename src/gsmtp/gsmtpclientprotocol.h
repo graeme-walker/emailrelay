@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -110,23 +110,27 @@ public:
 		Config & set_try_reauthentication( bool = true ) noexcept ;
 	} ;
 
+	struct DoneInfo /// Parameters for GSmtp::ClientProtocol::doneSignal()
+	{
+		int response_code ; // smtp result code, or 0 for an internal non-smtp error, or -1 for filter-abandon, or -2 for a filter-fail
+		std::string response ; // response text, empty iff sent successfully
+		std::string reason ; // additional reason text (cf. GSmtp::Filter)
+		G::StringArray rejects ; // rejected RCPT-TO addresses
+	} ;
+
 	ClientProtocol( GNet::ExceptionSink , Sender & sender ,
 		const GAuth::SaslClientSecrets & secrets , const std::string & sasl_client_config ,
 		const Config & config , bool in_secure_tunnel ) ;
 			///< Constructor. The Sender interface is used to send protocol
 			///< messages to the peer. The references are kept.
 
-	G::Slot::Signal<int,const std::string&,const std::string&,const G::StringArray&> & doneSignal() noexcept ;
+	G::Slot::Signal<const DoneInfo&> & doneSignal() noexcept ;
 		///< Returns a signal that is raised once the protocol has finished
-		///< with a given message. The first signal parameter is the SMTP response
-		///< value, or 0 for an internal non-SMTP error, or -1 for filter-abandon,
-		///< or -2 for a filter-fail. The second parameter is the empty string on
-		///< success or a non-empty response string. The third parameter contains
-		///< any additional error reason text. The fourth parameter is a list
-		///< of rejected addressees. If 'must_accept_all_recipients' is false
-		///< and the message was successfully sent to only some of the
-		///< recipients then this is signalled as an error with a non-empty
-		///< reject list.
+		///< with a given message.
+		///<
+		///< If 'must_accept_all_recipients' is false and the message was
+		///< successfully sent to only some of the recipients then this is
+		///< signalled as an error with a non-empty reject list.
 
 	G::Slot::Signal<> & filterSignal() noexcept ;
 		///< Returns a signal that is raised when the protocol needs
@@ -215,8 +219,8 @@ private:
 		std::string selector ;
 		std::size_t content_size {0U} ;
 		std::size_t to_index {0U} ;
-		std::size_t to_accepted {0U} ;
-		G::StringArray to_rejected ;
+		std::size_t to_accepted {0U} ; // count of accepted recipients
+		G::StringArray to_rejected ; // list of rejected recipients
 		std::size_t chunk_data_size {0U} ;
 		std::string chunk_data_size_str ;
 	} ;
@@ -274,7 +278,7 @@ private:
 	bool m_eightbit_warned ;
 	bool m_binarymime_warned ;
 	bool m_utf8_warned ;
-	G::Slot::Signal<int,const std::string&,const std::string&,const G::StringArray&> m_done_signal ;
+	G::Slot::Signal<const DoneInfo &> m_done_signal ;
 	G::Slot::Signal<> m_filter_signal ;
 	Protocol m_protocol ;
 	MessageState m_message_state ;

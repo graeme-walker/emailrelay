@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -34,7 +34,7 @@
 
 namespace GNet
 {
-	namespace DnsBlockImp /// An implementation namespace for GNet::DnsBlock.
+	namespace DnsBlockImp
 	{
 		static constexpr G::string_view default_timeout_ms {"5000",4U} ;
 		static constexpr unsigned int default_threshold {1U} ;
@@ -169,8 +169,10 @@ GNet::Address GNet::DnsBlock::nameServerAddress( const std::string & s )
 
 bool GNet::DnsBlock::isDomain( G::string_view s ) noexcept
 {
+	// we need to distinguish between eg. "127.0.0.1" as an IP address and
+	// "127.0.0.com" as a domain -- all top-level domains are non-numeric
 	if( G::Str::isNumeric(s,true) ) return false ;
-	G::string_view tld = G::Str::tailView( s , "."_sv ) ;
+	G::string_view tld = G::Str::tailView( s , s.rfind('.') ) ;
 	return tld.empty() || ( G::Str::isSimple(tld) && !G::Str::isNumeric(tld) ) ;
 }
 

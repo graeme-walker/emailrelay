@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -136,6 +136,12 @@ public:
 		///< Returns the arguments as a string array, with an optional shift.
 		///< A shift of one will remove the program name.
 
+	StringArray::const_iterator cbegin() const ;
+		///< Returns a begin operator, advanced to exclude argv0.
+
+	StringArray::const_iterator cend() const ;
+		///< Returns the end operator.
+
 private:
 	std::size_t find( bool , const std::string & , std::size_t , std::size_t * ) const ;
 	static bool strmatch( bool , const std::string & , const std::string & ) ;
@@ -146,5 +152,11 @@ private:
 	static std::string m_v0 ;
 	static std::string m_cwd ;
 } ;
+
+namespace G
+{
+	inline G::StringArray::const_iterator begin( const G::Arg & arg ) { return arg.cbegin() ; }
+	inline G::StringArray::const_iterator end( const G::Arg & arg ) { return arg.cend() ; }
+}
 
 #endif

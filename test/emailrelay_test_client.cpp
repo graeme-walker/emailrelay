@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -89,7 +89,7 @@ struct Address
 		specific.sin_addr.s_addr = inet_addr( address ) ;
 		if( specific.sin_addr.s_addr == INADDR_NONE )
 			throw std::runtime_error( std::string("invalid ipv4 address: ") + address ) ;
-		specific.sin_port = htons( port ) ;
+		specific.sin_port = htons( static_cast<g_port_t>(port) ) ;
 	}
 	explicit Address( int port )
 	{
@@ -97,7 +97,7 @@ struct Address
 		specific = zero ;
 		specific.sin_family = AF_INET ;
 		specific.sin_addr.s_addr = htonl( INADDR_LOOPBACK ) ;
-		specific.sin_port = htons( port ) ;
+		specific.sin_port = htons( static_cast<g_port_t>(port) ) ;
 	}
 	sockaddr * ptr() { return &generic ; }
 	const sockaddr * ptr() const { return &generic ; }

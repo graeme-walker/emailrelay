@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -26,7 +26,9 @@
 #include <algorithm>
 #include <stdexcept>
 
+#ifndef G_NO_MOC_INCLUDE
 #include "moc_guidialog.cpp"
+#endif
 
 Gui::Dialog::Dialog( const G::Path & virgin_flag_file , bool with_launch ) :
 	QDialog(nullptr) ,
@@ -116,6 +118,8 @@ void Gui::Dialog::setFirstPage( Page & page )
 
 void Gui::Dialog::backButtonClicked()
 {
+	if( m_history.size() < 2U )
+		throw std::runtime_error( std::string() + "internal error: cannot go back" ) ;
 	std::string old_page_name = m_history.back();
 	m_history.pop_back() ;
 	switchPage( m_history.back() , old_page_name , true ) ;

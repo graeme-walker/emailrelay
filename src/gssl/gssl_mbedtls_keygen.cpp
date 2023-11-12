@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -28,28 +28,22 @@
 #include "gssl_mbedtls_keygen.h"
 #include "gssl_mbedtls_utils.h"
 #include <vector>
-
 #ifdef G_WINDOWS
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <io.h>
-inline void sleep_( int s ) { Sleep( s * 1000 ) ; }
-#pragma warning( suppress : 4996 )
-inline int open_( const char * path ) { return _open( path , _O_RDONLY ) ; }
-inline void close_( int fd ) { _close( fd ) ; }
-inline ssize_t read_( int fd , char * p , std::size_t n ) { return _read( fd , p , static_cast<unsigned>(n) ) ; }
 #else
 #include <fcntl.h>
-inline int open_( const char * path ) { return ::open( path , O_RDONLY ) ; }
-inline void close_( int fd ) { ::close( fd ) ; }
-inline ssize_t read_( int fd , char * p , std::size_t n ) { return ::read( fd , p , n ) ; }
-inline void sleep_( int s ) { ::sleep( s ) ; }
 #endif
 
 namespace GSsl
 {
-	namespace MbedTls
+	namespace MbedTlsImp
 	{
+		int open_( const char * path ) ;
+		void close_( int fd ) ;
+		ssize_t read_( int fd , char * p , std::size_t n ) ;
+		void sleep_( int s ) ;
 		void randomFillImp( char * p , std::size_t n ) ;
 		int randomFill( void * , unsigned char * output , std::size_t len , std::size_t * olen ) ;
 		struct FileCloser
@@ -73,7 +67,7 @@ std::string GSsl::MbedTls::generateKey( const std::string & issuer_name )
 	if( !G::is_windows() )
 	{
 		const int threshold = 32 ;
-		call( FN(mbedtls_entropy_add_source) , entropy.ptr() , randomFill , nullptr ,
+		call( FN(mbedtls_entropy_add_source) , entropy.ptr() , MbedTlsImp::randomFill , nullptr ,
 			threshold , MBEDTLS_ENTROPY_SOURCE_STRONG ) ;
 	}
 
@@ -139,7 +133,7 @@ std::string GSsl::MbedTls::generateKey( const std::string & issuer_name )
 	return s_key.append( s_crt ) ;
 }
 
-void GSsl::MbedTls::randomFillImp( char * p , std::size_t n )
+void GSsl::MbedTlsImp::randomFillImp( char * p , std::size_t n )
 {
 	// see also mbedtls/programs/pkey/gen_key.c ...
 
@@ -166,10 +160,24 @@ void GSsl::MbedTls::randomFillImp( char * p , std::size_t n )
 	}
 }
 
-int GSsl::MbedTls::randomFill( void * , unsigned char * output , std::size_t len , std::size_t * olen )
+int GSsl::MbedTlsImp::randomFill( void * , unsigned char * output , std::size_t len , std::size_t * olen )
 {
 	*olen = 0U ;
 	randomFillImp( reinterpret_cast<char*>(output) , len ) ;
 	*olen = len ;
 	return 0 ;
 }
+
+#ifdef G_WINDOWS
+#pragma warning( suppress : 4996 )
+int GSsl::MbedTlsImp::open_( const char * path ) { return _open( path , _O_RDONLY ) ; }
+void GSsl::MbedTlsImp::close_( int fd ) { _close( fd ) ; }
+ssize_t GSsl::MbedTlsImp::read_( int fd , char * p , std::size_t n ) { return _read( fd , p , static_cast<unsigned>(n) ) ; }
+void GSsl::MbedTlsImp::sleep_( int s ) { Sleep( s * 1000 ) ; }
+#else
+int GSsl::MbedTlsImp::open_( const char * path ) { return ::open( path , O_RDONLY ) ; }
+void GSsl::MbedTlsImp::close_( int fd ) { ::close( fd ) ; }
+ssize_t GSsl::MbedTlsImp::read_( int fd , char * p , std::size_t n ) { return ::read( fd , p , n ) ; }
+void GSsl::MbedTlsImp::sleep_( int s ) { ::sleep( s ) ; }
+#endif
+

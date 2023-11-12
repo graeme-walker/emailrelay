@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -420,10 +420,18 @@ void Main::CommandLine::showVersion( bool e ) const
 		showThreading( e , "\n" ) ;
 		showUds( e , "\n" ) ;
 		showPop( e , "\n" ) ;
+		showAdmin( e , "\n" ) ;
 		showSslVersion( e , "\n" ) ;
 	}
 	showSslCredit( e , "\n" ) ;
 	showWarranty( e ) ;
+}
+
+void Main::CommandLine::showAdmin( bool e , const std::string & eot ) const
+{
+	bool enabled = GSmtp::AdminServer::enabled() ;
+	Show show( m_output , e , m_verbose ) ;
+	show.s() << "Admin server: " << (enabled?"enabled":"disabled") << eot ;
 }
 
 void Main::CommandLine::showSemanticError( const std::string & error ) const

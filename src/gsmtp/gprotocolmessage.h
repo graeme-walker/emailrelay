@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -55,7 +55,7 @@ namespace GSmtp
 /// - addTo() [1..n]
 /// - addReceived() [0..n]
 /// - addContent() [0..n]
-/// - process() -> doneSignal() [async]
+/// - process() -> processedSignal() [async]
 ///
 /// The process() method is asynchronous, but note that the
 /// completion signal may be emitted before the initiating call
@@ -64,7 +64,15 @@ namespace GSmtp
 class GSmtp::ProtocolMessage
 {
 public:
-	using DoneSignal = G::Slot::Signal<bool,const GStore::MessageId&,const std::string&,const std::string&> ;
+	struct ProcessedInfo /// Parameters for GSmtp::ProtocolMessage::processedSignal()
+	{
+		bool success ;
+		GStore::MessageId id ; // message id, not valid() with 'success' true if abandoned
+		int response_code ; // response code (400..599) to send to remote client if not 'success', or zero to default
+		std::string response ; // response to send to remote client (no tabs), empty if 'success'
+		std::string reason ; // log string typically from filter output
+	} ;
+	using ProcessedSignal = G::Slot::Signal<const ProcessedInfo&> ;
 	struct FromInfo /// Extra information from the SMTP MAIL-FROM command passed to GSmtp::ProtocolMessage::setFrom().
 	{
 		std::string auth ; // RFC-2554 MAIL-FROM with AUTH= ie. 'auth-in' (xtext or "<>")
@@ -82,14 +90,8 @@ public:
 	virtual ~ProtocolMessage() = default ;
 		///< Destructor.
 
-	virtual DoneSignal & doneSignal() = 0 ;
-		///< Returns a signal which is raised once process() has
-		///< completed.
-		///<
-		///< The signal parameters are 'success', 'id', 'short-response'
-		///< and 'full-reason'. As a special case, if success is true and
-		///< id is invalid then the message processing was abandoned
-		///< by the filter.
+	virtual ProcessedSignal & processedSignal() = 0 ;
+		///< Returns a signal which is raised once process() has completed.
 
 	virtual void reset() = 0 ;
 		///< Clears the message state, terminates any asynchronous message
@@ -142,9 +144,9 @@ public:
 	virtual void process( const std::string & session_auth_id , const std::string & peer_socket_address ,
 		const std::string & peer_certificate ) = 0 ;
 			///< Starts asynchronous processing of the message. Once processing
-			///< is complete the message state is cleared and the doneSignal()
-			///< is raised. All errors are also signalled via the doneSignal().
-			///< The doneSignal() may be emitted before process() returns.
+			///< is complete the message state is cleared and the processedSignal()
+			///< is raised. All errors are also signalled via the processedSignal().
+			///< The processedSignal() may be emitted before process() returns.
 			///<
 			///< The session-auth-id parameter is used to propagate authentication
 			///< information from the SMTP AUTH command into individual messages.

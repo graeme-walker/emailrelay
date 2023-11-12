@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -41,15 +41,17 @@ namespace GNet
 /// asynchronous task classes such as GNet::Task and GNet::Resolver.
 ///
 /// The thread-safe trigger function send() is typically called from
-/// a worker thread just before it finishes.
+/// a worker thread just before the thread finishes.
 ///
 /// Eg:
 /// \code
 /// struct Foo : private FutureEventHandler , private ExceptionHandler
 /// {
 ///  Foo() ;
-///  void onFutureEvent() ;
+///  G::Slot::signal<int> m_signal ;
+///  private:
 ///  void run( HANDLE ) ;
+///  void onFutureEvent() override ;
 ///  FutureEvent m_future_event ;
 ///  std::thread m_thread ;
 ///  int m_result ;
@@ -61,8 +63,13 @@ namespace GNet
 /// }
 /// void Foo::run( HANDLE h )
 /// {
-///   m_result = ... ; // do blocking work in worker thread
+///   // this is the worker thread spun off from the ctor
+///   m_result = ... ; // do blocking work
 ///   FutureEvent::send( h ) ; // raise 'work complete' event
+/// }
+/// void Foo::onFutureEvent()
+/// {
+///   m_signal.emit( m_result ) ;
 /// }
 /// \endcode
 ///

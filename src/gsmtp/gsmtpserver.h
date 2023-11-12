@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -104,7 +104,10 @@ public:
 			///< interfaces otherwise.
 			///<
 			///< If the forward-to address is given then all messages are
-			///< forwarded immediately, using the given client configuration.
+			///< forwarded as soon as they are received using the
+			///< GSmtp::ProtocolMessageForward class and the given client
+			///< configuration.
+			///<
 			///< The forward-to-family is used if the forward-to address
 			///< is a DNS name that needs to be resolved.
 
@@ -125,6 +128,11 @@ public:
 
 	void nodnsbl( unsigned int seconds ) ;
 		///< Clears the DNSBL configuration string for a period of time.
+
+	void enable( bool ) ;
+		///< Disables or re-enables new SMTP sessions. When disabled new
+		///< network connections are allowed but the SMTP protocol is
+		///< disabled in some way.
 
 private: // overrides
 	std::unique_ptr<GNet::ServerPeer> newPeer( GNet::ExceptionSinkUnbound ,
@@ -157,6 +165,7 @@ private:
 	std::string m_sasl_client_config ;
 	G::Slot::Signal<const std::string&,const std::string&> m_event_signal ;
 	G::TimerTime m_dnsbl_suspend_time ;
+	bool m_enabled ;
 } ;
 
 //| \class GSmtp::ServerPeer
@@ -170,7 +179,7 @@ public:
 	G_EXCEPTION( SendError , tx("failed to send smtp response") ) ;
 
 	ServerPeer( GNet::ExceptionSinkUnbound , GNet::ServerPeerInfo && peer_info , Server & server ,
-		VerifierFactoryBase & vf , const GAuth::SaslServerSecrets & server_secrets ,
+		bool enabled , VerifierFactoryBase & vf , const GAuth::SaslServerSecrets & server_secrets ,
 		const Server::Config & server_config , std::unique_ptr<ServerProtocol::Text> ptext ) ;
 			///< Constructor.
 

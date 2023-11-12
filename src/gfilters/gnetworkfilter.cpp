@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -114,10 +114,31 @@ bool GFilters::NetworkFilter::special() const
 	return false ;
 }
 
+std::pair<std::string,int> GFilters::NetworkFilter::responsePair() const
+{
+	// "[<response-code> ]<response>[<tab><reason>]"
+	std::string s = G::Str::printable( G::Str::head( m_text.value_or({}) , "\t" , false ) ) ;
+	int n = 0 ;
+	if( s.size() >= 3U &&
+		( s[0] == '4' || s[0] == '5' ) &&
+		( s[1] >= '0' && s[1] <= '9' ) &&
+		( s[2] >= '0' && s[2] <= '9' ) &&
+		( s.size() == 3U || s[3] == ' ' ) )
+	{
+		n = G::Str::toInt( s.substr(0U,3U) ) ;
+		s.erase( 0U , s.size() == 3U ? 3U : 4U ) ;
+	}
+	return {s,n} ;
+}
+
 std::string GFilters::NetworkFilter::response() const
 {
-	// allow "<response><tab><reason>"
-	return G::Str::printable( G::Str::head( m_text.value_or({}) , "\t" , false ) ) ;
+	return responsePair().first ;
+}
+
+int GFilters::NetworkFilter::responseCode() const
+{
+	return responsePair().second ;
 }
 
 std::string GFilters::NetworkFilter::reason() const

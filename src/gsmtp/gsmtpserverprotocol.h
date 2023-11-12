@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -137,7 +137,8 @@ public:
 
 	ServerProtocol( ServerSender & , Verifier & , ProtocolMessage & ,
 		const GAuth::SaslServerSecrets & secrets , Text & text ,
-		const GNet::Address & peer_address , const Config & config ) ;
+		const GNet::Address & peer_address , const Config & config ,
+		bool enabled ) ;
 			///< Constructor.
 			///<
 			///< The ServerSender interface is used to send protocol responses
@@ -287,6 +288,7 @@ private:
 		std::string auth ;
 	} ;
 	static std::unique_ptr<GAuth::SaslServer> newSaslServer( const GAuth::SaslServerSecrets & , const std::string & , const std::string & ) ;
+	static int code( EventData ) ;
 	static std::string str( EventData ) ;
 	void applyEvent( Event , EventData = {} ) ;
 	Event commandEvent( G::string_view ) const ;
@@ -298,8 +300,7 @@ private:
 	bool messageAddContentFailed() ;
 	bool messageAddContentTooBig() ;
 	void badClientEvent() ;
-	void processDone( bool , const GStore::MessageId & , const std::string & , const std::string & ) ; // ProtocolMessage::doneSignal()
-	void prepareDone( bool , bool , std::string ) ;
+	void protocolMessageProcessed( const ProtocolMessage::ProcessedInfo & ) ;
 	bool rcptState() const ;
 	bool flush() const ;
 	bool isEndOfText( const ApplyArgsTuple & ) const ;
@@ -351,7 +352,7 @@ private:
 	ServerSender * m_sender ;
 	Verifier & m_verifier ;
 	Text & m_text ;
-	ProtocolMessage & m_message ;
+	ProtocolMessage & m_pm ;
 	std::unique_ptr<GAuth::SaslServer> m_sasl ;
 	Config m_config ;
 	G::Slot::Signal<> m_change_signal ;
@@ -369,6 +370,7 @@ private:
 	bool m_session_esmtp ;
 	std::size_t m_bdat_arg ;
 	std::size_t m_bdat_sum ;
+	bool m_enabled ;
 } ;
 
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_with_vrfy( bool b ) noexcept { with_vrfy = b ; return *this ; }

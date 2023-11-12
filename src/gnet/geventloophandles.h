@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -357,43 +357,43 @@ std::string GNet::EventLoopHandles::help( const TList & list , bool on_add ) con
 // ==
 
 template <typename TList>
-void GNet::EventLoopHandles::init_MT( const TList & list , bool (*fn)(const typename TList::value_type&) )
+void GNet::EventLoopHandles::init_MT( const TList & /*list*/ , bool (*)(const typename TList::value_type&) )
 {
 	///< not implemented
 }
 
 template <typename TList>
-void GNet::EventLoopHandles::update_MT( const TList & list , bool updated , std::size_t thread_index )
+void GNet::EventLoopHandles::update_MT( const TList & /*list*/ , bool /*updated*/ , std::size_t /*thread_index*/ )
 {
 	///< not implemented
 }
 
 template <typename TList>
-bool GNet::EventLoopHandles::overflow_MT( TList & list , bool (*fn)(const typename TList::value_type&) )
+bool GNet::EventLoopHandles::overflow_MT( TList & /*list*/ , bool (*)(const typename TList::value_type&) )
 {
 	return false ; // not implemented
 }
 
 inline
-bool GNet::EventLoopHandles::overflow_MT( std::size_t n ) const
+bool GNet::EventLoopHandles::overflow_MT( std::size_t ) const
 {
 	return false ; // not implemented
 }
 
 template <typename TList>
-std::string GNet::EventLoopHandles::help_MT( const TList & list , bool on_add ) const
+std::string GNet::EventLoopHandles::help_MT( const TList & /*list*/ , bool /*on_add*/ ) const
 {
 	return {} ; // not implemented
 }
 
 template <typename TList>
-std::size_t GNet::EventLoopHandles::shuffle_MT( TList & , Rc rc )
+std::size_t GNet::EventLoopHandles::shuffle_MT( TList & , Rc /*rc*/ )
 {
 	return 0U ; // not implemented
 }
 
 inline
-GNet::EventLoopHandles::Rc GNet::EventLoopHandles::wait_MT( DWORD ms )
+GNet::EventLoopHandles::Rc GNet::EventLoopHandles::wait_MT( DWORD /*ms*/ )
 {
 	return Rc( RcType::other ) ;
 }

@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -415,12 +415,12 @@ void GNet::EventLoopImp::handleSocketEvent( std::size_t index )
 	ListItem * item = &m_list[index] ;
 
 	WSANETWORKEVENTS events_info ;
-	int rc = WSAEnumNetworkEvents( item->m_socket , item->m_handle , &events_info ) ;
 	bool e_not_sock = false ;
-	if( rc != 0 && !(e_not_sock = (WSAGetLastError()==WSAENOTSOCK)) )
+	int rc = WSAEnumNetworkEvents( item->m_socket , item->m_handle , &events_info ) ;
+	if( rc != 0 )
+		e_not_sock = WSAGetLastError() == WSAENOTSOCK ;
+	if( rc != 0 && !e_not_sock )
 		throw Error( "enum-network-events failed" ) ;
-
-	G_ASSERT( !e_not_sock ) ;
 	if( e_not_sock )
 		throw Error( "enum-network-events failed: not a socket" ) ;
 

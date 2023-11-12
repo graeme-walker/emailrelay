@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -43,8 +43,9 @@ namespace GSmtp
 /// The abandon state is treated more like success on the server
 /// side but more like failure on the client side.
 ///
-/// The fail state has an associated public response (eg.
-/// "rejected") and a more expansive private reason.
+/// The fail state has an associated SMTP response string (eg.
+/// "rejected"), an override for the SMTP response code, and a
+/// more expansive reason string for logging.
 ///
 class GSmtp::Filter
 {
@@ -97,8 +98,12 @@ public:
 		///< emitted.
 
 	virtual std::string response() const = 0 ;
-		///< Returns a non-empty response string iff the filter failed,
-		///< or an empty response if successful or abandoned.
+		///< Returns a non-empty SMTP response string iff the filter
+		///< failed, or an empty response if successful or abandoned.
+
+	virtual int responseCode() const = 0 ;
+		///< An override for the SMTP response code for when the filter
+		///< has failed. Many implementations should just return zero.
 
 	virtual std::string reason() const = 0 ;
 		///< Returns a non-empty reason string iff the filter failed,

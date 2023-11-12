@@ -1,16 +1,16 @@
 //
 // Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
-//
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-//
+// 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
+// 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
@@ -24,7 +24,7 @@
 #include "gdef.h"
 #include <streambuf>
 #include <functional>
-#include <array>
+#include <vector>
 
 namespace G
 {
@@ -81,7 +81,7 @@ protected:
 		///< Called to pull a character out of the input buffer,
 		///< and pre-fill the input buffer if necessary.
 
-	int sync() override ;
+	int sync() final override ;
 		///< Called to sync the stream.
 
 public:
@@ -100,8 +100,8 @@ private:
 	read_fn_t m_read_fn ;
 	write_fn_t m_write_fn ;
 	close_fn_t m_close_fn ;
-	std::array<char,N> m_input ;
-	std::array<char,N> m_output ;
+	std::vector<char> m_input ;
+	std::vector<char> m_output ;
 	bool m_file_open ;
 	T m_file ;
 } ;
@@ -111,8 +111,8 @@ G::fbuf<T,N>::fbuf( G::fbuf<T,N>::read_fn_t read , G::fbuf<T,N>::write_fn_t writ
 	m_read_fn(read) ,
 	m_write_fn(write) ,
 	m_close_fn(close) ,
-	m_input() ,
-	m_output() ,
+	m_input(static_cast<std::size_t>(N)) ,
+	m_output(static_cast<std::size_t>(N)) ,
 	m_file_open(false) ,
 	m_file()
 {
@@ -123,8 +123,8 @@ G::fbuf<T,N>::fbuf( T file , G::fbuf<T,N>::read_fn_t read , G::fbuf<T,N>::write_
 	m_read_fn(read) ,
 	m_write_fn(write) ,
 	m_close_fn(close) ,
-	m_input() ,
-	m_output() ,
+	m_input(static_cast<std::size_t>(N)) ,
+	m_output(static_cast<std::size_t>(N)) ,
 	m_file_open(false) ,
 	m_file()
 {
