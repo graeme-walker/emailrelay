@@ -1,4 +1,4 @@
-dnl Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
+dnl Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
 dnl 
 dnl This program is free software: you can redistribute it and/or modify
 dnl it under the terms of the GNU General Public License as published by
@@ -161,7 +161,8 @@ AC_DEFUN([GCONFIG_FN_CHECK_NET],[
 	AC_REQUIRE([GCONFIG_FN_IFNAMETOINDEX])
 	AC_REQUIRE([GCONFIG_FN_IFNAMETOLUID])
 	AC_REQUIRE([GCONFIG_FN_IFINDEX])
-	AC_REQUIRE([GCONFIG_FN_GAISTRERROR])
+	AC_REQUIRE([GCONFIG_FN_GAI_STRERROR])
+	AC_REQUIRE([GCONFIG_FN_GAI_IDN])
 	AC_REQUIRE([GCONFIG_FN_UDS])
 	AC_REQUIRE([GCONFIG_FN_UDS_LEN])
 ])
@@ -278,14 +279,14 @@ dnl Calls GCONFIG_FN_CXX_STD_THREAD_IMP with a suitable warning message.
 dnl
 AC_DEFUN([GCONFIG_FN_CXX_STD_THREAD],
 [
-	GCONFIG_FN_CXX_STD_THREAD_IMP([std::thread_asynchronous_script_execution])
+	GCONFIG_FN_CXX_STD_THREAD_IMP([std::thread_no_asynchronous_script_execution])
 ])
 
 dnl GCONFIG_FN_CXX_STD_THREAD_IMP
 dnl -----------------------------
 dnl Tests for a viable c++ std::thread class under the current compile and link options
 dnl and adds '-pthread' as necessary. The first parameter is a warning message added to
-dnl gconfig_warnings, something like 'std::thread_multithreading'.
+dnl gconfig_warnings, something like 'no_std::thread_multithreading'.
 dnl
 AC_DEFUN([GCONFIG_FN_CXX_STD_THREAD_IMP],
 [
@@ -388,6 +389,56 @@ AC_DEFUN([GCONFIG_FN_CXX_STRING_VIEW],
 	else
 		AC_DEFINE(GCONFIG_HAVE_CXX_STRING_VIEW,0,[Define true if compiler supports c++ string_view])
 	fi
+])
+
+dnl GCONFIG_FN_COMPILER_IS_GCC
+dnl --------------------------
+dnl Tests whether the c++ compiler is gcc and sets Makefile
+dnl conditional GCONFIG_COMPILER_IS_GCC accordingly.
+dnl
+dnl (See also ac_compiler_gnu=yes/no.)
+dnl
+AC_DEFUN([GCONFIG_FN_COMPILER_IS_GCC],
+[AC_CACHE_CHECK([for gcc compiler],[gconfig_cv_compiler_is_gcc],
+[
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[
+			[#if defined(__GNUC__) && !defined(__clang__)]
+			[/* gcc */]
+			[#else]
+			[#error not gcc]
+			[#endif]
+		],
+		[
+		])],
+		gconfig_cv_compiler_is_gcc=yes ,
+		gconfig_cv_compiler_is_gcc=no )
+])
+	AM_CONDITIONAL([GCONFIG_COMPILER_IS_GCC],test "$gconfig_cv_compiler_is_gcc" = "yes")
+])
+
+dnl GCONFIG_FN_COMPILER_IS_CLANG
+dnl ----------------------------
+dnl Tests whether the c++ compiler is clang and sets Makefile
+dnl conditional GCONFIG_COMPILER_IS_CLANG accordingly.
+dnl
+AC_DEFUN([GCONFIG_FN_COMPILER_IS_CLANG],
+[AC_CACHE_CHECK([for clang compiler],[gconfig_cv_compiler_is_clang],
+[
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[
+			[#if defined(__clang__)]
+			[/* clang */]
+			[#else]
+			[#error not clang]
+			[#endif]
+		],
+		[
+		])],
+		gconfig_cv_compiler_is_clang=yes ,
+		gconfig_cv_compiler_is_clang=no )
+])
+	AM_CONDITIONAL([GCONFIG_COMPILER_IS_CLANG],test "$gconfig_cv_compiler_is_clang" = "yes")
 ])
 
 dnl GCONFIG_FN_ENABLE_ADMIN
@@ -508,12 +559,13 @@ AC_DEFUN([GCONFIG_FN_ENABLE_GUI],
 
 	if test "$gconfig_gui" = "no" -a "$enable_gui" != "no"
 	then
-		gconfig_warnings="$gconfig_warnings qt_graphical_user_interface"
+		gconfig_warnings="$gconfig_warnings qt_will_not_build_graphical_user_interface"
 	fi
 
 	AC_SUBST([GCONFIG_QT_LIBS],[$QT_LIBS])
 	AC_SUBST([GCONFIG_QT_CFLAGS],[$QT_CFLAGS])
 	AC_SUBST([GCONFIG_QT_MOC],[$QT_MOC])
+	AC_SUBST([GCONFIG_QT_LRELEASE],[$QT_LRELEASE])
 
 	AM_CONDITIONAL([GCONFIG_GUI],[test "$gconfig_gui" = "yes"])
 ])
@@ -696,6 +748,7 @@ AC_DEFUN([GCONFIG_FN_ENABLE_WINXP],
 	else
 		AC_DEFINE(GCONFIG_WINXP,0,[Define true for a winxp windows build])
 	fi
+	AM_CONDITIONAL([GCONFIG_WINXP],test "$enable_winxp" = "yes")
 ])
 
 dnl GCONFIG_FN_EPOLL
@@ -830,12 +883,12 @@ AC_DEFUN([GCONFIG_FN_FSOPEN],
 	fi
 ])
 
-dnl GCONFIG_FN_GAISTRERROR
-dnl ----------------------
+dnl GCONFIG_FN_GAI_STRERROR
+dnl -----------------------
 dnl Tests for gai_strerror() (see getaddinfo(3)).
 dnl
-AC_DEFUN([GCONFIG_FN_GAISTRERROR],
-[AC_CACHE_CHECK([for gai_strerror()],[gconfig_cv_gaistrerror],
+AC_DEFUN([GCONFIG_FN_GAI_STRERROR],
+[AC_CACHE_CHECK([for gai_strerror()],[gconfig_cv_gai_strerror],
 [
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
 		[
@@ -854,13 +907,47 @@ AC_DEFUN([GCONFIG_FN_GAISTRERROR],
 		[
 			[p = gai_strerror( 123 ) ;]
 		])],
-		gconfig_cv_gaistrerror=yes ,
-		gconfig_cv_gaistrerror=no )
+		gconfig_cv_gai_strerror=yes ,
+		gconfig_cv_gai_strerror=no )
 ])
-	if test "$gconfig_cv_gaistrerror" = "yes" ; then
-		AC_DEFINE(GCONFIG_HAVE_GAISTRERROR,1,[Define true if gai_strerror() is available])
+	if test "$gconfig_cv_gai_strerror" = "yes" ; then
+		AC_DEFINE(GCONFIG_HAVE_GAI_STRERROR,1,[Define true if gai_strerror() is available])
 	else
-		AC_DEFINE(GCONFIG_HAVE_GAISTRERROR,0,[Define true if gai_strerror() is available])
+		AC_DEFINE(GCONFIG_HAVE_GAI_STRERROR,0,[Define true if gai_strerror() is available])
+	fi
+])
+
+dnl GCONFIG_FN_GAI_IDN
+dnl ------------------
+dnl Tests for the AI_IDN flag (see glibc's getaddinfo(3)).
+dnl
+AC_DEFUN([GCONFIG_FN_GAI_IDN],
+[AC_CACHE_CHECK([for getaddrinfo() with AI_IDN],[gconfig_cv_gai_idn],
+[
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+		[
+			[#ifdef _WIN32]
+				[#include <winsock2.h>]
+				[#include <windows.h>]
+				[#include <ws2tcpip.h>]
+				[#include <iphlpapi.h>]
+			[#else]
+				[#include <sys/types.h>]
+				[#include <sys/socket.h>]
+				[#include <netdb.h>]
+			[#endif]
+			[int flags = 0;]
+		],
+		[
+			[flags |= AI_IDN ;]
+		])],
+		gconfig_cv_gai_idn=yes ,
+		gconfig_cv_gai_idn=no )
+])
+	if test "$gconfig_cv_gai_idn" = "yes" ; then
+		AC_DEFINE(GCONFIG_HAVE_GAI_IDN,1,[Define true if getaddrinfo() supports AI_IDN])
+	else
+		AC_DEFINE(GCONFIG_HAVE_GAI_IDN,0,[Define true if getaddrinfo() supports AI_IDN])
 	fi
 ])
 
@@ -1462,7 +1549,7 @@ AC_DEFUN([GCONFIG_FN_NETROUTE],
 	else
 		AC_DEFINE(GCONFIG_HAVE_NETROUTE,0,[Define true to enable use of bsd routing sockets])
 		if test "`uname`" = "NetBSD" -o "`uname`" = "FreeBSD" -o "`uname`" = "OpenBSD" ; then
-			gconfig_warnings="$gconfig_warnings netroute_network_interface_event_notification"
+			gconfig_warnings="$gconfig_warnings netroute_no_network_interface_event_notification"
 		fi
 	fi
 ])
@@ -1727,7 +1814,7 @@ AC_DEFUN([GCONFIG_FN_PUTENV_S],
 
 dnl GCONFIG_FN_QT_BUILD
 dnl -------------------
-dnl Tests for successful Qt5 compilation if GCONFIG_FN_QT
+dnl Tests for successful Qt compilation if GCONFIG_FN_QT
 dnl has set gconfig_have_qt. Does nothing if --disable-gui.
 dnl Sets gconfig_qt_build.
 dnl
@@ -1766,114 +1853,158 @@ AC_DEFUN([GCONFIG_FN_QT_BUILD],
 
 dnl GCONFIG_FN_QT
 dnl -------------
-dnl Tests for Qt5. Sets gconfig_have_qt, QT_MOC, QT_LRELEASE, QT_LIBS and
-dnl QT_CFLAGS. A fallback copy of "pkg.m4" should be included in the
-dnl distribution.
+dnl Tests for Qt5/6. Sets gconfig_have_qt, QT_MOC, QT_LRELEASE, QT_LIBS
+dnl and QT_CFLAGS environment variables and possibly modifies LDFLAGS.
+dnl These QT_ environment variables are typically used elsewhere to
+dnl AC_SUBST() substitution variables for makefiles.
+dnl
+dnl If all four environment variables are defined on entry then it does
+dnl nothing. If QT_MOC is initially undefined then it tries pkg-config. If
+dnl pkg-config does not work then it looks for 'moc' on the path and sets
+dnl QT_MOC accordingly. If QT_MOC is defined and usable then it makes
+dnl various guesses to set QT_CFLAGS etc. If QT_MOC is still undefined
+dnl or unusable by the end then it gives up and sets gconfig_have_qt
+dnl to 'no'.
+dnl
+dnl A fallback copy of "pkg.m4" should be included in the distribution.
 dnl
 AC_DEFUN([GCONFIG_FN_QT],
 [
 	# skip the madness if the user has specified everything we need
-	if test "$QT_MOC" != "" -a "$QT_CFLAGS" != "" -a "$QT_LIBS" != ""
+	if test "$QT_MOC" != "" -a "$QT_CFLAGS" != "" -a "$QT_LIBS" != "" -a "$QT_LRELEASE" != ""
 	then
-		if echo "$QT_MOC" | grep -q /
-		then
-			QT_LRELEASE="`dirname \"$QT_MOC\"`/lrelease"
-		else
-			QT_LRELEASE="lrelease"
-		fi
 		AC_MSG_CHECKING([for QT])
 		AC_MSG_RESULT([overridden])
-		gconfig_have_qt=yes
 	else
 
-		# try pkg-config -- this says 'checking for QT'
-		PKG_CHECK_MODULES([QT],[Qt5Widgets > 5],
-			[
-				gconfig_pkgconfig_qt=yes
-			],
-			[
-				gconfig_pkgconfig_qt=no
-				AC_MSG_NOTICE([no QT 5 pkg-config])
-			]
-		)
-
-		# allow the moc command to be defined with QT_MOC on the configure
-		# command-line, typically also with CXXFLAGS and LIBS pointing to Qt
-		# headers and libraries
-		AC_ARG_VAR([QT_MOC],[moc command for QT])
-
-		if echo "$QT_MOC" | grep -q /
+		if test "$QT_MOC" != ""
 		then
-			QT_LRELEASE="`dirname \"$QT_MOC\"`/lrelease"
+			gconfig_pkgconfig_qt=no
 		else
-			QT_LRELEASE="lrelease"
+			# (this says 'checking for QT6' and automagically sets QT6_CFLAGS and QT6_LIBS variables)
+			PKG_CHECK_MODULES([QT6],[Qt6Widgets > 6],
+				[
+					gconfig_pkgconfig_qt=yes
+					gconfig_pkgconfig_qt_version=6
+					gconfig_pkgconfig_qt_var_moc=libexecdir
+					gconfig_pkgconfig_qt_var_lrelease=bindir
+					gconfig_pkgconfig_qt_var_qtchooser=none
+				],
+				[
+					gconfig_pkgconfig_qt=no
+				]
+			)
+			if test "$gconfig_pkgconfig_qt" = "no"
+			then
+				PKG_CHECK_MODULES([QT5],[Qt5Widgets > 5],
+					[
+						gconfig_pkgconfig_qt=yes
+						gconfig_pkgconfig_qt_version=5
+						gconfig_pkgconfig_qt_var_moc=host_bins
+						gconfig_pkgconfig_qt_var_lrelease=host_bins
+						gconfig_pkgconfig_qt_var_qtchooser=exec_prefix
+					],
+					[
+						gconfig_pkgconfig_qt=no
+					]
+				)
+			fi
 		fi
 
-		# or build the moc command using pkg-config results
-		if test "$QT_MOC" = ""
+		if test "$gconfig_pkgconfig_qt" = "yes"
 		then
-			if test "$gconfig_pkgconfig_qt" = "yes"
+			QT_MOC="`$PKG_CONFIG --variable=${gconfig_pkgconfig_qt_var_moc} Qt${gconfig_pkgconfig_qt_version}Core`/moc"
+			QT_LRELEASE="`$PKG_CONFIG --variable=${gconfig_pkgconfig_qt_var_lrelease} Qt${gconfig_pkgconfig_qt_version}Core`/lrelease"
+			if test -x "$QT_MOC" ; then : ; else QT_MOC="" ; fi
+			if test -x "$QT_LRELEASE" ; then : ; else QT_LRELEASE="" ; fi
+
+			if test "$gconfig_pkgconfig_qt_version" = "5"
 			then
-				QT_MOC="`$PKG_CONFIG --variable=host_bins Qt5Core`/moc"
-				QT_LRELEASE="`$PKG_CONFIG --variable=host_bins Qt5Core`/lrelease"
-				QT_CHOOSER="`$PKG_CONFIG --variable=exec_prefix Qt5Core`/bin/qtchooser"
-				if test -x "$QT_MOC" ; then : ; else QT_MOC="" ; fi
-				if test -x "$QT_LRELEASE" ; then : ; else QT_LRELEASE="" ; fi
+				QT_CHOOSER="`$PKG_CONFIG --variable=${gconfig_pkgconfig_qt_var_qtchooser} Qt${gconfig_pkgconfig_qt_version}Core`/bin/qtchooser"
 				if test -x "$QT_CHOOSER" ; then : ; else QT_CHOOSER="" ; fi
 				if test "$QT_MOC" = "" -a "$QT_CHOOSER" != ""
 				then
-					QT_MOC="$QT_CHOOSER -run-tool=moc -qt=qt5"
+					QT_MOC="$QT_CHOOSER -run-tool=moc -qt=qt${gconfig_pkgconfig_qt_version}"
 				fi
 				if test "$QT_LRELEASE" = "" -a "$QT_CHOOSER" != ""
 				then
-					QT_LRELEASE="$QT_CHOOSER -run-tool=lrelease -qt=qt5"
+					QT_LRELEASE="$QT_CHOOSER -run-tool=lrelease -qt=qt${gconfig_pkgconfig_qt_version}"
 				fi
 			fi
-		fi
 
-		# or find moc on the path
-		if test "$QT_MOC" = ""
-		then
-			AC_PATH_PROG([QT_MOC],[moc])
-		fi
+			QT_CFLAGS="-fPIC `$PKG_CONFIG --cflags Qt${gconfig_pkgconfig_qt_version}Widgets`"
+			QT_LIBS="`$PKG_CONFIG --libs-only-l Qt${gconfig_pkgconfig_qt_version}Widgets`"
+			LDFLAGS="$LDFLAGS `$PKG_CONFIG --libs-only-L Qt${gconfig_pkgconfig_qt_version}Widgets`"
+			LDFLAGS="$LDFLAGS `$PKG_CONFIG --libs-only-other Qt${gconfig_pkgconfig_qt_version}Widgets`"
+		:
 
-		if test "$QT_LRELEASE" = ""
-		then
-			AC_PATH_PROG([QT_LRELEASE],[lrelease])
-			if test "$QT_LRELEASE" = ""
+		else
+
+			if test "$QT_MOC" = ""
 			then
-				QT_LRELEASE=false
+				# find moc on the path
+				# (this says 'checking for moc...')
+				AC_PATH_PROG([QT_MOC],[moc])
+				if "$QT_MOC" --version 2>/dev/null | grep -q "moc 5" ; then :
+				elif "$QT_MOC" --version 2>/dev/null | grep -q "moc 6" ; then :
+				else QT_MOC="" ; fi
+			fi
+
+			if test -x "$QT_MOC"
+			then
+
+				if "$QT_MOC" --version 2>/dev/null | grep -q "moc 6"
+				then
+					gconfig_moc_qt_version=6
+				else
+					gconfig_moc_qt_version=5
+				fi
+
+				# assume lrelease is alongside moc -- could do better,
+				# but lrelease is not required for a normal build
+				if test "$QT_LRELEASE" = ""
+				then
+					if echo "$QT_MOC" | grep -q /
+					then
+						QT_LRELEASE="`dirname \"$QT_MOC\"`/lrelease"
+					else
+						QT_LRELEASE="lrelease"
+					fi
+				fi
+
+				# make assumptions for build flags -- assume libs dont need -L
+				QT_CFLAGS="-fPIC -I/usr/include/x86_64-linux-gnu/qt${gconfig_moc_qt_version} -DQT_GUI_LIB -DQT_CORE_LIB"
+				QT_LIBS="-lQt${gconfig_moc_qt_version}Widgets -lQt${gconfig_moc_qt_version}Gui -lQt${gconfig_moc_qt_version}Core"
+
 			fi
 		fi
+	fi
 
-		if test "$QT_MOC" != ""
+	# summarise the results
+	if test -x "$QT_MOC"
+	then
+		if "$QT_MOC" --version 2>/dev/null | grep -q "moc 5"
 		then
 			AC_MSG_NOTICE([QT moc command: $QT_MOC])
-		fi
-
-		# set gconfig_have_qt, QT_CFLAGS and QT_LIBS iff we have a moc command
-		if test "$QT_MOC" != ""
+			gconfig_have_qt=yes
+		:
+		elif "$QT_MOC" --version 2>/dev/null | grep -q "moc 6"
 		then
-			gconfig_have_qt="yes"
-			if test "$gconfig_pkgconfig_qt" = "yes"
-			then
-				QT_CFLAGS="-fPIC `$PKG_CONFIG --cflags Qt5Widgets`"
-				QT_LIBS="`$PKG_CONFIG --libs Qt5Widgets`"
-			else
-				QT_CFLAGS="-fPIC"
-				QT_LIBS=""
-			fi
+			AC_MSG_NOTICE([QT moc command: $QT_MOC])
+			gconfig_have_qt=yes
 		else
-			gconfig_have_qt="no"
+			AC_MSG_NOTICE([QT moc command not usable: $QT_MOC])
+			gconfig_have_qt=no
 		fi
-
-		# mac modifications
-		if test "$QT_MOC" != "" -a "`uname`" = "Darwin"
-		then
-			QT_DIR="`dirname $QT_MOC`/.."
-			QT_CFLAGS="-F $QT_DIR/lib"
-			QT_LIBS="-F $QT_DIR/lib -framework QtWidgets -framework QtGui -framework QtCore"
-		fi
+	:
+	elif test "$QT_MOC" = ""
+	then
+		AC_MSG_NOTICE([QT moc command not found])
+		gconfig_have_qt=no
+	else
+		AC_MSG_NOTICE([QT moc command not executable: $QT_MOC])
+		QT_MOC=""
+		gconfig_have_qt=no
 	fi
 ])
 
@@ -1932,7 +2063,7 @@ AC_DEFUN([GCONFIG_FN_RTNETLINK],
 	else
 		AC_DEFINE(GCONFIG_HAVE_RTNETLINK,0,[Define true to enable use of linux rtnetlink])
 		if test "`uname`" = "Linux" ; then
-			gconfig_warnings="$gconfig_warnings rtnetlink_network_interface_event_notification"
+			gconfig_warnings="$gconfig_warnings rtnetlink_no_network_interface_event_notification"
 		fi
 	fi
 ])
@@ -2375,7 +2506,7 @@ AC_DEFUN([GCONFIG_FN_TLS],
 
 	if test "$gconfig_ssl_use_none" = "yes"
 	then
-		gconfig_warnings="$gconfig_warnings openssl/mbedtls_transport_layer_security"
+		gconfig_warnings="$gconfig_warnings openssl/mbedtls_no_transport_layer_security"
 	fi
 
 	AC_SUBST([GCONFIG_TLS_LIBS])
@@ -2766,9 +2897,9 @@ AC_DEFUN([GCONFIG_FN_WARNINGS],
 	do
 		if test "$gconfig_w" != ""
 		then
-			echo "$gconfig_w" | sed 's/_/ /g' | while read gconfig_what gconfig_stuff
+			echo "$gconfig_w" | sed 's/_/ /g' | while read gconfig_what gconfig_warning_text
 			do
-				AC_MSG_WARN([missing $gconfig_what - no support for $gconfig_stuff])
+				AC_MSG_WARN([missing $gconfig_what - $gconfig_warning_text])
 			done
 		fi
 	done
@@ -3054,7 +3185,7 @@ AC_DEFUN([GCONFIG_FN_WITH_PAM],
 
 	if test "$gconfig_pam_compiles" != "yes" -a "$with_pam" != "no"
 	then
-		gconfig_warnings="$gconfig_warnings pam_pam_authentication"
+		gconfig_warnings="$gconfig_warnings pam_no_support_for_pam_authentication"
 	fi
 
 	if test "$gconfig_use_pam" = "yes"

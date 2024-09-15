@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +21,9 @@
 # Parses the autoconf/automake artifacts throughout the source tree
 # tree and creates a set of 'qmake' files alongside the source.
 #
-# Run from the project's top directory after running 'configure'.
+# Run from the project's top directory after running 'configure'
+# then create a build directory and run qmake (or qmake6) from
+# there.
 #
 # Unix:
 #   $ ./configure --with-whatever CXXFLAGS="-X"
@@ -115,6 +117,7 @@ sub do_library
 	print $fh "CONFIG += debug_and_release\n" ;
 	print $fh "CONFIG -= qt\n" ;
 	print $fh "CONFIG += thread\n" ;
+	print $fh "CONFIG += $$m{e_compile_stdcxx}\n" if $m->{e_compile_stdcxx} ;
 	if( @includes )
 	{
 		print $fh "INCLUDEPATH = \\\n    " , join(" \\\n    ",@includes) , "\n" ;
@@ -212,6 +215,7 @@ sub do_program
 	print $fh "TARGET = $$e{progname}\n" ;
 	print $fh "CONFIG += warn_on\n" ;
 	print $fh "CONFIG += debug_and_release\n" ;
+	print $fh "CONFIG += $$m{e_compile_stdcxx}\n" if $m->{e_compile_stdcxx} ;
 	if( $e->{need_qt_libs} )
 	{
 		print $fh "QT = widgets gui core\n" ;

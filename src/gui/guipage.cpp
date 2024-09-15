@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -141,18 +141,7 @@ std::string Gui::Page::value_utf8( const QLineEdit * p )
 	return p ? GQt::u8string_from_qstring( p->text().trimmed() ) : std::string() ;
 }
 
-std::string Gui::Page::value_utf8( const QComboBox * p )
-{
-	return p ? GQt::u8string_from_qstring( p->currentText().trimmed() ) : std::string() ;
-}
-
 std::string Gui::Page::value_number( const QLineEdit * p , const std::string & default_ )
-{
-	std::string s = value_utf8( p ) ;
-	return !s.empty() && G::Str::isNumeric(s) ? s : default_ ;
-}
-
-std::string Gui::Page::value_number( const QComboBox * p , const std::string & default_ )
 {
 	std::string s = value_utf8( p ) ;
 	return !s.empty() && G::Str::isNumeric(s) ? s : default_ ;

@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -22,16 +22,34 @@
 # Optionally creates 'unity build' source files and builds them.
 #
 # Usage:
-#     make programs
+#     make unity
+#     make small
 #
 # Also:
 #     make sources
 #     make tidy
+#     make tidygui
+#     make small.gcc
+#     make small.clang
+#     make strip
 #
-# Unity builds might build faster and can result in better-optimised
-# executables. They can also make is easier to do static code
-# analysis.
+# Unity builds tend to build faster when doing a full rebuild and
+# can result in smaller and better-optimised executables. They
+# can also make is easier to do static code analysis. E-MailRelay
+# code is written to be compatible with unity builds so the the
+# main disadvantage is that it can stress the build machine.
 #
+# See also https://en.wikipedia.org/wiki/Unity_build
+#
+# Unity builds enable the use of whole-program optimisations and
+# this can result in stripped binaries that are about half the
+# normal size. Use the "small" target to enable whole-program
+# size optimisations.
+#
+# Note that "make small" will disregard autoconf's CXXFLAGS.
+#
+
+CPPFLAGS_SMALL=-DG_LIB_SMALL
 
 if GCONFIG_GUI
 
@@ -47,7 +65,7 @@ PROGRAMS_ = \
 	emailrelay-submit \
 	emailrelay-gui
 
-AM_CPPFLAGS = \
+CPPFLAGS_GUI = \
 	-D "G_SBINDIR=$(sbindir)" \
 	-D "G_SPOOLDIR=$(e_spooldir)" \
 	-D "G_INITDIR=$(e_initdir)" \
@@ -74,7 +92,7 @@ PROGRAMS_ = \
 	emailrelay-passwd \
 	emailrelay-submit
 
-AM_CPPFLAGS =
+CPPFLAGS_GUI =
 
 MOC =
 
@@ -99,10 +117,30 @@ CDB = compile_commands.json
 
 $(SOURCES_) $(CDB): Makefile Makefile.in
 	-chmod +x $(top_srcdir)/libexec/make2unity || true
-	$(top_srcdir)/libexec/make2unity --include=. --cdb --cdb-cxx="$(CXX)" --cdb-top=$(top_srcdir) --base=$(top_srcdir)/src $(SOURCES_)
+	perl -I$(top_srcdir)/libexec $(top_srcdir)/libexec/make2unity --include=. --cdb --cdb-cxx="$(CXX)" --cdb-top=$(top_srcdir) --base=$(top_srcdir)/src $(SOURCES_)
+
+all-local:
+	@echo "info: use \"make unity\" or \"make small\" for a unity build"
 
 .PHONY: programs
 programs: $(PROGRAMS_)
+
+.PHONY: unity
+unity: clean programs strip
+
+.PHONY: small.gcc
+small.gcc:
+	$(MAKE) $(AM_MAKEFLAGS) CXXFLAGS="-pthread -Os -fwhole-program" programs
+
+.PHONY: small.clang
+small.clang:
+	$(MAKE) $(AM_MAKEFLAGS) CXXFLAGS="-pthread -Os -flto" programs
+
+.PHONY: small
+small:
+	$(MAKE) $(AM_MAKEFLAGS) clean
+	$(CXX) --version | grep -q clang && $(MAKE) $(AM_MAKEFLAGS) small.clang || $(MAKE) $(AM_MAKEFLAGS) small.gcc
+	test -f emailrelay && "$(STRIP)" $(PROGRAMS_)
 
 .PHONY: sources
 sources: $(SOURCES_)
@@ -113,21 +151,21 @@ cdb: $(CDB)
 .PHONY: moc
 moc: $(MOC)
 
+.PHONY: strip
+strip:
+	"$(STRIP)" $(PROGRAMS_)
+
 emailrelay: emailrelay.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -DG_LIB_SMALL -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS)
-	-strip $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(CPPFLAGS_SMALL) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS)
 
 emailrelay-submit: emailrelay-submit.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -DG_LIB_SMALL -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS)
-	-strip $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS)
 
 emailrelay-passwd: emailrelay-passwd.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -DG_LIB_SMALL -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS)
-	-strip $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS)
 
 emailrelay-gui: emailrelay-gui.cpp $(MOC)
-	$(CXX) $(AM_CPPFLAGS) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS) $(GCONFIG_QT_LIBS)
-	-strip $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(CPPFLAGS_GUI) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS) $(GCONFIG_QT_LIBS)
 
 moc_guidialog.cpp: $(top_srcdir)/src/gui/guidialog.h
 	$(GCONFIG_QT_MOC) $< -o $@

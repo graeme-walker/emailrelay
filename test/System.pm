@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
+# Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -588,8 +588,8 @@ sub submitMessageSequence
 		File::Copy::copy( $content , $spool_dir."/emailrelay.$x.content" ) or die ;
 		File::Copy::copy( $envelope , $spool_dir."/emailrelay.$x.envelope" ) or die ;
 	}
-	unlink( $content ) or die ;
-	unlink( $envelope ) or die ;
+	CORE::unlink( $content ) or die ;
+	CORE::unlink( $envelope ) or die ;
 }
 
 sub editEnvelope

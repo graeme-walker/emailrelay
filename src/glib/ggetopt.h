@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,14 +26,11 @@
 #include "goptions.h"
 #include "goptionvalue.h"
 #include "goptionparser.h"
-#include "goptional.h"
 #include "garg.h"
 #include "gpath.h"
 #include "gstringview.h"
 #include "gstringarray.h"
-#include "gexception.h"
 #include <string>
-#include <list>
 
 namespace G
 {
@@ -101,10 +98,10 @@ public:
 		///< cannot be opened. Parsing errors are added to errorList().
 
 	const std::vector<Option> & options() const ;
-		///< Returns the list of option specification objects.
+		///< Exposes the list of option specification objects.
 
 	const OptionMap & map() const ;
-		///< Returns the map of option-values.
+		///< Exposes the map of option-values.
 
 	Arg args() const ;
 		///< Returns the G::Arg command-line, excluding options.
@@ -146,9 +143,6 @@ public:
 		///< An overload that returns the value of the option identified
 		///< by its short-form letter.
 		///< Precondition: contains(option_letter)
-
-	std::optional<std::string> optional( std::string_view option_name ) const ;
-		///< Returns an optional value identified by its long-form name.
 
 	static StringArray readOptionsFromFile( const Path & ) ;
 		///< Reads options from file as a list of strings like "--foo=bar".

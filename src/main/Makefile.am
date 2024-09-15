@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -160,7 +160,11 @@ else
 endif
 
 if GCONFIG_WINDOWS
- OS_LIBS =-lws2_32 -lshell32 -liphlpapi -lcomctl32 -ladvapi32 -lgdi32 -luser32 -lkernel32
+if GCONFIG_WINXP
+  OS_LIBS =-lws2_32 -lshell32 -liphlpapi -lcomctl32 -ladvapi32 -lgdi32 -luser32 -lkernel32
+else
+  OS_LIBS =-lws2_32 -lshell32 -liphlpapi -lbcrypt -lcomctl32 -ladvapi32 -lgdi32 -luser32 -lkernel32
+endif
 else
  OS_LIBS =
 endif
@@ -238,7 +242,7 @@ else
  $(OS_LIBS)
 endif
 
-emailrelay_submit_SOURCES = submit.cpp legal.cpp legal.h
+emailrelay_submit_SOURCES = submit.cpp submitparser.cpp submitparser.h legal.cpp legal.h
 if GCONFIG_WINDOWS
  emailrelay_submit_LDFLAGS = -static
  emailrelay_submit_LDADD = \

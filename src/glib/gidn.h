@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,33 +15,31 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // ===
 ///
-/// \file glocal.cpp
+/// \file gidn.h
 ///
 
+#ifndef G_IDN_H
+#define G_IDN_H
+
 #include "gdef.h"
-#include "glocal.h"
-#include "ghostname.h"
-#include "gresolver.h"
+#include "gstringview.h"
+#include "gexception.h"
+#include <string>
 
-std::string GNet::Local::hostname()
+namespace G
 {
-	std::string name = G::hostname() ;
-	if( name.empty() )
-		return "localhost" ;
-	return name ;
-}
-
-std::string GNet::Local::canonicalName()
-{
-	static std::string result ;
-	static bool first = true ;
-	if( first )
+	namespace Idn /// Internationalised Domain Name encoding.
 	{
-		first = false ;
-		static Location location( hostname().append(":0") ) ;
-		bool ok = Resolver::resolve(location).empty() && !location.name().empty() ;
-		result = ok ? location.name() : (hostname()+".localnet") ;
+		G_EXCEPTION_CLASS( Error , tx("error encoding idn domain name") )
+
+		bool valid( std::string_view domain ) ;
+			///< Returns true if the given domain is valid with
+			///< U-labels and/or A-labels.
+
+		std::string encode( std::string_view domain ) ;
+			///< Returns the given domain with A-lables.
+			///< Precondition: valid(domain)
 	}
-	return result ;
 }
 
+#endif

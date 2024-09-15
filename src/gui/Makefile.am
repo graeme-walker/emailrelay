@@ -1,5 +1,5 @@
 #
-## Copyright (C) 2001-2023 Graeme Walker <graeme_walker@users.sourceforge.net>
+## Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -193,5 +193,5 @@ payload: $(top_srcdir)/libexec/make-setup.sh
 
 .PHONY: lrelease
 lrelease:
-	"$(QT_LRELEASE)" emailrelay_tr.no_NO.ts -qm emailrelay.no.qm
+	"$(GCONFIG_QT_LRELEASE)" emailrelay_tr.no_NO.ts -qm emailrelay.no.qm
 
