@@ -313,7 +313,7 @@ polling cycle, and then use *--poll 60* to limit it to one e-mail per minute.
 
 SpamAssassin
 ============
-The E-MailRelay server can use `SpamAssassin <http://spamassassin.apache.org>`_
+The E-MailRelay server can use `SpamAssassin <https://spamassassin.apache.org>`_
 to mark or reject potential spam.
 
 It's easiest to run SpamAssassin's *spamd* program in the background and let

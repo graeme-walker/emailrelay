@@ -5,7 +5,7 @@ Maintainer: Graeme Walker <graeme_walker@users.sourceforge.net>
 Build-Depends: debhelper-compat (= 13), autotools-dev, libssl-dev, libpam0g-dev
 Standards-Version: 4.1.4
 Rules-Requires-Root: no
-Homepage: http://emailrelay.sourceforge.net
+Homepage: https://emailrelay.sourceforge.net
 Vcs-Git: https://git.code.sf.net/p/emailrelay/git
 Vcs-Browser: https://sourceforge.net/p/emailrelay/git/
 Bugs: https://sourceforge.net/projects/emailrelay/support
