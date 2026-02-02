@@ -180,7 +180,7 @@ the *.bad* filename suffix. On Unix-like systems you can do this automatically
 with a cron job that runs the *emailrelay-resubmit.sh* script occasionally.
 
 Once a failed message has been renamed it will be forwarded along with all the
-others. It is a good idea to use regular polling (eg. *--poll=60*) to make sure
+others. It is a good idea to use regular polling (e.g. *--poll=60*) to make sure
 that this happens in a timely manner.
 
 Open mail servers
@@ -313,7 +313,7 @@ polling cycle, and then use *--poll 60* to limit it to one e-mail per minute.
 
 SpamAssassin
 ============
-The E-MailRelay server can use `SpamAssassin <http://spamassassin.apache.org>`_
+The E-MailRelay server can use `SpamAssassin <https://spamassassin.apache.org>`_
 to mark or reject potential spam.
 
 It's easiest to run SpamAssassin's *spamd* program in the background and let
@@ -376,6 +376,36 @@ line:
 
     start ... emailrelay --as-proxy=smtp.gmail.com:587 --client-tls --client-auth=C:/ProgramData/E-MailRelay/emailrelay.auth ...
 
+
+Microsoft 365
+=============
+E-MailRelay can forward e-mails to a Microsoft 365 Exchange server for onward
+delivery. Set the *--forward-to* address to *smtp.office365.com:587*, and enable
+authentication and TLS_ by using the *--client-auth* and *--client-tls* options,
+or add these lines to the *emailrelay.cfg* configuration file:
+
+::
+
+    forward-to smtp.office365.com:587
+    client-tls
+    client-auth C:/ProgramData/E-MailRelay/emailrelay.auth
+
+The secrets file (\ *emailrelay.auth*\ ) should contain the credentials for logging
+in to the Microsoft server, but because Microsoft's policy is to limit the use
+of passwords these credentials will normally have to be OAUTH tokens:
+
+::
+
+    client oauth:b me@mydomain.onmicrosoft.com dXNlcj1ncmFlbWVAZ3JhZW1ld2Fsa2VyLm9ub...
+
+Configure your Microsoft 365 `Exchange <https://admin.exchange.microsoft.com>`_
+server's 'mail flow' to allow SMTP_ AUTH and register E-MailRelay as an
+authenticating application, and then obtain a fresh OAUTH token to go into the
+E-MailRelay secrets file before forwarding e-mails.
+
+Use the `scripts <https://github.com/DATA-Systems/E-MailRelay-Token-Updater>`_
+on GitHub from DATA-Systems GmbH to help with this. You will need to edit the
+update script to set your application id etc.
 
 Connection tunnelling
 =====================
