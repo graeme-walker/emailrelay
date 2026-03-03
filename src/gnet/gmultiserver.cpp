@@ -29,18 +29,19 @@
 #include <list>
 #include <algorithm>
 
-GNet::MultiServer::MultiServer( EventState es , const G::StringArray & listener_list , unsigned int port ,
-	const std::string & server_type , ServerPeer::Config server_peer_config , Server::Config server_config ) :
+GNet::MultiServer::MultiServer( EventState es , const G::StringArray & listener_list , 
+	const std::vector<unsigned> & ports , const std::string & server_type , 
+	ServerPeer::Config server_peer_config , Server::Config server_config ) :
 		m_es(es) ,
 		m_listener_list(listener_list) ,
-		m_port(port) ,
+		m_ports(ports) ,
 		m_server_type(server_type) ,
 		m_server_peer_config(server_peer_config) ,
 		m_server_config(server_config) ,
 		m_if(es,*this) ,
 		m_interface_event_timer(*this,&MultiServer::onInterfaceEventTimeout,es)
 {
-	Listeners listeners( m_if , m_listener_list , m_port ) ;
+	Listeners listeners( m_if , m_listener_list , m_ports ) ;
 
 	// fail if any bad names (eg. "foo/bar")
 	if( listeners.hasBad() )
@@ -133,7 +134,7 @@ void GNet::MultiServer::onInterfaceEvent( const std::string & /*description*/ )
 void GNet::MultiServer::onInterfaceEventTimeout()
 {
 	// get a fresh address list
-	Listeners listeners( m_if , m_listener_list , m_port ) ;
+	Listeners listeners( m_if , m_listener_list , m_ports ) ;
 
 	// delete old
 	for( auto server_iter = m_server_list.begin() ; server_iter != m_server_list.end() ; )

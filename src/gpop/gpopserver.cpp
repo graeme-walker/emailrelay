@@ -85,7 +85,7 @@ void GPop::ServerPeer::onSecure( const std::string & , const std::string & , con
 // ===
 
 GPop::Server::Server( GNet::EventState es , Store & store , const GAuth::SaslServerSecrets & secrets , const Config & config ) :
-	GNet::MultiServer(es,config.addresses,config.port,"pop",config.net_server_peer_config,config.net_server_config) ,
+	GNet::MultiServer(es,config.addresses,{config.port},"pop",config.net_server_peer_config,config.net_server_config) ,
 	m_config(config) ,
 	m_store(store) ,
 	m_secrets(secrets)

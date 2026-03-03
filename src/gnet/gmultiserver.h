@@ -58,7 +58,7 @@ public:
 	} ;
 
 	MultiServer( EventState es_listener , const G::StringArray & listen_list ,
-		unsigned int port , const std::string & server_type ,
+		const std::vector<unsigned> & ports , const std::string & server_type ,
 		ServerPeer::Config server_peer_config , Server::Config server_config ) ;
 			///< Constructor. The server listens on inherited file descriptors
 			///< formatted like "fd#3", specific local addresses (eg. "127.0.0.1")
@@ -123,7 +123,7 @@ private:
 private:
 	EventState m_es ;
 	G::StringArray m_listener_list ;
-	unsigned int m_port ;
+	std::vector<unsigned> m_ports ;
 	std::string m_server_type ;
 	ServerPeer::Config m_server_peer_config ;
 	Server::Config m_server_config ;

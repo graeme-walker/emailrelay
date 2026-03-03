@@ -158,6 +158,27 @@ std::string G::OptionMap::join( Map::const_iterator p , Map::const_iterator end 
 	return result ;
 }
 
+std::pair<bool,std::vector<unsigned>> G::OptionMap::numbers( std::string_view key , unsigned int default_ ) const
+{
+	std::pair<bool,std::vector<unsigned>> result { true , {default_} } ;
+	auto range = findRange( key ) ;
+	if( range.first == range.second )
+		return result ;
+
+	if( std::any_of( range.first , range.second ,
+		[](const value_type & v_){return !G::Str::isUInt(v_.second.valueref());}) )
+	{
+		result.first = false ; // invalid
+		return result ;
+	}
+
+	result.first = true ;
+	result.second.clear() ; 
+	for( auto p = range.first ; p != range.second ; ++p )
+		result.second.push_back( G::Str::toUInt((*p).second.valueref()) ) ;
+	return result ;
+}
+
 unsigned int G::OptionMap::number( std::string_view key , unsigned int default_ ) const noexcept
 {
 	G_ASSERT( !G::Str::isUInt("") ) ;

@@ -265,7 +265,9 @@ public:
 
 private:
 	bool contains( const char * ) const noexcept ;
+	bool validNumbers( std::string_view ) const ;
 	unsigned int numberValue( std::string_view key , unsigned int default_ ) const noexcept ;
+	std::vector<unsigned> numberList( std::string_view key , unsigned int default_ ) const ;
 	std::string stringValue( std::string_view ) const ;
 	std::string stringValue( std::string_view , const std::string & ) const ;
 	std::string stringValue( std::string_view , std::function<std::string()> ) const ;
@@ -304,7 +306,7 @@ private:
 	unsigned int _popPort() const noexcept ;
 	std::string _popSaslServerConfig() const ;
 	std::pair<int,int> _popServerSocketLinger() const noexcept ;
-	unsigned int _port() const noexcept ;
+	std::vector<unsigned> _ports() const ;
 	unsigned int _promptTimeout() const noexcept ;
 	unsigned int _responseTimeout() const noexcept ;
 	unsigned int _secureConnectionTimeout() const noexcept ;

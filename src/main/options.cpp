@@ -221,7 +221,7 @@ G::Options Main::Options::spec()
 
 	G::Options::add( opt , 'p' , "port" ,
 		tx("specifies the SMTP listening port number (default is 25)") , "" ,
-		M::one , "port" , 20 ,
+		M::many , "port" , 20 ,
 		t_smtpserver ) ;
 			//default: 25
 			//example: 587

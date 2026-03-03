@@ -70,7 +70,14 @@ std::vector<GNet::Address> GNet::Interfaces::addresses( const std::string & name
 }
 #endif
 
-std::size_t GNet::Interfaces::addresses( std::vector<Address> & out , const std::string & name , unsigned int port , int af ) const
+std::size_t GNet::Interfaces::addresses( std::vector<Address> & out , const std::string & name , 
+	unsigned int port , int af ) const
+{
+	return addresses( out , name , std::vector<unsigned>{port} , af ) ;
+}
+
+std::size_t GNet::Interfaces::addresses( std::vector<Address> & out , const std::string & name , 
+	const std::vector<unsigned> & ports , int af ) const
 {
 	if( !loaded() )
 		const_cast<Interfaces*>(this)->load() ;
@@ -84,9 +91,12 @@ std::size_t GNet::Interfaces::addresses( std::vector<Address> & out , const std:
 				( af == AF_INET6 && item.address.is6() ) ||
 				( af == AF_INET && item.address.is4() ) )
 			{
-				count++ ;
-				out.push_back( item.address ) ;
-				out.back().setPort( port ) ;
+				for( auto port : ports )
+				{
+					count++ ;
+					out.push_back( item.address ) ;
+					out.back().setPort( port ) ;
+				}
 			}
 		}
 	}

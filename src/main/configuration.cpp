@@ -230,6 +230,9 @@ const char * Main::Configuration::semanticError1() const
 		return tx("invalid --syslog facility: use 'mail', 'user', 'daemon', or 'local0' to 'local7'") ;
 	}
 
+	if( !validNumbers("port") )
+		return tx("invalid --port value") ;
+
 	const bool contains_poll = contains( "poll" ) ;
 	if( contains_poll && numberValue("poll",0U) == 0U )
 	{
@@ -519,6 +522,16 @@ G::StringArray Main::Configuration::semanticWarnings() const
 	return warnings ;
 }
 
+bool Main::Configuration::validNumbers( std::string_view key ) const
+{
+	return m_map.numbers(key,0U).first ;
+}
+
+std::vector<unsigned> Main::Configuration::numberList( std::string_view key , unsigned int default_ ) const
+{
+	return m_map.numbers(key,default_).second ;
+}
+
 GSmtp::FilterFactoryBase::Spec Main::Configuration::filterValue( std::string_view option_name ,
 	G::StringArray * warnings_p ) const
 {
@@ -638,7 +651,7 @@ G::StringArray Main::Configuration::display( const G::Options & options ) const
 			else if( option.name == "forward-to" )
 				result.push_back( serverAddress() ) ;
 			else if( option.name == "port" )
-				result.push_back( (doSmtp()&&doServing()) ? G::Str::fromUInt(_port()) : std::string() ) ;
+				result.push_back( (doSmtp()&&doServing()) ? stringValue("port") : std::string() ) ;
 			else if( option.name == "pop-port" )
 				result.push_back( (doPop()&&doServing()) ? G::Str::fromUInt(_popPort()) : std::string() ) ;
 			else if( option.multivalued() )
@@ -747,7 +760,7 @@ GSmtp::Server::Config Main::Configuration::smtpServerConfig( const std::string &
 		GSmtp::Server::Config()
 			.set_allow_remote( _allowRemoteClients() )
 			.set_interfaces( listeningNames("smtp") )
-			.set_port( _port() )
+			.set_ports( _ports() )
 			.set_ident( smtp_ident )
 			.set_anonymous_smtp( anonymous("server") )
 			.set_anonymous_content( anonymous("content") )
@@ -962,7 +975,7 @@ unsigned int Main::Configuration::_maxSize() const noexcept { return numberValue
 unsigned int Main::Configuration::_popPort() const noexcept { return numberValue( "pop-port" , 110U ) ; }
 std::string Main::Configuration::_popSaslServerConfig() const { return stringValue( "server-auth-config" ) ; }
 std::pair<int,int> Main::Configuration::_popServerSocketLinger() const noexcept { return std::make_pair( -1 , -1 ) ; }
-unsigned int Main::Configuration::_port() const noexcept { return numberValue( "port" , 25U ) ; }
+std::vector<unsigned> Main::Configuration::_ports() const { return numberList( "port" , 25U ) ; }
 unsigned int Main::Configuration::_promptTimeout() const noexcept { return numberValue( "prompt-timeout" , 20U ) ; }
 unsigned int Main::Configuration::_responseTimeout() const noexcept { return numberValue( "response-timeout" , 1800U ) ; }
 unsigned int Main::Configuration::_secureConnectionTimeout() const noexcept { return _connectionTimeout() ; }

@@ -101,6 +101,9 @@ public:
 	unsigned int number( std::string_view key , unsigned int default_ ) const noexcept ;
 		///< Returns the matching value as a number.
 
+	std::pair<bool,std::vector<unsigned>> numbers( std::string_view key , unsigned int default_ ) const ;
+		///< Returns the matching values as a list of numbers.
+
 private:
 	using Range = std::pair<Map::const_iterator,Map::const_iterator> ;
 	Range findRange( std::string_view key ) const noexcept ;

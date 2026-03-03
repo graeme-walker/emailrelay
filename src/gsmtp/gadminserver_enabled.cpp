@@ -454,7 +454,7 @@ void GSmtp::AdminServer::notify( const std::string & s0 , const std::string & s1
 GSmtp::AdminServerImp::AdminServerImp( GNet::EventState es , GStore::MessageStore & store ,
 	FilterFactoryBase & ff , const GAuth::SaslClientSecrets & client_secrets ,
 	const G::StringArray & interfaces , const AdminServer::Config & config ) :
-		GNet::MultiServer(es,interfaces,config.port,"admin",config.net_server_peer_config,config.net_server_config) ,
+		GNet::MultiServer(es,interfaces,{config.port},"admin",config.net_server_peer_config,config.net_server_config) ,
 		m_store(store) ,
 		m_ff(ff) ,
 		m_client_secrets(client_secrets) ,
