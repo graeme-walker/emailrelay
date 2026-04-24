@@ -134,7 +134,11 @@
 
 #ifdef G_WINDOWS
 #ifdef G_QT_STATIC
+#if QT_VERSION >= 0x060000
+Q_IMPORT_PLUGIN(QModernWindowsStylePlugin)
+#else
 Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
+#endif
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
 #endif
 #endif

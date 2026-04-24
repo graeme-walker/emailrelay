@@ -24,8 +24,6 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/gssl \
 	-I$(top_srcdir)/src/gnet \
 	-I$(top_srcdir)/src/gauth \
-	-D "G_SPOOLDIR=$(e_spooldir)" \
-	-D "G_SYSCONFDIR=$(e_sysconfdir)" \
 	-D G_LIB_SMALL
 
 if GCONFIG_POP

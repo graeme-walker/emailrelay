@@ -278,7 +278,7 @@ optionally edited to enable TLS v1.3. If necessary delete the "mbedtls-x64"
 build directory to trigger a rebuild.
 
 A release assembly can be created by running "winbuild-install.bat" or
-"perl winbuild.pl install". This makes use of the Qt "windeployqt" utility to
+"winbuild-assembly.pl". This makes use of the Qt "windeployqt" utility to
 assemble DLLs and it also generates the Qt ".qm" translation files.
 
 For public release builds the E-MailRelay GUI must be statically linked. Start
@@ -291,13 +291,11 @@ assembly, replacing "emailrelay-setup.exe" and "emailrelay-gui.exe". Remove the
 now-redundant DLLs (in the both the root and payload directories) before
 zipping.
 
-For MinGW cross-builds use "./configure.sh -w64" and "make" on a Linux box and
-copy the built executables. Any extra run-time files can be identified by
-running "dumpbin /dependents" in the normal way.
-
-To target ancient versions of Windows start with a MinGW cross-build for 32-bit
-("./configure.sh -m -w32 --disable-gui"). Then "winbuild.pl install_winxp" can
-be used to make a simplified distribution assembly, without a GUI.
+The "configure.sh" script can be used to cross-compile from Linux targeting 
+Windows or embedded platforms, with static linking of the MbedTLS library.
+For example, to target ancient versions of Windows run
+"./configure.sh -m -w32" and then use "winbuild-assembly.pl --winxp"
+to make a simplified distribution zip file.
 
 Windows packaging
 -----------------

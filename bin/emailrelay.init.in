@@ -37,14 +37,14 @@
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 NAME=emailrelay
 DESC="E-MailRelay mail server"
-CONFIG=__SYSCONF_DIR__/$NAME.conf
+CONFIG=__CONF_DIR__/$NAME.conf
 PIDFILE=__RUN_DIR__/$NAME.pid
 GROUP=daemon
 DAEMON=__SBIN_DIR__/$NAME
 SUBMIT=__SBIN_DIR__/$NAME-submit
 FACILITY=mail
 
-test -f __SYSCONF_DIR__/default/$NAME && . __SYSCONF_DIR__/default/$NAME
+test -f __CONF_DIR__/default/$NAME && . __CONF_DIR__/default/$NAME
 test -f /etc/rc.conf.d/$NAME && . /etc/rc.conf.d/$NAME
 test -f /etc/default/rcS && . /etc/default/rcS
 
@@ -224,7 +224,7 @@ case "$1" in
 			if test -d /run/systemd/system ; then sleep 0.2 2>/dev/null ; fi # pid file race
 			test "$e" -eq 0
 		else
-			log_warning_msg "$NAME startup is disabled in __SYSCONF_DIR__/default/$NAME"
+			log_warning_msg "$NAME startup is disabled in __CONF_DIR__/default/$NAME"
 			exit 0
 		fi
 		;;

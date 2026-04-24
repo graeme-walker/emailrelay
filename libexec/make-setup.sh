@@ -1,6 +1,9 @@
 #!/bin/sh
 #
-# Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# 
+# Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +24,7 @@
 # Builds a gui payload tree by running "make install" into it and adding
 # a config file. The payload is processed by the gui installer.
 #
-# For windows this is now done elsewhere.
+# For Windows this is now done elsewhere (winbuild.pl).
 #
 # usage: make-setup.sh [-d] <payload>
 #           -d : debug
@@ -47,15 +50,14 @@ fi
 
 # run "make install" into the payload directory
 echo `basename $0`: running make install into $payload
-payload_path="`cd $payload && pwd`"
-( cd ../.. && make install GCONFIG_HAVE_DOXYGEN=no DESTDIR=$payload_path ) > /dev/null 2>&1
+payload_path="`cd \"$payload\" && pwd`"
+( cd ../.. && make install GCONFIG_DOXYGEN=no "DESTDIR=$payload_path" ) > /dev/null 2>&1
 
 # check the "./configure" was done by "bin/configure.sh --enable-gui --without-doxygen"
 if test \
-	! -d "$payload/usr/lib/emailrelay" -o \
+	! -d "$payload/usr/share/emailrelay" -o \
 	! -f "$payload/usr/share/emailrelay/emailrelay.no.qm" -o \
-	! -f "$payload/usr/lib/emailrelay/emailrelay.auth.in" -o \
-	! -f "$payload/usr/lib/emailrelay/emailrelay.conf.in" -o \
+	! -f "$payload/etc/emailrelay.conf" -o \
 	! -f "$payload/usr/sbin/emailrelay-gui.real" -o \
 	-f "$payload/usr/share/doc/emailrelay/doxygen/classes.html"
 then
@@ -64,17 +66,15 @@ then
 fi
 
 # clean up the "make install" output
-rm -f $payload/usr/sbin/emailrelay-gui
+rm -f "$payload/usr/sbin/emailrelay-gui"
 
 # create the payload config file
-cat <<EOF >$payload/payload.cfg
-# all of /etc excluding .conf and .auth files created by gui
-etc/pam.d/emailrelay=%dir-install%/etc/pam.d/emailrelay
-etc/init.d/emailrelay=%dir-install%/etc/init.d/emailrelay
-# all sub-dirs of /usr
+cat <<EOF > "$payload/payload.cfg"
+etc/pam.d/emailrelay=%dir-config%/pam.d/emailrelay
+etc/init.d/emailrelay=%dir-config%/init.d/emailrelay
 usr/lib/=%dir-install%/lib/
-usr/share/=%dir-install%/share/
 usr/sbin/=%dir-install%/sbin/
+usr/share/=%dir-install%/share/
 # permission fix-ups
 +%dir-spool% group daemon 770 g+s
 +%dir-install%/sbin/emailrelay-submit group daemon 775 g+s

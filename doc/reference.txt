@@ -1651,10 +1651,10 @@ Installation directories can be defined at build-time by the following
 * e_icondir=<dir>
 * e_trdir=<dir>
 * e_initdir=<dir>
-* e_libdir=<dir>
+* e_egconfdir=<dir>
 * e_pamdir=<dir>
 * e_spooldir=<dir>
-* e_sysconfdir=<dir>
+* e_confdir=<dir>
 * e_rundir=<dir>
 * e_systemddir=<dir>
 

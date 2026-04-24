@@ -51,7 +51,7 @@
 
 CPPFLAGS_SMALL=-DG_LIB_SMALL
 
-if GCONFIG_GUI
+if GCONFIG_ENABLE_GUI
 
 SOURCES_ = \
 	emailrelay.cpp \
@@ -66,15 +66,8 @@ PROGRAMS_ = \
 	emailrelay-gui
 
 CPPFLAGS_GUI = \
-	-D "G_SBINDIR=$(sbindir)" \
 	-D "G_SPOOLDIR=$(e_spooldir)" \
-	-D "G_INITDIR=$(e_initdir)" \
-	-D "G_SYSCONFDIR=$(e_sysconfdir)" \
-	-D "G_ICONDIR=$(e_icondir)" \
-	-D "G_LIBDIR=$(e_libdir)" \
-	-D "G_MANDIR=$(mandir)" \
-	-D "G_DOCDIR=$(e_docdir)" \
-	-D "G_EXAMPLESDIR=$(e_examplesdir)" \
+	-D "G_CONFDIR=$(e_confdir)" \
 	-I . \
 	$(GCONFIG_QT_CFLAGS)
 

@@ -3,15 +3,10 @@
 # postinst
 #
 
-spool="/var/spool/emailrelay"
-submit="/usr/sbin/emailrelay-submit"
-filtercopy="/usr/lib/emailrelay/emailrelay-filter-copy"
-init="/etc/init.d/emailrelay"
-rundir="/run/emailrelay"
-
 emailrelay_setup()
 {
 	# use the init script for some post-install setup
+	local init="/etc/init.d/emailrelay"
 	if test -e "$init" -a ! -x "$init"
 	then
 		chmod +x "$init"
@@ -19,23 +14,7 @@ emailrelay_setup()
 	"$init" setup
 }
 
-emailrelay_fix_html()
-{
-	# index.html refers to changelog.html, not changelog.html.gz
-	cd /usr/share/doc/emailrelay && gzip -d -c changelog.html.gz > changelog.html
-}
-
-emailrelay_create_config()
-{
-	if test ! -e /etc/emailrelay.conf -a -f /etc/emailrelay.conf.template
-	then
-		cp /etc/emailrelay.conf.template /etc/emailrelay.conf
-	fi
-}
-
 emailrelay_setup
-emailrelay_fix_html
-emailrelay_create_config
 
 #DEBHELPER#
 

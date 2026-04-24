@@ -18,7 +18,6 @@
 SUBDIRS = icon
 
 sbin_PROGRAMS = emailrelay emailrelay-submit emailrelay-passwd $(MAC_PROGS) $(WINDOWS_PROGS)
-e_spool_DATA =
 noinst_LIBRARIES = libmain.a
 
 if GCONFIG_TLS_USE_MBEDTLS
@@ -57,7 +56,6 @@ AM_CPPFLAGS = \
  -I$(top_srcdir)/src/gfilters \
  -I$(top_srcdir)/src/gverifiers \
  -I$(top_srcdir)/src/main/icon \
- -D "G_SPOOLDIR=$(e_spooldir)" \
  -D "G_LOCALEDIR=$(localedir)"
 
 WINDOWS_MAIN_SOURCES = \
@@ -304,7 +302,7 @@ $(RESOURCES): emailrelay.rc MSG00001.bin messages.rc
 	$(GCONFIG_WINDRES) --preprocessor "$(CC)" --preprocessor-arg -E --preprocessor-arg -xc-header --preprocessor-arg -DRC_INVOKED -D_WIN32=1 --include-dir . --include-dir icon --include-dir $(top_srcdir)/src/main/icon -i $(top_srcdir)/src/main/emailrelay.rc -o $(RESOURCES)
 endif
 
-install-data-local: install-sbinPROGRAMS install-e_spoolDATA
+install-data-local: install-sbinPROGRAMS
 	-mkdir -p "$(DESTDIR)$(e_spooldir)"
 	-chgrp daemon "$(DESTDIR)$(e_spooldir)"
 	-chmod 775 "$(DESTDIR)$(e_spooldir)"
@@ -331,4 +329,7 @@ strip:
 .PHONY: map
 map:
 	$(CXXLD) -Xlinker -Map=emailrelay.map $(AM_CXXFLAGS) $(CXXFLAGS) $(emailrelay_LDFLAGS) $(LDFLAGS) -o /tmp/emailrelay.tmp $(emailrelay_OBJECTS) $(emailrelay_LDADD) $(LIBS)
+if GCONFIG_WINDOWS
+	$(CXXLD) -Xlinker -Map=emailrelay-textmode.map $(AM_CXXFLAGS) $(CXXFLAGS) $(emailrelay_textmode_LDFLAGS) $(LDFLAGS) -o /tmp/emailrelay-textmode.tmp $(emailrelay_textmode_OBJECTS) $(emailrelay_textmode_LDADD) $(LIBS)
+endif
 

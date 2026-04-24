@@ -20,9 +20,11 @@
 // Runs "emailrelay-service --install" and then opens the Windows service
 // control panel.
 //
-// Note that the installation process creates a config file
+// Note that the installation process should have created a config file
 // "emailrelay-service.cfg" in the same directory as the service wrapper
-// and this points to the directory containing the startup batch file.
+// that points to the directory containing the emailrelay server's
+// startup batch file ("emailrelay-start.bat") or configuration file
+// ("emailrelay.cfg").
 //
 
 try
@@ -32,21 +34,34 @@ try
 	var fs = WScript.CreateObject( "Scripting.FileSystemObject" ) ;
 	var this_dir = fs.GetParentFolderName( WScript.ScriptFullName ) ;
 
-	// after installation this script should live alongside
-	// emailrelay-service.exe and emailrelay-service.cfg in "dir-install"
+	// define the service name -- edit here to have multiple services
+	// and also manually create <name>-service.cfg, <name>-start.bat
+	// and <name>.cfg
 	//
-	var dir_install = this_dir ;
-	var wrapper_config_filename = "emailrelay-service.cfg" ;
-	var wrapper_config_file = dir_install + "\\" + wrapper_config_filename ;
-	var wrapper_config_file_exists = fs.FileExists(wrapper_config_file) ;
-	var service_wrapper = dir_install + "\\emailrelay-service.exe" ;
-	var service_wrapper_exists = fs.FileExists(service_wrapper) ;
+	var service_name = "emailrelay" ;
+
+	// executables should be in "programs"
+	var dir_install = fs.GetAbsolutePathName( this_dir ) ;
+	var dir_exe = dir_install ;
+	if( fs.FolderExists( dir_install + "\\programs" ) )
+		dir_exe = dir_install + "\\programs" ;
+
+	// check for the service wrapper files -- after installation the
+	// service wrapper and its configuration file should be in the
+	// same directory
+	//
+	var wrapper_config_filename = service_name + "-service.cfg" ;
+	var wrapper_config_file = dir_exe + "\\" + wrapper_config_filename ;
+	var wrapper_config_file_exists = fs.FileExists( wrapper_config_file ) ;
+	var service_wrapper = dir_exe + "\\emailrelay-service.exe" ;
+	var service_wrapper_exists = fs.FileExists( service_wrapper ) ;
 	if( !wrapper_config_file_exists )
 		throw "No service configuration file found [" + wrapper_config_filename + "]. Please run after successful E-MailRelay installation." ;
 	if( !service_wrapper_exists )
 		throw "No service wrapper [" + service_wrapper + "]" ;
 
-	// the wrapper config file contains a pointer to "dir-config"
+	// read the service wrapper config file to determine the main
+	// configuration directory
 	//
 	var dir_config = "" ;
 	if( wrapper_config_file_exists )
@@ -67,22 +82,23 @@ try
 			throw "Cannot parse the wrapper config file [" + wrapper_config_file + "]" ;
 
 		var re_app = new RegExp( "@app" ) ;
-		dir_config = dir_config.replace( re_app , dir_install ) ;
+		dir_config = dir_config.replace( re_app , dir_exe ) ;
 	}
 
 	// check for the startup batch file or server configuration file
-	var startup_batch_file = dir_config + "\\emailrelay-start.bat" ;
+	//
+	var startup_batch_file = dir_config + "\\" + service_name + "-start.bat" ;
 	var startup_batch_file_exists = fs.FileExists( startup_batch_file ) ;
-	var server_config_file = dir_config + "\\emailrelay.cfg" ;
+	var server_config_file = dir_config + "\\" + service_name + ".cfg" ;
 	var server_config_file_exists = fs.FileExists( server_config_file ) ;
 	if( !startup_batch_file_exists && !server_config_file_exists )
 		throw "No startup batch file [" + startup_batch_file + "] or server configuration file [" + server_config_file + "]" ;
 
-	var ok = shell.Popup( "About to run [" + service_wrapper + " --install] ..." , 0 , title , 1 ) ;
+	var ok = shell.Popup( "About to run [" + service_wrapper + " --install " + service_name + "] ..." , 0 , title , 1 ) ;
 	if( ok === 1 )
 	{
 		// do the service wrapper installation
-		var exec = shell.exec( "cmd.exe /c \"" + service_wrapper + "\" --install" ) ;
+		var exec = shell.exec( "cmd.exe /c \"" + service_wrapper + "\" --install " + service_name ) ;
 		while( exec.Status === 0 )
 		{
 			WScript.Sleep( 100 ) ;

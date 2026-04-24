@@ -1,5 +1,8 @@
 #
-## Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+## SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+## SPDX-License-Identifier: GPL-3.0-or-later
+## 
+## Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 ## 
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -16,22 +19,21 @@
 #
 
 work_scripts = \
-	doxygen.sh \
+	cmake.pm \
 	make-manifest.sh \
 	make-setup.sh \
 	make-format \
 	make-website \
 	make2cmake \
 	make2cdb \
-	make2qmake \
-	make2nmake \
 	make2unity \
 	mbedtlsbuild.pl \
 	libresslbuild.pl \
-	libresslbuild.mak \
 	qtbuild.pl \
+	doxygen.sh \
 	winbuild.pm \
 	winbuildall.bat \
+	winbuild-assembly.pl \
 	AutoMakeParser.pm \
 	BuildInfo.pm \
 	CompilationDatabase.pm \

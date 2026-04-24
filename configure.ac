@@ -85,8 +85,10 @@ AC_ARG_ENABLE([epoll],AS_HELP_STRING([--enable-epoll],[enable epoll (default aut
 GCONFIG_FN_ENABLE_EPOLL
 AC_ARG_ENABLE([gui],AS_HELP_STRING([--enable-gui],[enable configuration gui (requires Qt) (default auto)]))
 GCONFIG_FN_ENABLE_GUI
-AC_ARG_ENABLE([install-hook],AS_HELP_STRING([--enable-install-hook],[enable fixing up the start/stop configuration file at install time (default yes)]))
-GCONFIG_FN_ENABLE_INSTALL_HOOK
+AC_ARG_ENABLE([install-config],AS_HELP_STRING([--enable-install-config],[enable no-clobber install of config file (default yes)]))
+GCONFIG_FN_ENABLE_INSTALL_CONFIG
+AC_ARG_ENABLE([install-pam],AS_HELP_STRING([--enable-install-pam],[enable no-clobber install of pam file (default yes)]))
+GCONFIG_FN_ENABLE_INSTALL_PAM
 AC_ARG_ENABLE([interface-names],AS_HELP_STRING([--enable-interface-names],[allow network interface names for defining listening addresses (default yes)]))
 GCONFIG_FN_ENABLE_INTERFACE_NAMES
 AC_ARG_ENABLE([pop],AS_HELP_STRING([--enable-pop],[enable pop (default yes)]))

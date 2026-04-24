@@ -1,0 +1,5 @@
+#!/bin/sh
+if test -e /etc/emailrelay.conf ; then : ; else
+	install -m 755 /usr/share/emailrelay/emailrelay.conf /etc/emailrelay.conf
+fi
+exit 0
