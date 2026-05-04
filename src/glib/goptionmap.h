@@ -1,5 +1,8 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+// 
+// Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,11 +26,11 @@
 
 #include "gdef.h"
 #include "goptionvalue.h"
+#include "gdatetime.h"
 #include "gstringview.h"
 #include <string>
-#include <map>
+#include <vector>
 #include <algorithm>
-#include <functional> // std::less
 
 namespace G
 {
@@ -37,78 +40,90 @@ namespace G
 //| \class G::OptionMap
 /// A multimap-like container for command-line options and their values.
 /// The values are G::OptionValue objects, so they can be valued with a
-/// string value or unvalued with an on/off status, and they can have
-/// a repeat-count. Normally populated by G::OptionParser.
+/// string value or unvalued with an on/off status. Equal values are
+/// stored separately but elided by value(). Values that are 'off'
+/// are ignored by value() and count(). Normally populated by
+/// G::OptionParser.
+///
+/// The interface is non-throwing for lookup because it can be an
+/// important code-size optimisation when initialising large
+/// configuration structures. The implementation therefore avoids
+/// standard iterators and algorithms where necessary.
 ///
 class G::OptionMap
 {
 public:
-	using Map = std::multimap<std::string,OptionValue,std::less<std::string>> ; // NOLINT modernize-use-transparent-functors
-	using value_type = Map::value_type ;
-	using iterator = Map::iterator ;
-	using const_iterator = Map::const_iterator ;
+	using Pair = std::pair<std::string,OptionValue> ;
+	using List = std::vector<Pair> ;
+	using value_type = Pair ;
+	using iterator = List::iterator ;
+	using const_iterator = const Pair * ;
+	enum class ValueStatus { ok , missing , multiple , invalid } ;
+	using NumberPair = std::pair<ValueStatus,unsigned int> ;
 
 public:
-	void insert( const Map::value_type & ) ;
-		///< Inserts the key/value pair into the map. The ordering of values
-		///< in the map with the same key is in the order of insert()ion.
+	void insert( const value_type & ) ;
+		///< Inserts the key/value pair into the map. The ordering of
+		///< values with the same key is in the order of insert()ion.
 
 	void replace( std::string_view key , const std::string & value ) ;
 		///< Replaces all matching values with a single value.
 
-	void increment( std::string_view key ) noexcept ;
-		///< Increments the repeat count for the given entry.
-
 	const_iterator begin() const noexcept ;
-		///< Returns the begin iterator.
-
-	const_iterator cbegin() const noexcept ;
-		///< Returns the begin iterator.
+		///< Returns the begin const iterator.
 
 	const_iterator end() const noexcept ;
-		///< Returns the off-the-end iterator.
+		///< Returns the off-the-end const iterator.
 
-	const_iterator cend() const noexcept ;
-		///< Returns the off-the-end iterator.
-
-	const_iterator find( std::string_view ) const noexcept ;
-		///< Finds the map entry with the given key.
+	const_iterator findFirst( std::string_view ) const noexcept ;
+		///< Finds the first map entry with the given key.
 
 	void clear() ;
 		///< Clears the map.
 
-	bool contains( std::string_view ) const noexcept ;
-		///< Returns true if the map contains the given key, but ignoring 'off'
-		///< option-values.
+	bool contains( std::string_view key ) const noexcept ;
+		///< Returns true if the map contains the given key, including
+		///< 'off' values.
 
-	bool contains( const char * ) const noexcept ;
-		///< Overload for c-string.
+	bool containsOn( std::string_view key ) const noexcept ;
+		///< Returns true if the map contains an 'on' value
+		///< with the given key.
 
-	bool contains( const std::string & ) const noexcept ;
-		///< Overload for std-string.
+	bool containsOff( std::string_view key ) const noexcept ;
+		///< Returns true if the map contains an 'off' value
+		///< with the given key.
 
 	std::size_t count( std::string_view key ) const noexcept ;
-		///< Returns the total repeat count for all matching entries.
-		///< See G::OptionValue::count().
+		///< Returns the count of entries with the given key, ignoring
+		///< 'off' values.
 
-	std::string value( std::string_view key , std::string_view default_ = {} ) const ;
-		///< Returns the matching value, with concatentation into a comma-separated
-		///< list if multivalued (with no escaping). If there are any on/off
-		///< option-values matching the key then a single value is returned
-		///< corresponding to the first one, being G::Str::positive() if 'on'
-		///< or the supplied default if 'off'.
+	std::string value( std::string_view key , std::string_view default_ = {} ,
+		std::string_view sep = {} ) const ;
+			///< Returns a value for the given key, ignoring 'off' values and
+			///< with concatentation into a comma-separated list if more than
+			///< one (with no escaping). Insert order is preserved. Repeat
+			///< values are elided. Returns the empty string if no match.
 
-	unsigned int number( std::string_view key , unsigned int default_ ) const noexcept ;
-		///< Returns the matching value as a number.
+	NumberPair number( std::string_view key , unsigned int default_ ) const noexcept ;
+		///< Returns value() as a number, together with a status.
+		///< Returns the default number-of-seconds value if the value
+		///< status is not ok.
+
+	void clearOffValues() ;
+		///< Removes options where the value isOff().
 
 private:
-	using Range = std::pair<Map::const_iterator,Map::const_iterator> ;
+	using Range = std::pair<const_iterator,const_iterator> ;
+	using Range_ = std::pair<iterator,iterator> ;
 	Range findRange( std::string_view key ) const noexcept ;
-	Map::iterator findFirst( std::string_view key ) noexcept ;
-	static std::string join( Map::const_iterator , Map::const_iterator , std::string_view ) ;
+	Range_ findRange( std::string_view key ) ;
+	static const_iterator cbegin( const List & ) noexcept ;
+	static const_iterator cend( const List & ) noexcept ;
+	static unsigned int mulsat( unsigned int , unsigned int ) noexcept ;
 
 private:
-	Map m_map ;
+	List m_list ;
+	mutable std::vector<std::string_view> m_seen ;
 } ;
 
 #endif

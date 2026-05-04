@@ -177,6 +177,9 @@ public:
 		///< optionally excluding the root part. Returns true
 		///< if replaced.
 
+	Path replaced( const std::string_view & from , const std::string_view & to , bool ex_root = false ) const ;
+		///< Returns a copy of this path with replace() applied.
+
 	StringArray split() const ;
 		///< Spits the path into a list of component parts (ignoring "." parts
 		///< unless the whole path is ".").

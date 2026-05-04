@@ -1,5 +1,8 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+// 
+// Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,157 +26,153 @@
 #include "goptionparser.h"
 #include "goptionreader.h"
 #include "gstr.h"
+#include "gformat.h"
+#include "ggettext.h"
 #include "gassert.h"
 #include "glog.h"
 #include <fstream>
 #include <algorithm>
 
-#ifndef G_LIB_SMALL
-G::GetOpt::GetOpt( const Arg & args_in , const std::string & spec , std::size_t ignore_non_options ) :
+G::GetOpt::GetOpt( const Arg & args_in , const Options & spec ) :
+	GetOpt(args_in,Options{spec},{})
+{
+}
+
+G::GetOpt::GetOpt( const Arg & args_in , const char * spec ) :
+	GetOpt(args_in,Options{spec},{})
+{
+}
+
+G::GetOpt::GetOpt( const Arg & args_in , const char * spec , const Config & config ) :
+	GetOpt(args_in,Options{spec},config)
+{
+}
+
+G::GetOpt::GetOpt( const Arg & args_in , const Options & spec , const Config & config ) :
 	m_spec(spec) ,
-	m_args(args_in)
+	m_config(config) ,
+	m_args(StringArray())
 {
-	parseArgs( ignore_non_options ) ;
-}
-#endif
-
-G::GetOpt::GetOpt( const Arg & args_in , const Options & spec , std::size_t ignore_non_options ) :
-	m_spec(spec) ,
-	m_args(args_in)
-{
-	parseArgs( ignore_non_options ) ;
+	m_args = init( args_in.v(0U) , args_in.array(1U) , config ) ;
 }
 
-#ifndef G_LIB_SMALL
-G::GetOpt::GetOpt( const StringArray & args_in , const std::string & spec , std::size_t ignore_non_options ) :
-	m_spec(spec) ,
-	m_args(args_in)
+G::Arg G::GetOpt::init( const std::string & argv0 , const StringArray & args_in , const Config & config )
 {
-	parseArgs( ignore_non_options ) ;
-}
-#endif
+	auto parser_config =
+		OptionParser::Config()
+			.set_start_position(0U) // array(1) above
+			.set_ignore_non_options(config.with_subcmd?1U:0U)
+			.set_keep_negatives(false) ; // (new)
 
-#ifndef G_LIB_SMALL
-G::GetOpt::GetOpt( const StringArray & args_in , const Options & spec , std::size_t ignore_non_options ) :
-	m_spec(spec) ,
-	m_args(args_in)
-{
-	parseArgs( ignore_non_options ) ;
-}
-#endif
-
-#ifndef G_LIB_SMALL
-void G::GetOpt::reload( const StringArray & args_in , std::size_t ignore_non_options )
-{
-	m_map.clear() ;
-	m_errors.clear() ;
-	m_args = Arg( args_in ) ;
-	parseArgs( ignore_non_options ) ;
-}
-#endif
-
-void G::GetOpt::parseArgs( std::size_t ignore_non_options )
-{
-	StringArray new_args = OptionParser::parse( m_args.array() , m_spec , m_map , &m_errors , 1U , ignore_non_options ) ;
-	new_args.insert( new_args.begin() , m_args.v(0U) ) ;
-	m_args = Arg( new_args ) ;
-}
-
-#ifndef G_LIB_SMALL
-bool G::GetOpt::addOptionsFromFile( std::size_t n , const StringArray & blocklist )
-{
-	if( n < m_args.c() )
+	// get the config file path
+	StringArray all_args = args_in ;
+	if( config.allow_configfile )
 	{
-		G::Path path = m_args.v( n ) ;
-		if( std::find( blocklist.begin() , blocklist.end() , path.extension() ) != blocklist.end() )
-			return false ;
-		m_args.removeAt( n ) ;
-		addOptionsFromFile( path ) ;
-	}
-	return true ;
-}
-#endif
+		// get the raw path
+		auto configfile_pair = OptionParser::file( all_args , m_spec ,
+			m_errors , parser_config , config.configfile_modifier_key ) ;
+		G::Path configfile_path = configfile_pair.first ;
+		const auto & configfile_modifier = configfile_pair.second ;
 
-#ifndef G_LIB_SMALL
-void G::GetOpt::addOptionsFromFile( std::size_t n , const std::string & varkey , const std::string & varvalue )
-{
-	if( n < m_args.c() )
-	{
-		std::string filename = m_args.v( n ) ;
-		m_args.removeAt( n ) ;
+		// apply variable substitution to get the real path
+		if( !configfile_path.empty() && !m_config.configfile_varname.empty() )
+			configfile_path.replace( m_config.configfile_varname , m_config.configfile_varvalue ) ;
 
-		if( !filename.empty() )
+		// parse Reader::Config
+		OptionReader::Config reader_config ;
+		if( !reader_config.parse( configfile_modifier , config.configfile_basename ) )
+			m_errors.push_back( str(format(txt("invalid \"--%1%\" value")) % config.configfile_modifier_key) ) ;
+
+		// remove the filename from the command-line
+		if( !configfile_path.empty() )
+			all_args.pop_back() ; // remove the filename
+
+		// extra checks for uapi mode
+		if( reader_config.uapi() )
 		{
-			if( !varkey.empty() && !varvalue.empty() && filename.find(varkey) == 0 )
-				G::Str::replace( filename , varkey , varvalue ) ;
-			addOptionsFromFile( filename ) ;
+			if( !configfile_path.empty() )
+				m_errors.push_back( txt("cannot specify the config file when using uapi") ) ;
+			if( config.configfile_basename.empty() )
+				m_errors.push_back( txt("internal error: no configured basename when using uapi") ) ;
 		}
+
+		// read the file(s)
+		if( !configfile_path.empty() || reader_config.uapi() )
+			OptionReader::read( all_args , m_files , m_errors , configfile_path , reader_config ) ;
 	}
-}
-#endif
 
-G::StringArray G::GetOpt::readOptionsFromFile( const Path & filename )
+	// parse out the section names
+	auto names = OptionParser::names( all_args , m_spec ,
+		m_errors , parser_config , config.section_introducer ) ;
+
+	// parse all options
+	auto new_args = OptionParser::parse( all_args , m_spec ,
+		names , m_maps , m_errors , parser_config ) ;
+
+	// reassemble G::Arg
+	new_args.insert( new_args.begin() , argv0 ) ;
+	return Arg(new_args) ;
+}
+
+const G::Options & G::GetOpt::spec() const
 {
-	return OptionReader::read( filename ) ;
+	return m_spec ;
 }
 
-void G::GetOpt::addOptionsFromFile( const Path & filename )
+const G::GetOpt::Maps & G::GetOpt::maps() const
 {
-	OptionParser::parse( readOptionsFromFile(filename) , m_spec , m_map , &m_errors , 0U ) ;
+	return m_maps ;
 }
 
-const std::vector<G::Option> & G::GetOpt::options() const
-{
-	return m_spec.list() ;
-}
-
-#ifndef G_LIB_SMALL
 const G::OptionMap & G::GetOpt::map() const
 {
-	return m_map ;
+	return m_maps.at(0U).second ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
-G::StringArray G::GetOpt::errorList() const
+const G::StringArray & G::GetOpt::errorList() const
 {
 	return m_errors ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
-bool G::GetOpt::contains( char c ) const
+const std::vector<G::Path> & G::GetOpt::files() const
 {
-	return m_map.contains( m_spec.lookup(c) ) ;
-}
-#endif
-
-bool G::GetOpt::contains( std::string_view name ) const
-{
-	return m_map.contains( name ) ;
+	return m_files ;
 }
 
-#ifndef G_LIB_SMALL
-std::size_t G::GetOpt::count( std::string_view name ) const
+bool G::GetOpt::contains( char option_letter ) const
 {
-	return m_map.count( name ) ;
-}
-#endif
-
-#ifndef G_LIB_SMALL
-std::string G::GetOpt::value( char c , std::string_view default_ ) const
-{
-	G_ASSERT( contains(c) ) ;
-	return value( m_spec.lookup(c) , default_ ) ;
-}
-#endif
-
-std::string G::GetOpt::value( std::string_view name , std::string_view default_ ) const
-{
-	return m_map.value( name , default_ ) ;
+	return map().count( m_spec.lookup(option_letter) ) != 0U ;
 }
 
-G::Arg G::GetOpt::args() const
+bool G::GetOpt::contains( std::string_view option_name ) const
+{
+	return map().count( option_name ) != 0U ;
+}
+
+std::size_t G::GetOpt::count( std::string_view option_name ) const
+{
+	return map().count( option_name ) ;
+}
+
+std::string G::GetOpt::value( char option_letter , std::string_view default_ ) const
+{
+	G_ASSERT( contains(option_letter) ) ;
+	return value( m_spec.lookup(option_letter) , default_ ) ;
+}
+
+std::string G::GetOpt::value( std::string_view option_name , std::string_view default_ ) const
+{
+	return map().value( option_name , default_ ) ;
+}
+
+std::optional<std::string> G::GetOpt::optional( std::string_view option_name ) const
+{
+	if( map().count(option_name) == 0U )
+		return {} ;
+	return { value(option_name) } ;
+}
+
+const G::Arg & G::GetOpt::args() const
 {
 	return m_args ;
 }

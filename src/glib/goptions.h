@@ -1,5 +1,8 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+// 
+// Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,8 +36,8 @@ namespace G
 }
 
 //| \class G::Options
-/// A class to assemble a list of command-line options and provide access
-/// by name.
+/// A class to assemble a list of command-line options into a
+/// command-line specification and then provide access by name.
 ///
 class G::Options
 {
@@ -73,78 +76,74 @@ public:
 			///< the trailing arguments and then calls add(Option) on the
 			///< given Options object. The 'text' string is passed through
 			///< G::gettext() and should therefore normally be marked
-			///< for translation with G::tx(). The tag parameters
-			///< are both bit-masks, with only one bit set in the
-			///< main tag.
+			///< for translation with G::tx(). The tag parameters are
+			///< both bit-masks, with only one bit set in the main tag.
 
-	void add( const Option & , char sep = '!' , char escape = '\\' ) ;
-		///< Adds one component of the specification. If the 'description'
-		///< contains the unescaped 'sep' character then it is split
-		///< into two parts and the second part replaces the
-		///< 'description_extra', which must be empty.
+	void add( const Option & ) ;
+		///< Adds one component of the specification.
 
 	const std::vector<Option> & list() const ;
-		///< Returns the sorted list of option structures.
+		///< Exposes the sorted list of option structures.
 
 	std::string lookup( char c ) const ;
 		///< Converts from short-form option character to the corresponding
 		///< long-form name. Returns the empty string if none.
 
-	bool valid( const std::string & ) const ;
+	bool valid( std::string_view ) const ;
 		///< Returns true if the long-form option name is valid.
 
-	const Option * find( const std::string & ) const ;
+	const Option * find( std::string_view ) const ;
 		///< Returns a pointer to the option with a matching
 		///< long-form name. Returns nullptr if none.
 
-	bool visible( const std::string & name , unsigned int level , bool level_exact = false ) const ;
+	bool visible( std::string_view name , unsigned int level , bool level_exact = false ) const ;
 		///< Returns true if the option is visible at the given level.
 		///< Deliberately hidden options at level zero are never
 		///< visible(). Returns false if not a valid() name .
 
-	bool visible( const std::string & name ) const ;
+	bool visible( std::string_view name ) const ;
 		///< Returns true if the option is visible. Returns false if
 		///< the option is hidden or the name is not valid().
 
-	bool valued( char ) const ;
-		///< Returns true if the given short-form option takes a value,
-		///< Returns true if the short-form option character is valued,
-		///< including multivalued() and defaulting().
-		///< Returns false if not valid().
+	bool singlevalued( char ) const ;
+		///< Returns true if the given short-form option is valid
+		///< and G::Option::singlevalued().
 
-	bool valued( const std::string & ) const ;
-		///< Returns true if the given long-form option takes a value,
-		///< including multivalued() and defaulting(). Returns false
-		///< if not valid().
+	bool singlevalued( std::string_view ) const ;
+		///< Returns true if the given long-form option is valid
+		///< and G::Option::singlevalued().
+
+	bool valued( char ) const ;
+		///< Returns true if the given short-form option is valid
+		///< and G::Option::valued().
+
+	bool valued( std::string_view ) const ;
+		///< Returns true if the given long-form option is valid
+		///< and G::Option::valued().
 
 	bool multivalued( char ) const ;
-		///< Returns true if the short-form option can have multiple values.
-		///< Returns false if not valid().
+		///< Returns true if the given short-form option is valid
+		///< and G::Option::multivalued().
 
-	bool multivalued( const std::string & ) const ;
-		///< Returns true if the long-form option can have multiple values.
-		///< Returns false if not valid().
+	bool multivalued( std::string_view ) const ;
+		///< Returns true if the given long-form option is valid
+		///< and G::Option::multivalued().
 
-	bool unvalued( const std::string & ) const ;
-		///< Returns true if the given option name is valid and
-		///< takes no value. Returns false if not valid().
+	bool unvalued( std::string_view ) const ;
+		///< Returns true if the given long-form option is valid
+		///< and G::Option::unvalued().
 
-	bool defaulting( const std::string & ) const ;
-		///< Returns true if the given long-form single-valued() option
-		///< can optionally have no explicit value, so "--foo=" and "--foo"
-		///< are equivalent, having an empty value, and "--foo=bar" has
-		///< a value of 'bar' but "--foo bar" is interpreted as 'foo'
-		///< taking its default (empty) value followed by a separate
-		///< argument 'bar'.
+	bool defaulting( std::string_view ) const ;
+		///< Returns true if the given long-form option is valid
+		///< and G::Option::defaulting().
 
 	bool defaulting( char ) const ;
-		///< Returns defaulting(lookup()) even though defaulting options
-		///< can never take a value when short-form.
+		///< Returns true if the given short-form option is valid
+		///< and G::Option::defaulting().
 
 private:
 	using List = std::vector<Option> ;
 	void parseSpec( const std::string & spec , char , char , char ) ;
-	void addOption( Option , char , char ) ;
 
 private:
 	List m_list ;

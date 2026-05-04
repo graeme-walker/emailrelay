@@ -1,5 +1,8 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+// 
+// Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -62,7 +65,7 @@ void G::Options::parseSpec( const std::string & spec , char sep_major , char sep
 		Option opt( c , inner_parts[1U] , inner_parts[2U] , inner_parts[3U] ,
 			multiplicity , inner_parts[5U] , level ) ;
 
-		addOption( opt , sep_minor , escape ) ;
+		add( opt ) ;
 	}
 }
 
@@ -73,34 +76,10 @@ void G::Options::add( Options & options , char c , const char * name , const cha
 	options.add( Option(c,name,G::gettext(text),more,m,argname,level,main_tag,main_tag|tag_bits) ) ;
 }
 
-void G::Options::add( const Option & opt , char sep , char escape )
+void G::Options::add( const Option & opt )
 {
-	addOption( opt , sep , escape ) ;
-}
-
-void G::Options::addOption( Option opt , char sep , char escape )
-{
-	if( sep )
-	{
-		// if the description is in two parts separated by 'sep' and the
-		// extra-description is empty then take the first half as the
-		// description and the second part as the extra-description -- this
-		// allows the description to be translatable as a single string
-		//
-		StringArray sub_parts ;
-		sub_parts.reserve( 2U ) ;
-		Str::splitIntoFields( opt.description , sub_parts , sep , escape ) ;
-		if( sub_parts.size() > 2U || ( sub_parts.size()==2U && !opt.description_extra.empty() ) )
-			throw InvalidSpecification() ;
-		if( sub_parts.size() == 2U )
-		{
-			opt.description = sub_parts[0] ;
-			opt.description_extra = sub_parts[1] ;
-		}
-	}
-
 	auto range = std::equal_range( m_list.begin() , m_list.end() , opt ,
-		[](const Option & a, const Option & b){ return a.name < b.name ; } ) ;
+		[](const Option & a, const Option & b){ return a.name() < b.name() ; } ) ;
 
 	if( range.first != range.second )
 		throw InvalidSpecification( "duplication" ) ;
@@ -113,10 +92,21 @@ bool G::Options::defaulting( char c ) const
 	return defaulting( lookup(c) ) ;
 }
 
-bool G::Options::defaulting( const std::string & name ) const
+bool G::Options::defaulting( std::string_view name ) const
 {
 	const Option * p = find( name ) ;
 	return p ? p->defaulting() : false ;
+}
+
+bool G::Options::singlevalued( char c ) const
+{
+	return singlevalued( lookup(c) ) ;
+}
+
+bool G::Options::singlevalued( std::string_view name ) const
+{
+	const Option * p = find( name ) ;
+	return p ? p->singlevalued() : false ;
 }
 
 bool G::Options::valued( char c ) const
@@ -124,15 +114,16 @@ bool G::Options::valued( char c ) const
 	return valued( lookup(c) ) ;
 }
 
-bool G::Options::valued( const std::string & name ) const
+bool G::Options::valued( std::string_view name ) const
 {
 	const Option * p = find( name ) ;
 	return p ? p->valued() : false ;
 }
 
-bool G::Options::unvalued( const std::string & name ) const
+bool G::Options::unvalued( std::string_view name ) const
 {
-	return valid(name) && !valued(name) ;
+	const Option * p = find( name ) ;
+	return p ? p->unvalued() : false ;
 }
 
 bool G::Options::multivalued( char c ) const
@@ -140,24 +131,24 @@ bool G::Options::multivalued( char c ) const
 	return multivalued( lookup(c) ) ;
 }
 
-bool G::Options::multivalued( const std::string & name ) const
+bool G::Options::multivalued( std::string_view name ) const
 {
 	const Option * p = find( name ) ;
 	return p ? p->multivalued() : false ;
 }
 
-bool G::Options::visible( const std::string & name , unsigned int level , bool level_exact ) const
+bool G::Options::visible( std::string_view name , unsigned int level , bool level_exact ) const
 {
 	const Option * p = find( name ) ;
 	return p ? p->visible({level_exact?level:1U,level}) : false ;
 }
 
-bool G::Options::visible( const std::string & name ) const
+bool G::Options::visible( std::string_view name ) const
 {
 	return visible( name , 99U , false ) ;
 }
 
-bool G::Options::valid( const std::string & name ) const
+bool G::Options::valid( std::string_view name ) const
 {
 	return find(name) != nullptr ;
 }
@@ -166,17 +157,17 @@ std::string G::Options::lookup( char c ) const
 {
 	for( auto p = m_list.begin() ; c != '\0' && p != m_list.end() ; ++p )
 	{
-		if( (*p).c == c )
-			return (*p).name ;
+		if( (*p).c() == c )
+			return (*p).name() ;
 	}
 	return {} ;
 }
 
-const G::Option * G::Options::find( const std::string & name ) const
+const G::Option * G::Options::find( std::string_view name ) const
 {
 	for( const auto & option : m_list )
 	{
-		if( option.name == name )
+		if( option.name() == name )
 			return &option ;
 	}
 	return nullptr ;

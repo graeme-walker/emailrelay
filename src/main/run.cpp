@@ -88,11 +88,11 @@ Main::Run::~Run()
 	}
 }
 
-void Main::Run::configure( const G::Options & options_spec )
+void Main::Run::configure( const G::Options & options_spec , const G::GetOpt::Config & options_config )
 {
 	// lazy construction so that the constructor doesn't throw
 	m_commandline = std::make_unique<CommandLine>( m_output ,
-		m_arg , options_spec , versionNumber() ) ;
+		m_arg , options_spec , options_config , versionNumber() ) ;
 
 	G::Path cwd = G::Process::cwd() ; // before G::Daemon::detach()
 	G_ASSERT( cwd.isAbsolute() ) ;
@@ -129,25 +129,21 @@ std::size_t Main::Run::configurations() const
 
 bool Main::Run::runnable()
 {
-	if( commandline()[0].contains("help") )
-	{
-		commandline().showHelp( false ) ;
-		return true ;
-	}
-	else if( commandline().hasUsageErrors() )
+	G_ASSERT( commandline().hasUsageErrors() || commandline().configurations() != 0U ) ;
+	if( commandline().hasUsageErrors() )
 	{
 		commandline().showUsageErrors( true ) ;
 		return false ;
+	}
+	else if( commandline()[0].contains("help") )
+	{
+		commandline().showHelp( false ) ;
+		return true ;
 	}
 	else if( commandline()[0].contains("version") )
 	{
 		commandline().showVersion( false ) ;
 		return true ;
-	}
-	else if( commandline().argcError() )
-	{
-		commandline().showArgcError( true ) ;
-		return false ;
 	}
 
 	for( std::size_t i = 0U ; i < configurations() ; i++ )

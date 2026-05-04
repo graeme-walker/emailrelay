@@ -1,5 +1,8 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+// 
+// Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,158 +23,208 @@
 
 #include "gdef.h"
 #include "goptionmap.h"
-#include "gstringfield.h"
-#include "gassert.h"
+#include "gstringtoken.h"
 #include <algorithm>
+#include <iterator>
+#include <type_traits>
+#include <limits>
 
-void G::OptionMap::insert( const Map::value_type & value )
+namespace G
 {
-	m_map.insert( value ) ;
+	namespace OptionMapImp
+	{
+		// (std::find_if() says nothing about noexcept, so do it ourselves)
+		using const_iterator = OptionMap::const_iterator ;
+		template <typename T> static const_iterator find_if( const_iterator p , const_iterator end , T pred ) noexcept
+		{
+			static_assert( std::is_pointer<const_iterator>::value , "" ) ; // so noexcept(++p)
+			static_assert( noexcept(*p) , "" ) ;
+			//static_assert( noexcept(pred(*p)) , "" ) ; // c++17
+			static_assert( noexcept(p!=end) , "" ) ;
+			for( ; p != end ; ++p )
+			{
+				if( pred(*p) )
+					return p ;
+			}
+			return end ;
+		}
+		template <typename T> static bool any_of( const_iterator begin , const_iterator end , T pred ) noexcept
+		{
+			return find_if( begin , end , pred ) != end ;
+		}
+		static bool isOn( const OptionMap::Pair & p ) noexcept
+		{
+			static_assert( noexcept(p.second.isOn()) , "" ) ;
+			return p.second.isOn() ;
+		}
+		static bool isOff( const OptionMap::Pair & p ) noexcept
+		{
+			static_assert( noexcept(p.second.isOff()) , "" ) ;
+			return p.second.isOff() ;
+		}
+	}
 }
 
 G::OptionMap::Range G::OptionMap::findRange( std::string_view key ) const noexcept
 {
-	// 'generic associative lookup' is c++14 and c++11 equal_range()
-	// is not noexcept, so do it ourselves
-	auto first = std::find_if( m_map.cbegin() , m_map.cend() ,
-		[key](const Map::value_type & v_){return key == v_.first ;} ) ;
-	auto second = std::find_if( first , m_map.cend() ,
-		[key](const Map::value_type & v_){return key != v_.first ;} ) ;
+	// (not std::equal_range() here because constructing the c++11 comparison value can throw)
+	namespace imp = G::OptionMapImp ;
+	auto first = imp::find_if( cbegin(m_list) , cend(m_list) ,
+		[key](const value_type &v_) noexcept {
+			static_assert( noexcept(key<=v_.first) , "" ) ;
+			return key <= v_.first ;
+		} ) ;
+	auto second = imp::find_if( first , cend(m_list) ,
+		[key](const value_type &v_) noexcept {
+			static_assert( noexcept(key<=v_.first) , "" ) ;
+			return key < v_.first ;
+		} ) ;
 	return {first,second} ;
 }
 
-G::OptionMap::Map::iterator G::OptionMap::findFirst( std::string_view key ) noexcept
+G::OptionMap::Range_ G::OptionMap::findRange( std::string_view key )
 {
-	// as above
-	auto result = std::find_if( m_map.begin() , m_map.end() ,
-		[key](const Map::value_type & v_){return key == v_.first ;} ) ;
-	G_ASSERT( result == m_map.find(sv_to_string(key)) ) ;
-	return result ;
+	return std::equal_range( m_list.begin() , m_list.end() , value_type(sv_to_string(key),OptionValue()) ,
+		[](const value_type & v1_,const value_type & v2_){return v1_.first < v2_.first;} ) ;
 }
 
-G::OptionMap::const_iterator G::OptionMap::find( std::string_view key ) const noexcept
+void G::OptionMap::insert( const value_type & key_value )
 {
-	auto pair = findRange( key ) ;
-	return pair.first == pair.second ? m_map.end() : pair.first ;
+	auto range = findRange( key_value.first ) ;
+	if( range.first == range.second )
+		m_list.insert( range.first , key_value ) ;
+	else
+		m_list.insert( range.second , key_value ) ;
 }
 
 void G::OptionMap::replace( std::string_view key , const std::string & value )
 {
-	auto pair = findRange( key ) ;
-	if( pair.first != pair.second )
-		m_map.erase( pair.first , pair.second ) ;
-	m_map.insert( Map::value_type(sv_to_string(key),OptionValue(value)) ) ;
-}
-
-void G::OptionMap::increment( std::string_view key ) noexcept
-{
-	auto p = findFirst( key ) ;
-	if( p != m_map.end() )
-	{
-		Map::value_type & value = *p ;
-		value.second.increment() ;
-	}
+	auto range = findRange( key ) ;
+	if( range.first != range.second )
+		m_list.erase( range.first , range.second ) ;
+	insert( value_type(sv_to_string(key),OptionValue(value)) ) ;
 }
 
 G::OptionMap::const_iterator G::OptionMap::begin() const noexcept
 {
-	return m_map.cbegin() ;
+	return cbegin( m_list ) ;
 }
-
-#ifndef G_LIB_SMALL
-G::OptionMap::const_iterator G::OptionMap::cbegin() const noexcept
-{
-	return begin() ;
-}
-#endif
 
 G::OptionMap::const_iterator G::OptionMap::end() const noexcept
 {
-	return m_map.cend() ;
+	return cend( m_list ) ;
 }
 
-#ifndef G_LIB_SMALL
-G::OptionMap::const_iterator G::OptionMap::cend() const noexcept
+G::OptionMap::const_iterator G::OptionMap::findFirst( std::string_view key ) const noexcept
 {
-	return end() ;
+	auto range = findRange( key ) ;
+	return range.first == range.second ? cend(m_list) : range.first ;
 }
-#endif
 
 void G::OptionMap::clear()
 {
-	m_map.clear() ;
+	m_list.clear() ;
+}
+
+void G::OptionMap::clearOffValues()
+{
+	m_list.erase( std::remove_if( m_list.begin() , m_list.end() ,
+		[](const value_type &p_){return p_.second.isOff();} ) , m_list.end() ) ;
 }
 
 bool G::OptionMap::contains( std::string_view key ) const noexcept
 {
 	auto range = findRange( key ) ;
-	for( auto p = range.first ; p != range.second ; ++p )
-	{
-		if( (*p).second.isOff() )
-			continue ;
-		return true ;
-	}
-	return false ;
+	return range.first != range.second ;
 }
 
-bool G::OptionMap::contains( const char * key ) const noexcept
+bool G::OptionMap::containsOn( std::string_view key ) const noexcept
 {
-	return contains( std::string_view(key) ) ;
+	namespace imp = G::OptionMapImp ;
+	auto range = findRange( key ) ;
+	return imp::any_of( range.first , range.second , &imp::isOn ) ;
 }
 
-bool G::OptionMap::contains( const std::string & key ) const noexcept
+bool G::OptionMap::containsOff( std::string_view key ) const noexcept
 {
-	return contains( std::string_view(key) ) ;
+	namespace imp = G::OptionMapImp ;
+	auto range = findRange( key ) ;
+	return imp::any_of( range.first , range.second , &imp::isOff ) ;
 }
 
 std::size_t G::OptionMap::count( std::string_view key ) const noexcept
 {
 	std::size_t n = 0U ;
-	auto pair = findRange( key ) ;
-	for( auto p = pair.first ; p != pair.second ; ++p )
-		n += (*p).second.count() ;
+	auto range = findRange( key ) ;
+	for( auto p = range.first ; p != range.second ; ++p )
+	{
+		if( !(*p).second.isOff() )
+			n++ ;
+	}
 	return n ;
 }
 
-std::string G::OptionMap::value( std::string_view key , std::string_view default_ ) const
+std::string G::OptionMap::value( std::string_view key , std::string_view default_ ,
+	std::string_view sep ) const
 {
-	auto range = findRange( key ) ;
-	if( range.first == range.second )
-		return sv_to_string(default_) ;
-	else
-		return join( range.first , range.second , default_ ) ;
-}
+	if( sep.empty() )
+		sep = std::string_view( "," , 1U ) ;
 
-std::string G::OptionMap::join( Map::const_iterator p , Map::const_iterator end , std::string_view off_value )
-{
+	auto range = findRange( key ) ;
+
+	// (optimise the common cases)
+	if( range.first == range.second )
+		return sv_to_string( default_ ) ;
+	else if( std::next(range.first) == range.second && !(*range.first).second.isOff() )
+		return (*range.first).second.value() ;
+
 	std::string result ;
-	const char * sep = "" ;
-	for( ; p != end ; ++p )
+	m_seen.clear() ;
+	for( auto p = range.first ; p != range.second ; ++p )
 	{
-		result.append( sep ) ; sep = "," ;
-		result.append( (*p).second.value() ) ;
-		if( (*p).second.isOn() )
-			return (*p).second.value() ;
 		if( (*p).second.isOff() )
-			return sv_to_string(off_value) ;
+			continue ;
+
+		std::string_view s = (*p).second.valueref() ;
+		if( std::find(m_seen.begin(),m_seen.end(),s) != m_seen.end() )
+			continue ;
+		m_seen.push_back( s ) ;
+
+		if( !result.empty() )
+			result.append( sep.data() , sep.size() ) ;
+		result.append( s.data() , s.size() ) ;
 	}
 	return result ;
 }
 
-unsigned int G::OptionMap::number( std::string_view key , unsigned int default_ ) const noexcept
+G::OptionMap::NumberPair G::OptionMap::number( std::string_view key , unsigned int default_ ) const noexcept
 {
-	G_ASSERT( !G::Str::isUInt("") ) ;
-	auto p = find( key ) ;
-	if( p == m_map.end() )
-	{
-		return default_ ;
-	}
+	// if it's a number it has to be single-valued, so use findRange()
+	// directly rather than value() (which might throw)
+	auto range = findRange( key ) ;
+	if( range.first == range.second )
+		return {ValueStatus::missing,default_} ;
+	if( std::next(range.first) != range.second )
+		return {ValueStatus::multiple,default_} ;
+
+	static_assert( std::is_nothrow_copy_constructible<NumberPair>::value , "" ) ;
+	std::string_view value = (*range.first).second.valueref() ;
+	static_assert( noexcept(G::Str::isUInt(value)) , "" ) ;
+	static_assert( noexcept(G::Str::toUInt(value,0U)) , "" ) ;
+	if( !value.empty() && G::Str::isUInt(value) )
+		return {ValueStatus::ok,G::Str::toUInt(value,0U)} ;
 	else
-	{
-		static_assert( std::is_same<decltype(*p),const Map::value_type&>::value , "" ) ;
-		//static_assert( noexcept(*p) , "" ) ; // not declared noexcept by msvc
-		const Map::value_type & value = *p ; // noexcept in practice
-		return G::Str::toUInt( value.second.valueref() , default_ ) ;
-	}
+		return {ValueStatus::invalid,default_} ;
+}
+
+G::OptionMap::const_iterator G::OptionMap::cbegin( const List & list ) noexcept
+{
+	// not std::cbegin(list) so that iterator operations are noexcept
+	return list.empty() ? nullptr : list.data() ;
+}
+
+G::OptionMap::const_iterator G::OptionMap::cend( const List & list ) noexcept
+{
+	return list.empty() ? nullptr : ( list.data() + list.size() ) ;
 }
 

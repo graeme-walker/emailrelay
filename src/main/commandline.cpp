@@ -1,5 +1,8 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+// 
+// Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,6 +26,7 @@
 #include "legal.h"
 #include "configuration.h"
 #include "commandline.h"
+#include "gfilestore.h"
 #include "gpop.h"
 #include "options.h"
 #include "goptionparser.h"
@@ -36,8 +40,10 @@
 #include "ggettext.h"
 #include "gtest.h"
 #include "gstr.h"
+#include "gstringfield.h"
 #include "glog.h"
 #include <algorithm>
+#include <sstream>
 
 namespace Main
 {
@@ -72,167 +78,42 @@ private:
 // ==
 
 Main::CommandLine::CommandLine( Output & output , const G::Arg & args_in ,
-	const G::Options & options_spec ,
+	const G::Options & options_spec , const G::GetOpt::Config & options_config ,
 	const std::string & version ) :
 		m_output(output) ,
-		m_options_spec(options_spec) ,
 		m_version(version) ,
-		m_arg_prefix(args_in.prefix())
+		m_arg_prefix(args_in.prefix()) ,
+		m_getopt(args_in,options_spec,options_config)
 {
-	const bool multiconfig = !G::Test::enabled("main-commandline-simple") ;
-	if( multiconfig )
-	{
-		// basic parse just to see if there is a config file
-		std::string config_file ;
-		{
-			G::StringArray errors ;
-			G::OptionMap option_map ;
-			G::StringArray args = G::OptionParser::parse( args_in.array() ,
-				options_spec , option_map , &errors , 1U , 0U ,
-					[options_spec](const std::string & s_,bool){
-						auto option_p = parserFind( options_spec , s_ ) ;
-						return option_p ? (std::string(1U,'\0')+option_p->name) : s_ ;
-					} ) ;
-			if( errors.empty() && !args.empty() )
-				config_file = args[0] ;
-		}
-
-		// assemble all args, including from any config file
-		G::StringArray args = args_in.array( 1U ) ;
-		if( !config_file.empty() )
-		{
-			args.pop_back() ;
-			G::OptionReader::add( args , configFile(config_file) ) ;
-		}
-
-		// parse again looking for config names
-		G::StringArray config_names ;
-		{
-			G::StringArray errors ;
-			G::OptionMap option_map ;
-			G::OptionParser::parse( args ,
-				options_spec , option_map , &errors , 0U , 0U ,
-					[&config_names,options_spec](const std::string & s_,bool){
-						auto option_p = parserFind( options_spec , s_ ) ;
-						if( option_p && option_p->name == "spool-dir" )
-							config_names.push_back( s_.substr(0U,s_.size()-9U) ) ;
-						return option_p ? (std::string(1U,'\0')+option_p->name) : s_ ;
-					} ) ;
-			if( !errors.empty() )
-				config_names.clear() ;
-		}
-		if( config_names.empty() )
-			config_names.emplace_back() ;
-
-		// parse each config name
-		for( std::size_t i = 0U ; i < config_names.size() ; i++ )
-		{
-			m_config_names.push_back( config_names[i] ) ;
-			m_option_maps.emplace_back() ;
-
-			G::StringArray new_args = G::OptionParser::parse( args ,
-				options_spec , m_option_maps.back() , &m_errors , 0U , 0U ,
-				[&config_names,options_spec,i](const std::string & s_,bool){
-					std::string prefix ;
-					auto option_p = parserFind( options_spec , s_ , &prefix ) ;
-					if( option_p == nullptr )
-						return s_ ;
-					else if( s_ == option_p->name && i == 0U )
-						return option_p->name ; // no prefix, first config
-					else if( s_ == option_p->name )
-						return std::string(1U,'\0')+option_p->name ; // no prefix, not first config
-					else if( s_ == (config_names[i]+option_p->name) )
-						return option_p->name ; // our prefix
-					else if( std::find(config_names.begin(),config_names.end(),prefix+"-") != config_names.end() )
-						return std::string(1U,'\0')+option_p->name ; // valid prefix but not ours
-					else
-						return s_ ; // invalid, fail as normal
-				} ) ;
-
-			if( !new_args.empty() )
-				m_argc_error = true ;
-			if( m_option_maps.back().contains("verbose") )
-				m_verbose = true ;
-		}
-
-		std::for_each( m_config_names.begin() , m_config_names.end() , [](std::string &s_){G::Str::trimRight(s_,"-",1U);} ) ;
-		std::sort( m_errors.begin() , m_errors.end() ) ;
-		m_errors.erase( std::unique( m_errors.begin() , m_errors.end() ) , m_errors.end() ) ;
-	}
-	else
-	{
-		m_config_names.emplace_back() ;
-		m_option_maps.emplace_back() ;
-		G::StringArray args = G::OptionParser::parse( args_in.array() , m_options_spec , m_option_maps[0] , &m_errors ) ;
-		if( m_errors.empty() && !args.empty() )
-			G::OptionParser::parse( G::OptionReader::read(configFile(args[0])) , m_options_spec , m_option_maps[0] , &m_errors , 0U ) ;
-	}
-	if( G::Test::enabled("main-commandline-dump") )
-		dump() ;
+	m_verbose = !m_getopt.maps().empty() && m_getopt.maps().at(0U).second.contains("verbose") ;
 }
 
 Main::CommandLine::~CommandLine()
 = default ;
 
-G::Path Main::CommandLine::configFile( const std::string & arg )
-{
-	G::Path path( arg ) ;
-	path.replace( "@app" , G::Process::exe().dirname().str() ) ;
-	return path ;
-}
-
-void Main::CommandLine::dump() const
-{
-	for( std::size_t i = 0U ; i < m_config_names.size() ; i++ )
-	{
-		std::cout << m_config_names.at(i) << "...\n" ;
-		for( auto p = m_option_maps.at(i).begin() ; p != m_option_maps.at(i).end() ; ++p ) // NOLINT modernize-loop-convert
-		{
-			std::cout << "  " << (*p).first << "=[" << (*p).second.value() << "] (" << (*p).second.count() << ")\n" ;
-		}
-	}
-}
-
-const G::Option * Main::CommandLine::parserFind( const G::Options & options_spec ,
-	const std::string & parser_name , std::string * prefix_p )
-{
-	// exact match
-	const G::Option * option_p = options_spec.find( parser_name ) ;
-	if( option_p )
-		return option_p ;
-
-	// tail match
-	std::string tail = G::Str::tail( parser_name , "-" ) ;
-	if( tail.empty() )
-		return nullptr ;
-	if( prefix_p )
-		*prefix_p = G::Str::head( parser_name , "-" ) ;
-	return options_spec.find( tail ) ;
-}
-
 std::size_t Main::CommandLine::configurations() const
 {
-	return m_option_maps.size() ;
+	return m_getopt.maps().size() ;
 }
 
 const G::OptionMap & Main::CommandLine::configurationOptionMap( std::size_t i ) const
 {
-	return m_option_maps.at( i ) ;
+	return m_getopt.maps().at(i).second ;
 }
 
 std::string Main::CommandLine::configurationName( std::size_t i ) const
 {
-	return m_config_names.at( i ) ;
+	return m_getopt.maps().at(i).first ;
 }
 
-bool Main::CommandLine::argcError() const
+const std::vector<G::Path> & Main::CommandLine::files() const
 {
-	return m_argc_error ;
+	return m_getopt.files() ;
 }
 
 bool Main::CommandLine::hasUsageErrors() const
 {
-	return !m_errors.empty() ;
+	return m_getopt.hasErrors() ;
 }
 
 void Main::CommandLine::showUsage( bool is_error ) const
@@ -244,14 +125,14 @@ void Main::CommandLine::showUsage( bool is_error ) const
 	layout.set_alt_usage( !m_verbose ) ;
 	layout.set_level_max( m_verbose ? 99U : 20U ) ;
 
-	G::OptionsUsage usage( m_options_spec.list() ) ;
+	G::OptionsUsage usage( m_getopt.spec() ) ;
 	if( m_verbose )
 	{
 		// show help in sections...
 		bool help_state = false ;
 		usage.help( layout , &help_state ) ;
 		Show show( m_output , is_error , m_verbose ) ;
-		show.s() << usage.summary(layout,m_arg_prefix,args_help) << "\n" ;
+		show.s() << usage.simpleSummary(layout,m_arg_prefix,"<option> [<option> ...]",args_help) << "\n" ;
 		auto tags = Options::tags() ;
 		for( const auto & tag : tags )
 		{
@@ -269,18 +150,10 @@ void Main::CommandLine::showUsage( bool is_error ) const
 void Main::CommandLine::showUsageErrors( bool e ) const
 {
 	Show show( m_output , e , m_verbose ) ;
-	for( const auto & error : m_errors )
+	for( const auto & error : m_getopt.errorList() )
 	{
 		show.s() << m_arg_prefix << ": error: " << error << "\n" ;
 	}
-	showShortHelp( e ) ;
-}
-
-void Main::CommandLine::showArgcError( bool e ) const
-{
-	using G::txt ;
-	Show show( m_output , e , m_verbose ) ;
-	show.s() << m_arg_prefix << ": " << txt("usage error: too many non-option arguments") << std::endl ;
 	showShortHelp( e ) ;
 }
 
@@ -420,10 +293,17 @@ void Main::CommandLine::showVersion( bool e ) const
 		showUds( e , "\n" ) ;
 		showPop( e , "\n" ) ;
 		showAdmin( e , "\n" ) ;
+		showSpoolDir( e , "\n" ) ;
 		showSslVersion( e , "\n" ) ;
 	}
 	showSslCredit( e , "\n" ) ;
 	showWarranty( e ) ;
+}
+
+void Main::CommandLine::showSpoolDir( bool e , const std::string & eot ) const
+{
+	Show show( m_output , e , m_verbose ) ;
+	show.s() << "Default spool directory: " << GStore::FileStore::defaultDirectory() << eot ;
 }
 
 void Main::CommandLine::showAdmin( bool e , const std::string & eot ) const
@@ -456,7 +336,7 @@ void Main::CommandLine::showSemanticWarnings( const G::StringArray & warnings ) 
 void Main::CommandLine::logSemanticWarnings( const G::StringArray & warnings ) const
 {
 	for( const auto & warning : warnings )
-		G_WARNING( "CommandLine::logSemanticWarnings: " << warning ) ;
+		G_WARNING( "CommandLine::logWarnings: " << warning ) ;
 }
 
 // ===

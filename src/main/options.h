@@ -23,6 +23,7 @@
 
 #include "gdef.h"
 #include "goptions.h"
+#include "ggetopt.h"
 #include <string>
 #include <vector>
 #include <utility>
@@ -39,14 +40,17 @@ namespace Main
 class Main::Options
 {
 public:
+	using Tag = std::pair<unsigned,std::string> ;
+
 	static G::Options spec() ;
 		///< Returns an o/s-specific G::OptionParser specification.
-
-	using Tag = std::pair<unsigned,std::string> ;
 
 	static std::vector<Tag> tags() ;
 		///< Returns an ordered list of tags to be matched
 		///< against each option's 'main_tag'.
+
+	static G::GetOpt::Config config() ;
+		///< Returns a configuration structure for G::GetOpt.
 
 public:
 	Options() = delete ;

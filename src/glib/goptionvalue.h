@@ -1,5 +1,8 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+// 
+// Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,39 +36,41 @@ namespace G
 
 //| \class G::OptionValue
 /// A simple structure encapsulating the value of a command-line option.
-/// Unvalued options (eg. "--debug") can be be explicitly on (eg. "--debug=yes")
-/// or off ("--debug=no"); the latter are typically ignored.
 ///
 class G::OptionValue
 {
 public:
 	OptionValue() ;
-		///< Default constructor for a valueless value.
+		///< Default constructor for an on/off 'on' object.
+		///< Postcondition: isOnOff() && isOn() && value() == Str::positive()
 
-	explicit OptionValue( const std::string & s , std::size_t count = 1U ) ;
-		///< Constructor for a valued value.
+	explicit OptionValue( std::string_view ) ;
+		///< Constructor for a valued object.
 		///< Precondition: !s.empty()
 
 	static OptionValue on() ;
-		///< A factory function for an unvalued option-enabled option.
+		///< A factory function for an on/off 'on' object.
+		///< Postcondition: isOnOff() && isOn() && value() == Str::positive()
 
 	static OptionValue off() ;
-		///< A factory function for an unvalued option-disabled option.
+		///< A factory function for an on/off 'off' object.
+		///< Postcondition: isOnOff() && isOff() && value() == Str::negative()
+
+	bool isOnOff() const noexcept ;
+		///< Returns true if default constructed or constructed by on() or off().
 
 	bool isOn() const noexcept ;
-		///< Returns true if on().
+		///< Returns true if default constructed or constructed by on().
 
 	bool isOff() const noexcept ;
-		///< Returns true if off().
+		///< Returns true if constructed by off().
 
 	std::string value() const ;
-		///< Returns the value as a string.
+		///< Returns the value as a string. Returns Str::positive() or
+		///< Str::negative() if isOnOff().
 
-	std::string_view valueref() const noexcept ;
-		///< Exposes the value as a string view.
-
-	bool operator==( std::string_view ) const noexcept ;
-		///< Returns true if the given string matches value().
+	std::string_view valueref() const & noexcept ;
+		///< Exposes the value() as a string view.
 
 	bool numeric() const noexcept ;
 		///< Returns true if value() is an unsigned integer.
@@ -74,29 +79,25 @@ public:
 		///< Returns value() as an unsigned integer.
 		///< Returns the default if not numeric().
 
-	size_t count() const noexcept ;
-		///< Returns an instance count that is one by default.
-
-	void increment() noexcept ;
-		///< Increments the instance count().
+public:
+	std::string_view valueref() const && = delete ;
 
 private:
-	bool m_on_off {false} ;
-	std::size_t m_count {1U} ;
+	bool m_on {false} ;
+	bool m_off {false} ;
 	std::string m_value ;
 } ;
 
 inline
 G::OptionValue::OptionValue() :
-	m_on_off(true) ,
-	m_value(G::Str::positive())
+	m_on(true) ,
+	m_value(sv_to_string(G::Str::positive()))
 {
 }
 
 inline
-G::OptionValue::OptionValue( const std::string & s , std::size_t count ) :
-	m_count(count) ,
-	m_value(s)
+G::OptionValue::OptionValue( std::string_view sv ) :
+	m_value(sv_to_string(sv))
 {
 }
 
@@ -109,21 +110,27 @@ G::OptionValue G::OptionValue::on()
 inline
 G::OptionValue G::OptionValue::off()
 {
-	OptionValue v ;
-	v.m_value = G::Str::negative() ;
+	OptionValue v( G::Str::negative() ) ;
+	v.m_off = true ;
 	return v ;
+}
+
+inline
+bool G::OptionValue::isOnOff() const noexcept
+{
+	return m_on || m_off ;
 }
 
 inline
 bool G::OptionValue::isOn() const noexcept
 {
-	return m_on_off && G::Str::isPositive(m_value) ;
+	return m_on ;
 }
 
 inline
 bool G::OptionValue::isOff() const noexcept
 {
-	return m_on_off && G::Str::isNegative(m_value) ;
+	return m_off ;
 }
 
 inline
@@ -133,39 +140,22 @@ std::string G::OptionValue::value() const
 }
 
 inline
-std::string_view G::OptionValue::valueref() const noexcept
+std::string_view G::OptionValue::valueref() const & noexcept
 {
+	static_assert( noexcept(std::string_view(m_value)) , "" ) ;
 	return {m_value} ;
-}
-
-inline
-bool G::OptionValue::operator==( std::string_view s ) const noexcept
-{
-	return s == m_value ;
 }
 
 inline
 bool G::OptionValue::numeric() const noexcept
 {
-	return !m_on_off && G::Str::isUInt(m_value) ;
+	return !m_on && !m_off && Str::isUInt(m_value) ;
 }
 
 inline
 unsigned int G::OptionValue::number( unsigned int default_ ) const
 {
-	return numeric() ? G::Str::toUInt(m_value) : default_ ;
-}
-
-inline
-std::size_t G::OptionValue::count() const noexcept
-{
-	return m_count ;
-}
-
-inline
-void G::OptionValue::increment() noexcept
-{
-	m_count++ ;
+	return numeric() ? Str::toUInt(m_value) : default_ ;
 }
 
 #endif

@@ -53,7 +53,7 @@ Main::Configuration::Configuration( const G::OptionMap & map , const std::string
 	{
 		// let the start/stop script override the config file
 		m_pid_file_warning = true ;
-		m_map.replace( "pid-file" , (*m_map.find("pid-file")).second.value() ) ;
+		m_map.replace( "pid-file" , (*m_map.findFirst("pid-file")).second.value() ) ;
 	}
 	if( G::Test::enabled("configuration-dump") )
 	{

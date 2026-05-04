@@ -1,5 +1,8 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+// 
+// Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,10 +30,11 @@
 #include "gtest.h"
 #include "gstringwrap.h"
 #include "gassert.h"
+#include <sstream>
 #include <algorithm>
 
-G::OptionsUsage::OptionsUsage( const std::vector<Option> & options , std::function<bool(const Option&,const Option&)> sort_fn ) :
-	m_options(options)
+G::OptionsUsage::OptionsUsage( const Options & options , std::function<bool(const Option&,const Option&)> sort_fn ) :
+	m_options(options.list())
 {
 	if( sort_fn )
 		std::sort( m_options.begin() , m_options.end() , sort_fn ) ;
@@ -60,6 +64,22 @@ std::string G::OptionsUsage::summary( const Config & config_in ,
 		.append(" ")
 		.append(summaryPartOne(config))
 		.append(summaryPartTwo(config))
+		.append(args.empty()||args.at(0U)==' '?"":" ")
+		.append(args) ;
+	std::string indent( 2U , ' ' ) ;
+	return config.width == 0U ? s : StringWrap::wrap( s , "" , indent , config.width , 0U , true ) ;
+}
+
+std::string G::OptionsUsage::simpleSummary( const Config & config_in ,
+	const std::string & exe , std::string_view options , const std::string & args ) const
+{
+	Config config = config_in ;
+	config.setDefaults() ;
+
+	const char * usage = txt( "usage: " ) ;
+	std::string s = std::string(usage)
+		.append(exe)
+		.append(" [").append(sv_to_string(options)).append("]")
 		.append(args.empty()||args.at(0U)==' '?"":" ")
 		.append(args) ;
 	std::string indent( 2U , ' ' ) ;
@@ -103,12 +123,12 @@ std::string G::OptionsUsage::summaryPartOne( const Config & config ) const
 	bool first = true ;
 	for( const auto & option : m_options )
 	{
-		if( option.c != '\0' && !option.valued() && option.visible({config.level_min,config.level_max},config.main_tag,config.tag_bits) )
+		if( option.c() != '\0' && !option.valued() && option.visible({config.level_min,config.level_max},config.main_tag,config.tag_bits) )
 		{
 			if( first )
 				ss << "[-" ;
 			first = false ;
-			ss << option.c ;
+			ss << option.c() ;
 		}
 	}
 
@@ -126,18 +146,18 @@ std::string G::OptionsUsage::summaryPartTwo( const Config & config ) const
 		if( option.visible({config.level_min,config.level_max},config.main_tag,config.tag_bits) )
 		{
 			ss << sep << "[" ;
-			if( !option.name.empty() )
+			if( !option.name().empty() )
 			{
-				ss << "--" << option.name ;
+				ss << "--" << option.name() ;
 			}
 			else
 			{
-				G_ASSERT( option.c != '\0' ) ;
-				ss << "-" << option.c ;
+				G_ASSERT( option.c() != '\0' ) ;
+				ss << "-" << option.c() ;
 			}
 			if( option.valued() )
 			{
-				std::string vd = option.value_description ;
+				std::string vd = option.value_description() ;
 				if( vd.empty() ) vd = "value" ;
 				ss << "=<" << vd << ">" ;
 			}
@@ -232,25 +252,25 @@ std::string G::OptionsUsage::helpWrap( const Config & config , const std::string
 std::string G::OptionsUsage::helpSyntax( const Option & option , bool with_non_space , char non_space ) const
 {
 	std::string syntax ;
-	if( option.c != '\0' )
+	if( option.c() != '\0' )
 	{
 		syntax.append( 1U , '-' ) ;
-		syntax.append( 1U , option.c ) ;
-		if( !option.name.empty() )
+		syntax.append( 1U , option.c() ) ;
+		if( !option.name().empty() )
 			syntax.append( ", " ) ;
 	}
 	else if( with_non_space )
 	{
 		syntax.append( 4U , non_space ) ; // (new)
 	}
-	if( !option.name.empty() )
+	if( !option.name().empty() )
 	{
 		syntax.append( "--" ) ;
-		syntax.append( option.name ) ;
+		syntax.append( option.name() ) ;
 	}
 	if( option.valued() )
 	{
-		std::string vd = option.value_description ;
+		std::string vd = option.value_description() ;
 		if( vd.empty() ) vd = "value" ;
 		if( option.defaulting() ) syntax.append( "[" ) ;
 		syntax.append( "=<" ) ;
@@ -263,54 +283,54 @@ std::string G::OptionsUsage::helpSyntax( const Option & option , bool with_non_s
 
 std::string G::OptionsUsage::helpDescription( const Option & option , bool config_extra ) const
 {
-	std::string description = option.description ;
+	std::string description = option.description() ;
 	if( config_extra )
-		description.append( option.description_extra ) ;
+		description.append( option.description_extra() ) ;
 	return description ;
 }
 
 std::string G::OptionsUsage::helpSeparator( const Config & config , std::size_t syntax_length ) const
 {
+	// NOLINTBEGIN(*-return-braced-init-list)
 	if( !config.separator.empty() )
 		return config.separator ;
 	else if( (config.margin+syntax_length) >= config.column )
-		return std::string( 1U , m_space_separator ) ; // NOLINT not return {...}
+		return std::string( 1U , m_space_separator ) ;
 	else
-		return std::string( config.column-syntax_length-config.margin , m_space_separator ) ; // NOLINT not return {...}
+		return std::string( config.column-syntax_length-config.margin , m_space_separator ) ;
+	// NOLINTEND(*-return-braced-init-list)
 }
 
 std::string G::OptionsUsage::helpPadding( const Config & config ) const
 {
 	std::size_t n = std::max( std::size_t(1U) , config.column - std::min(config.column,config.margin) ) ;
-	return std::string( n , m_space_padding ) ; // NOLINT not return {...}
+	return std::string( n , m_space_padding ) ; // NOLINT(*-return-braced-init-list)
 }
 
 G::OptionsUsage::SortFn G::OptionsUsage::sort()
 {
 	return []( const Option & a , const Option & b ){
 		// sort by level, then by name
-		return a.level == b.level ? G::Str::iless(a.name,b.name) : ( a.level < b.level ) ;
+		return a.level() == b.level() ? G::Str::iless(a.name(),b.name()) : ( a.level() < b.level() ) ;
 	} ;
 }
 
 // ==
 
-G::OptionsUsage::Config & G::OptionsUsage::Config::setDefaults()
+void G::OptionsUsage::Config::setDefaults()
 {
 	if( width == Config::default_ )
 		width = Str::toUInt( Environment::get("COLUMNS",{}) , "79" ) ;
 	if( width2 == 0U )
 		width2 = width ;
-	return *this ;
 }
 
-G::OptionsUsage::Config & G::OptionsUsage::Config::setWidthsWrtMargin()
+void G::OptionsUsage::Config::setWidthsWrtMargin()
 {
 	// adjust the widths wrt. the margin to pass to StringWrap::wrap()
 	width -= std::min( width , margin ) ;
 	width = std::max( width , std::size_t(1U) ) ;
 	width2 -= std::min( width2 , margin ) ;
 	width2 = std::max( width2 , std::size_t(1U) ) ;
-	return *this ;
 }
 

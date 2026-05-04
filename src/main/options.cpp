@@ -20,6 +20,7 @@
 
 #include "gdef.h"
 #include "options.h"
+#include "gprocess.h"
 #include "ggettext.h"
 
 namespace Main
@@ -39,6 +40,17 @@ namespace Main
 		constexpr unsigned int t_filter = 1U<<10 ;
 		constexpr unsigned int t_basic = 1U<<11 ;
 	}
+}
+
+G::GetOpt::Config Main::Options::config()
+{
+	return
+		G::GetOpt::Config()
+			.set_section_introducer("spool-dir")
+			.set_allow_configfile()
+			.set_configfile_basename("emailrelay")
+			.set_configfile_varname("@app")
+			.set_configfile_varvalue(G::Process::exe().dirname().str()) ;
 }
 
 std::vector<Main::Options::Tag> Main::Options::tags()

@@ -1,5 +1,8 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+// 
+// Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -97,19 +100,18 @@ public:
 		Config & set_level_min( unsigned int ) noexcept ;
 		Config & set_main_tag( unsigned int ) noexcept ;
 		Config & set_tag_bits( unsigned int ) noexcept ;
-		Config & setDefaults() ;
-		Config & setWidthsWrtMargin() ;
-		Config & setOverflowFormat( char = ' ' ) ;
+		void setDefaults() ;
+		void setWidthsWrtMargin() ;
 	} ;
 
 	using SortFn = std::function<bool(const Option&,const Option&)> ;
 
-	explicit OptionsUsage( const std::vector<Option> & , SortFn = sort() ) ;
+	explicit OptionsUsage( const Options & , SortFn = sort() ) ;
 		///< Constructor.
 
 	std::string summary( const Config & , const std::string & exe ,
 		const std::string & args = {} ) const ;
-			///< Returns a one-line (or line-wrapped) usage summary, as
+			///< Returns a one-line or line-wrapped usage summary, as
 			///< "usage: <exe> <options> <args>". The 'args' parameter
 			///< should represent the non-option arguments (with a
 			///< leading space), like " <foo> [<bar>]".
@@ -120,6 +122,11 @@ public:
 			///<   OptionsUsage::Config().set_level_max(verbose?1U:99U).set_extra(verbose) ,
 			///<   getopt.args().prefix() , " <arg> [<arg> ...]" ) << std::endl ;
 			///< \endcode
+
+	std::string simpleSummary( const Config & , const std::string & exe ,
+		std::string_view options , const std::string & args = {} ) const ;
+			///< Returns a one-line usage summary with the options part
+			///< as a one-word placeholder in square brackets.
 
 	std::string help( const Config & , bool * overflow_p = nullptr ) const ;
 		///< Returns a multi-line string giving help on each option.
@@ -149,8 +156,6 @@ private:
 	std::string helpWrap( const Config & , const std::string & syntax_simple ,
 		const std::string & syntax_aligned , const std::string & separator ,
 		const std::string & description , bool , bool & ) const ;
-	static Config setDefaults( const Config & ) ;
-	static Config setWidthsWrtMargin( const Config & ) ;
 
 private:
 	std::vector<Option> m_options ;
@@ -162,6 +167,7 @@ private:
 	char m_space_syntax {' '} ;
 } ;
 
+// clang-format off
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_separator( const std::string & s ) { separator = s ; return *this ; }
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_column( std::size_t n ) noexcept { column  = n ; return *this ; }
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_width( std::size_t n ) noexcept { width = n ; return *this ; }
@@ -173,5 +179,6 @@ inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_level_max( unsigne
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_level_min( unsigned int n ) noexcept { level_min = n ; return *this ; }
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_main_tag( unsigned int n ) noexcept { main_tag = n ; return *this ; }
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_tag_bits( unsigned int n ) noexcept { tag_bits = n ; return *this ; }
+// clang-format on
 
 #endif

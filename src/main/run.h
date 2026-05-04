@@ -54,7 +54,7 @@ namespace Main
 ///   G::Arg arg( argc , argv ) ;
 ///   Output output ;
 ///   Main::Run run( output , arg ) ;
-///   run.configure() ;
+///   run.configure( Options::spec() , Options::config() ) ;
 ///   if( run.runnable() )
 ///      run.run() ;
 ///   return 0 ;
@@ -70,7 +70,7 @@ public:
 	~Run() ;
 		///< Destructor.
 
-	void configure( const G::Options & ) ;
+	void configure( const G::Options & , const G::GetOpt::Config & ) ;
 		///< Prepares to run() typically by parsing the commandline.
 
 	bool hidden() const ;

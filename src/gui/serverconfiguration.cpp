@@ -1,5 +1,8 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+// 
+// Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,9 +28,7 @@
 #include "gfile.h"
 #include "gstringarray.h"
 #include "gstringmap.h"
-#include "goptionparser.h"
-#include "goptionreader.h"
-#include "gassert.h"
+#include "ggetopt.h"
 #include "glog.h"
 
 namespace ServerConfigurationImp
@@ -46,25 +47,25 @@ namespace ServerConfigurationImp
 ServerConfiguration::ServerConfiguration()
 = default;
 
-ServerConfiguration::ServerConfiguration( const G::Path & config_file ) :
-	m_config(read(config_file))
+ServerConfiguration::ServerConfiguration( const G::Path & input_file ) :
+	m_config(read(input_file))
 {
 }
 
-G::MapFile ServerConfiguration::read( const G::Path & config_file )
+G::MapFile ServerConfiguration::read( const G::Path & input_file )
 {
 	G::MapFile config ;
-	if( !G::File::exists(config_file) )
+	if( !G::File::exists(input_file) )
 	{
 		; // leave it empty
 	}
-	else if( config_file.extension() == "bat" )
+	else if( input_file.extension() == "bat" )
 	{
-		config = readBatchFile( config_file ) ;
+		config = readBatchFile( input_file ) ;
 	}
 	else
 	{
-		config = G::MapFile( config_file , "config" ) ;
+		config = G::MapFile( input_file , "config" ) ;
 	}
 
 	normalise( config ) ;
@@ -73,72 +74,44 @@ G::MapFile ServerConfiguration::read( const G::Path & config_file )
 
 G::MapFile ServerConfiguration::readBatchFile( const G::Path & batch_file_path )
 {
-	// TODO refactor ServerConfiguration::readBatchFile() and Main::CommandLine
-
-	// read the batch file
 	const G::BatchFile batch_file( batch_file_path , std::nothrow ) ;
 	if( batch_file.args().empty() )
 		return {} ;
 
-	// parse once to see if there is a config file
-	const G::Options options_spec = Main::Options::spec() ;
-	G::Path config_file ;
-	{
-		G::StringArray errors ;
-		G::OptionMap option_map ;
-		G::StringArray parsed_args = G::OptionParser::parse( batch_file.args() , options_spec , option_map , &errors ) ;
-		if( errors.empty() && parsed_args.size() == 1U )
-			config_file = parsed_args[0] ;
-	}
+	// parse the batch file command-line together with the contents of any config file
+	G::GetOpt getopt( G::Arg(batch_file.args()) , Main::Options::spec() , Main::Options::config() ) ;
+	if( getopt.hasErrors() )
+		return {} ;
 
-	// assemble all args from the batch file combined with any config file that it refers to
-	G::StringArray all_args = batch_file.args() ;
-	G_ASSERT( config_file.empty() || all_args.size() >= 2U ) ;
-	if( !config_file.empty() && all_args.size() >= 2U )
-	{
-		all_args.pop_back() ;
-		std::string app_value = G::Path(all_args[0]).dirname().str() ;
-		if( !app_value.empty() )
-			config_file.replace( "@app" , app_value ) ;
-		G::OptionReader::add( all_args , config_file ) ;
-	}
-
-	// parse again
-	G::OptionMap option_map ;
-	{
-		G::StringArray errors ; // ignored -- empty option_map on error
-		G::OptionParser::parse( all_args , options_spec , option_map , &errors ) ;
-	}
-
-	return G::MapFile( option_map , G::Str::positive() ) ;
+	return G::MapFile( getopt.map() , G::Str::positive() ) ;
 }
 
 void ServerConfiguration::normalise( G::MapFile & config )
 {
 	// normalise by expanding "--as-whatever" etc.
-	std::string const yes = G::Str::positive() ;
+	std::string_view yes = G::Str::positive() ;
 	if( config.contains("as-client") )
 	{
-		config.add( "log" , yes ) ;
-		config.add( "no-syslog" , yes ) ;
-		config.add( "no-daemon" , yes ) ;
-		config.add( "dont-serve" , yes ) ;
-		config.add( "forward" , yes ) ;
-		config.add( "forward-to" , config.value("as-client") ) ;
+		config.update( "log" , yes ) ;
+		config.update( "no-syslog" , yes ) ;
+		config.update( "no-daemon" , yes ) ;
+		config.update( "dont-serve" , yes ) ;
+		config.update( "forward" , yes ) ;
+		config.update( "forward-to" , config.value("as-client") ) ;
 		config.remove( "as-client" ) ;
 	}
 	if( config.contains("as-proxy") )
 	{
-		config.add( "log" , yes ) ;
-		config.add( "close-stderr" , yes ) ;
-		config.add( "forward-on-disconnect" , yes ) ; // was poll 0
-		config.add( "forward-to" , config.value("as-proxy") ) ;
+		config.update( "log" , yes ) ;
+		config.update( "close-stderr" , yes ) ;
+		config.update( "forward-on-disconnect" , yes ) ;
+		config.update( "forward-to" , config.value("as-proxy") ) ;
 		config.remove( "as-proxy" ) ;
 	}
 	if( config.contains("as-server") )
 	{
-		config.add( "log" , yes ) ;
-		config.add( "close-stderr" , yes ) ;
+		config.update( "log" , yes ) ;
+		config.update( "close-stderr" , yes ) ;
 		config.remove( "as-server" ) ;
 	}
 	if( config.booleanValue("syslog",false) )
@@ -162,34 +135,14 @@ std::string ServerConfiguration::quote( const std::string & s )
 	return s.find_first_of(" \t") == std::string::npos ? s : (std::string()+"\""+s+"\"") ;
 }
 
-std::string ServerConfiguration::exe( const G::Path & config_file )
+std::string ServerConfiguration::exe( const G::Path & batch_file )
 {
 	return
-		G::File::exists(config_file) &&
-		config_file.extension() == "bat" &&
-		!G::BatchFile(config_file,std::nothrow).args().empty() ?
-			G::BatchFile(config_file,std::nothrow).args().at(0U) :
+		G::File::exists(batch_file) &&
+		batch_file.extension() == "bat" &&
+		!G::BatchFile(batch_file,std::nothrow).args().empty() ?
+			G::BatchFile(batch_file,std::nothrow).args().at(0U) :
 			std::string() ;
-}
-
-G::StringArray ServerConfiguration::args( bool no_close_stderr ) const
-{
-	G::StringArray result ;
-	for( const auto & map_item : m_config.map() )
-	{
-		std::string option = map_item.first ;
-		std::string option_arg = map_item.second ;
-
-		if( no_close_stderr && option == "close-stderr" )
-			continue ;
-
-		result.push_back( "--" + option ) ;
-		if( ! option_arg.empty() )
-		{
-			result.push_back( quote(option_arg) ) ;
-		}
-	}
-	return result ;
 }
 
 ServerConfiguration ServerConfiguration::fromPages( const G::MapFile & pages )
@@ -211,7 +164,7 @@ ServerConfiguration ServerConfiguration::fromPages( const G::MapFile & pages )
 		}
 		else if( pages.booleanValue("forward-on-disconnect",true) )
 		{
-			out["forward-on-disconnect"] ; // was poll 0
+			out["forward-on-disconnect"] ;
 		}
 		if( pages.booleanValue("forward-poll",true) )
 		{
@@ -255,6 +208,10 @@ ServerConfiguration ServerConfiguration::fromPages( const G::MapFile & pages )
 		if( !pages.value("filter-client").empty() )
 		{
 			out["client-filter"] = pages.value("filter-client") ;
+		}
+		if( !pages.value("address-verifier").empty() )
+		{
+			out["address-verifier"] = pages.value("address-verifier") ; // script path or "account:"
 		}
 	}
 	else

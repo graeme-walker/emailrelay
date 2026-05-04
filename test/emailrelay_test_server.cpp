@@ -375,7 +375,7 @@ int main( int argc , char * argv [] )
 		}
 		if( opt.contains("help") )
 		{
-			G::OptionsUsage(opt.options()).output( {} , std::cout , arg.prefix() ) ;
+			G::OptionsUsage(options).output( {} , std::cout , arg.prefix() ) ;
 			return 0 ;
 		}
 

@@ -423,6 +423,13 @@ bool G::Path::replace( const std::string_view & from , const std::string_view & 
 	return G::Str::replace( m_str , from , to , &startpos ) ;
 }
 
+G::Path G::Path::replaced( const std::string_view & from , const std::string_view & to , bool ex_root ) const
+{
+	G::Path path( *this ) ;
+	path.replace( from , to , ex_root ) ;
+	return path ;
+}
+
 G::StringArray G::Path::split() const
 {
 	StringArray a ;

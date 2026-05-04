@@ -72,7 +72,7 @@ int main( int argc , char * argv [] )
 
 		Main::App app ;
 		Main::Run run( app , arg ) ;
-		run.configure( Main::Options::spec() ) ;
+		run.configure( Main::Options::spec() , Main::Options::config() ) ;
 		if( run.runnable() )
 		{
 			run.run() ;

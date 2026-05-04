@@ -109,11 +109,10 @@ public:
 	bool remove( std::string_view key ) ;
 		///< Removes a value (if it exists).
 
-	void writeItem( std::ostream & , std::string_view key ) const ;
-		///< Writes a single item from this map to the stream.
-
 	static void writeItem( std::ostream & , std::string_view key , std::string_view value ) ;
-		///< Writes an arbitrary item to the stream.
+		///< Writes an arbitrary item to the stream, formatted
+		///< as "<key>=<value>" with simple quoting if the value
+		///< contains spaces. (See also G::OptionReader::read().)
 
 	Path editInto( const Path & path , bool make_backup , bool do_throw = true ) const ;
 		///< Edits an existing file so that its contents reflect

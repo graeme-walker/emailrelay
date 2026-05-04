@@ -1,5 +1,8 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+// 
+// Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,38 +23,40 @@
 
 #include "gdef.h"
 #include "goption.h"
+#include "gstr.h"
 
-G::Option::Option( char c_in , const std::string & name_in , const std::string & description_in ,
-	const std::string & description_extra_in , Multiplicity value_multiplicity_in ,
-	const std::string & vd_in , unsigned int level_in ) :
-		c(c_in) ,
-		name(name_in) ,
-		description(description_in) ,
-		description_extra(description_extra_in) ,
-		value_multiplicity(value_multiplicity_in) ,
-		hidden(description_in.empty()||level_in==0U) ,
-		value_description(vd_in) ,
-		level(level_in) ,
-		main_tag(0U) ,
-		tag_bits(0U)
+G::Option::Option( char c , std::string_view name , std::string_view description ,
+	std::string_view description_extra , Multiplicity value_multiplicity ,
+	std::string_view value_description , unsigned int level ,
+	unsigned int main_tag , unsigned int tag_bits ) :
+		m_c(c) ,
+		m_name(sv_to_string(name)) ,
+		m_description(sv_to_string(description)) ,
+		m_description_extra(sv_to_string(description_extra)) ,
+		m_value_multiplicity(value_multiplicity) ,
+		m_hidden(description.empty()||level==0U) ,
+		m_value_description(sv_to_string(value_description)) ,
+		m_level(level) ,
+		m_main_tag(main_tag) ,
+		m_tag_bits(main_tag|tag_bits)
 {
-}
+	if( m_description_extra.size() == 2U )
+	{
+		// eg. add( Option( 'x' , "xx" , tx("do xxx! or xxxx") , "!\\" , ... ) ;
+		// or: add( Option( 'x' , "xx" , "do xxx", " or xxxx" , ... ) ;
+		char sep = m_description_extra.at( 0U ) ;
+		char escape = m_description_extra.at( 1U ) ;
+		m_description_extra.clear() ;
 
-G::Option::Option( char c_in , const char * name_in , const char * description_in ,
-	const char * description_extra_in , Multiplicity value_multiplicity_in ,
-	const char * vd_in , unsigned int level_in , unsigned int main_tag_in ,
-	unsigned int tag_bits_in ) :
-		c(c_in) ,
-		name(name_in) ,
-		description(description_in) ,
-		description_extra(description_extra_in) ,
-		value_multiplicity(value_multiplicity_in) ,
-		hidden(*description_in=='\0'||level_in==0U) ,
-		value_description(vd_in) ,
-		level(level_in) ,
-		main_tag(main_tag_in) ,
-		tag_bits(main_tag_in|tag_bits_in)
-{
+		StringArray sub_parts ;
+		sub_parts.reserve( 2U ) ;
+		Str::splitIntoFields( m_description , sub_parts , sep , escape ) ;
+		if( sub_parts.size() >= 2U )
+		{
+			m_description = sub_parts[0] ;
+			m_description_extra = sub_parts[1] ;
+		}
+	}
 }
 
 G::Option::Multiplicity G::Option::decode( const std::string & s )

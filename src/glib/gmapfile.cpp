@@ -204,19 +204,15 @@ void G::MapFile::log( const std::string & prefix_in ) const
 	}
 }
 
-void G::MapFile::writeItem( std::ostream & stream , std::string_view key ) const
-{
-	auto p = find( key ) ;
-	if( p == m_map.end() )
-		writeItem( stream , key , {} ) ;
-	else
-		writeItem( stream , key , (*p).second ) ;
-}
-
 void G::MapFile::writeItem( std::ostream & stream , std::string_view key , std::string_view value )
 {
-	const char * qq = value.find(' ') == std::string::npos ? "" : "\"" ;
-	stream << key << "=" << qq << value << qq << "\n" ;
+	if( !key.empty() )
+	{
+		std::string_view qq = "\"" ;
+		if( value.find(' ') == std::string::npos )
+			qq = {} ;
+		stream << key << "=" << qq << value << qq << "\n" ;
+	}
 }
 
 G::Path G::MapFile::editInto( const Path & path , bool make_backup , bool do_throw ) const

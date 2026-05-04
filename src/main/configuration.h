@@ -349,7 +349,7 @@ inline
 unsigned int Main::Configuration::numberValue( std::string_view key , unsigned int default_ ) const noexcept
 {
 	static_assert( noexcept(m_map.number(key,default_)) , "" ) ;
-	return m_map.number( key , default_ ) ;
+	return m_map.number(key,default_).second ;
 }
 
 inline

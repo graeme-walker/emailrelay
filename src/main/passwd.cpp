@@ -136,7 +136,7 @@ int main( int argc , char * argv [] )
 			if( !opt.contains("verbose") )
 				layout.set_level_max( 1U ) ;
 
-			G::OptionsUsage(opt.options()).output( layout , std::cout , arg.prefix() ) ;
+			G::OptionsUsage(opt.spec()).output( layout , std::cout , arg.prefix() ) ;
 
 			std::cout
 				<< "\n"

@@ -631,7 +631,7 @@ void run( const G::Arg & arg )
 		else
 			layout.set_level_max(1U).set_alt_usage() ;
 
-		G::OptionsUsage(opt.options()).output( layout , stream , arg.prefix() , " [<envelope-to-address> ...]" ) ;
+		G::OptionsUsage(opt.spec()).output( layout , stream , arg.prefix() , " [<envelope-to-address> ...]" ) ;
 		stream << "\n" ;
 
 		stream << "If message content is read from the terminal use ^" << (G::is_windows()?"Z":"D") << " to finish.\n" ;

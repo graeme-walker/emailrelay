@@ -245,12 +245,16 @@ private:
 	static void setStatus( ServiceHandle , DWORD ) noexcept ;
 	ServiceHandle statusHandle( const std::string & ) ;
 	void stopThread() noexcept ;
+	struct WrapperConfig
+	{
+		G::Path batchFile( const std::string & service_name ) const ;
+		G::Path configFile( const std::string & service_name ) const ;
+		G::Path serverExe( const std::string & service_name ) const ;
+		G::Path path( const std::string & dir_key , const std::string & filename ) const ;
+		G::StringArray m_list ;
+	} ;
+	static WrapperConfig wrapperConfig() ;
 	static G::Path wrapperConfigFile() ;
-	static G::MapFile wrapperConfig() ;
-	static G::Path batchFile( const G::MapFile & , const std::string & ) ;
-	static G::Path configFile( const G::MapFile , const std::string & ) ;
-	static G::Path serverExe( const G::MapFile , const std::string & ) ;
-	static G::Path wrapperConfigPath( const G::MapFile & , const std::string & , const std::string & ) ;
 	struct ServiceInfo
 	{
 		G::Path batch_file ;
@@ -504,36 +508,42 @@ G::Path Service::wrapperConfigFile()
 	return exe.dirname() / (exe.withoutExtension().basename()+".cfg") ;
 }
 
-G::MapFile Service::wrapperConfig()
+Service::WrapperConfig Service::wrapperConfig()
 {
+	WrapperConfig wrapper_config ;
 	G::Path path = wrapperConfigFile() ;
-	if( G::File::exists( path , std::nothrow ) )
-		return G::MapFile( path , "service config" ) ;
-	else
-		return {} ;
+	if( !G::File::exists( path , std::nothrow ) )
+		return wrapper_config ;
+	G::OptionReader::Config reader_config ;
+	reader_config.mode = G::OptionReader::Mode::single ;
+	G::OptionReader::read( wrapper_config.m_list , path , reader_config ) ;
+	return wrapper_config ;
 }
 
-G::Path Service::batchFile( const G::MapFile & wrapper_config , const std::string & name )
+G::Path Service::WrapperConfig::batchFile( const std::string & name ) const
 {
-	return wrapperConfigPath( wrapper_config , "dir-config" , name+"-start.bat" ) ;
+	return path( "dir-config" , name+"-start.bat" ) ;
 }
 
-G::Path Service::configFile( const G::MapFile wrapper_config , const std::string & name )
+G::Path Service::WrapperConfig::configFile( const std::string & name ) const
 {
-	return wrapperConfigPath( wrapper_config , "dir-config" , name+".cfg" ) ;
+	return path( "dir-config" , name+".cfg" ) ;
 }
 
-G::Path Service::serverExe( const G::MapFile wrapper_config , const std::string & name )
+G::Path Service::WrapperConfig::serverExe( const std::string & name ) const
 {
-	return wrapperConfigPath( wrapper_config , "dir-install" , name+".exe" ) ;
+	return path( "dir-install" , name+".exe" ) ;
 }
 
-G::Path Service::wrapperConfigPath( const G::MapFile & wrapper_config , const std::string & key , const std::string & filename )
+G::Path Service::WrapperConfig::path( const std::string & dir_key , const std::string & filename ) const
 {
+	std::string prefix = "--" + dir_key + "=" ;
+	auto p = std::find_if( m_list.begin() , m_list.end() , [&prefix](const std::string &s_){return s_.find(prefix)==0U;} ) ;
+	G::Path dir = p == m_list.end() ? G::Path() : G::Path((*p).substr(prefix.size())) ;
 	G::Path this_exe = G::nowide::exe() ;
-	G::Path dir_config = wrapper_config.pathValue( key , {} ) ;
-	dir_config.replace( "@app" , this_exe.dirname().str() ) ;
-	G::Path dir = dir_config.empty() ? this_exe.dirname() : dir_config ;
+	dir.replace( "@app" , this_exe.dirname().str() ) ;
+	if( dir.empty() )
+		dir = this_exe.dirname() ;
 	if( dir.isRelative() )
 		dir = G::Path::join( this_exe.dirname() , dir ) ;
 	return dir/filename ;
@@ -546,12 +556,12 @@ Service::ServiceInfo Service::serviceInfo( const std::string & service_name , st
 
 	ServiceInfo info ;
 
-	G::MapFile wrapper_config = wrapperConfig() ;
-	info.batch_file = batchFile( wrapper_config , service_name ) ;
+	auto wrapper_config = wrapperConfig() ;
+	info.batch_file = wrapper_config.batchFile( service_name ) ;
 	info.batch_file_exists = G::File::exists( info.batch_file , std::nothrow ) ;
-	info.config_file = configFile( wrapper_config , service_name ) ;
+	info.config_file = wrapper_config.configFile( service_name ) ;
 	info.config_file_exists = G::File::exists( info.config_file , std::nothrow ) ;
-	info.server_exe = serverExe( wrapper_config , service_name ) ;
+	info.server_exe = wrapper_config.serverExe( service_name ) ;
 
 	G_SERVICE_DEBUG( "serviceInfo: batch file [" << info.batch_file << "]" << (info.batch_file_exists?" (exists)":"(missing)" ) ) ;
 	G_SERVICE_DEBUG( "serviceInfo: config file [" << info.config_file << "]" << (info.config_file_exists?" (exists)":"(missing)") ) ;

@@ -164,12 +164,18 @@ public:
 
 	std::size_t readAll( const Path & dir ) ;
 		///< An initialiser that is to be used after default construction.
-		///< Reads all files in the directory.
+		///< Reads all non-directory entries in the given directory.
+
+	static void readAll( const Path & dir , std::vector<Item> & out ) ;
+		///< A static overload that returns by reference a list of Items.
 
 	std::size_t readType( const Path & dir , std::string_view suffix , unsigned int limit = 0U ) ;
 		///< An initialiser that is to be used after default
-		///< construction. Reads all files that have the given
-		///< suffix (unsorted).
+		///< construction. Reads all non-directory entries that
+		///< have the given suffix.
+
+	static void readType( const Path & dir , std::string_view suffix , std::vector<Item> & out ) ;
+		///< A static overload that returns by reference a list of Items.
 
 	std::size_t readDirectories( const Path & dir , unsigned int limit = 0U ) ;
 		///< An initialiser that reads all sub-directories.
@@ -191,10 +197,6 @@ public:
 
 	std::string fileName() const ;
 		///< Returns the current filename.
-
-	static void readAll( const Path & dir , std::vector<Item> & out ) ;
-		///< A static overload returning by reference a collection
-		///< of Items, sorted by name.
 
 private:
 	void readImp( const Path & , bool , std::string_view , unsigned int ) ;

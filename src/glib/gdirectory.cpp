@@ -91,6 +91,13 @@ std::size_t G::DirectoryList::readDirectories( const G::Path & dir , unsigned in
 	return m_list.size() ;
 }
 
+void G::DirectoryList::readType( const G::Path & dir , std::string_view suffix , std::vector<Item> & out )
+{
+	DirectoryList list ;
+	list.readType( dir , suffix , 0U ) ;
+	list.m_list.swap( out ) ;
+}
+
 std::size_t G::DirectoryList::readType( const G::Path & dir , std::string_view suffix , unsigned int limit )
 {
 	readImp( dir , false , suffix , limit ) ;
