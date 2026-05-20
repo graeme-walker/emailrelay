@@ -52,8 +52,8 @@ public:
 	struct Config /// A configuration structure for GFilters::MxLookup
 	{
 		Config() ;
-		G::TimeInterval ns_timeout {1U,0} ;
-		G::TimeInterval restart_timeout {15U,0} ;
+		G::DateTime::TimeInterval ns_timeout {1U,0} ;
+		G::DateTime::TimeInterval restart_timeout {15U,0} ;
 	} ;
 
 	static bool enabled() ;

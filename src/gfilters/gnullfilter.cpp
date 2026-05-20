@@ -47,7 +47,7 @@ GFilters::NullFilter::NullFilter( GNet::EventState es , GStore::FileStore & ,
 }
 
 GFilters::NullFilter::NullFilter( GNet::EventState es , GStore::FileStore & ,
-	Filter::Type filter_type , const Filter::Config & , G::TimeInterval sleep_time ) :
+	Filter::Type filter_type , const Filter::Config & , G::DateTime::TimeInterval sleep_time ) :
 		m_id("sleep") ,
 		m_exit(0,filter_type) ,
 		m_quiet(false) ,

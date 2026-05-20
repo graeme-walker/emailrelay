@@ -177,9 +177,9 @@ GFilters::MxLookup::Config GFilters::MxFilter::parseSpec( std::string_view spec 
 	{
 		std::string_view s = t() ;
 		if( s.find("nst=") == 0U && s.size() > 4U && G::Str::isUInt(s.substr(4U)) )
-			config.ns_timeout = G::TimeInterval( G::Str::toUInt(s.substr(4U)) ) ;
+			config.ns_timeout = G::DateTime::TimeInterval( G::Str::toUInt(s.substr(4U)) ) ;
 		else if( s.find("rt=") == 0U && s.size() > 3U && G::Str::isUInt(s.substr(3U)) )
-			config.restart_timeout = G::TimeInterval( G::Str::toUInt(s.substr(3U)) ) ;
+			config.restart_timeout = G::DateTime::TimeInterval( G::Str::toUInt(s.substr(3U)) ) ;
 		else if( GNet::Address::validString( s ) )
 			nameservers_out.push_back( GNet::Address::parse( s ) ) ;
 		else if( GNet::Address::validStrings( s , "53" ) )

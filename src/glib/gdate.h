@@ -65,14 +65,14 @@ public:
 		///< Constructor for the current date
 		///< in the local timezone.
 
-	explicit Date( const BrokenDownTime & tm ) ;
+	explicit Date( const DateTime::BrokenDownTime & tm ) ;
 		///< Constructor for the specified date.
 
-	explicit Date( SystemTime t ) ;
+	explicit Date( DateTime::SystemTime t ) ;
 		///< Constructor for the date in the UTC
 		///< timezone as at the given epoch time.
 
-	Date( SystemTime t , const LocalTime & ) ;
+	Date( DateTime::SystemTime t , const LocalTime & ) ;
 		///< Constructor for the date in the local
 		///< timezone as at the given epoch time.
 
@@ -133,7 +133,7 @@ public:
 		///< Comparison operator.
 
 private:
-	void init( const BrokenDownTime & ) ;
+	void init( const DateTime::BrokenDownTime & ) ;
 	void check() const ;
 	static int lastDay( int month , int year ) ;
 	static bool isLeapYear( int y ) ;

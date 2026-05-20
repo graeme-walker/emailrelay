@@ -108,7 +108,7 @@ bool GFilters::MessageIdFilter::isId( std::string_view line ) noexcept
 std::string GFilters::MessageIdFilter::newId( const std::string & domain )
 {
 	std::ostringstream ss ;
-	G::SystemTime now = G::SystemTime::now() ;
+	auto now = G::DateTime::SystemTime::now() ;
 	static int generator = 0 ;
 	ss << "<"
 		<< now.s() << "." << now.us() << "."

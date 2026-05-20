@@ -85,8 +85,8 @@ private:
 	GNet::Timer<NetworkFilter> m_timer ;
 	G::Slot::Signal<int> m_done_signal ;
 	GNet::Location m_location ;
-	unsigned int m_connection_timeout ;
-	unsigned int m_response_timeout ;
+	G::DateTime::TimeInterval m_connection_timeout ;
+	G::DateTime::TimeInterval m_response_timeout ;
 	std::optional<std::string> m_text ;
 	Result m_result {Result::fail} ;
 } ;

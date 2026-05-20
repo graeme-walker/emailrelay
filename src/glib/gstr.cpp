@@ -547,12 +547,10 @@ int G::Str::toInt( std::string_view s )
 	return result ;
 }
 
-#ifndef G_LIB_SMALL
 int G::Str::toInt( std::string_view s1 , std::string_view s2 )
 {
 	return !s1.empty() && isInt(s1) ? toInt(s1) : toInt(s2) ;
 }
-#endif
 
 int G::StrImp::toInt( std::string_view s , bool & overflow , bool & invalid ) noexcept
 {

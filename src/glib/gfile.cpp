@@ -202,12 +202,12 @@ std::string G::File::sizeString( const Path & path )
 	return s.error ? std::string() : std::to_string(s.size) ;
 }
 
-G::SystemTime G::File::time( const Path & path )
+G::DateTime::SystemTime G::File::time( const Path & path )
 {
 	Stat s = statImp( path.cstr() ) ;
 	if( s.error )
 		throw TimeError( path.str() , Process::strerror(s.error) ) ;
-	return SystemTime( s.mtime_s , s.mtime_us ) ;
+	return DateTime::SystemTime( s.mtime_s , s.mtime_us ) ;
 }
 
 #ifndef G_LIB_SMALL

@@ -189,7 +189,7 @@ GSmtp::Server::Server( GNet::EventState es , GStore::MessageStore & store , Filt
 		m_forward_to(forward_to) ,
 		m_forward_to_family(forward_to_family) ,
 		m_client_secrets(client_secrets) ,
-		m_dnsbl_suspend_time(G::TimerTime::zero())
+		m_dnsbl_suspend_time(G::DateTime::TimerTime::zero())
 {
 }
 
@@ -246,7 +246,7 @@ std::unique_ptr<GNet::ServerPeer> GSmtp::Server::newPeer( GNet::EventStateUnboun
 
 GSmtp::Server::Config GSmtp::Server::serverConfig() const
 {
-	if( !m_dnsbl_suspend_time.isZero() && G::TimerTime::now() < m_dnsbl_suspend_time )
+	if( !m_dnsbl_suspend_time.isZero() && G::DateTime::TimerTime::now() < m_dnsbl_suspend_time )
 		return Config(m_server_config).set_dnsbl_config({}) ;
 	return m_server_config ;
 }
@@ -254,7 +254,7 @@ GSmtp::Server::Config GSmtp::Server::serverConfig() const
 void GSmtp::Server::nodnsbl( unsigned int s )
 {
 	G_LOG( "GSmtp::Server::nodnsbl: dnsbl " << (s?"disabled":"enabled") << (s?(" for "+G::Str::fromUInt(s).append(1U,'s')):"") ) ;
-	m_dnsbl_suspend_time = G::TimerTime::now() + G::TimeInterval(s) ;
+	m_dnsbl_suspend_time = G::DateTime::TimerTime::now() + G::DateTime::TimeInterval(s) ;
 }
 
 void GSmtp::Server::enable( bool b )

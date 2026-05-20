@@ -80,7 +80,7 @@ private:
 	Filter::Type m_filter_type ;
 	Exit m_exit ;
 	G::Path m_path ;
-	unsigned int m_timeout ;
+	G::DateTime::TimeInterval m_timeout ;
 	GNet::Timer<ExecutableFilter> m_timer ;
 	std::string m_response ;
 	int m_response_code {0} ;

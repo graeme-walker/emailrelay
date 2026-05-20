@@ -49,7 +49,7 @@ public:
 			///< exit code.
 
 	NullFilter( GNet::EventState , GStore::FileStore & ,
-		Filter::Type , const Filter::Config & , G::TimeInterval ) ;
+		Filter::Type , const Filter::Config & , G::DateTime::TimeInterval ) ;
 			///< Constructor for a do-nothing filter that takes
 			///< its time.
 
@@ -79,7 +79,7 @@ private:
 	std::string m_id ;
 	Filter::Exit m_exit ;
 	bool m_quiet ;
-	G::TimeInterval m_timeout ;
+	G::DateTime::TimeInterval m_timeout ;
 	GNet::Timer<NullFilter> m_timer ;
 	G::Slot::Signal<int> m_done_signal ;
 } ;

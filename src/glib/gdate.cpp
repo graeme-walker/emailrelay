@@ -60,7 +60,7 @@ G::Date::Date( SystemTime t , const LocalTime & )
 }
 #endif
 
-G::Date::Date( const BrokenDownTime & tm )
+G::Date::Date( const DateTime::BrokenDownTime & tm )
 {
 	init( tm ) ;
 	//check() ;
@@ -96,7 +96,7 @@ G::Date::Date( int year , Date::Month month , int day_of_month ) :
 }
 #endif
 
-void G::Date::init( const BrokenDownTime & tm )
+void G::Date::init( const DateTime::BrokenDownTime & tm )
 {
 	m_year = tm.year() ;
 	m_month = tm.month() ;
@@ -164,7 +164,7 @@ G::Date::Weekday G::Date::weekday() const
 {
 	if( ! m_weekday_set )
 	{
-		BrokenDownTime bdt = BrokenDownTime::midday( m_year , m_month , m_day ) ;
+		auto bdt = DateTime::BrokenDownTime::midday( m_year , m_month , m_day ) ;
 		const_cast<Date*>(this)->m_weekday_set = true ;
 		const_cast<Date*>(this)->m_weekday = Weekday(bdt.wday()) ;
 	}

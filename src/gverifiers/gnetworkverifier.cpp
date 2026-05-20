@@ -48,7 +48,7 @@ void GVerifiers::NetworkVerifier::verify( const GSmtp::Verifier::Request & reque
 	m_command = request.command ;
 	if( m_client_ptr.get() == nullptr )
 	{
-		unsigned int idle_timeout = 0U ;
+		auto idle_timeout = G::DateTime::TimeInterval::zero() ;
 		m_client_ptr.reset( std::make_unique<GSmtp::RequestClient>(
 			m_es.eh(this) ,
 			"verify" , "" ,

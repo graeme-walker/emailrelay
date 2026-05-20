@@ -164,7 +164,7 @@ private:
 	const GAuth::SaslClientSecrets & m_client_secrets ;
 	std::string m_sasl_client_config ;
 	G::Slot::Signal<const std::string&,const std::string&> m_event_signal ;
-	G::TimerTime m_dnsbl_suspend_time ;
+	G::DateTime::TimerTime m_dnsbl_suspend_time ;
 	bool m_enabled {true} ;
 } ;
 

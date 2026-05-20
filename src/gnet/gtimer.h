@@ -53,7 +53,7 @@ public:
 		///< Starts or restarts the timer so that it expires
 		///< after the given interval.
 
-	void startTimer( const G::TimeInterval & ) ;
+	void startTimer( const G::DateTime::TimeInterval & ) ;
 		///< Starts or restarts the timer so that it expires
 		///< after the given interval.
 
@@ -70,20 +70,20 @@ public:
 	void doTimeout() ;
 		///< Used by TimerList to execute the onTimeout() callback.
 
-	G::TimerTime t() const ;
+	G::DateTime::TimerTime t() const ;
 		///< Used by TimerList to get the expiry epoch time. Zero-length
 		///< timers return TimerTime::zero() plus any adjust()ment,
 		///< ~guaranteed to be less than the t() of any non-immediate
 		///< timer.
 
-	const G::TimerTime & tref() const noexcept ;
+	const G::DateTime::TimerTime & tref() const noexcept ;
 		///< An inline noexcept alternative to t().
 
 	void adjust( unsigned long ) ;
 		///< Used by TimerList to set the order of immedate() timer
 		///< expiry.
 
-	bool expired( G::TimerTime & ) const ;
+	bool expired( G::DateTime::TimerTime & ) const ;
 		///< Used by TimerList. Returns true if expired when compared
 		///< to the given epoch time. If the given epoch time is
 		///< TimerTime::zero() then it is initialised with
@@ -100,16 +100,16 @@ public:
 	TimerBase & operator=( TimerBase && ) = delete ;
 
 private:
-	static G::TimerTime history() ;
+	static G::DateTime::TimerTime history() ;
 
 private:
 	bool m_active {false} ;
 	bool m_immediate {false} ;
-	G::TimerTime m_time ;
+	G::DateTime::TimerTime m_time ;
 } ;
 
 inline
-const G::TimerTime & GNet::TimerBase::tref() const noexcept
+const G::DateTime::TimerTime & GNet::TimerBase::tref() const noexcept
 {
 	return m_time ;
 }
@@ -149,7 +149,7 @@ public:
 		///< Starts or restarts the timer so that it expires
 		///< after the given interval.
 
-	void startTimer( const G::TimeInterval & ) ;
+	void startTimer( const G::DateTime::TimeInterval & ) ;
 		///< Starts or restarts the timer so that it expires
 		///< after the given interval.
 
@@ -189,7 +189,7 @@ void GNet::Timer<T>::startTimer( unsigned int s , unsigned int us )
 }
 
 template <typename T>
-void GNet::Timer<T>::startTimer( const G::TimeInterval & i )
+void GNet::Timer<T>::startTimer( const G::DateTime::TimeInterval & i )
 {
 	TimerBase::startTimer( i ) ;
 }

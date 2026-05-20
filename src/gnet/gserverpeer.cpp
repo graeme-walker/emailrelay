@@ -203,7 +203,7 @@ std::string_view GNet::ServerPeer::eventLoggingString() const
 
 void GNet::ServerPeer::setIdleTimeout( unsigned int s )
 {
-	m_config.idle_timeout = s ;
+	m_config.idle_timeout = G::DateTime::TimeInterval( s ) ;
 	m_idle_timer.cancelTimer() ;
 	if( m_config.idle_timeout )
 		m_idle_timer.startTimer( m_config.idle_timeout ) ;

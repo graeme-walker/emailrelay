@@ -157,7 +157,7 @@ public:
 		///< one time only.
 
 	void configure( const Address & dns_server , unsigned int threshold ,
-		bool allow_on_timeout , G::TimeInterval timeout , const G::StringArray & servers ) ;
+		bool allow_on_timeout , G::DateTime::TimeInterval timeout , const G::StringArray & servers ) ;
 			///< Configures the object after construction.
 
 	void configure( std::string_view ) ;
@@ -205,7 +205,7 @@ private:
 	std::size_t m_threshold {1U} ;
 	bool m_allow_on_timeout {true} ;
 	Address m_dns_server ;
-	G::TimeInterval m_timeout {0U} ;
+	G::DateTime::TimeInterval m_timeout {0U} ;
 	DnsBlockResult m_result ;
 	unsigned int m_id_base {0U} ;
 	std::unique_ptr<DatagramSocket> m_socket_ptr ;

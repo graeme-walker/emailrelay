@@ -391,10 +391,10 @@ void submit( const G::GetOpt & opt )
 		[](const std::string &line){return match(line,"Date");} ) != message.m_content.cend() ;
 	if( add_date_header && !have_date_header )
 	{
-		auto now = G::SystemTime::now() ;
+		auto now = G::DateTime::SystemTime::now() ;
 		auto tm = now.local() ;
 		G::Date date( tm ) ;
-		std::string zone = G::DateTime::offsetString( G::DateTime::offset(now) ) ;
+		std::string zone = G::DateTime::Zone::offsetString( G::DateTime::Zone::offset(now) ) ;
 		std::string date_str = date.dd() + " " + date.monthName(true) + " " + date.yyyy() ;
 		std::string time_str = G::Time(tm).hhmmss(":") ;
 		message.m_content.insert( message.m_content.begin() , G::Str::join(" ","Date:",date_str,time_str,zone) ) ;
@@ -406,7 +406,7 @@ void submit( const G::GetOpt & opt )
 	if( opt_add_content_message_id && !have_id_header )
 	{
 		std::ostringstream ss ;
-		ss << "Message-ID: <" << G::SystemTime::now() << "." << G::Process::Id() << "@" << opt_message_id_domain << ">" ;
+		ss << "Message-ID: <" << G::DateTime::SystemTime::now() << "." << G::Process::Id() << "@" << opt_message_id_domain << ">" ;
 		message.m_content.insert( message.m_content.begin() , ss.str() ) ;
 		G_LOG_S( "submit: added: message-id: [" << ss.str() << "]" ) ;
 	}

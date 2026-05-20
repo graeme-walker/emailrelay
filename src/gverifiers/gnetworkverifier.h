@@ -65,8 +65,8 @@ private:
 	G::Slot::Signal<GSmtp::Verifier::Command,const GSmtp::VerifierStatus&> m_done_signal ;
 	GSmtp::Verifier::Config m_config ;
 	GNet::Location m_location ;
-	unsigned int m_connection_timeout ;
-	unsigned int m_response_timeout ;
+	G::DateTime::TimeInterval m_connection_timeout ;
+	G::DateTime::TimeInterval m_response_timeout ;
 	GNet::ClientPtr<GSmtp::RequestClient> m_client_ptr ;
 	std::string m_to_address ;
 	GSmtp::Verifier::Command m_command {GSmtp::Verifier::Command::VRFY} ;

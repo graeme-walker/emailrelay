@@ -174,7 +174,7 @@ bool GNet::Location::update( const Address & address , std::nothrow_t )
 	m_address = address ;
 	m_family = address.af() ; // not enum
 	m_address_valid = true ;
-	m_update_time = G::SystemTime::now() ;
+	m_update_time = G::DateTime::SystemTime::now() ;
 	G_DEBUG( "GNet::Location::ctor: resolved location [" << displayString() << "]" ) ;
 	return true ;
 }

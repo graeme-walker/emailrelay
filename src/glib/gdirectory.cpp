@@ -56,7 +56,7 @@ std::string G::Directory::tmp()
 {
 	std::ostringstream ss ;
 	static int sequence = 1 ;
-	ss << "." << SystemTime::now() << "." << sequence++ << "." << Process::Id() << ".tmp" ;
+	ss << "." << DateTime::SystemTime::now() << "." << sequence++ << "." << Process::Id() << ".tmp" ;
 	return ss.str() ;
 }
 

@@ -108,7 +108,7 @@ void GStore::FileDelivery::deliverTo( FileStore & /*store*/ , std::string_view p
 		// copy content to maildir's "new" sub-directory via "tmp"
 		static int seq {} ;
 		std::ostringstream ss ;
-		ss << G::SystemTime::now() << "." << G::Process::Id().str() << "." << hostname() << "." << seq++ ;
+		ss << G::DateTime::SystemTime::now() << "." << G::Process::Id().str() << "." << hostname() << "." << seq++ ;
 		G::Path tmp_content_path = dst_dir/"tmp"/ss.str() ;
 		G::Path new_content_path = dst_dir/"new"/ss.str() ;
 		if( !FileOp::copy( content_path , tmp_content_path , hardlink ) )

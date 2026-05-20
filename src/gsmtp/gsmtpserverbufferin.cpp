@@ -64,7 +64,7 @@ void GSmtp::ServerBufferIn::applySome( const char * data , std::size_t size )
 	{
 		// ServerProtocol::apply() returned false
 		G_ASSERT( m_protocol.inBusyState() ) ;
-		m_timer.startTimer( G::TimeInterval::limit() ) ;
+		m_timer.startTimer( G::DateTime::TimeInterval::limit() ) ;
 	}
 	else
 	{

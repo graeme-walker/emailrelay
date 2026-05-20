@@ -27,7 +27,7 @@
 #include <algorithm>
 
 GNet::TimerBase::TimerBase( EventState es ) :
-	m_time(G::TimerTime::zero())
+	m_time(G::DateTime::TimerTime::zero())
 {
 	TimerList::instance().add( *this , es ) ;
 }
@@ -44,7 +44,7 @@ GNet::TimerBase::~TimerBase()
 	}
 }
 
-bool GNet::TimerBase::expired( G::TimerTime & now ) const
+bool GNet::TimerBase::expired( G::DateTime::TimerTime & now ) const
 {
 	if( !m_active )
 	{
@@ -59,8 +59,8 @@ bool GNet::TimerBase::expired( G::TimerTime & now ) const
 		// lazy evaluation of caller's idea of now -- no call
 		// to TimerTime::now() if there is a zero-length
 		// timer or no timers at all
-		if( now == G::TimerTime::zero() )
-			now = G::TimerTime::now() ;
+		if( now == G::DateTime::TimerTime::zero() )
+			now = G::DateTime::TimerTime::now() ;
 
 		return m_time <= now ;
 	}
@@ -70,15 +70,15 @@ void GNet::TimerBase::startTimer( unsigned int time , unsigned int time_us )
 {
 	m_active = true ;
 	m_immediate = time == 0U && time_us == 0U ;
-	m_time = m_immediate ? G::TimerTime::zero() : ( G::TimerTime::now() + G::TimeInterval(time,time_us) ) ;
+	m_time = m_immediate ? G::DateTime::TimerTime::zero() : ( G::DateTime::TimerTime::now() + G::DateTime::TimeInterval(time,time_us) ) ;
 	TimerList::instance().updateOnStart( *this ) ; // adjust()
 }
 
-void GNet::TimerBase::startTimer( const G::TimeInterval & i )
+void GNet::TimerBase::startTimer( const G::DateTime::TimeInterval & i )
 {
 	m_active = true ;
-	m_immediate = i == G::TimeInterval(0U) ;
-	m_time = m_immediate ? G::TimerTime::zero() : ( G::TimerTime::now() + i ) ;
+	m_immediate = i == G::DateTime::TimeInterval(0U) ;
+	m_time = m_immediate ? G::DateTime::TimerTime::zero() : ( G::DateTime::TimerTime::now() + i ) ;
 	TimerList::instance().updateOnStart( *this ) ; // adjust()
 }
 
@@ -90,7 +90,7 @@ bool GNet::TimerBase::immediate() const
 void GNet::TimerBase::adjust( unsigned long order )
 {
 	G_ASSERT( m_active && m_immediate ) ;
-	m_time += G::TimeInterval( 0 , order ) ;
+	m_time += G::DateTime::TimeInterval( 0 , order ) ;
 }
 
 void GNet::TimerBase::cancelTimer()
@@ -109,7 +109,7 @@ void GNet::TimerBase::doTimeout()
 	onTimeout() ;
 }
 
-G::TimerTime GNet::TimerBase::t() const
+G::DateTime::TimerTime GNet::TimerBase::t() const
 {
 	return m_time ;
 }

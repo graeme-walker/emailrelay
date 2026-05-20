@@ -82,8 +82,8 @@ private:
 	GNet::Location m_location ;
 	bool m_read_only ;
 	bool m_always_pass ;
-	unsigned int m_connection_timeout ;
-	unsigned int m_response_timeout ;
+	G::DateTime::TimeInterval m_connection_timeout ;
+	G::DateTime::TimeInterval m_response_timeout ;
 	GNet::ClientPtr<GSmtp::SpamClient> m_client_ptr ;
 	std::string m_text ;
 	Result m_result {Result::fail} ;
