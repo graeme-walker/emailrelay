@@ -467,15 +467,6 @@ bool GStore::FileStore::FileOp::hardlink( const G::Path & src , const G::Path & 
 	if( !linked )
 		copied = G::File::copy( src , dst , std::nothrow ) ;
 	errno_() = G::Process::errno_() ;
-
-	// fix up group ownership if hard-linked into a set-group-id directory
-	if( linked )
-	{
-		auto dir_stat = G::File::stat( dst.simple() ? G::Path(".") : dst.dirname() ) ;
-		if( !dir_stat.error && !dir_stat.is_link && dir_stat.inherit )
-			G::File::chgrp( dst , dir_stat.gid , std::nothrow ) ;
-	}
-
 	return linked || copied ;
 }
 
@@ -494,6 +485,20 @@ bool GStore::FileStore::FileOp::copy( const G::Path & src , const G::Path & dst 
 	bool ok = G::File::copy( src , dst , std::nothrow ) ;
 	errno_() = G::Process::errno_() ;
 	return ok ;
+}
+
+bool GStore::FileStore::FileOp::chown( const G::Path & path )
+{
+	if( G::is_windows() )
+	{
+		return true ;
+	}
+	else
+	{
+		FileWriter claim_root ;
+		auto dir_stat = G::File::stat( path.dirname() ) ;
+		return !dir_stat.error && G::File::chown( path , dir_stat.ownership , std::nothrow ) ;
+	}
 }
 
 bool GStore::FileStore::FileOp::mkdir( const G::Path & dir )

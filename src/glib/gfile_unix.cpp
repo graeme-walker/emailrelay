@@ -224,8 +224,7 @@ G::File::Stat G::File::statImp( const char * path , bool symlink_nofollow ) noex
 		s.mode = static_cast<unsigned long>( statbuf.st_mode & mode_t(07777) ) ; // NOLINT
 		s.size = static_cast<unsigned long long>( statbuf.st_size ) ;
 		s.blocks = static_cast<unsigned long long>(statbuf.st_size) >> 24U ;
-		s.uid = statbuf.st_uid ;
-		s.gid = statbuf.st_gid ;
+		s.ownership = Identity( Identity::FromFile() , statbuf.st_uid , statbuf.st_gid ) ;
 		s.inherit = s.is_dir && ( G::is_bsd() || ( statbuf.st_mode & S_ISGID ) ) ;
 	}
 	else
@@ -364,6 +363,11 @@ std::pair<bool,mode_t> G::FileImp::newmode( mode_t mode , const std::string & sp
 		}
 	}
 	return { ok , mode } ;
+}
+
+bool G::File::chown( const Path & path , Identity id , std::nothrow_t )
+{
+	return 0 == ::chown( path.cstr() , id.userid() , id.groupid() ) ;
 }
 
 #ifndef G_LIB_SMALL

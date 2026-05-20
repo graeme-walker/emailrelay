@@ -84,6 +84,7 @@ public:
 		static bool hardlink( const G::Path & , const G::Path & ) ;
 		static bool copy( const G::Path & , const G::Path & ) ;
 		static bool copy( const G::Path & , const G::Path & , bool hardlink ) ;
+		static bool chown( const G::Path & ) ;
 		static bool mkdir( const G::Path & ) ;
 		static bool isdir( const G::Path & , const G::Path & = {} , const G::Path & = {} ) ;
 		static std::ifstream & openIn( std::ifstream & , const G::Path & ) ;

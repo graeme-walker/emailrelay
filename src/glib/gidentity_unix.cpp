@@ -45,6 +45,12 @@ G::Identity::Identity( uid_t uid , gid_t gid ) :
 {
 }
 
+G::Identity::Identity( FromFile , uid_t uid , gid_t gid ) :
+	m_uid(uid) ,
+	m_gid(gid)
+{
+}
+
 G::Identity::Identity() noexcept : // invalid()
 	m_uid(static_cast<uid_t>(-1)) ,
 	m_gid(static_cast<gid_t>(-1))
