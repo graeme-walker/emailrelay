@@ -101,6 +101,10 @@ public:
 		///< these events to other Main::Unit objects and the GUI -- see
 		///< Main::WinForm.)
 
+	void requestForwarding( const std::string & reason = {} ) ;
+		///< Initiates forwarding asynchronously. Does nothing if there
+		///< is no forwarding address.
+
 private: //overrides
 	std::string_view eventLoggingString() const noexcept override ;
 
@@ -117,7 +121,6 @@ private:
 	void onRequestForwardingTimeout() ;
 	bool logForwarding() const ;
 	std::string startForwarding() ;
-	void requestForwarding( const std::string & reason = {} ) ;
 	void onAdminCommand( GSmtp::AdminServer::Command , unsigned int ) ;
 	void onServerEvent( const std::string & s1 , const std::string & ) ;
 	void onStoreRescanEvent() ;
@@ -163,6 +166,7 @@ private:
 	std::unique_ptr<GPop::Server> m_pop_server ;
 	std::unique_ptr<GSmtp::AdminServer> m_admin_server ;
 	GNet::ClientPtr<GSmtp::Forward> m_client_ptr ;
+	std::unique_ptr<Main::PollRunner> m_poll_runner ;
 } ;
 
 #endif

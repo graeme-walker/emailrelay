@@ -187,14 +187,14 @@ bool Main::Configuration::closeFiles() const
 
 G::Path Main::Configuration::keyFile( const std::string & option_name ) const
 {
-    std::string value = stringValue( option_name ) ;
-    return value.empty() ? G::Path() : pathValueImp( G::Str::head(value,",",false) ) ;
+	std::string value = stringValue( option_name ) ;
+	return value.empty() ? G::Path() : pathValueImp( G::Str::head(value,",",false) ) ;
 }
 
 G::Path Main::Configuration::certificateFile( const std::string & option_name ) const
 {
-    std::string value = stringValue( option_name ) ;
-    return value.empty() ? G::Path() : pathValueImp( G::Str::tail(value,",",false) ) ;
+	std::string value = stringValue( option_name ) ;
+	return value.empty() ? G::Path() : pathValueImp( G::Str::tail(value,",",false) ) ;
 }
 
 bool Main::Configuration::anonymous( std::string_view type ) const
@@ -403,12 +403,12 @@ const char * Main::Configuration::semanticError1() const
 
 	if( m_map.count("server-tls-certificate") > 2U )
 	{
-		return tx("the --server-tls-certificate option cannot be used more than twice")  ;
+		return tx("the --server-tls-certificate option cannot be used more than twice") ;
 	}
 
 	if( m_map.count("client-tls-certificate") > 2U )
 	{
-		return tx("the --client-tls-certificate option cannot be used more than twice")  ;
+		return tx("the --client-tls-certificate option cannot be used more than twice") ;
 	}
 
 	if( contains("client-tls-verify-name") && !contains_client_tls_verify )
@@ -541,6 +541,13 @@ GSmtp::VerifierFactoryBase::Spec Main::Configuration::verifierValue( std::string
 {
 	std::string value = stringValue( option_name ) ;
 	return GVerifiers::VerifierFactory::parse( value , m_base_dir.str() , m_app_dir.str() , warnings_p ) ;
+}
+
+Main::PollRunner::Spec Main::Configuration::pollRunnerValue( std::string_view option_name ,
+	G::StringArray * warnings_p ) const
+{
+	std::string value = stringValue( option_name ) ;
+	return PollRunner::parse( value , m_base_dir.str() , m_app_dir.str() , warnings_p ) ;
 }
 
 G::Path Main::Configuration::pathValue( std::string_view option_name ) const
@@ -900,6 +907,22 @@ GNet::SocketProtocol::Config Main::Configuration::_socketProtocolConfig( const s
 			.set_secure_connection_timeout( _connectionTimeout() ) ;
 }
 
+G::DateTime::TimeInterval Main::Configuration::pollingTimeout() const
+{
+	auto poll_pair = m_map.intervals( "poll" ) ;
+	G_ASSERT( poll_pair.first && !poll_pair.second.empty() ) ;
+	auto & list = poll_pair.second ;
+	return list.at( list.size() - 1U ) ;
+}
+
+G::DateTime::TimeInterval Main::Configuration::pollingTimeoutFirst() const
+{
+	auto poll_pair = m_map.intervals( "poll" ) ;
+	G_ASSERT( poll_pair.first && !poll_pair.second.empty() ) ;
+	auto & list = poll_pair.second ;
+	return list.at( 0U ) ;
+}
+
 // ==
 
 Main::Configuration::Switches::Switches( std::string_view value , bool warn ) :
@@ -1012,7 +1035,7 @@ bool Main::Configuration::log() const noexcept { return contains( "log" ) || con
 std::string Main::Configuration::logFile() const { return contains("log-file") ? pathValue("log-file").str() : std::string() ; }
 G::Path Main::Configuration::pidFile() const { return pathValue( "pid-file" ) ; }
 bool Main::Configuration::pollingLog() const noexcept { return doPolling() && pollingTimeout().s() > 60U ; }
-G::DateTime::TimeInterval Main::Configuration::pollingTimeout() const noexcept { return timeoutValue( "poll" , 0U ) ; }
+Main::PollRunner::Spec Main::Configuration::pollRunner() const { return pollRunnerValue("poll-run") ; }
 G::Path Main::Configuration::popSecretsFile() const { return contains( "pop-auth" ) ? pathValue( "pop-auth" ) : G::Path() ; }
 G::Path Main::Configuration::serverSecretsFile() const { return contains( "server-auth" ) ? pathValue( "server-auth" ) : G::Path() ; }
 G::Path Main::Configuration::serverTlsCaList() const { return contains( "server-tls-verify" ) ? pathValue( "server-tls-verify" ) : G::Path() ; }

@@ -35,6 +35,7 @@
 #include "gfilestore.h"
 #include "gfilterfactory.h"
 #include "gverifierfactory.h"
+#include "pollrunner.h"
 #include "gpopserver.h"
 #include "gsaslserversecrets.h"
 #include "glocal.h"
@@ -162,8 +163,14 @@ public:
 	bool pollingLog() const noexcept ;
 		///< Returns true if polling activity should be logged.
 
-	G::DateTime::TimeInterval pollingTimeout() const noexcept ;
-		///< Returns the timeout for periodic polling.
+	G::DateTime::TimeInterval pollingTimeout() const ;
+		// Returns the timeout for periodic polling.
+
+	G::DateTime::TimeInterval pollingTimeoutFirst() const ;
+		// Returns the timeout for the first polling interval.
+
+	PollRunner::Spec pollRunner() const ;
+		// Returns the path of any poll runner executable.
 
 	bool immediate() const noexcept ;
 		///< Returns true if forwarding should occur as soon as each
@@ -275,6 +282,7 @@ private:
 	G::Path pathValueImp( const std::string & ) const ;
 	GSmtp::FilterFactoryBase::Spec filterValue( std::string_view , G::StringArray * = nullptr ) const ;
 	GSmtp::VerifierFactoryBase::Spec verifierValue( std::string_view , G::StringArray * = nullptr ) const ;
+	PollRunner::Spec pollRunnerValue( std::string_view , G::StringArray * = nullptr ) const ;
 	static bool pathlike( std::string_view ) ;
 	//
 	const char * semanticError1() const ;

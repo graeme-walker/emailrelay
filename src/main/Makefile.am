@@ -98,6 +98,8 @@ OTHER_SOURCES = \
  legal.h \
  output.cpp \
  output.h \
+ pollrunner.cpp \
+ pollrunner.h \
  run.cpp \
  run.h \
  unit.cpp \

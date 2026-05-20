@@ -27,6 +27,7 @@
 #include "gdatetime.h"
 #include "gexception.h"
 #include "gprocess.h"
+#include "gdirectory.h"
 #include "gslot.h"
 #include "groot.h"
 #include "gpath.h"
@@ -148,6 +149,7 @@ private: // overrides
 	std::vector<MessageId> ids() override ;
 	std::vector<MessageId> failures() override ;
 	void unfailAll() override ;
+	void retry( unsigned int , bool ) override ;
 	void rescan() override ;
 
 public:
@@ -166,6 +168,7 @@ private:
 	static const std::string & crlf() ;
 	bool emptyCore() const ;
 	void clearAll() ;
+	void getBadEnvelopes( G::DirectoryList & ) const ;
 	static MessageId newId( unsigned long ) ;
 
 private:

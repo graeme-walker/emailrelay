@@ -121,6 +121,12 @@ Main::Unit::Unit( Run & run , unsigned int unit_id , const std::string & version
 		m_pop_store = GPop::newStore( m_configuration.spoolDir() , m_configuration.popStoreConfig() ) ;
 	}
 
+	// create the poll runner with a reference to the message store
+	//
+	m_poll_runner = std::make_unique<PollRunner>( m_es_log_only , *this , store() ,
+		m_configuration.pollRunner() , m_configuration.spoolDir().str() ,
+		m_configuration.deliveryDir().str() ) ;
+
 	// prepare authentication secrets
 	//
 	GAuth::Secrets::check( m_configuration.clientSecretsFile().str() , m_configuration.serverSecretsFile().str() ,
@@ -246,7 +252,17 @@ void Main::Unit::onPollTimeout()
 {
 	G_DEBUG( "Main::Unit::onPollTimeout" ) ;
 	m_poll_timer->startTimer( m_configuration.pollingTimeout() ) ;
-	requestForwarding( "poll" ) ;
+	if( m_poll_runner->busy() )
+	{
+		G_WARNING_IF( m_poll_runner , "Main::Unit::onPollTimeout: poll runner busy from last time" ) ;
+		requestForwarding( "poll" ) ; // ignore the too-slow script and trigger forwarding anyways
+	}
+	else
+	{
+		bool immediate = m_poll_runner->start() ;
+		if( immediate )
+			requestForwarding( "poll" ) ;
+	}
 }
 
 void Main::Unit::onAdminCommand( GSmtp::AdminServer::Command command , unsigned int arg )

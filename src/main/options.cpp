@@ -758,6 +758,24 @@ G::Options Main::Options::spec()
 			// Causes forwarding of spooled mail messages to happen at regular intervals
 			// (with the time given in seconds).
 
+	G::Options::add( opt , '\0' , "poll-run" ,
+		tx("specifies an external program to run before --poll forwarding") , "" ,
+		M::one , "program" , 30 ,
+		t_smtpclient ) ;
+			//example-unix: /usr/local/sbin/emailrelay-poll.sh
+			//example-windows: C:/ProgramData/E-MailRelay/poll.js
+			// Runs the specified external program every time the --poll timer
+			// expires, before any forwarding spooled mail messages. The two
+			// command-line arguments passed to the external program are
+			// the spool directory and the delivery directory. The program's
+			// standard error stream is logged and its standard output is
+			// discarded. If the program does not finish by the time the
+			// next poll occurs then forwarding will happen immediately
+			// with no attempt to run the program again. Built-in scripts
+			// called "unfail:" and "retry:" are available to remove
+			// ".bad" filename suffixes from envelope files either
+			// unconditionally or up to some retry limit.
+
 	G::Options::add( opt , '\0' , "address-verifier" ,
 		tx("specifies an external program for address verification") , "" ,
 		M::one , "program" , 30 ,

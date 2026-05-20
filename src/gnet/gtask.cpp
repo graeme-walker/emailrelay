@@ -320,6 +320,11 @@ void GNet::Task::start( const G::ExecutableCommand & commandline ,
 		m_exec_error_format , m_id ) ;
 }
 
+bool GNet::Task::busy() const noexcept
+{
+	return m_busy ;
+}
+
 void GNet::Task::done( int exit_code , const std::string & output )
 {
 	m_busy = false ;

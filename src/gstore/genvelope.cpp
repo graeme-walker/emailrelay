@@ -35,6 +35,7 @@ namespace GStore
 		std::string readLine( std::istream & , bool * = nullptr ) ;
 		std::string readValue( std::istream & , const std::string & , bool * = nullptr ) ;
 		std::string value( const std::string & ) ;
+		void read( std::istream & , Envelope & ) ;
 		std::string readFormat( std::istream & stream , bool * ) ;
 		void readUtf8Mailboxes( std::istream & , Envelope & ) ;
 		void readBodyType( std::istream & , Envelope & ) ;
@@ -112,6 +113,25 @@ void GStore::Envelope::copyExtra( std::istream & in , std::ostream & out )
 
 void GStore::Envelope::read( std::istream & stream , GStore::Envelope & e )
 {
+	e = Envelope() ;
+	EnvelopeImp::read( stream , e ) ;
+}
+
+void GStore::Envelope::read( std::istream & stream , GStore::Envelope & e , std::nothrow_t )
+{
+	try
+	{
+		e = Envelope() ;
+		EnvelopeImp::read( stream , e ) ;
+	}
+	catch( std::exception & )
+	{
+		stream.setstate( std::ios_base::failbit ) ;
+	}
+}
+
+void GStore::EnvelopeImp::read( std::istream & stream , GStore::Envelope & e )
+{
 	namespace imp = GStore::EnvelopeImp ;
 	std::streampos oldpos = stream.tellg() ;
 	std::string format = imp::readFormat( stream , &e.crlf ) ;
@@ -161,15 +181,36 @@ void GStore::Envelope::read( std::istream & stream , GStore::Envelope & e )
 	imp::readEnd( stream , e ) ;
 
 	if( stream.bad() )
-		throw ReadError() ;
+		throw Envelope::ReadError() ;
 	else if( stream.fail() && stream.eof() )
 		stream.clear( std::ios_base::eofbit ) ; // clear failbit -- see tellg()
 
 	std::streampos newpos = stream.tellg() ;
 	if( newpos <= 0 || newpos < oldpos )
-		throw ReadError() ; // never gets here
+		throw Envelope::ReadError() ; // never gets here
 
 	e.endpos = static_cast<std::size_t>(newpos-oldpos) ;
+}
+
+void GStore::Envelope::readExtra( std::istream & stream , std::function<void(std::string_view,std::string_view)> fn )
+{
+	if( stream )
+	{
+		std::string line ;
+		while( G::Str::readLine(stream,line) && stream.good() )
+		{
+			if( G::Str::headMatch(line,FileStore::x()) )
+			{
+				std::string_view line_view = G::Str::trimmedView( line , G::Str::ws() ) ;
+				std::size_t colonpos = line_view.find( ':' ) ;
+				std::string_view key = G::Str::headView( line_view , colonpos , line_view ) ;
+				std::string_view value = G::Str::trimmedView( G::Str::tailView(line_view,colonpos) , G::Str::ws() ) ;
+				fn( key.substr(FileStore::x().size()) , value ) ;
+			}
+		}
+		if( !stream.bad() && stream.eof() )
+			stream.clear( std::ios_base::eofbit ) ; // clear failbit
+	}
 }
 
 GStore::MessageStore::BodyType GStore::Envelope::parseSmtpBodyType( const std::string & s , MessageStore::BodyType default_ )

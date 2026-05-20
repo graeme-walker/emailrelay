@@ -107,6 +107,9 @@ sub new
 	my $client_filter = System::tempfile("client-filter") ;
 	$client_filter .= ".js" if System::windows() ;
 
+	my $poll_run = System::tempfile("poll-run") ;
+	$poll_run .= ".js" if System::windows() ;
+
 	return bless {
 		m_exe => _exe() ,
 		m_interface => "127.0.0.1" ,
@@ -129,6 +132,7 @@ sub new
 		m_tls_verify_name => $tls_verify_name ,
 		m_tls_config => $tls_config ,
 		m_poll_timeout => 1 ,
+		m_poll_run => $poll_run ,
 		m_forward_to => "dummy3450930958349:25" ,
 		m_spool_dir => $spool_dir ,
 		m_user => "nobody" ,
@@ -164,6 +168,7 @@ sub tlsVerify { return shift->{m_tls_verify} }
 sub tlsVerifyName { return shift->{m_tls_verify_name} }
 sub tlsConfig { return shift->{m_tls_config} }
 sub pollTimeout { return shift->{m_poll_timeout} }
+sub pollRun { return shift->{m_poll_run} }
 sub set_pollTimeout { $_[0]->{m_poll_timeout} = $_[1] }
 sub stdout { return shift->{m_stdout} }
 sub stderr { return shift->{m_stderr} }
@@ -238,6 +243,7 @@ sub _switches
 		( exists($sw{Hidden}) && !System::unix() ? "--hidden " : "" ) .
 		( exists($sw{NoSmtp}) ? "--no-smtp " : "" ) .
 		( exists($sw{Poll}) ? "--poll __POLL_TIMEOUT__ " : "" ) .
+		( exists($sw{PollRun}) ? "--poll-run __POLL_RUN__ " : "" ) .
 		( exists($sw{Filter}) ? "--filter=exit:0 --filter __FILTER__ " : "" ) .
 		( exists($sw{FilterTimeout}) ? "--filter-timeout 1 " : "" ) .
 		( exists($sw{ConnectionTimeout}) ? "--connection-timeout 1 " : "" ) .
@@ -283,6 +289,7 @@ sub _set_all
 	_set( \$command_tail , "__SPOOL_DIR__" , $this->spoolDir() ) ;
 	_set( \$command_tail , "__USER__" , $this->user() ) ;
 	_set( \$command_tail , "__POLL_TIMEOUT__" , $this->pollTimeout() ) ;
+	_set( \$command_tail , "__POLL_RUN__" , $this->pollRun() ) ;
 	_set( \$command_tail , "__FILTER__" , $this->filter() ) ;
 	_set( \$command_tail , "__CLIENT_FILTER__" , $this->clientFilter() ) ;
 	_set( \$command_tail , "__SCANNER__" , "net:" . $this->scannerAddress() ) ;

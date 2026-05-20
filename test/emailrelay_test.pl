@@ -1745,6 +1745,55 @@ sub testNetworkVerifierFail
 	$server->cleanup() ;
 }
 
+sub testPollRun
+{
+	# setup
+	my %args = (
+		Log => 1 ,
+		LogFile => 1 ,
+		Verbose => 1 ,
+		Domain => 1 ,
+		Port => 1 ,
+		SpoolDir => 1 ,
+		PidFile => 1 ,
+		Poll => 1 ,
+		PollRun => 1 ,
+	) ;
+	my $server = new Server() ;
+	$server->set_pollTimeout( "100ms" ) ;
+	my $outputfile = System::tempfile( "output" ) ;
+	Filter::create( $server->pollRun() , undef , {
+			unix => [
+				"echo STDOUT" ,
+				'echo STDERR >&2' ,
+				"echo DONE > $outputfile" ,
+				"exit 0" ,
+			] ,
+			win32 => [
+				#"WScript.StdOut.WriteLine( \"STDOUT\" ) ;" , # this terminates cscript!
+				"WScript.StdErr.WriteLine( \"STDERR\" ) ;" ,
+				"var fs = WScript.CreateObject(\"Scripting.FileSystemObject\");" ,
+				"var out_ = fs.OpenTextFile( \"$outputfile\" , 8 , true ) ;" ,
+				"out_.WriteLine( \"DONE\" ) ;" ,
+				"out_.Close() ;" ,
+				"WScript.Quit(0);" ,
+			] ,
+		} ) ;
+	Check::fileExists( $server->pollRun() ) ;
+	Check::ok( $server->run(\%args) , "failed to run" , $server->message() ) ;
+	Check::running( $server->pid() , $server->message() ) ;
+
+	# test that the --poll-run script runs and stderr is logged
+	System::waitForFileLine( $outputfile , "DONE" , "poll-run script did not create an output file" , 2 ) ;
+	System::sleep_cs( 50 ) if System::windows() ;
+	Check::fileContains( $server->log() , "STDERR" , "stderr not captured from poll-run script" ) ;
+
+	# tear down
+	System::unlink( $outputfile ) ;
+	$server->kill() ;
+	$server->cleanup() ;
+}
+
 sub testProxyConnectsOnce
 {
 	# setup

@@ -270,6 +270,12 @@ std::vector<GStore::MessageId> GStore::FileStore::failures()
 	return result ;
 }
 
+void GStore::FileStore::getBadEnvelopes( G::DirectoryList & list ) const
+{
+	DirectoryReader claim_reader ;
+	list.readType( m_dir , ".envelope.bad" ) ;
+}
+
 void GStore::FileStore::unfailAll()
 {
 	G::DirectoryList list ;
@@ -281,6 +287,40 @@ void GStore::FileStore::unfailAll()
 	{
 		FileWriter claim_writer ;
 		FileOp::rename( list.filePath() , list.filePath().withoutExtension() ) ; // ignore errors
+	}
+}
+
+void GStore::FileStore::retry( unsigned int limit , bool verbose )
+{
+	G::DirectoryList list ;
+	getBadEnvelopes( list ) ;
+	while( list.more() )
+	{
+		unsigned int count = 0U ; // the number of ReasonCode headers
+		unsigned int latest = 0U ; // latest ReasonCode value
+		std::ifstream stream ;
+		{
+			DirectoryReader claim_reader ;
+			FileOp::openIn( stream , list.filePath() ) ;
+		}
+		if( stream.good() )
+		{
+			Envelope envelope ;
+			Envelope::read( stream , envelope , std::nothrow ) ;
+			Envelope::readExtra( stream , [&count,&latest](std::string_view key_,std::string_view value_) {
+				if(key_ == "ReasonCode") { latest=G::Str::toUInt(value_,0U) ; count++ ; } } ) ;
+		}
+		if( !stream.fail() && (limit == 0U || count <= limit) && latest < 500U ) // 500 => smtp permanent error
+		{
+			G_LOG_S_IF( verbose , "GStore::FileStore::retry: retrying [" << list.fileName() << "] (" << count << "/" << limit << ")" ) ;
+			FileWriter claim_writer ;
+			FileOp::rename( list.filePath() , list.filePath().withoutExtension() ) ; // ignore errors
+		}
+		else
+		{
+			G_DEBUG( "GStore::FileStore::retry: not retrying [" << list.fileName() << "] "
+				<< stream.fail() << " " << count << " " << latest ) ;
+		}
 	}
 }
 

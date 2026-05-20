@@ -109,6 +109,7 @@ test_names = \
 	testVerifierPass.test \
 	testNetworkVerifierPass.test \
 	testNetworkVerifierFail.test \
+	testPollRun.test \
 	testProxyConnectsOnce.test \
 	testProxyServerRejection.test \
 	testProxyClientFilterFails.test \
