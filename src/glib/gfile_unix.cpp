@@ -365,11 +365,6 @@ std::pair<bool,mode_t> G::FileImp::newmode( mode_t mode , const std::string & sp
 	return { ok , mode } ;
 }
 
-bool G::File::chown( const Path & path , Identity id , std::nothrow_t )
-{
-	return 0 == ::chown( path.cstr() , id.userid() , id.groupid() ) ;
-}
-
 #ifndef G_LIB_SMALL
 void G::File::chgrp( const Path & path , const std::string & group )
 {
@@ -389,6 +384,11 @@ bool G::File::chgrp( const Path & path , const std::string & group , std::nothro
 bool G::File::chgrp( const Path & path , gid_t group_id , std::nothrow_t )
 {
 	return 0 == ::chown( path.cstr() , -1 , group_id ) ;
+}
+
+bool G::File::chown( const Path & path , Identity id , std::nothrow_t )
+{
+	return 0 == ::chown( path.cstr() , id.userid() , id.groupid() ) ;
 }
 
 bool G::File::hardlink( const Path & src , const Path & dst , std::nothrow_t )
