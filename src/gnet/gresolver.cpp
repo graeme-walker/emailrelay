@@ -87,9 +87,9 @@ private:
 
 std::size_t GNet::ResolverImp::m_zcount = 0U ;
 
-GNet::ResolverImp::ResolverImp( Resolver & resolver , EventState , const Location & location , const Resolver::Config & config ) :
+GNet::ResolverImp::ResolverImp( Resolver & resolver , EventState es , const Location & location , const Resolver::Config & config ) :
 	m_resolver(&resolver) ,
-	m_es(EventState::create().eh(*this)) ,
+	m_es(EventState::create().eh(this,es.esrc())) ,
 	m_future_event(*this,m_es) ,
 	m_timer(*this,&ResolverImp::onTimeout,m_es) ,
 	m_location(location) ,
@@ -133,11 +133,12 @@ void GNet::ResolverImp::start( ResolverImp * This , HANDLE handle ) noexcept
 	}
 }
 
-void GNet::ResolverImp::onException( ExceptionSource * , std::exception & e , bool done )
+void GNet::ResolverImp::onException( ExceptionSource * esrc , std::exception & e , bool done )
 {
-	G_LOG_IF( !done , "GNet::ResolverImp: exception: " << e.what() ) ;
 	if( m_resolver && m_resolver->m_es.hasExceptionHandler() )
-		m_resolver->m_es.eh()->onException( m_resolver->m_es.esrc() , e , done ) ;
+		m_resolver->m_es.eh()->onException( esrc , e , done ) ;
+	else if( !done )
+		G_WARNING( "GNet::ResolverImp::onException: exception: " << e.what() ) ;
 }
 
 void GNet::ResolverImp::onFutureEvent()
@@ -256,8 +257,8 @@ void GNet::Resolver::done( const std::string & error , const Location & location
 	// callback from the event loop after worker thread is done
 	G_DEBUG( "GNet::Resolver::done: resolve done: error=[" << error << "] "
 		<< "location=[" << location.displayString() << "]" ) ;
-	m_imp.reset() ;
 	m_callback.onResolved( error , location ) ;
+	m_imp.reset() ;
 }
 
 bool GNet::Resolver::busy() const

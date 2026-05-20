@@ -1674,6 +1674,40 @@ sub testVerifierPass
 	$server->cleanup() ;
 }
 
+sub testVerifierAbort
+{
+	# setup
+	my %args = (
+		Log => 1 ,
+		LogFile => 1 ,
+		Verbose => 1 ,
+		Domain => 1 ,
+		Port => 1 ,
+		SpoolDir => 1 ,
+		PidFile => 1 ,
+		Verifier => 1 ,
+	) ;
+	my $server = new Server() ;
+	$server->set_verifier( System::exe( $opt_test_bin_dir , "emailrelay_test_verifier" ) ) ;
+	Check::ok( $server->run(\%args) , "failed to run" , $server->message() ) ;
+	Check::running( $server->pid() , $server->message() ) ;
+	my $smtp_client = new SmtpClient( $server->smtpPort() ) ;
+	Check::ok( $smtp_client->open() ) ;
+
+	# test that the verifier is executed and exits with 100 and the connection aborts
+	$smtp_client->netclient()->cmd( "ehlo here" ) ;
+	$smtp_client->netclient()->cmd( 'mail from:<me@here>' ) ;
+	$smtp_client->netclient()->cmd( 'rcpt to:<abort!@there>' ) ;
+	System::waitForFileLine( $server->log() , "verifier: exit code 100" ) ;
+	my $disconnected = ( $smtp_client->doBadCommand() =~ m/receive error:.*not connected/ ) ;
+	Check::that( $disconnected , "did not disconnect" ) ;
+	Check::ok( (new SmtpClient($server->smtpPort()))->open() , "cannot reconnect" ) ;
+
+	# tear down
+	$server->kill() ;
+	$server->cleanup() ;
+}
+
 sub testNetworkVerifierPass
 {
 	# setup

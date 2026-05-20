@@ -107,6 +107,7 @@ test_names = \
 	testScannerTimeout.test \
 	testScannerOverUnixDomainSockets.test \
 	testVerifierPass.test \
+	testVerifierAbort.test \
 	testNetworkVerifierPass.test \
 	testNetworkVerifierFail.test \
 	testProxyConnectsOnce.test \
