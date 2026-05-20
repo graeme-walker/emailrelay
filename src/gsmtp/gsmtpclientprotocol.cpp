@@ -178,7 +178,7 @@ bool GSmtp::ClientProtocol::applyEvent( const ClientReply & reply )
 	{
 		// got start-event -- wait for 220 greeting
 		m_protocol.state = State::Started ;
-		if( m_config.ready_timeout != 0U )
+		if( m_config.ready_timeout )
 			startTimer( m_config.ready_timeout ) ;
 	}
 	else if( m_protocol.state == State::Init && reply.is(ClientReply::Value::ServiceReady_220) )
@@ -540,7 +540,7 @@ void GSmtp::ClientProtocol::onTimeout()
 	{
 		// no 220 greeting seen -- go on regardless
 		G_WARNING( "GSmtp::ClientProtocol: timeout: no greeting from remote server after "
-			<< m_config.ready_timeout << "s: continuing" ) ;
+			<< m_config.ready_timeout.s() << "s: continuing" ) ;
 		m_protocol.state = State::SentEhlo ;
 		sendEhlo() ;
 	}
@@ -550,11 +550,11 @@ void GSmtp::ClientProtocol::onTimeout()
 	}
 	else if( m_protocol.state == State::Data )
 	{
-		throw SmtpError( "flow-control timeout after " + G::Str::fromUInt(m_config.response_timeout) + "s" ) ;
+		throw SmtpError( "flow-control timeout after " + G::Str::fromUInt(m_config.response_timeout.s()) + "s" ) ;
 	}
 	else
 	{
-		throw SmtpError( "response timeout after " + G::Str::fromUInt(m_config.response_timeout) + "s" ) ;
+		throw SmtpError( "response timeout after " + G::Str::fromUInt(m_config.response_timeout.s()) + "s" ) ;
 	}
 }
 
@@ -881,7 +881,7 @@ void GSmtp::ClientProtocol::sendChunkImp( const char * p , std::size_t n )
 {
 	std::string_view sv( p , n ) ;
 
-	if( m_config.response_timeout != 0U )
+	if( m_config.response_timeout )
 		startTimer( m_config.response_timeout ) ; // response timer on every bdat block
 
 	if( G::LogOutput::Instance::atVerbose() )
@@ -900,7 +900,7 @@ void GSmtp::ClientProtocol::sendChunkImp( const char * p , std::size_t n )
 bool GSmtp::ClientProtocol::sendContentLineImp( const std::string & line , std::size_t offset )
 {
 	bool all_sent = m_sender.protocolSend( line , offset , false ) ;
-	if( !all_sent && m_config.response_timeout != 0U )
+	if( !all_sent && m_config.response_timeout )
 		startTimer( m_config.response_timeout ) ; // response timer while blocked by flow-control
 	return all_sent ;
 }
@@ -911,7 +911,7 @@ bool GSmtp::ClientProtocol::sendImp( std::string_view line , std::size_t sensiti
 
 	if( m_protocol.state == State::Quitting )
 		startTimer( 1U ) ;
-	else if( m_config.response_timeout != 0U )
+	else if( m_config.response_timeout )
 		startTimer( m_config.response_timeout ) ; // response timer on every smtp command
 
 	std::size_t pos = 0U ;

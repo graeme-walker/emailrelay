@@ -20,7 +20,7 @@
 
 #include "gdef.h"
 #include "goptionmap.h"
-#include "gstringfield.h"
+#include "gstringtoken.h"
 #include "gassert.h"
 #include <algorithm>
 
@@ -173,5 +173,49 @@ unsigned int G::OptionMap::number( std::string_view key , unsigned int default_ 
 		const Map::value_type & value = *p ; // noexcept in practice
 		return G::Str::toUInt( value.second.valueref() , default_ ) ;
 	}
+}
+
+G::OptionMap::IntervalPair G::OptionMap::interval( std::string_view key ,
+	unsigned int default_ ) const noexcept
+{
+	// as above, use findRange()
+	static_assert( noexcept(DateTime::TimeInterval(default_)) , "" ) ;
+	auto range = findRange( key ) ;
+	if( range.first == range.second )
+		return {false,DateTime::TimeInterval(default_)} ;
+	if( std::next(range.first) != range.second )
+		return {false,DateTime::TimeInterval(default_)} ;
+
+	static_assert( noexcept((*range.first).second.valueref()) , "" ) ;
+	std::string_view value = (*range.first).second.valueref() ;
+	return parseInterval( value , default_ ) ;
+}
+
+G::OptionMap::IntervalsPair G::OptionMap::intervals( std::string_view key ) const
+{
+	IntervalsPair result { true , {} } ;
+	std::string s = value( key ) ;
+	for( StringToken t(s,",",1U) ; t ; ++t )
+	{
+		auto pair = parseInterval( t() , 0U ) ;
+		if( pair.first )
+			result.second.push_back( pair.second ) ;
+		else
+			result.first = false ;
+	}
+	return result ;
+}
+
+G::OptionMap::IntervalPair G::OptionMap::parseInterval( std::string_view value ,
+	unsigned int default_ ) noexcept
+{
+	static_assert( std::is_nothrow_copy_constructible<IntervalPair>::value , "" ) ;
+	static_assert( noexcept(DateTime::TimeInterval::parse(value,std::nothrow)) , "" ) ;
+	static_assert( noexcept(DateTime::TimeInterval(default_)) , "" ) ;
+	auto pair = DateTime::TimeInterval::parse( value , std::nothrow ) ;
+	if( pair.second )
+		return {true,pair.first} ;
+	else
+		return {false,DateTime::TimeInterval(default_)} ;
 }
 

@@ -24,8 +24,8 @@
 #include "glog.h"
 
 GSmtp::RequestClient::RequestClient( GNet::EventState es , const std::string & key , const std::string & ok ,
-	const GNet::Location & location , unsigned int connection_timeout , unsigned int response_timeout ,
-	unsigned int idle_timeout ) :
+	const GNet::Location & location , G::DateTime::TimeInterval connection_timeout ,
+	G::DateTime::TimeInterval response_timeout , G::DateTime::TimeInterval idle_timeout ) :
 		GNet::Client(es,location,
 			GNet::Client::Config()
 				.set_line_buffer_config(GNet::LineBuffer::Config::newline())
@@ -38,7 +38,7 @@ GSmtp::RequestClient::RequestClient( GNet::EventState es , const std::string & k
 		m_timer(*this,&RequestClient::onTimeout,es)
 {
 	G_DEBUG( "GSmtp::RequestClient::ctor: " << location.displayString() << ": "
-		<< connection_timeout << " " << response_timeout ) ;
+		<< connection_timeout.s() << " " << response_timeout.s() ) ;
 }
 
 void GSmtp::RequestClient::onConnect()

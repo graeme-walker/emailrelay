@@ -91,7 +91,7 @@ public:
 	void updateOnCancel( TimerBase & ) ;
 		///< Called by Timer when a timer is cancelled.
 
-	std::pair<G::TimeInterval,bool> interval() const ;
+	std::pair<G::DateTime::TimeInterval,bool> interval() const ;
 		///< Returns the interval to the first timer expiry. The second
 		///< part is an 'infinite' flag that is set if there are no
 		///< timers running. In pathological cases the interval

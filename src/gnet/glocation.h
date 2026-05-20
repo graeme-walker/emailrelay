@@ -127,7 +127,7 @@ public:
 	std::string displayString() const ;
 		///< Returns a string representation for logging and debug.
 
-	G::SystemTime updateTime() const ;
+	G::DateTime::SystemTime updateTime() const ;
 		///< Returns the time of the last update() or zero if never update()d.
 
 	unsigned int socksFarPort() const ;
@@ -152,7 +152,7 @@ private:
 	bool m_address_valid ;
 	Address m_address ;
 	int m_family ;
-	G::SystemTime m_update_time ;
+	G::DateTime::SystemTime m_update_time ;
 	bool m_using_socks ;
 	std::string m_socks_far_host ;
 	std::string m_socks_far_port ;

@@ -49,8 +49,8 @@ public:
 	G_EXCEPTION( ProtocolError , tx("protocol error") )
 
 	RequestClient( GNet::EventState , const std::string & key , const std::string & ok ,
-		const GNet::Location & host_and_service , unsigned int connection_timeout ,
-		unsigned int response_timeout , unsigned int idle_timeout ) ;
+		const GNet::Location & location , G::DateTime::TimeInterval connection_timeout ,
+		G::DateTime::TimeInterval response_timeout , G::DateTime::TimeInterval idle_timeout ) ;
 			///< Constructor.  The 'key' parameter is used in the callback
 			///< signal. The 'ok' parameter is a response string that is
 			///< converted to the empty string.

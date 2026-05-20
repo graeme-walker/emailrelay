@@ -77,8 +77,8 @@ public:
 	struct Config /// A structure containing GSmtp::ClientProtocol configuration parameters.
 	{
 		std::string ehlo ; // EHLO parameter
-		unsigned int response_timeout {0U} ;
-		unsigned int ready_timeout {0U} ;
+		G::DateTime::TimeInterval response_timeout {0U} ;
+		G::DateTime::TimeInterval ready_timeout {0U} ;
 		bool use_starttls_if_possible {false} ;
 		bool must_use_tls {false} ;
 		bool authentication_fallthrough {false} ; // try MAIL FROM even if authentication failed
@@ -94,8 +94,8 @@ public:
 		bool try_reauthentication {false} ; // try a new EHLO and AUTH if the client account changes
 		Config() ;
 		Config & set_ehlo( const std::string & ) ;
-		Config & set_response_timeout( unsigned int ) noexcept ;
-		Config & set_ready_timeout( unsigned int ) noexcept ;
+		Config & set_response_timeout( G::DateTime::TimeInterval ) noexcept ;
+		Config & set_ready_timeout( G::DateTime::TimeInterval ) noexcept ;
 		Config & set_use_starttls_if_possible( bool = true ) noexcept ;
 		Config & set_must_use_tls( bool = true ) noexcept ;
 		Config & set_authentication_fallthrough( bool = true ) noexcept ;
@@ -294,8 +294,8 @@ private:
 } ;
 
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_ehlo( const std::string & s ) { ehlo = s ; return *this ; }
-inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_response_timeout( unsigned int t ) noexcept { response_timeout = t ; return *this ; }
-inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_ready_timeout( unsigned int t ) noexcept { ready_timeout = t ; return *this ; }
+inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_response_timeout( G::DateTime::TimeInterval t ) noexcept { response_timeout = t ; return *this ; }
+inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_ready_timeout( G::DateTime::TimeInterval t ) noexcept { ready_timeout = t ; return *this ; }
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_use_starttls_if_possible( bool b ) noexcept { use_starttls_if_possible = b ; return *this ; }
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_must_use_tls( bool b ) noexcept { must_use_tls = b ; return *this ; }
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_authentication_fallthrough( bool b ) noexcept { authentication_fallthrough = b ; return *this ; }

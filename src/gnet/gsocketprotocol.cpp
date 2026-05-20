@@ -390,7 +390,7 @@ void GNet::SocketProtocolImp::secureConnect()
 	rawReset() ;
 	m_ssl = newProtocol( m_config.client_tls_profile ) ;
 	m_state = State::connecting ;
-	if( m_config.secure_connection_timeout != 0U )
+	if( m_config.secure_connection_timeout )
 		m_secure_connection_timer.startTimer( m_config.secure_connection_timeout ) ;
 	secureConnectImp() ;
 }
@@ -421,7 +421,7 @@ void GNet::SocketProtocolImp::secureConnectImp()
 	{
 		m_socket.dropWriteHandler() ;
 		m_state = State::idle ;
-		if( m_config.secure_connection_timeout != 0U )
+		if( m_config.secure_connection_timeout )
 			m_secure_connection_timer.cancelTimer() ;
 		m_peer_certificate = m_ssl->peerCertificate() ;
 		std::string protocol = m_ssl->protocol() ;

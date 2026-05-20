@@ -185,10 +185,10 @@ public:
 		///< 'error' field set on error. The 'symlink_nofollow'
 		///< parameter value is ignored on Windows.
 
-	static SystemTime time( const Path & file ) ;
+	static DateTime::SystemTime time( const Path & file ) ;
 		///< Returns the file's timestamp. Throws on error.
 
-	static SystemTime time( const Path & file , std::nothrow_t ) ;
+	static DateTime::SystemTime time( const Path & file , std::nothrow_t ) ;
 		///< Returns the file's timestamp. Returns SystemTime(0)
 		///< on error.
 

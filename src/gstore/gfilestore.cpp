@@ -229,7 +229,7 @@ GStore::MessageId GStore::FileStore::newId()
 
 GStore::MessageId GStore::FileStore::newId( unsigned long seq )
 {
-	unsigned long timestamp = static_cast<unsigned long>(G::SystemTime::now().s()) ;
+	unsigned long timestamp = static_cast<unsigned long>(G::DateTime::SystemTime::now().s()) ;
 	std::ostringstream ss ;
 	ss << "emailrelay." << G::Process::Id().str() << "." << timestamp << "." << seq ;
 	return MessageId( ss.str() ) ;

@@ -109,7 +109,7 @@ void GFilters::ExecutableFilter::start( const GStore::MessageId & message_id )
 
 void GFilters::ExecutableFilter::onTimeout()
 {
-	G_WARNING( "GFilters::ExecutableFilter::onTimeout: " << prefix() << " timed out after " << m_timeout << "s" ) ;
+	G_WARNING( "GFilters::ExecutableFilter::onTimeout: " << prefix() << " timed out after " << m_timeout.s() << "s" ) ;
 	m_task.stop() ;
 	m_exit = Exit( 1 , m_filter_type ) ;
 	G_ASSERT( m_exit.fail() ) ;

@@ -128,7 +128,7 @@ private:
 	static std::string serverKey( const std::string & , const std::string & ) ;
 	static std::string serverKey( std::string_view , std::string_view ) ;
 	static std::string clientKey( std::string_view , std::string_view ) ;
-	static G::SystemTime readFileTime( const G::Path & ) ;
+	static G::DateTime::SystemTime readFileTime( const G::Path & ) ;
 	static std::string lineContext( unsigned int ) ;
 
 private:
@@ -137,8 +137,8 @@ private:
 	std::string m_debug_name ;
 	bool m_valid ;
 	Contents m_contents ;
-	G::SystemTime m_file_time ;
-	G::SystemTime m_check_time ;
+	G::DateTime::SystemTime m_file_time ;
+	G::DateTime::SystemTime m_check_time ;
 } ;
 
 #endif

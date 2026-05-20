@@ -117,7 +117,7 @@ void GNet::DnsBlock::configureImp( std::string_view config , DnsBlock * dnsblock
 
 		list.erase( list.begin() , list.begin()+3U ) ;
 		if( dnsblock_p )
-			dnsblock_p->configure( dns_server , threshold , allow_on_timeout , G::TimeInterval(0U,timeout_ms*1000U) , list ) ;
+			dnsblock_p->configure( dns_server , threshold , allow_on_timeout , G::DateTime::TimeInterval(0U,timeout_ms*1000U) , list ) ;
 	}
 	else
 	{
@@ -138,12 +138,12 @@ void GNet::DnsBlock::configureImp( std::string_view config , DnsBlock * dnsblock
 
 		list.resize( domains ) ;
 		if( dnsblock_p )
-			dnsblock_p->configure( dns_server , threshold , allow_on_timeout , G::TimeInterval(0U,timeout_ms*1000U) , list ) ;
+			dnsblock_p->configure( dns_server , threshold , allow_on_timeout , G::DateTime::TimeInterval(0U,timeout_ms*1000U) , list ) ;
 	}
 }
 
 void GNet::DnsBlock::configure( const Address & dns_server , unsigned int threshold ,
-	bool allow_on_timeout , G::TimeInterval timeout , const G::StringArray & servers )
+	bool allow_on_timeout , G::DateTime::TimeInterval timeout , const G::StringArray & servers )
 {
 	m_servers = servers ;
 	m_threshold = static_cast<std::size_t>(threshold) ;

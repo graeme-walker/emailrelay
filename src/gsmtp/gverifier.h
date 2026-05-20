@@ -24,6 +24,7 @@
 #include "gdef.h"
 #include "gverifierstatus.h"
 #include "gbasicaddress.h"
+#include "gdatetime.h"
 #include "gslot.h"
 #include "gexception.h"
 #include <string>
@@ -55,9 +56,10 @@ public:
 	} ;
 	struct Config /// Configuration passed to address verifier constructors.
 	{
-		unsigned int timeout {60U} ;
+		G::DateTime::TimeInterval timeout {60U} ;
 		std::string domain ;
 		Config & set_timeout( unsigned int ) noexcept ;
+		Config & set_timeout( G::DateTime::TimeInterval ) noexcept ;
 		Config & set_domain( const std::string & ) ;
 	} ;
 
@@ -78,7 +80,10 @@ public:
 		///< Destructor.
 } ;
 
-inline GSmtp::Verifier::Config & GSmtp::Verifier::Config::set_timeout( unsigned int n ) noexcept { timeout = n ; return *this ; }
+// clang-format off
+inline GSmtp::Verifier::Config & GSmtp::Verifier::Config::set_timeout( unsigned int s ) noexcept { timeout = G::DateTime::TimeInterval(s) ; return *this ; }
+inline GSmtp::Verifier::Config & GSmtp::Verifier::Config::set_timeout( G::DateTime::TimeInterval t ) noexcept { timeout = t ; return *this ; }
 inline GSmtp::Verifier::Config & GSmtp::Verifier::Config::set_domain( const std::string & s ) { domain = s ; return *this ; }
+// clang-format on
 
 #endif

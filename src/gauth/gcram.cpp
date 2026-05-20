@@ -229,7 +229,7 @@ std::string GAuth::Cram::challenge( unsigned int random , const std::string & ch
 	G_ASSERT( !challenge_domain_in.empty() ) ;
 	return std::string(1U,'<')
 		.append(std::to_string(random)).append(1U,'.')
-		.append(std::to_string(G::SystemTime::now().s())).append(1U,'@')
+		.append(std::to_string(G::DateTime::SystemTime::now().s())).append(1U,'@')
 		.append(challenge_domain_in).append(1U,'>') ;
 }
 

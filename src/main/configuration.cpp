@@ -230,10 +230,20 @@ const char * Main::Configuration::semanticError1() const
 		return tx("invalid --syslog facility: use 'mail', 'user', 'daemon', or 'local0' to 'local7'") ;
 	}
 
-	const bool contains_poll = contains( "poll" ) ;
-	if( contains_poll && numberValue("poll",0U) == 0U )
 	{
-		return tx("invalid --poll period: try --forward-on-disconnect") ;
+		std::array<const char*,5U> timeout_keys = {
+			"filter-timeout" ,
+			"prompt-timeout" ,
+			"response-timeout" ,
+			"idle-timeout" ,
+			"connection-timeout" } ;
+		for( auto key : timeout_keys )
+		{
+			if( contains(key) && !validTimeout(key) )
+				return tx("invalid timeout value") ;
+		}
+		if( contains("poll") && !validTimeout("poll") )
+			return tx("invalid poll interval") ;
 	}
 
 	const bool contains_pop = contains( "pop" ) ;
@@ -954,18 +964,18 @@ unsigned int Main::Configuration::_adminPort() const noexcept { return numberVal
 std::pair<int,int> Main::Configuration::_adminServerSocketLinger() const noexcept { return std::make_pair( -1 , -1 ) ; }
 bool Main::Configuration::_allowRemoteClients() const noexcept { return contains( "remote-clients" ) ; }
 GSmtp::FilterFactoryBase::Spec Main::Configuration::_clientFilter() const { return filterValue( "client-filter" ) ; }
-unsigned int Main::Configuration::_connectionTimeout() const noexcept { return numberValue( "connection-timeout" , 40U ) ; }
+G::DateTime::TimeInterval Main::Configuration::_connectionTimeout() const noexcept { return timeoutValue( "connection-timeout" , 40U ) ; }
 GSmtp::FilterFactoryBase::Spec Main::Configuration::_filter() const { return filterValue( "filter" ) ; }
-unsigned int Main::Configuration::_filterTimeout() const noexcept { return numberValue( "filter-timeout" , 60U ) ; }
-unsigned int Main::Configuration::_idleTimeout() const noexcept { return numberValue( "idle-timeout" , 1800U ) ; }
+G::DateTime::TimeInterval Main::Configuration::_filterTimeout() const noexcept { return timeoutValue( "filter-timeout" , 60U ) ; }
+G::DateTime::TimeInterval Main::Configuration::_idleTimeout() const noexcept { return timeoutValue( "idle-timeout" , 1800U ) ; }
 unsigned int Main::Configuration::_maxSize() const noexcept { return numberValue( "size" , 0U ) ; }
 unsigned int Main::Configuration::_popPort() const noexcept { return numberValue( "pop-port" , 110U ) ; }
 std::string Main::Configuration::_popSaslServerConfig() const { return stringValue( "server-auth-config" ) ; }
 std::pair<int,int> Main::Configuration::_popServerSocketLinger() const noexcept { return std::make_pair( -1 , -1 ) ; }
 unsigned int Main::Configuration::_port() const noexcept { return numberValue( "port" , 25U ) ; }
-unsigned int Main::Configuration::_promptTimeout() const noexcept { return numberValue( "prompt-timeout" , 20U ) ; }
-unsigned int Main::Configuration::_responseTimeout() const noexcept { return numberValue( "response-timeout" , 1800U ) ; }
-unsigned int Main::Configuration::_secureConnectionTimeout() const noexcept { return _connectionTimeout() ; }
+G::DateTime::TimeInterval Main::Configuration::_promptTimeout() const noexcept { return timeoutValue( "prompt-timeout" , 20U ) ; }
+G::DateTime::TimeInterval Main::Configuration::_responseTimeout() const noexcept { return timeoutValue( "response-timeout" , 1800U ) ; }
+G::DateTime::TimeInterval Main::Configuration::_secureConnectionTimeout() const noexcept { return _connectionTimeout() ; }
 bool Main::Configuration::_serverTlsRequired() const noexcept { return contains( "server-tls-required" ) ; }
 std::string Main::Configuration::_show() const { return stringValue( "show" ) ; }
 int Main::Configuration::_shutdownHowOnQuit() const noexcept { return 1 ; }
@@ -989,7 +999,7 @@ bool Main::Configuration::debug() const noexcept { return contains( "debug" ) ; 
 std::string Main::Configuration::dnsbl() const { return stringValue( "dnsbl" ) ; }
 std::string Main::Configuration::domain( std::function<std::string()> default_domain_fn ) const { return stringValue( "domain" , default_domain_fn ) ; }
 bool Main::Configuration::doAdmin() const noexcept { return contains( "admin" ) ; }
-bool Main::Configuration::doPolling() const noexcept { return contains( "poll" ) && pollingTimeout() > 0U ; }
+bool Main::Configuration::doPolling() const noexcept { return contains( "poll" ) && pollingTimeout() ; }
 bool Main::Configuration::doPop() const noexcept { return contains( "pop" ) ; }
 bool Main::Configuration::doServing() const noexcept { return !contains( "dont-serve" ) && !contains( "as-client" ) ; }
 bool Main::Configuration::doSmtp() const noexcept { return !contains( "no-smtp" ) ; }
@@ -1001,8 +1011,8 @@ G::Path Main::Configuration::deliveryDir() const { return contains("delivery-dir
 bool Main::Configuration::log() const noexcept { return contains( "log" ) || contains( "as-client" ) || contains( "as-proxy" ) || contains( "as-server" ) ; }
 std::string Main::Configuration::logFile() const { return contains("log-file") ? pathValue("log-file").str() : std::string() ; }
 G::Path Main::Configuration::pidFile() const { return pathValue( "pid-file" ) ; }
-bool Main::Configuration::pollingLog() const noexcept { return doPolling() && pollingTimeout() > 60U ; }
-unsigned int Main::Configuration::pollingTimeout() const noexcept { return numberValue( "poll" , 0U ) ; }
+bool Main::Configuration::pollingLog() const noexcept { return doPolling() && pollingTimeout().s() > 60U ; }
+G::DateTime::TimeInterval Main::Configuration::pollingTimeout() const noexcept { return timeoutValue( "poll" , 0U ) ; }
 G::Path Main::Configuration::popSecretsFile() const { return contains( "pop-auth" ) ? pathValue( "pop-auth" ) : G::Path() ; }
 G::Path Main::Configuration::serverSecretsFile() const { return contains( "server-auth" ) ? pathValue( "server-auth" ) : G::Path() ; }
 G::Path Main::Configuration::serverTlsCaList() const { return contains( "server-tls-verify" ) ? pathValue( "server-tls-verify" ) : G::Path() ; }

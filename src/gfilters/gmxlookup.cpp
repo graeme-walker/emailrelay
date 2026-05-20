@@ -304,7 +304,7 @@ void GFilters::MxLookup::onTimeout()
 void GFilters::MxLookup::startTimer()
 {
 	bool last = (m_ns_index+1U) == m_nameservers.size() ;
-	G::TimeInterval timeout = last ? m_config.restart_timeout : m_config.ns_timeout ;
+	G::DateTime::TimeInterval timeout = last ? m_config.restart_timeout : m_config.ns_timeout ;
 	m_timer.startTimer( timeout ) ;
 }
 

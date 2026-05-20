@@ -146,24 +146,24 @@ const GNet::TimerBase * GNet::TimerList::findSoonest() const
 	return result ;
 }
 
-std::pair<G::TimeInterval,bool> GNet::TimerList::interval() const
+std::pair<G::DateTime::TimeInterval,bool> GNet::TimerList::interval() const
 {
 	if( m_soonest == nullptr )
 		m_soonest = findSoonest() ;
 
 	if( m_soonest == nullptr )
 	{
-		return std::make_pair( G::TimeInterval(0) , true ) ;
+		return std::make_pair( G::DateTime::TimeInterval(0) , true ) ;
 	}
 	else if( m_soonest->immediate() )
 	{
-		return std::make_pair( G::TimeInterval(0) , false ) ;
+		return std::make_pair( G::DateTime::TimeInterval(0) , false ) ;
 	}
 	else
 	{
-		G::TimerTime now = G::TimerTime::now() ;
-		G::TimerTime then = m_soonest->t() ;
-		return std::make_pair( G::TimeInterval(now,then) , false ) ;
+		auto now = G::DateTime::TimerTime::now() ;
+		auto then = m_soonest->t() ;
+		return std::make_pair( G::DateTime::TimeInterval(now,then) , false ) ;
 	}
 }
 
@@ -229,7 +229,7 @@ void GNet::TimerList::doTimeouts()
 	G_ASSERT( m_list_added.empty() ) ;
 	Lock lock( *this ) ;
 	m_adjust = 0 ;
-	G::TimerTime now = G::TimerTime::zero() ; // lazy initialisation to G::TimerTime::now() in G::Timer::expired()
+	auto now = G::DateTime::TimerTime::zero() ; // lazy initialisation to TimerTime::now() in Timer::expired()
 
 	// move expired timers to the front
 	auto expired_end = std::partition( m_list.begin() , m_list.end() ,
