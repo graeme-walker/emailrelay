@@ -1,0 +1,13 @@
+# .gitattributes
+
+* text=auto
+
+*.bat text
+*.rc text
+*.manifest text
+*.mc text
+resource.h text
+
+*.png binary
+*.ico binary
+
