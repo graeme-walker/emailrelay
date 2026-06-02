@@ -6,6 +6,7 @@
 *.rc text
 *.manifest text
 *.mc text
+*.svg text
 resource.h text
 
 *.png binary
