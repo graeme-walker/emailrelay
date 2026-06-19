@@ -251,12 +251,10 @@ unsigned long GNet::Address4::scopeId( unsigned long default_ ) const
 	return default_ ;
 }
 
-#ifndef G_LIB_SMALL
 const sockaddr * GNet::Address4::address() const
 {
 	return reinterpret_cast<const sockaddr*>(&m_inet) ;
 }
-#endif
 
 sockaddr * GNet::Address4::address()
 {

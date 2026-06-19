@@ -94,23 +94,19 @@ G::LogOutput::LogOutput( const std::string & exename , const Config & config , c
 }
 
 
-#ifndef G_LIB_SMALL
 G::LogOutput::LogOutput( const std::string & exename , const Config & config , int fd ) :
 	LogOutput({},exename,config)
 {
 	m_fd = fd ; // NOLINT initialiser list
 	init() ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 G::LogOutput::LogOutput( bool enabled , bool verbose , const Path & path ) :
 	LogOutput({},"",{enabled,verbose})
 {
 	m_path = path ; // NOLINT initialiser list
 	init() ;
 }
-#endif
 
 void G::LogOutput::init()
 {
@@ -126,12 +122,10 @@ G::LogOutput::Config G::LogOutput::config() const noexcept
 	return m_config ;
 }
 
-#ifndef G_LIB_SMALL
 int G::LogOutput::fd() const noexcept
 {
 	return m_fd ;
 }
-#endif
 
 void G::LogOutput::configure( const Config & config )
 {
@@ -172,13 +166,11 @@ void G::LogOutput::context( std::string_view (*fn)(void *) , void * fn_arg ) noe
 	}
 }
 
-#ifndef G_LIB_SMALL
 void * G::LogOutput::contextarg() noexcept
 {
 	LogOutput * p = instance() ;
 	return p ? p->m_context_fn_arg : nullptr ;
 }
-#endif
 
 bool G::LogOutput::at( Severity severity ) const noexcept
 {

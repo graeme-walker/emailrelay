@@ -323,13 +323,11 @@ bool GAuth::SaslClient::next()
 	return m_imp->next() ;
 }
 
-#ifndef G_LIB_SMALL
 std::string GAuth::SaslClient::next( const std::string & s )
 {
 	if( s.empty() ) return s ;
 	return m_imp->next() ? mechanism() : std::string() ;
 }
-#endif
 
 std::string GAuth::SaslClient::mechanism() const
 {

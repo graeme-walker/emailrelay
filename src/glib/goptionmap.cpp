@@ -78,24 +78,20 @@ G::OptionMap::const_iterator G::OptionMap::begin() const noexcept
 	return m_map.cbegin() ;
 }
 
-#ifndef G_LIB_SMALL
 G::OptionMap::const_iterator G::OptionMap::cbegin() const noexcept
 {
 	return begin() ;
 }
-#endif
 
 G::OptionMap::const_iterator G::OptionMap::end() const noexcept
 {
 	return m_map.cend() ;
 }
 
-#ifndef G_LIB_SMALL
 G::OptionMap::const_iterator G::OptionMap::cend() const noexcept
 {
 	return end() ;
 }
-#endif
 
 void G::OptionMap::clear()
 {

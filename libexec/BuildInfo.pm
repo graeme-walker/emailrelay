@@ -175,7 +175,6 @@ sub read_makefiles
 		push @definitions , qw(QT_WIDGETS_LIB QT_GUI_LIB QT_CORE_LIB) if $m->{e_need_qt_inc} ;
 		if( $opt_for_windows )
 		{
-			@definitions = grep{!m/G_LIB_SMALL/} @definitions ; # TODO also no lib-small for gui
 			push @definitions , "G_WINDOWS=1" ;
 			push @definitions , "GCONFIG_NO_GCONFIG_DEFS=1" ;
 		}

@@ -147,12 +147,10 @@ std::string G::Process::strerror( int errno_ )
 	return Str::isPrintableAscii(s) ? Str::lower(s) : s ;
 }
 
-#ifndef G_LIB_SMALL
 std::string G::Process::errorMessage( DWORD e )
 {
 	return std::string("error ").append( std::to_string(e) ) ;
 }
-#endif
 
 void G::Process::beSpecial( Identity special_identity , bool change_group )
 {
@@ -193,19 +191,15 @@ void G::Process::beOrdinaryForExec( Identity run_as_id ) noexcept
 	ProcessImp::beOrdinaryForExec( run_as_id ) ;
 }
 
-#ifndef G_LIB_SMALL
 void G::Process::setEffectiveUser( Identity id )
 {
 	G::ProcessImp::setEffectiveUser( id ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 void G::Process::setEffectiveGroup( Identity id )
 {
 	G::ProcessImp::setEffectiveGroup( id ) ;
 }
-#endif
 
 G::Path G::Process::cwd()
 {
@@ -287,12 +281,10 @@ std::string G::Process::Id::str() const
 	return ss.str() ;
 }
 
-#ifndef G_LIB_SMALL
 bool G::Process::Id::operator==( const Id & other ) const noexcept
 {
 	return m_pid == other.m_pid ;
 }
-#endif
 
 bool G::Process::Id::operator!=( const Id & other ) const noexcept
 {
@@ -344,19 +336,15 @@ void G::Process::Umask::set( Mode mode )
 	UmaskImp::set( mode ) ;
 }
 
-#ifndef G_LIB_SMALL
 void G::Process::Umask::tightenOther()
 {
 	set( Mode::TightenOther ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 void G::Process::Umask::loosenGroup()
 {
 	set( Mode::LoosenGroup ) ;
 }
-#endif
 
 // ==
 
@@ -374,7 +362,6 @@ void G::ProcessImp::reopen( int fd , Mode mode_in )
 	::close( fd_null ) ;
 }
 
-#ifndef G_LIB_SMALL
 mode_t G::ProcessImp::umaskValue( Process::Umask::Mode mode )
 {
 	mode_t m = 0 ;
@@ -384,7 +371,6 @@ mode_t G::ProcessImp::umaskValue( Process::Umask::Mode mode )
 	if( mode == Process::Umask::Mode::GroupOpen ) m = 0113 ;// -rw-rw-r--
 	return m ;
 }
-#endif
 
 bool G::ProcessImp::readlink_( std::string_view path , std::string & value )
 {

@@ -31,7 +31,6 @@ GNet::EventLoggingContext * GNet::EventLoggingContext::m_inner = nullptr ;
 // and any inner object are both destroyed in quick succession
 std::string GNet::EventLoggingContext::m_s ;
 
-#ifndef G_LIB_SMALL
 GNet::EventLoggingContext::EventLoggingContext( std::string_view s ) :
 	m_outer(m_inner)
 {
@@ -40,7 +39,6 @@ GNet::EventLoggingContext::EventLoggingContext( std::string_view s ) :
 	G::LogOutput::Instance::context( EventLoggingContext::fn , this ) ;
 	m_inner = this ;
 }
-#endif
 
 GNet::EventLoggingContext::EventLoggingContext( EventState es , const std::string & s ) :
 	m_outer(m_inner)

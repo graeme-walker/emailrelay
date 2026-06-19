@@ -148,14 +148,12 @@ bool GSmtp::ServerProtocol::inBusyState() const
 		m_fsm.state() == State::RcptTo2 ;
 }
 
-#ifndef G_LIB_SMALL
 bool GSmtp::ServerProtocol::rcptState() const
 {
 	return
 		m_fsm.state() == State::RcptTo1 ||
 		m_fsm.state() == State::RcptTo2 ;
 }
-#endif
 
 bool GSmtp::ServerProtocol::sendFlush() const
 {
@@ -191,13 +189,11 @@ bool GSmtp::ServerProtocol::inDataState() const
 		m_fsm.state() == State::BdatDataLast ;
 }
 
-#ifndef G_LIB_SMALL
 void GSmtp::ServerProtocol::setSender( ServerSender & sender )
 {
 	ServerSend::setSender( &sender ) ;
 	m_sender = &sender ;
 }
-#endif
 
 void GSmtp::ServerProtocol::init()
 {

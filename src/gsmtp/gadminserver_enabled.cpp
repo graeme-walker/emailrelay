@@ -411,33 +411,25 @@ void GSmtp::AdminServer::report( const std::string & group ) const
 	m_imp->report( group ) ;
 }
 
-#ifndef G_LIB_SMALL
 GStore::MessageStore & GSmtp::AdminServer::store()
 {
 	return m_imp->store() ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 GSmtp::FilterFactoryBase & GSmtp::AdminServer::ff()
 {
 	return m_imp->ff() ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 const GAuth::SaslClientSecrets & GSmtp::AdminServer::clientSecrets() const
 {
 	return m_imp->clientSecrets() ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 void GSmtp::AdminServer::emitCommand( Command command , unsigned int arg )
 {
 	m_imp->emitCommand( command , arg ) ;
 }
-#endif
 
 bool GSmtp::AdminServer::notifying() const
 {

@@ -39,10 +39,8 @@ namespace G
 	}
 }
 
-#ifndef G_LIB_SMALL
 G::PidFile::PidFile()
 = default;
-#endif
 
 G::PidFile::PidFile( const Path & path ) :
 	m_path((!path.empty()&&path.isRelative())?Path::join(Process::cwd(),path):path)

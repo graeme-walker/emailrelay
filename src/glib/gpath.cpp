@@ -247,19 +247,15 @@ namespace G
 
 // ==
 
-#ifndef G_LIB_SMALL
 void G::Path::setPosixStyle()
 {
 	PathImp::use_posix = true ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 void G::Path::setWindowsStyle()
 {
 	PathImp::use_posix = false ;
 }
-#endif
 
 G::Path::Path() noexcept(noexcept(std::string()))
 = default;
@@ -289,7 +285,6 @@ G::Path::Path( const Path & path , const std::string & tail ) :
 	PathImp::normalise( m_str ) ;
 }
 
-#ifndef G_LIB_SMALL
 G::Path::Path( const Path & path , const std::string & tail_1 , const std::string & tail_2 ) :
 	m_str(path.m_str)
 {
@@ -297,9 +292,7 @@ G::Path::Path( const Path & path , const std::string & tail_1 , const std::strin
 	pathAppend( tail_2 ) ;
 	PathImp::normalise( m_str ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 G::Path::Path( const Path & path , const std::string & tail_1 , const std::string & tail_2 ,
 	const std::string & tail_3 ) :
 		m_str(path.m_str)
@@ -309,7 +302,6 @@ G::Path::Path( const Path & path , const std::string & tail_1 , const std::strin
 	pathAppend( tail_3 ) ;
 	PathImp::normalise( m_str ) ;
 }
-#endif
 
 G::Path G::Path::nullDevice()
 {
@@ -383,7 +375,6 @@ G::Path G::Path::withExtension( const std::string & ext ) const
 	return { result } ;
 }
 
-#ifndef G_LIB_SMALL
 G::Path G::Path::withoutRoot() const
 {
 	if( isAbsolute() )
@@ -399,7 +390,6 @@ G::Path G::Path::withoutRoot() const
 		return *this ;
 	}
 }
-#endif
 
 G::Path & G::Path::pathAppend( const std::string & tail )
 {
@@ -509,7 +499,6 @@ void G::Path::swap( Path & other ) noexcept
 	swap( m_str , other.m_str ) ;
 }
 
-#ifndef G_LIB_SMALL
 bool G::Path::less( const Path & a , const Path & b )
 {
 	StringArray a_parts = a.split() ;
@@ -519,9 +508,7 @@ bool G::Path::less( const Path & a , const Path & b )
 		b_parts.begin() , b_parts.end() ,
 		[](const std::string & a_,const std::string & b_){return a_.compare(b_) < 0;} ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 G::Path G::Path::difference( const Path & root_in , const Path & path_in )
 {
 	StringArray path_parts ;
@@ -543,5 +530,4 @@ G::Path G::Path::difference( const Path & root_in , const Path & path_in )
 	else
 		return { PathImp::join(p.second,path_parts.end()) } ;
 }
-#endif
 

@@ -35,11 +35,7 @@ work_scripts = \
 	AutoMakeParser.pm \
 	BuildInfo.pm \
 	CompilationDatabase.pm \
-	ConfigStatus.pm \
-	reduce \
-	reduce.pl \
-	Functions.pm \
-	Reduce.pm
+	ConfigStatus.pm
 
 EXTRA_DIST = \
 	$(work_scripts)

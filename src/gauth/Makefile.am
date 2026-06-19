@@ -23,8 +23,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/glib \
 	-I$(top_srcdir)/src/gssl \
 	-I$(top_srcdir)/src/gnet \
-	-D "G_SPOOLDIR=$(e_spooldir)" \
-	-D G_LIB_SMALL
+	-D "G_SPOOLDIR=$(e_spooldir)"
 
 if GCONFIG_PAM
  PAM_SOURCES = \

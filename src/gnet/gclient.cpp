@@ -56,7 +56,6 @@ GNet::Client::~Client()
 	Monitor::removeClient( *this ) ;
 }
 
-#ifndef G_LIB_SMALL
 void GNet::Client::disconnect()
 {
 	G_DEBUG( "GNet::Client::disconnect" ) ;
@@ -74,7 +73,6 @@ void GNet::Client::disconnect()
 	m_socket.reset() ;
 	m_resolver.reset() ;
 }
-#endif
 
 G::Slot::Signal<const std::string&,const std::string&,const std::string&> & GNet::Client::eventSignal() noexcept
 {
@@ -466,12 +464,10 @@ std::string GNet::Client::peerCertificate() const
 	return m_sp->peerCertificate() ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::Client::secureConnectCapable() const
 {
 	return m_sp && m_sp->secureConnectCapable() ;
 }
-#endif
 
 void GNet::Client::secureConnect()
 {
@@ -494,7 +490,6 @@ bool GNet::Client::send( std::string_view data )
 	return m_sp->send( data ) ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::Client::send( const std::vector<std::string_view> & data , std::size_t offset )
 {
     std::size_t total_size = std::accumulate( data.begin() , data.end() , std::size_t(0) ,
@@ -503,14 +498,11 @@ bool GNet::Client::send( const std::vector<std::string_view> & data , std::size_
 		m_response_timer.startTimer( m_config.response_timeout ) ;
 	return m_sp->send( data , offset ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 GNet::LineBufferState GNet::Client::lineBuffer() const
 {
 	return m_line_buffer.state() ;
 }
-#endif
 
 void GNet::Client::onPeerDisconnect()
 {
@@ -518,7 +510,6 @@ void GNet::Client::onPeerDisconnect()
 
 // ==
 
-#ifndef G_LIB_SMALL
 GNet::Client::Config & GNet::Client::Config::set_all_timeouts( unsigned int all_timeouts ) noexcept
 {
 	socket_protocol_config.secure_connection_timeout = all_timeouts ;
@@ -527,5 +518,4 @@ GNet::Client::Config & GNet::Client::Config::set_all_timeouts( unsigned int all_
 	idle_timeout = all_timeouts * 2U ;
 	return *this ;
 }
-#endif
 

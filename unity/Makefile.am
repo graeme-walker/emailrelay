@@ -49,8 +49,6 @@
 # Note that "make small" will disregard autoconf's CXXFLAGS.
 #
 
-CPPFLAGS_SMALL=-DG_LIB_SMALL
-
 if GCONFIG_GUI
 
 SOURCES_ = \
@@ -156,7 +154,7 @@ strip:
 	"$(STRIP)" $(PROGRAMS_)
 
 emailrelay: emailrelay.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(CPPFLAGS_SMALL) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS)
 
 emailrelay-submit: emailrelay-submit.cpp
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS)

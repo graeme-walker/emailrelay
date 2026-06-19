@@ -26,20 +26,16 @@
 
 bool G::Convert::m_utf16 = sizeof(wchar_t) == 2 ;
 
-#ifndef G_LIB_SMALL
 bool G::Convert::utf16( bool b )
 {
 	std::swap( m_utf16 , b ) ;
 	return b ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 std::wstring G::Convert::widen( std::string_view sv )
 {
 	return sv.empty() ? std::wstring() : widenImp( sv.data() , sv.size() ) ;
 }
-#endif
 
 bool G::Convert::valid( std::string_view sv ) noexcept
 {
@@ -49,40 +45,30 @@ bool G::Convert::valid( std::string_view sv ) noexcept
 	return valid ;
 }
 
-#ifndef G_LIB_SMALL
 std::string G::Convert::narrow( const std::wstring & s )
 {
 	return s.empty() ? std::string() : narrowImp( s.data() , s.size() ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 std::string G::Convert::narrow( const wchar_t * p )
 {
 	return p && *p ? narrowImp( p , std::wcslen(p) ) : std::string() ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 std::string G::Convert::narrow( const wchar_t * p , std::size_t n )
 {
 	return p && n ? narrowImp( p , n ) : std::string() ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 bool G::Convert::invalid( const std::wstring & s )
 {
 	return s.find( L'\xFFFD' ) != std::string::npos ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 bool G::Convert::invalid( const std::string & s )
 {
 	return s.find( "\xEF\xBF\xBD" ) != std::string::npos ;
 }
-#endif
 
 // ==
 

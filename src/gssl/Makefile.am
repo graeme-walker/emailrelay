@@ -19,7 +19,7 @@ noinst_LIBRARIES = libgssl.a libgsslkeygen.a
 
 EXTRA_LIBRARIES = libgsslextra.a
 
-AM_CPPFLAGS = -I$(top_srcdir)/src/glib -DG_LIB_SMALL
+AM_CPPFLAGS = -I$(top_srcdir)/src/glib
 
 # =
 

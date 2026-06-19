@@ -178,13 +178,11 @@ GStore::MessageStore::BodyType GStore::Envelope::parseSmtpBodyType( const std::s
 	return imp::parseSmtpBodyType( {s.data(),s.size()} , default_ ) ;
 }
 
-#ifndef G_LIB_SMALL
 std::string GStore::Envelope::smtpBodyType( MessageStore::BodyType type )
 {
 	namespace imp = GStore::EnvelopeImp ;
 	return G::sv_to_string( imp::smtpBodyType( type ) ) ;
 }
-#endif
 
 // ==
 

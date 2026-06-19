@@ -36,12 +36,10 @@ GNet::TimerList::ListItem::ListItem( TimerBase * t , EventState es ) :
 {
 }
 
-#ifndef G_LIB_SMALL
 inline bool GNet::TimerList::ListItem::operator==( const ListItem & rhs ) const noexcept
 {
 	return m_timer == rhs.m_timer ;
 }
-#endif
 
 inline void GNet::TimerList::ListItem::resetIf( TimerBase * p ) noexcept
 {
@@ -172,12 +170,10 @@ GNet::TimerList * GNet::TimerList::ptr() noexcept
 	return m_this ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::TimerList::exists()
 {
 	return m_this != nullptr ;
 }
-#endif
 
 GNet::TimerList & GNet::TimerList::instance()
 {

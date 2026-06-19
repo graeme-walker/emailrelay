@@ -29,7 +29,6 @@
 GSmtp::ClientReply::ClientReply()
 = default ;
 
-#ifndef G_LIB_SMALL
 GSmtp::ClientReply GSmtp::ClientReply::ok()
 {
 	ClientReply reply ;
@@ -39,7 +38,6 @@ GSmtp::ClientReply GSmtp::ClientReply::ok()
 	G_ASSERT( reply.positive() ) ;
 	return reply ;
 }
-#endif
 
 GSmtp::ClientReply GSmtp::ClientReply::internal( Value v , int done_code )
 {

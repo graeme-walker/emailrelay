@@ -46,12 +46,10 @@ GSmtp::SpamClient::SpamClient( GNet::EventState es , const GNet::Location & loca
 	G_DEBUG( "GSmtp::SpamClient::ctor: spam response timeout " << response_timeout ) ;
 }
 
-#ifndef G_LIB_SMALL
 void GSmtp::SpamClient::username( const std::string & username )
 {
 	m_username = username ;
 }
-#endif
 
 bool GSmtp::SpamClient::busy() const
 {

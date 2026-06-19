@@ -278,7 +278,6 @@ void GNet::Task::stop()
 	m_busy = false ;
 }
 
-#ifndef G_LIB_SMALL
 std::pair<int,std::string> GNet::Task::run( const G::ExecutableCommand & commandline ,
 	const G::Environment & env ,
 	G::NewProcess::Fd fd_stdin ,
@@ -293,7 +292,6 @@ std::pair<int,std::string> GNet::Task::run( const G::ExecutableCommand & command
 		m_exec_error_format , m_id ) ;
 	return m_imp->wait() ;
 }
-#endif
 
 void GNet::Task::start( const G::ExecutableCommand & commandline )
 {

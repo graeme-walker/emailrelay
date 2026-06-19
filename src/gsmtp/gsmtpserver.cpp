@@ -198,12 +198,10 @@ GSmtp::Server::~Server()
 	serverCleanup() ; // base class early cleanup
 }
 
-#ifndef G_LIB_SMALL
 GSmtp::Server::Config & GSmtp::Server::config()
 {
 	return m_server_config ;
 }
-#endif
 
 G::Slot::Signal<const std::string&,const std::string&> & GSmtp::Server::eventSignal() noexcept
 {

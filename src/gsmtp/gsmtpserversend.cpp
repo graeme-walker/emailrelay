@@ -270,12 +270,10 @@ void GSmtp::ServerSend::sendOk( const std::string & text )
 	send( std::string("250 ").append(text) ) ;
 }
 
-#ifndef G_LIB_SMALL
 void GSmtp::ServerSend::sendOk()
 {
 	send( "250 OK" ) ;
 }
-#endif
 
 void GSmtp::ServerSend::send( const char * line )
 {
