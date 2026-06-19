@@ -1,3 +1,18 @@
+emailrelay (2.6.2) unstable; urgency=low
+  * Fix for verifier exit code 100.
+  * The "--port" option can be used more than once.
+  * More sensible file ownership when doing "maildir" delivery.
+  * Windows DPI awareness.
+  * GUI support for Qt6 translations.
+  * Windows build scripts updated for statically-linked Qt6 etc.
+  * Files installed under /usr/lib moved to /usr/share.
+  * Template secrets file no londer installed to /etc.
+  * Documentation in CommonMark only.
+  * No doxygen by default.
+  * Sphinx used for "make website".
+  * Icon refresh.
+ -- maintainer graeme_walker <graeme_walker@users.sourceforge.net>  Fri, 19 Jun 2026 00:00:00 +0000
+
 emailrelay (2.6.1) unstable; urgency=low
   * Network filters can abandon the current message, like exit code 100 [fr #40].
   * Fix for SMTP server rejecting an empty MAIL-FROM address.
@@ -6,10 +21,10 @@ emailrelay (2.6.1) unstable; urgency=low
   * Fix for option parsing when double dashes in the config file.
   * Fix for stopped logging.
   * GUI fix for "--poll" period setting.
- -- maintainer graeme_walker <graeme_walker@users.sourceforge.net>  Sun,  1 Feb 2026 00:00:00 +0000
+ -- maintainer graeme_walker <graeme_walker@users.sourceforge.net>  Mon, 26 Jan 2026 00:00:00 +0000
 
 emailrelay (2.6) unstable; urgency=low
-  * New "--log-format" option (eg. "--log-format=address,port").
+  * New "--log-format" option (e.g. "--log-format=address,port").
   * New "--server-smtp-config" "nostrictparsing" option to allow missing "RCPT-TO" angle brackets.
   * The SMTP server converts incoming e-mail addresses to RFC-5890 A-labels by default (see NEWS).
   * The "mx:" filter accepts an IP address in the envelope forward-to field, not just a domain name.
@@ -22,7 +37,7 @@ emailrelay (2.6) unstable; urgency=low
   * The "emailrelay-submit" utility can parse recipient addresses out of content headers.
   * On Windows "--no-daemon" is deprecated in favour of "--show=window".
   * The Windows event loop supports more concurrent connections [bug-id #59].
- -- maintainer graeme_walker <graeme_walker@users.sourceforge.net>  Mon, 09 Sep 2024 00:00:00 +0000
+ -- maintainer graeme_walker <graeme_walker@users.sourceforge.net>  Sun, 15 Sep 2024 00:00:00 +0000
 
 emailrelay (2.5.2) unstable; urgency=low
   * Windows build scripts reworked.
@@ -57,9 +72,9 @@ emailrelay (2.5) unstable; urgency=low
 emailrelay (2.4) unstable; urgency=low
   * Multiple "--filter" and "--client-filter" options allowed.
   * TLS key and certificate files can be specified separately.
-  * Finer control when using "--anonymous" (eg. "--anonymous=server").
+  * Finer control when using "--anonymous" (e.g. "--anonymous=server").
   * The "auth-config" options can distinguish between TLS and non-TLS authentication.
-  * Hourly log file rotation using "%h" (eg. "--log-file=log.%d.%h").
+  * Hourly log file rotation using "%h" (e.g. "--log-file=log.%d.%h").
   * Listening file descriptors can be inherited from the parent process (see "--interface").
   * Listening ports on Windows use exclusive binding.
   * The Linux event loop uses "epoll" by default rather than "select".
@@ -68,7 +83,7 @@ emailrelay (2.4) unstable; urgency=low
  -- maintainer graeme_walker <graeme_walker@users.sourceforge.net>  Tue, 01 Nov 2022 00:00:00 +0000
 
 emailrelay (2.3) unstable; urgency=low
-  * Unix domain sockets supported (eg. "--interface=/tmp/smtp.s").
+  * Unix domain sockets supported (e.g. "--interface=/tmp/smtp.s").
   * Windows event log not used for verbose logging (prefer "--log-file").
   * New admin "forward" command to trigger forwarding without waiting.
   * Optional base64 encoding of passwords in secrets files ("plain:b").
@@ -77,7 +92,7 @@ emailrelay (2.3) unstable; urgency=low
 
 emailrelay (2.2) unstable; urgency=low
   * Connections from IPv4 'private use' addresses are allowed by default (see "--remote-clients").
-  * Interface names can be used with "--interface" (eg. "--interface=eth0").
+  * Interface names can be used with "--interface" (e.g. "--interface=eth0").
   * New "--server-tls-connection" option for server-side implicit TLS.
   * New "--forward-to-some" option to permit some message recipients to be rejected.
   * New "--log-address" option to aid adaptive firewalling.
@@ -167,10 +182,10 @@ emailrelay (1.9) unstable; urgency=low
   * Added negotiated TLS/SSL for POP (ie. "STLS").
   * The first two fields in the secrets files are reordered (with backwards compatibility).
   * Added Linux PAM authentication ("configure --with-pam" and then "--server-auth=/pam").
-  * Optional protocol-specific "--interface" qualifiers, eg. "--interface smtp=127.0.0.1,pop=192.168.1.1".
+  * Optional protocol-specific "--interface" qualifiers, e.g. "--interface smtp=127.0.0.1,pop=192.168.1.1".
   * Outgoing client connection bound with the first "--interface" or "--interface client=..." address.
   * Support for SMTP-over-TLS on outgoing client connection ("--client-tls-connection") (cf. "STARTTLS")
-  * Support for SOCKS 4a on outgoing client connection, eg. "--forward-to example.com:25@127.0.0.1:9050".
+  * Support for SOCKS 4a on outgoing client connection, e.g. "--forward-to example.com:25@127.0.0.1:9050".
   * TLS configuration options ("--tls-config=...") for SSLv2/3 fallback etc.
   * No "Received" line added if "--anonymous" and an empty "--domain" name.
   * Error text for "all recipients rejected" is now more accurately "one or more recipients rejected".
@@ -200,8 +215,8 @@ emailrelay (1.8.1) unstable; urgency=low
 
 emailrelay (1.8) unstable; urgency=low
   * Speed optimisations (as identified by KCachegrind/valgrind in KDevelop).
-  * Build-time size optimisations (eg. "./configure --disable-exec --enable-small-exceptions ...").
-  * Build-time options to reduce runtime library dependencies (eg. "./configure --disable-dns --disable-identity").
+  * Build-time size optimisations (e.g. "./configure --disable-exec --enable-small-exceptions ...").
+  * Build-time options to reduce runtime library dependencies (e.g. "./configure --disable-dns --disable-identity").
   * New switch to limit the size of submitted messages ("--size").
   * New semantics for "--poll 0", providing a good alternative to "--immediate" when proxying.
   * SMTP client protocol emits a RSET after a rejected recipient as a workaround for broken server protocols.
