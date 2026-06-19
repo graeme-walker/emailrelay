@@ -59,14 +59,14 @@ try:
 	connect.set_option(ldap.OPT_X_TLS_NEWCTX, 0)
 	connect.simple_bind_s(LDAPSUsername, LDAPSPassword)
 	result = connect.search_s(UserSearchPath,
-														ldap.SCOPE_SUBTREE,
-														"(&(objectCategory=person)(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(proxyAddresses=SMTP:%s))" % (sys.argv[1]),
-														["mail"])
+		ldap.SCOPE_SUBTREE,
+		"(&(objectCategory=person)(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(proxyAddresses=SMTP:%s))" % (sys.argv[1]),
+		["mail"])
 	if len(result) != 1:
 		result = connect.search_s(PublicFolderSearchPath,
-															ldap.SCOPE_SUBTREE,
-															"(&(objectclass=publicFolder)(proxyAddresses=SMTP:%s))" % (sys.argv[1]),
-															["mail"])
+			ldap.SCOPE_SUBTREE,
+			"(&(objectclass=publicFolder)(proxyAddresses=SMTP:%s))" % (sys.argv[1]),
+			["mail"])
 		if len(result) != 1:
 			print("invalid mailbox")
 			print("invalid mailbox: %s" % (sys.argv[1]))

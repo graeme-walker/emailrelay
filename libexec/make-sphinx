@@ -1,0 +1,656 @@
+#!/usr/bin/env perl
+#
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# 
+# Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# ===
+#
+# make-sphinx
+#
+# Runs sphinx-build etc.
+#
+# usage: make-sphinx [options] <top-src-dir> <run-dir> [<version>]
+#     --website            : tweaks for website
+#     --examples-dir=<dir> : examples directory
+#     --icon-dir=<dir>
+#     --doc-dir=<dir>
+#     --png-dir=<dir>
+#     --svg-dir=<dir>
+#
+# Typically run by doc/Makefile as:
+#     make-sphinx $(top_srcdir) sphinx
+#
+# The source documents and other pre-requisites assembled into a
+# clean "<run-dir>" and then sphinx-build is run with an output
+# directory of "<run-dir>/out".
+#
+# The following files are assembled into the <run-dir>:
+#   * conf.py
+#   * <doc-dir>/*.md
+#   * <doc-dir>/*.txt
+#   * <png-dir>/*.png
+#   * <svg-dir>/*.svg
+#   * <icon-dir>/emailrelay-icon*.png
+#   * <examples-dir>/emailrelay-*.{js,py,pl}
+#
+# Files in <run-dir> are modified as follows:
+#   * project name stripped from document titles
+#   * each example script each given a RST wrapper
+#   * <foo:bar> changed to <foo\:bar>
+#   * option anchors added to reference.txt as {#opt_foo}=
+#   * option strings `--foo` modified to [`--foo`](#opt_foo)
+#
+# And further tweaked if "--website":
+#   * "examples.rst" created
+#   * "download.rst" created
+#   * 'examples' and 'download' added to contents
+#   * 'developer' removed from contents
+#   * green download button added to userguide
+#
+# After running sphinx-build the generated HTML is
+# further edited as follows:
+#   * h1 title in userguide.html set to the project name
+#
+
+use v5.10 ;
+use strict ;
+use File::Copy ;
+use File::Basename ;
+use IO::File ;
+use Getopt::Long ;
+use Carp ;
+
+my %opt = () ;
+GetOptions( \%opt , "website" , "host=s" , "test=s" ,
+	"examples-dir=s" , "icon-dir=s" , "doc-dir=s" , "png-dir=s" , "svg-dir=s" , "changelog=s" ) or die ;
+
+my $arg_src_dir = $ARGV[0] or die "usage error" ;
+my $arg_run_dir = $ARGV[1] or die "usage error" ;
+my $version = $ARGV[2] ;
+chomp( $version = `cat $arg_src_dir/VERSION` ) if !$version ;
+die "no version" if !$version ;
+
+my $cfg = {
+	website => $opt{website} ,
+	host => ( $opt{host} || "sourceforge" ) ,
+	version => $version ,
+	run_dir => $arg_run_dir ,
+	examples_dir => ( $opt{'examples-dir'} || "$arg_src_dir/examples" ) ,
+	src_changelog => ( $opt{'changelog'} || "$arg_src_dir/ChangeLog" ) ,
+	src_readme => ( $opt{'readme'} || "$arg_src_dir/README" ) ,
+	src_icon_dir => ( $opt{'icon-dir'} || "$arg_src_dir/src/main/icon" ) ,
+	src_doc_dir => ( $opt{'doc-dir'} || "$arg_src_dir/doc" ) ,
+	src_png_dir => ( $opt{'png-dir'} || "$arg_src_dir/doc" ) ,
+	src_svg_dir => ( $opt{'svg-dir'} || "$arg_src_dir/doc" ) ,
+	hosts => {
+		sourceforge =>
+		{
+			name => "SourceForge" ,
+			url_base => "https://sourceforge.net/projects/emailrelay" ,
+			files_url => "__base__/files/emailrelay/__version__" ,
+			button_url => "__base__/files/latest/download" ,
+			button_img => 'download-button.png' ,
+			svn => 'https://svn.code.sf.net/p/emailrelay/code/trunk' ,
+			git => 'https://github.com/graeme-walker/emailrelay' ,
+		} ,
+	} ,
+	terms => {
+		BCC => { u=>'https://en.wikipedia.org/wiki/Blind_carbon_copy' , d=>10 } ,
+		SMTP => { u=>'https://en.wikipedia.org/wiki/Simple_Mail_Transfer_Protocol' , d=>30 } ,
+		TLS => { u=>'https://en.wikipedia.org/wiki/Transport_Layer_Security' , d=>30 } ,
+		POP => { u=>'https://en.wikipedia.org/wiki/Post_Office_Protocol' , d=>30 } ,
+		FHS => { u=>'https://wiki.linuxfoundation.org/lsb/fhs' , d=>10 } ,
+		SOCKS => { u=>'https://en.wikipedia.org/wiki/SOCKS' , d=>10 } ,
+		PAM => { u=>'https://en.wikipedia.org/wiki/Linux_PAM' , d=>10 } ,
+		MTA => { u=>'https://en.wikipedia.org/wiki/Message_transfer_agent' , d=>10 } ,
+		MDA => { u=>'https://en.wikipedia.org/wiki/Message_delivery_agent' , d=>10 } ,
+		MUA => { u=>'https://en.wikipedia.org/wiki/Email_client' , d=>10 } ,
+		DNSBL => { u=>'https://en.wikipedia.org/wiki/DNSBL' , d=>10 } ,
+		'RFC-' => { rfc=>1 , u=>'https://tools.ietf.org/html/rfc$1' , d=>10 } ,
+		IMAP => { u=>'https://en.wikipedia.org/wiki/Internet_Message_Access_Protocol' , d=>10 } ,
+		Base64 => { u=>'https://en.wikipedia.org/wiki/Base64' , d=>10 } ,
+		xtext => { u=>'https://tools.ietf.org/html/rfc3461#section-4' , d=>10 } ,
+		maildir => { u=>'https://en.wikipedia.org/wiki/Maildir' , d=>10 } ,
+		dovecot => { u=>'https://www.dovecot.org' , d=>10 } ,
+		'unity build' => { u=>'https://en.wikipedia.org/wiki/Unity_build' , d=>10 } ,
+		NODATA => { u=>'https://tools.ietf.org/html/rfc2308#section-2.2' , d=>10 } ,
+		OAUTH => { u=>'https://www.microsoft.com/en-us/security/business/security-101/what-is-oauth' , d=>10 } ,
+		JavaScript => { u=>'https://en.wikipedia.org/wiki/JScript' , d=>10 } ,
+	} ,
+} ;
+for my $k ( keys %{$cfg->{hosts}} )
+{
+	my $base = $cfg->{hosts}->{$k}->{url_base} ;
+	map { $cfg->{hosts}->{$k}->{$_} =~ s/__base__/$base/g } keys %{$cfg->{hosts}->{$k}} ;
+	map { $cfg->{hosts}->{$k}->{$_} =~ s/__version__/$version/g } keys %{$cfg->{hosts}->{$k}} ;
+}
+
+my @examples = glob( "$$cfg{examples_dir}/emailrelay-*.{js,pl,py}" ) ;
+scalar(@examples) or die "make-sphinx: error: no example scripts in [$$cfg{examples_dir}]\n" ;
+
+for( my $i = 0 ; $i < 5 ; $i++ )
+{
+	populate( $cfg ) if( $i == 0 ) ;
+	prepare( $cfg , \@examples ) if( $i == 1 ) ;
+	build( $cfg ) if( $i == 2 ) ;
+	fixup( $cfg ) if( $i == 3 ) ;
+	augment( $cfg , \@examples ) if( $i == 4 ) ;
+	last if( ($i+1) == $opt{test} ) ;
+}
+
+exit( 0 ) ;
+# ==
+
+sub populate
+{
+	my ( $cfg ) = @_ ;
+
+	# start with a clean <base-dir> directory
+	warn "make-sphinx: warning: output directory already exists\n" if -d $cfg->{run_dir} ;
+	-d $cfg->{run_dir} or mkdir $cfg->{run_dir} ;
+
+	# populate <base-dir> with all pre-requisites
+	File::Copy::copy( "conf.py" , $cfg->{run_dir} ) or die ;
+	File::Copy::copy( "$$cfg{src_icon_dir}/emailrelay-icon-tiny.png" , $cfg->{run_dir} ) ; # if exists
+	File::Copy::copy( "$$cfg{src_icon_dir}/emailrelay-icon-small.png" , $cfg->{run_dir} ) or die ;
+	File::Copy::copy( "$$cfg{src_icon_dir}/emailrelay-icon.png" , $cfg->{run_dir} ) or die ;
+	_copy_files( $cfg->{run_dir} , glob("$$cfg{src_doc_dir}/*.md") ) ;
+	_copy_files( $cfg->{run_dir} , glob("$$cfg{src_doc_dir}/*.txt") ) ;
+	_copy_files( $cfg->{run_dir} , glob("$$cfg{src_png_dir}/*.png") ) ;
+	File::Copy::copy( $cfg->{src_changelog} , "$$cfg{run_dir}/changelog.txt" ) or die ;
+	File::Copy::copy( $cfg->{src_readme} , "$$cfg{run_dir}/readme.txt" ) or die ;
+}
+
+sub prepare
+{
+	my ( $cfg , $examples ) = @_ ;
+
+	_make_scripts_rst( $cfg->{run_dir} , $examples , 0 ) ; # "foo.js" -> "foo_js.rst" etc
+	my $options = {map=>{}} ;
+	_edit( sub{_edit_option_anchors($options,@_)} , "$$cfg{run_dir}/reference.txt" , $cfg ) or die ;
+	_edit( sub{state $x;_edit_changelog(\$x,@_)} , "$$cfg{run_dir}/changelog.txt" , $cfg ) or die ;
+	for my $f ( glob( "$$cfg{run_dir}/*.txt" ) )
+	{
+		$options->{prefix} = ( ( $f =~ m/reference.txt/ ) ? "" : "reference.txt" ) ;
+		_edit( sub{_edit_option_links($options,@_)} , $f , $cfg ) unless ( $f =~ m/changelog.txt/ ) ;
+		_edit( sub{state $x;_edit_shorten_heading(\$x,@_)} , $f , $cfg ) or warn "no heading change to [$f]\n" ;
+		_edit( sub{_edit_fix_spaceship(@_)} , $f , $cfg ) ;
+	}
+	for my $doc ( "userguide.txt" , "reference.txt" )
+	{
+		_edit( sub{state %x=();_edit_terms(\%x,@_)} , "$$cfg{run_dir}/$doc" , $cfg ) ;
+	}
+	if( $cfg->{website} )
+	{
+		_make_examples_rst( "$$cfg{run_dir}/examples.rst" , @$examples ) ;
+		_make_download_rst( "$$cfg{run_dir}/download.rst" , $cfg->{hosts}->{$$cfg{host}} ) ;
+		unlink "$$cfg{run_dir}/developer.txt" ;
+		unlink "$$cfg{run_dir}/changelog.txt" ;
+		unlink "$$cfg{run_dir}/readme.txt" ;
+		_edit( sub{_edit_fix_contents(@_)} , "$$cfg{run_dir}/contents.md" , $cfg ) or die ;
+		_edit( sub{_edit_add_button(@_)} , "$$cfg{run_dir}/userguide.txt" , $cfg ) or die ;
+	}
+}
+
+sub build
+{
+	my ( $cfg ) = @_ ;
+	print "running \"sphinx-build -b html $$cfg{run_dir} $$cfg{run_dir}/out\"\n" ;
+	system( "sphinx-build -b html \"$$cfg{run_dir}\" \"$$cfg{run_dir}/out\"" ) == 0 or die ;
+}
+
+sub fixup
+{
+	my ( $cfg ) = @_ ;
+	if( $cfg->{website} )
+	{
+		_edit( sub{_edit_h1(@_)} , "$$cfg{run_dir}/out/userguide.html" , $cfg ) or die ;
+		File::Copy::copy( "$$cfg{run_dir}/out/userguide.html" , "$$cfg{run_dir}/out/index.html" ) or die ;
+	}
+}
+
+sub augment
+{
+	my ( $cfg , $examples ) = @_ ;
+	# add in files that are onclick targets
+	_copy_files( "$$cfg{run_dir}/out" , glob("$$cfg{src_svg_dir}/*.svg") ) ;
+	_copy_scripts( "$$cfg{run_dir}/out" , @$examples ) ;
+}
+
+# ===
+
+sub _copy_files
+{
+	my ( $dst , @files ) = @_ ;
+	Carp::confess "no matching files" if scalar(@files) == 0 ;
+	map { File::Copy::copy( $_ , "$dst" ) or die } @files ;
+}
+
+sub _copy_scripts
+{
+	my ( $dst , @files ) = @_ ;
+	for my $f ( @files )
+	{
+		File::Copy::copy( $f , "$dst/" ) or die ;
+	}
+}
+
+sub _edit
+{
+	my ( $fn , $file , $cfg ) = @_ ;
+	my $fh_in = new IO::File( $file , "r" ) or die "cannot open [$file]: $!" ;
+	my $fh_out = new IO::File( "$file.tmp" , "w" ) or die ;
+	my $line_number = 1 ;
+	my $changed = 0 ;
+	my $line ;
+	my $next_line ;
+	while(<$fh_in>)
+	{
+		chomp( $next_line = $_ ) ;
+		if( $line_number > 1 )
+		{
+			_edit_imp( $fn , $fh_out , \$line , \$changed , $line_number-1 , $cfg , $next_line ) ;
+		}
+		$line = $next_line ;
+		$line_number++ ;
+	}
+	_edit_imp( $fn , $fh_out , \$next_line , \$changed , $line_number , $cfg , "" ) ;
+	$next_line = "" ;
+	_edit_imp( $fn , $fh_out , \$next_line , \$changed , -1 , $cfg , "" ) ;
+	$fh_in->close() ;
+	$fh_out->close() or die ;
+	rename( "$file.tmp" , $file ) or die ;
+	return $changed ;
+}
+
+sub _edit_imp
+{
+	my ( $fn , $fh , $line_ref , $changed_ref , $n , $cfg , $next_line ) = @_ ;
+	my $new_line = &{$fn}( $$line_ref , $n , $cfg , $next_line ) ;
+	$$changed_ref ||= 1 if( !defined($new_line) || ( $new_line ne $$line_ref ) ) ;
+	print $fh $new_line , "\n" if defined($new_line) ;
+	$$line_ref = $new_line ;
+}
+
+sub _edit_shorten_heading
+{
+	my ( $state , $line , $n , $cfg , $next_line ) = @_ ;
+	if( ( $line =~ m/^E-MailRelay / ) && $n == 1 )
+	{
+		$line =~ s/E-MailRelay // ;
+		$$state = length($line) ;
+	}
+	elsif( $n == 2 )
+	{
+		$line = '=' x $$state ;
+		$$state = undef ;
+	}
+	return $line ;
+}
+
+sub _edit_fix_spaceship
+{
+	my ( $line , $n , $cfg , $next_line ) = @_ ;
+	$line =~ s/<([a-z]+):([a-z]+)>/<$1\\:$2>/g ;
+	return $line ;
+}
+
+sub _edit_terms
+{
+	my ( $state , $line , $n , $cfg , $next_line ) = @_ ;
+	return $line if( ( $line =~ m/^##+ / ) || ( $next_line =~ m/^[-=]+$/ ) ) ;
+	for my $term ( keys %{$cfg->{terms}} )
+	{
+		my $process_term = sub {
+			my ( $k , $d ) = @_ ;
+			die if !exists($cfg->{terms}->{$k}) ;
+			return "${k}${d}" if $line =~ m/^##*/ ;
+			$d ||= "" ;
+			( my $url = $cfg->{terms}->{$k}->{u} ) =~ s/\$1/$d/ ;
+			my $dpos = $cfg->{terms}->{$k}->{d} ;
+			$state->{"$k$d"} ||= {} ;
+			$state->{"$k$d"}->{url} = $url ;
+			my $oldpos = $state->{"$k$d"}->{pos} ;
+			$state->{"$k$d"}->{pos} = $n ;
+			if( $oldpos && $n >= $oldpos && ( $n - $oldpos ) < $dpos ) { return "$k$d" }
+			return "[$k$d][]" ;
+		} ;
+		my $wstart = qr/(?<![\w-])(?=[\w-])/ ; # "\b" but including "-"
+		my $wend = qr/(?<=[\w-])(?![\w-])/ ;
+		$cfg->{terms}->{$term}->{rfc} ?
+			$line =~ s/${wstart}($term)(\d+)${wend}/$process_term->($1,$2)/eg :
+			$line =~ s/${wstart}($term)${wend}/$process_term->($1)/eg ;
+	}
+	if( scalar(%{$state}) && ( $n == -1 || $line =~ m/^_____+$/ ) )
+	{
+		my @more = () ;
+		for my $key ( sort keys %$state )
+		{
+			my $value = $state->{$key}->{url} ;
+			push @more , "[$key]: $value" ;
+		}
+		%{$state} = () ;
+		return "\n\n".join("\n",@more)."\n\n".$line ;
+	}
+	return $line ;
+}
+
+sub _edit_changelog
+{
+	my ( $state , $line , $n , $cfg , $next_line ) = @_ ;
+	$$state ||= 0 ;
+	if( $line =~ m/^([\d\.]+) -> ([\d\.]+)$/ )
+	{
+		$line = $2 ;
+		$$state = length($line) ;
+	}
+	if( $line =~ m/^--+$/ && $$state >= 3 )
+	{
+		$line = '-' x $$state ;
+	}
+	return $line ;
+}
+
+sub _edit_option_links
+{
+	my ( $options , $line , $n , $cfg , $next_line ) = @_ ;
+	return $line if( $line =~ m/^\*   --(\S+)/ ) ;
+	return $line if( $line =~ m/^(\t|    )/ ) ;
+	my $process_option = sub {
+		my $match = $_[0] ;
+		my ( $name ) = ( $match =~ m/`--([a-z][a-z-]+)`/ ) ;
+		if( exists($options->{map}->{$name}) )
+		{
+			return "[`--$name`]($$options{prefix}#opt-$name)" ;
+		}
+		return $match ;
+	} ;
+	$line =~ s/(`--[a-z][a-z-]+`)/$process_option->($1)/eg ;
+	return $line ;
+}
+
+sub _edit_option_anchors
+{
+	my ( $options , $line , $n , $cfg , $next_line ) = @_ ;
+	if( $line =~ m/^\*   --(\S+)/ )
+	{
+		my $name = $1 ;
+		$line = "{#opt-$name}\n$line" ;
+		$options->{map}->{$name} = 1 ;
+	}
+	return $line ;
+}
+
+sub _edit_fix_contents
+{
+	my ( $line , $n , $cfg , $next_line ) = @_ ;
+	if( $line =~ m/^developer\s*$/ )
+	{
+		$line = "examples\n" . "download\n" ;
+	}
+	return undef if( $line =~ m/^changelog\s*$/ ) ;
+	return undef if( $line =~ m/^readme\s*$/ ) ;
+	return $line ;
+}
+
+sub _edit_add_button
+{
+	my ( $line , $n , $cfg , $next_line ) = @_ ;
+	my $cfg_host = $cfg->{hosts}->{$$cfg{host}} ;
+	if( $line =~ m/^Basic operation/ )
+	{
+		return
+			"[![button]($$cfg_host{button_img} \"Download\")]($$cfg_host{button_url})\n" .
+			"\n" .
+			$line ;
+	}
+	else
+	{
+		return $line ;
+	}
+}
+
+sub _edit_h1
+{
+	my ( $line , $n , $cfg , $next_line ) = @_ ;
+	if( $line =~ m/^<h1>User .*h1>$/ )
+	{
+		$line =~ s/<h1>User Guide/<h1>E-MailRelay/ ;
+	}
+	return $line ;
+}
+
+sub _make_scripts_rst
+{
+	my ( $dst , $files_ref , $strip_banners ) = @_ ;
+	my @files = @$files_ref ;
+	scalar(@files) or die "error: no example scripts" ;
+	my %syntax = (
+		js => "javascript" ,
+		pl => "perl" ,
+		py => "python" ,
+	) ;
+	for my $f ( @files )
+	{
+		my ( $x ) = ( $f =~ m/\.([^.]*)$/ ) ;
+		_make_script_rst( $dst , $f , $x , $syntax{$x} , $strip_banners ) ;
+	}
+}
+
+sub _make_script_rst
+{
+	my ( $dst , $path_in , $x , $syntax , $strip_banner ) = @_ ;
+	die if !$x ;
+	my $name = File::Basename::basename( $path_in , ".$x" ) ;
+	my $path_out = "$dst/${name}_$x.rst" ;
+	my $fh_out = new IO::File( $path_out , "w" ) or die "cannot create [$path_out]: $!" ;
+	my $fh_in = new IO::File( $path_in , "r" ) or die ;
+	my $heading = "`${name}.${x} <${name}.${x}>`_" ;
+	print $fh_out ":orphan:\n\n" ;
+	print $fh_out $heading , "\n" ;
+	my $line = '-' x length($heading) ;
+	print $fh_out $line , "\n" ;
+	print $fh_out "\n" ;
+	print $fh_out ".. code:: $syntax\n" ;
+	print $fh_out "\n" ;
+	my $in_banner = 0 ;
+	while(<$fh_in>)
+	{
+		chomp( my $line = $_ ) ;
+		$line =~ s/\t/    /g ;
+		if( !$strip_banner )
+		{
+			print $fh_out "    " , $line , "\n" ;
+		}
+		elsif( $in_banner == 2 )
+		{
+			if( $line =~ m/ ===$/ ) { $in_banner = 1 }
+		}
+		elsif( $in_banner == 1 )
+		{
+			$in_banner = 0 ;
+		}
+		elsif( $line =~ m/ Copyright / )
+		{
+			$in_banner = 2 ;
+		}
+		else
+		{
+			print $fh_out "    " , $line , "\n" ;
+		}
+	}
+	die if $in_banner ;
+	print $fh_out "\n" ;
+	print $fh_out ".. _$path_in: ${name}_$x.html\n" ;
+	print $fh_out "\n" ;
+	$fh_out->close() or die ;
+}
+
+sub _make_download_rst
+{
+	my ( $path , $cfg_host ) = @_ ;
+	my $fh = new IO::File( $path , "w" ) or die ;
+	print $fh "********\n" ;
+	print $fh "Download\n" ;
+	print $fh "********\n\n" ;
+	print $fh "Binaries\n" ;
+	print $fh "========\n\n" ;
+	print $fh "E-MailRelay is hosted on $$cfg_host{name} and you can get release binaries\n" ;
+	print $fh "from the project files page:\n\n" ;
+	print $fh "    $$cfg_host{files_url}\n\n" ;
+	print $fh "The green button automatically downloads the latest release for a target environment that is deduced\n" ;
+	print $fh "from your browser details.\n\n" ;
+	print $fh ".. image:: $$cfg_host{button_img}\n" ;
+	print $fh "  :target: $$cfg_host{button_url}\n\n" ;
+	print $fh "Source\n" ;
+	print $fh "======\n\n" ;
+	print $fh "You can get source code tarballs from the SourceForge project files page:\n\n" ;
+	print $fh "    $$cfg_host{files_url}\n\n" ;
+	print $fh "or use subversion or git to get the latest code:\n" ;
+	print $fh "::\n\n" ;
+	print $fh "    svn co $$cfg_host{svn} emailrelay\n\n" ;
+	print $fh "::\n\n" ;
+	print $fh "    git clone $$cfg_host{git}\n\n" ;
+	$fh->close() or die ;
+}
+
+sub _make_examples_rst
+{
+	my ( $path , @files ) = @_ ;
+	my $e = new ExamplesTable( @files ) ;
+	$e->generate( $path ) ;
+}
+
+package ExamplesTable
+{
+	# Synposis:
+	#    use ExamplesTable ;
+	#    my $e = new ExamplesTable( "foo.js" , "bar.pl" , ... ) ;
+	#    $e->generate( "examples.rst" ) ;
+	sub new
+	{
+		my ( $classname , @files ) = @_ ;
+		my @filenames = map { File::Basename::basename($_) } @files ;
+		my $this = bless {
+			m_files => \@files ,
+			m_filenames => \@filenames ,
+		} , $classname ;
+
+		$this->{m_filters_lhs} = [ grep { !m/verify/ } grep { m/pl$/ } @filenames ] ;
+		$this->{m_filters_rhs} = [ grep { !m/verify/ } grep { m/js$/ } @filenames ] ;
+		$this->{m_verifiers_lhs} = [ grep { m/verify\.p.$/ } @filenames ] ;
+		$this->{m_verifiers_rhs} = [ grep { m/verify\.(js|py)$/ } @filenames ] ;
+		return $this ;
+	}
+	sub filenames
+	{
+		return @{$_[0]->{m_filenames}} ;
+	}
+	sub filters_lhs
+	{
+		return $_[0]->{m_filters_lhs} ;
+	}
+	sub filters_rhs
+	{
+		return $_[0]->{m_filters_rhs} ;
+	}
+	sub verifiers_lhs
+	{
+		return $_[0]->{m_verifiers_lhs} ;
+	}
+	sub verifiers_rhs
+	{
+		return $_[0]->{m_verifiers_rhs} ;
+	}
+	sub generate
+	{
+		my ( $this , $outfile ) = @_ ;
+		my $fh = new IO::File( "$outfile.tmp" , "w" ) or die ;
+
+		# heading
+		print $fh "Examples\n" ;
+		print $fh "--------\n" ;
+		print $fh "\n" ;
+
+		# filters table
+		print $fh "Filter scripts\n" ;
+		print $fh "^^^^^^^^^^^^^^\n" ;
+		print $fh "\n" ;
+		$this->toc( $fh , @{$this->{m_filenames}} ) ; # after heading
+		print $fh "\n" ;
+		$this->table( $fh , $this->filters_lhs() , $this->filters_rhs() ) ;
+		print $fh "\n" ;
+
+		# verifiers table
+		print $fh "Address verifier scripts\n" ;
+		print $fh "^^^^^^^^^^^^^^^^^^^^^^^^\n" ;
+		print $fh "\n" ;
+		$this->table( $fh , $this->verifiers_lhs() , $this->verifiers_rhs() ) ;
+		print $fh "\n" ;
+
+		# links
+		for my $fname ( @{$this->{m_filenames}} )
+		{
+			my ( $name , $x ) = ( $fname =~ m/([^.]+)\.(.*)/ ) ;
+			( $name && $x ) or die ;
+			print $fh ".. _${name}.${x}: ${name}_${x}.html\n" ;
+		}
+		print $fh "\n" ;
+
+		# commit
+		$fh->close() or die ;
+		rename( "$outfile.tmp" , $outfile ) or die ;
+	}
+	sub table
+	{
+		# https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#grid-tables
+		my ( $this , $fh , $lhs , $rhs ) = @_ ;
+		my $dd = '-' x 52 ;
+		my $ee = '=' x 52 ;
+		print $fh "+${dd}+${dd}+\n" ;
+		printf $fh "| %-50s | %-50s |\n" , "Unix/Linux" , "Windows" ;
+		print $fh "+${ee}+${ee}+\n" ;
+		my $n1 = scalar(@$lhs) ;
+		my $n2 = scalar(@$rhs) ;
+		my $n = ( $n1 > $n2 ? $n1 : $n2 ) ;
+		for my $i ( 0..$n-1 )
+		{
+			print $fh "+${dd}+${dd}+\n" unless $i == 0 ;
+			my ( $f1 , $f2 ) = ( @{$lhs}[$i] , @{$rhs}[$i] ) ;
+			my $ref1 = "`$f1`_" ; $ref1 = "\\ " if !$f1 ;
+			my $ref2 = "`$f2`_" ; $ref2 = "" if !$f2 ;
+			if( $f1 eq $f2 )
+			{
+				printf $fh "| %-103s |\n" , $ref1 ;
+			}
+			else
+			{
+				printf $fh "| %-50s | %-50s |\n" , $ref1 , $ref2 ;
+			}
+		}
+		print $fh "+${dd}+${dd}+\n" ;
+	}
+	sub toc
+	{
+		my ( $this , $fh , @filenames ) = @_ ;
+		print $fh ".. toctree::\n" ;
+		print $fh "    :hidden:\n" ;
+		print $fh "\n" ;
+		map { (my $x=$_)=~s/\./_/; print $fh "    " , $x , "\n" } @filenames ;
+	}
+}
+

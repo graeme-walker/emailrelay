@@ -43,7 +43,6 @@ AC_CHECK_PROGS([MAKE],[make gmake])
 AC_CHECK_PROGS([AR],[ar gar])
 AC_CHECK_PROGS([GZIP],[gzip])
 AC_CHECK_PROG([GCONFIG_HAVE_DOXYGEN],[doxygen],[yes])
-AC_CHECK_PROG([GCONFIG_HAVE_MAN2HTML],[man2html],[yes])
 GCONFIG_FN_PROG_WINDRES
 GCONFIG_FN_PROG_WINDMC
 GCONFIG_FN_ARFLAGS
@@ -114,12 +113,12 @@ GCONFIG_FN_ENABLE_ADMIN
 
 dnl "--with-whatever" for external dependencies
 dnl
-AC_ARG_WITH([doxygen],AS_HELP_STRING([--with-doxygen],[generate source code documentation with doxygen (default auto)]))
+AC_ARG_WITH([html],AS_HELP_STRING([--with-html],[generate html documentation with markdown (default no)]))
+GCONFIG_FN_WITH_HTML
+AC_ARG_WITH([doxygen],AS_HELP_STRING([--with-doxygen],[generate source code documentation with doxygen (default no)]))
 GCONFIG_FN_WITH_DOXYGEN
 AC_ARG_WITH([gettext],AS_HELP_STRING([--with-gettext],[use gettext (default auto)]))
 GCONFIG_FN_WITH_GETTEXT
-AC_ARG_WITH([man2html],AS_HELP_STRING([--with-man2html],[convert man pages to html using man2html (default auto)]))
-GCONFIG_FN_WITH_MAN2HTML
 AC_ARG_WITH([openssl],AS_HELP_STRING([--with-openssl],[use openssl for tls layer (default auto)]))
 AC_ARG_WITH([mbedtls],AS_HELP_STRING([--with-mbedtls],[use mbedtls for tls layer (default auto)]))
 GCONFIG_FN_TLS

@@ -16,11 +16,11 @@
 #
 
 work_scripts = \
-	doxygen.sh \
 	make-manifest.sh \
 	make-setup.sh \
+	run_doxygen.pl \
 	make-format \
-	make-website \
+	make-sphinx \
 	make2cmake \
 	make2cdb \
 	make2qmake \
@@ -36,6 +36,7 @@ work_scripts = \
 	BuildInfo.pm \
 	CompilationDatabase.pm \
 	ConfigStatus.pm \
+	Doxyfile.pm \
 	reduce \
 	reduce.pl \
 	Functions.pm \
