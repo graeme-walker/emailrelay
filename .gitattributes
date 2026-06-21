@@ -11,3 +11,5 @@ resource.h text
 *.png binary
 *.ico binary
 
+# git config merge.ours.driver true
+BRANCH.md merge=ours

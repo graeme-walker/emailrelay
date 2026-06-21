@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# git-pre-commit
+#
+# A git pre-commit hook to check that CRLF files are checked
+# in as LF. Install as .git/hooks/pre-commit. Note that the
+# top-level "Makefile.am" has a dist-hook rule to convert
+# to CRLF in tarballs.
+#
+
+Find()
+{
+	git diff --cached --name-only --diff-filter=ACM 2>/dev/null
+}
+Match()
+{
+	grep -E '(resource.h|\.bat|\.rc|\.manifest|\.mc)$'
+}
+
+cr=`echo x | tr x '\015'`
+crlf_files=`Find | Match | xargs -I __ grep -l $cr __ 2>/dev/null`
+if test "$crlf_files" != ""
+then
+    echo "error: $0: CRLF line endings in [$crlf_files]"
+    exit 1
+fi
+exit 0

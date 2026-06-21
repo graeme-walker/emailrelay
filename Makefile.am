@@ -165,3 +165,14 @@ mbedtls:
 	make -C mbedtls/library WINDOWS=0
 	-@echo now run ./configure.sh
 
+dist-hook:
+	find "$(distdir)" -type f \( -name \*.bat -o -name \*.rc -o -name \*.manifest -o -name \*.mc -o -name resource.h \) | while read -r f ; do sed 's/\r$$//; s/$$/\r/' "$$f" > "$$f.tmp" && mv "$$f.tmp" "$$f" ; done
+
+.PHONY: release-notes
+release-notes:
+	$(MAKE) -C doc release-notes
+
+.PHONY: git-hooks
+git-hooks:
+	-cp $(top_srcdir)/libexec/git-pre-commit .git/hooks/pre-commit
+

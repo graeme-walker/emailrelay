@@ -24,9 +24,11 @@ work_scripts = \
 	make2cmake \
 	make2cdb \
 	make2qmake \
+	make-release-notes \
 	make2nmake \
 	make2unity \
 	mbedtlsbuild.pl \
+	git-pre-commit \
 	libresslbuild.pl \
 	libresslbuild.mak \
 	qtbuild.pl \

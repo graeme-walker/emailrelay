@@ -1,0 +1,32 @@
+#!/usr/bin/env perl
+#
+# make-release-notes
+#
+# Generates a short release notes file (RELEASE.md) in
+# the cwd from the first section of the "ChangeLog".
+#
+# usage: make-release-notes [<top-src-dir>]
+#
+use strict ;
+use IO::File ;
+my $src_dir = $ARGV[0] || "." ;
+my $out_file = "RELEASE.md" ;
+my $href_website = "https://emailrelay.sourceforge.net" ,
+my $href_support = "https://sourceforge.net/projects/emailrelay/support" ,
+chomp( my $version = (new IO::File("$src_dir/VERSION"))->getline() ) ;
+my $fh_in = new IO::File( "$src_dir/ChangeLog" ) or die ;
+my $fh_out = new IO::File( $out_file , "w" ) or die ;
+print $fh_out $version , "\n" ;
+print $fh_out '-' x length($version) , "\n" ;
+my $state = 0 ;
+while(<$fh_in>)
+{
+	chomp( my $line = $_ ) ;
+	my $bullet = ( $line =~ m/^\* / ) ;
+	if( $state == 0 && $bullet ) { $state = 1 }
+	elsif( $state == 1 && !$bullet ) { last }
+	if( $state == 1 ) { print $fh_out $line , "\n" }
+}
+print $fh_out "\nwebsite: [$href_website]($href_website)\n" ;
+print $fh_out "\nsupport: [$href_support]($href_support)\n" ;
+$fh_out->close() or die ;

@@ -1,0 +1,51 @@
+#
+# github-release.yaml
+#
+# A workflow triggered when pushing a "release/v*" branch or a
+# "v*" tag. Assembles a source tarball and creates a GitHub
+# 'release'. The release is a 'draft' release if pushing a
+# branch or a full release if pushing a tag, and it is a
+# 'prerelease' if the version contains "rc". The tarball is
+# uploaded as an asset and the release notes (doc/RELEASE.md)
+# are used as the release body text.
+#
+
+name: release
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - 'release/v*'
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions: ubuntu-latest
+      contents: write
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+      - name: install-autotools
+        run: sudo apt-get install -y autoconf automake libtool
+      - name: make-dist
+        run: |
+          ./autogen.sh
+          ./configure
+          make dist release-notes
+          for f in *.tar.gz; do
+            mv "$f" "${f%.tar.gz}-src.tar.gz"
+          done
+      - name: get-version
+        id: get_version
+        run: |
+          echo "current_version=v$(cat VERSION | xargs)" >> $GITHUB_OUTPUT
+      - name: release-tarball
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || steps.get_version.outputs.current_version}}
+          draft: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          prerelease: ${{ contains(steps.get_version.outputs.current_version, 'rc') }}
+          files: "*-src.tar.gz"
+          body_path: ${{ github.workspace }}/doc/RELEASE.md
+

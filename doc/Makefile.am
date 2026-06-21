@@ -135,3 +135,8 @@ website:
 	@chmod +x $(top_srcdir)/libexec/make-website || true
 	$(top_srcdir)/libexec/make-website `cat $(top_srcdir)/VERSION`
 
+.PHONY: release-notes
+release-notes:
+	@chmod +x $(top_srcdir)/libexec/make-release-notes || true
+	$(top_srcdir)/libexec/make-release-notes "$(top_srcdir)"
+
