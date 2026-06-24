@@ -29,8 +29,8 @@
 #include <list>
 #include <algorithm>
 
-GNet::MultiServer::MultiServer( EventState es , const G::StringArray & listener_list , 
-	const std::vector<unsigned> & ports , const std::string & server_type , 
+GNet::MultiServer::MultiServer( EventState es , const G::StringArray & listener_list ,
+	const std::vector<unsigned> & ports , const std::string & server_type ,
 	ServerPeer::Config server_peer_config , Server::Config server_config ) :
 		m_es(es) ,
 		m_listener_list(listener_list) ,

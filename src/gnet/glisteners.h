@@ -43,7 +43,7 @@ class GNet::Listeners
 public:
 	G_EXCEPTION( InvalidFd , tx("invalid listening file descriptor number") )
 
-	Listeners( const Interfaces & , const G::StringArray & listener_spec_list , 
+	Listeners( const Interfaces & , const G::StringArray & listener_spec_list ,
 		const std::vector<unsigned> & ports ) ;
 			///< Constructor. The specification strings can be like "fd#3"
 			///< for a file descriptor, "127.0.0.1" for a fixed address,

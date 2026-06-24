@@ -173,7 +173,7 @@ std::pair<bool,std::vector<unsigned>> G::OptionMap::numbers( std::string_view ke
 	}
 
 	result.first = true ;
-	result.second.clear() ; 
+	result.second.clear() ;
 	for( auto p = range.first ; p != range.second ; ++p )
 		result.second.push_back( G::Str::toUInt((*p).second.valueref()) ) ;
 	return result ;

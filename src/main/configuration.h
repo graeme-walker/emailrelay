@@ -265,12 +265,12 @@ public:
 
 private:
 	bool contains( const char * ) const noexcept ;
-	bool validNumbers( std::string_view ) const ;
 	unsigned int numberValue( std::string_view key , unsigned int default_ ) const noexcept ;
-	std::vector<unsigned> numberList( std::string_view key , unsigned int default_ ) const ;
 	std::string stringValue( std::string_view ) const ;
 	std::string stringValue( std::string_view , const std::string & ) const ;
 	std::string stringValue( std::string_view , std::function<std::string()> ) const ;
+	bool validNumbers( std::string_view ) const ;
+	std::vector<unsigned> numberList( std::string_view key , unsigned int default_ ) const ;
 	G::Path pathValue( std::string_view ) const ;
 	G::Path pathValueImp( const std::string & ) const ;
 	GSmtp::FilterFactoryBase::Spec filterValue( std::string_view , G::StringArray * = nullptr ) const ;

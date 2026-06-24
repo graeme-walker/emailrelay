@@ -98,11 +98,11 @@ public:
 		///< corresponding to the first one, being G::Str::positive() if 'on'
 		///< or the supplied default if 'off'.
 
-	unsigned int number( std::string_view key , unsigned int default_ ) const noexcept ;
-		///< Returns the matching value as a number.
-
 	std::pair<bool,std::vector<unsigned>> numbers( std::string_view key , unsigned int default_ ) const ;
 		///< Returns the matching values as a list of numbers.
+
+	unsigned int number( std::string_view key , unsigned int default_ ) const noexcept ;
+		///< Returns the matching value as a number.
 
 private:
 	using Range = std::pair<Map::const_iterator,Map::const_iterator> ;

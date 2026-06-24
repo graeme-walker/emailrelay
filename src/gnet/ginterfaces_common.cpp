@@ -70,13 +70,13 @@ std::vector<GNet::Address> GNet::Interfaces::addresses( const std::string & name
 }
 #endif
 
-std::size_t GNet::Interfaces::addresses( std::vector<Address> & out , const std::string & name , 
+std::size_t GNet::Interfaces::addresses( std::vector<Address> & out , const std::string & name ,
 	unsigned int port , int af ) const
 {
 	return addresses( out , name , std::vector<unsigned>{port} , af ) ;
 }
 
-std::size_t GNet::Interfaces::addresses( std::vector<Address> & out , const std::string & name , 
+std::size_t GNet::Interfaces::addresses( std::vector<Address> & out , const std::string & name ,
 	const std::vector<unsigned> & ports , int af ) const
 {
 	if( !loaded() )
