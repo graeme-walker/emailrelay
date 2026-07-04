@@ -231,11 +231,13 @@ void Main::WinApp::doOpen()
 		std::pair<DWORD,DWORD> form_style( WS_OVERLAPPEDWINDOW , 0 ) ;
 		if( m_cfg.form_minimisable )
 		{
+			form_style.first &= ~WS_THICKFRAME ;
 			form_style.first &= ~WS_MAXIMIZEBOX ;
 			form_style.second = WS_EX_APPWINDOW ;
 		}
 		else
 		{
+			form_style.first &= ~WS_THICKFRAME ;
 			form_style.first &= ~WS_MAXIMIZEBOX ;
 			form_style.first &= ~WS_MINIMIZEBOX ;
 			form_style.first &= ~WS_SYSMENU ;

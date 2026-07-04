@@ -72,6 +72,9 @@ public:
 		public: NoRedraw( NoRedraw && ) = delete ;
 	} ;
 
+	static void init() ;
+		///< Sets the DPI awareness at the top of WinMain().
+
 	Control( const Dialog & dialog , int id ) ;
 		///< Constructor. The lifetime of the Control object should not
 		///< exceed that of the given dialog box; normally the control

@@ -138,6 +138,9 @@ AC_DEFUN([GCONFIG_FN_CHECK_HEADERS],[
 	AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[#include <versionhelpers.h>]],[[]])],
 		AC_DEFINE([GCONFIG_HAVE_WINDOWS_VERSIONHELPERS_H],1,[Define true if versionhelpers.h is available]),
 		AC_DEFINE([GCONFIG_HAVE_WINDOWS_VERSIONHELPERS_H],0,[Define true if versionhelpers.h is available]))
+	AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[#include <ShellScalingApi.h>]],[[]])],
+		AC_DEFINE([GCONFIG_HAVE_SHELLSCALINGAPI_H],1,[Define true if ShellScalingApi.h is available]),
+		AC_DEFINE([GCONFIG_HAVE_SHELLSCALINGAPI_H],0,[Define true if ShellScalingApi.h is available]))
 	AC_CHECK_HEADER([pwd.h],
 		AC_DEFINE([GCONFIG_HAVE_PWD_H],1,[Define true if pwd.h is available]),
 		AC_DEFINE([GCONFIG_HAVE_PWD_H],0,[Define true if pwd.h is available]))

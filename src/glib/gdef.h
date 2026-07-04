@@ -450,6 +450,13 @@
 			#define GCONFIG_HAVE_WINDOWS_IPHLPAPI_H 1
 		#endif
 	#endif
+	#if !defined(GCONFIG_HAVE_SHELLSCALINGAPI_H)
+		#if defined(G_WINDOWS) && !defined(G_MINGW)
+			#define GCONFIG_HAVE_SHELLSCALINGAPI_H 1
+		#else
+			#define GCONFIG_HAVE_SHELLSCALINGAPI_H 0
+		#endif
+	#endif
 	#if !defined(GCONFIG_HAVE_GAI_STRERROR)
 		#define GCONFIG_HAVE_GAI_STRERROR 1
 	#endif
@@ -829,6 +836,9 @@
 		#endif
 		#if GCONFIG_HAVE_WINDOWS_VERSIONHELPERS_H
 			#include <versionhelpers.h>
+		#endif
+		#if GCONFIG_HAVE_SHELLSCALINGAPI_H
+			#include <ShellScalingApi.h>
 		#endif
 	#endif
 

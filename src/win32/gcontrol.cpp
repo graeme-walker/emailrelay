@@ -26,6 +26,7 @@
 #include "glog.h"
 #include "gassert.h"
 #include "gdc.h"
+#include <sstream>
 #include <type_traits>
 #include <limits>
 #include <algorithm>
@@ -34,6 +35,22 @@
 #include <prsht.h> // PropertySheet
 
 LRESULT CALLBACK gcontrol_wndproc_export( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam ) ;
+
+void GGui::Control::init()
+{
+#if GCONFIG_HAVE_SHELLSCALINGAPI_H
+	// DPI awareness
+	HMODULE hmodule = G::nowide::getModuleHandle( "user32.dll" ) ;
+	if( hmodule )
+	{
+		auto arg = DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 ;
+		using Fn = HRESULT(*)(decltype(arg)) ;
+		auto fn = reinterpret_cast<Fn>( GetProcAddress(hmodule,"SetProcessDpiAwarenessContext") ) ;
+		if( fn )
+			fn( arg ) ;
+	}
+#endif
+}
 
 GGui::Control::Control( const Dialog & dialog , int id ) :
 	m_dialog(&dialog) ,

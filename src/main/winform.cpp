@@ -59,7 +59,8 @@ Main::WinForm::WinForm( HINSTANCE hinstance , const G::StringArray & cfg_data ,
   	addPage( txt("Status") , IDD_PROPPAGE_1 ) ;
 
 	// create the stack
-  	create( parent , "E-MailRelay" , with_icon?IDI_ICON1:0 , hnotify , GGui::Cracker::wm_user_other() ) ;
+	bool fixed_size = false ; // allow DPI change
+	create( parent , "E-MailRelay" , with_icon?IDI_ICON1:0 , hnotify , GGui::Cracker::wm_user_other() , fixed_size ) ;
 
 	if( with_system_menu_quit )
 		addSystemMenuItem( txt("Quit") , quitId() ) ;

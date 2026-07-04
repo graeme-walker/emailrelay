@@ -76,7 +76,7 @@ public:
 		///< Contructor. Initialise with addPage() and then create().
 
 	void create( HWND hparent , const std::string & title , int icon_id ,
-		HWND notify_hwnd , unsigned int notify_message , bool fixed_size = true ) ;
+		HWND notify_hwnd , unsigned int notify_message , bool fixed_size ) ;
 			///< Creates the property sheet containing all the added pages and
 			///< hooks into the message pump. Throws on error.
 			///<

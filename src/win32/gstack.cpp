@@ -270,8 +270,8 @@ LRESULT GGui::Stack::wndProc( HWND hsheet , UINT message , WPARAM wparam , LPARA
 	Stack * This = getObjectPointer( hsheet ) ;
 	if( message == WM_WINDOWPOSCHANGING && This && This->m_fixed_size && lparam )
 	{
-		// fiddling with the window-style doesn't always give the right
-		// degree of control, so disable resizing once 'fixed'
+		// optionally disable window resizing -- but note that
+		// this is not compatible with DPI awareness
 		WINDOWPOS * pos_p = reinterpret_cast<WINDOWPOS*>(lparam) ;
 		pos_p->flags |= SWP_NOSIZE ;
 	}

@@ -1375,6 +1375,14 @@ namespace G
 				return CreateWaitableTimerA( attributes , manual_reset , name.c_str() ) ;
 			}
 		}
+		inline HMODULE getModuleHandle( const std::string & name )
+		{
+			DWORD flags = 0 ;
+			HMODULE hmodule = HNULL ;
+			BOOL rc = GetModuleHandleExW( flags , Convert::widen(name).c_str() , &hmodule ) ;
+			if( !rc ) hmodule = HNULL ;
+			return hmodule ;
+		}
 		inline INT getAddrInfo( std::string_view host , std::string_view service , const ADDRINFOW * hints , ADDRINFOW ** results )
 		{
 			return GetAddrInfoW( Convert::widen(host).c_str() , Convert::widen(service).c_str() , hints , results ) ;
