@@ -87,7 +87,7 @@ void G::Process::cd( const Path & dir )
 
 bool G::Process::cd( const Path & dir , std::nothrow_t )
 {
-	return 0 == ::_chdir( dir.cstr() ) ;
+	return 0 == nowide::chdir( dir ) ;
 }
 
 int G::Process::errno_( const SignalSafe & ) noexcept

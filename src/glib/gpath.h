@@ -60,8 +60,7 @@ namespace G
 ///
 /// This class is agnostic on the choice of UTF-8 or eight-bit characters since
 /// the delimiters are all seven-bit ascii. Wide characters are not used,
-/// following "utf8everywhere.org" rather than std::filesystem::path (but
-/// see G_ANSI as a temporary deprecated feature).
+/// following "utf8everywhere.org" rather than std::filesystem::path.
 ///
 /// Most file operations should be handled in o/s-aware source (see G::File,
 /// G::Environment, G::Process etc) so that the Path character encoding is
@@ -83,7 +82,7 @@ class G::Path
 public:
 	using value_type = char ;
 	using string_type = std::string ;
-	#if defined(G_WINDOWS) && !defined(G_ANSI)
+	#if defined(G_WINDOWS)
 		using iopath_char_type = wchar_t ;
 	#else
 		using iopath_char_type = char ;
@@ -228,7 +227,7 @@ public:
 
 private:
 	std::string m_str ;
-	#if defined(G_WINDOWS) && !defined(G_ANSI)
+	#if defined(G_WINDOWS)
 	mutable std::wstring m_wstr ;
 	#endif
 } ;
@@ -254,7 +253,7 @@ const char * G::Path::cstr() const noexcept
 inline
 const G::Path::iopath_char_type * G::Path::iopath() const
 {
-	#if defined(G_WINDOWS) && !defined(G_ANSI)
+	#if defined(G_WINDOWS)
 		m_wstr = Convert::widen( m_str ) ;
 		return m_wstr.c_str() ;
 	#else

@@ -170,7 +170,7 @@ ServiceControl::Service::~Service()
 
 SC_HANDLE ServiceControl::Service::open( SC_HANDLE hmanager , const std::string & name )
 {
-	SC_HANDLE h = G::nowide::openServiceW( hmanager , name ,
+	SC_HANDLE h = G::nowide::openService( hmanager , name ,
 		DELETE | SERVICE_STOP | SERVICE_QUERY_STATUS | SERVICE_START ) ;
 
 	if( h == 0 )
@@ -189,7 +189,7 @@ SC_HANDLE ServiceControl::Service::h() const
 void ServiceControl::Service::create( const Manager & manager , const std::string & name ,
 	const std::string & display_name , DWORD start_type , const std::string & commandline )
 {
-	m_h = G::nowide::createServiceW( manager.h() , name , display_name , start_type , commandline ) ;
+	m_h = G::nowide::createService( manager.h() , name , display_name , start_type , commandline ) ;
 	if( m_h == 0 )
 	{
 		DWORD e = GetLastError() ;
@@ -204,7 +204,7 @@ void ServiceControl::Service::create( const Manager & manager , const std::strin
 			}
 
 			// try again
-			m_h = G::nowide::createServiceW( manager.h() , name , display_name , start_type , commandline ) ;
+			m_h = G::nowide::createService( manager.h() , name , display_name , start_type , commandline ) ;
 			if( m_h == 0 )
 				e = GetLastError() ;
 		}

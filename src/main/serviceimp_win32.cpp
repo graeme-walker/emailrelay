@@ -68,7 +68,7 @@ std::pair<std::string,DWORD> ServiceImp::remove( const std::string & service_nam
 std::pair<ServiceImp::StatusHandle,DWORD> ServiceImp::statusHandle( const std::string & service_name , HandlerFn fn )
 {
 	m_handler_fn = fn ;
-	StatusHandle h = G::nowide::registerServiceCtrlHandlerW( service_name , ServiceImp::Handler ) ;
+	StatusHandle h = G::nowide::registerServiceCtrlHandler( service_name , ServiceImp::Handler ) ;
 	DWORD e = 0 ;
 	if( h == 0 )
 		e = GetLastError() ;
@@ -78,7 +78,7 @@ std::pair<ServiceImp::StatusHandle,DWORD> ServiceImp::statusHandle( const std::s
 DWORD ServiceImp::dispatch( ServiceMainFn service_main_fn )
 {
 	m_service_main_fn = service_main_fn ;
-	bool ok = G::nowide::startServiceCtrlDispatcherW( ServiceImp::ServiceMainW ) ;
+	bool ok = G::nowide::startServiceCtrlDispatcher( ServiceImp::ServiceMainW ) ;
 	DWORD e = GetLastError() ;
 	return ok ? DWORD(0) : e ;
 }

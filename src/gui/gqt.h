@@ -53,25 +53,12 @@ namespace GQt
 
 	inline QString qstring_from_path( const G::Path & p )
 	{
-		#if defined(G_WINDOWS) && defined(G_ANSI)
-			// (G_ANSI is deprecated)
-			return QString::fromLocal8Bit( p.cstr() ) ;
-		#else
-			return QString::fromUtf8( p.cstr() ) ;
-		#endif
+		return QString::fromUtf8( p.cstr() ) ;
 	}
 
 	inline G::Path path_from_qstring( const QString & q )
 	{
-		#if defined(G_WINDOWS) && defined(G_ANSI)
-			// (G_ANSI is deprecated)
-			QByteArray a = q.toLocal8Bit() ;
-			const char * p = a.constData() ;
-			std::size_t n = static_cast<std::size_t>(a.length()) ;
-			return {std::string_view{p,n}} ;
-		#else
-			return {u8string_from_qstring(q)} ;
-		#endif
+		return {u8string_from_qstring(q)} ;
 	}
 }
 

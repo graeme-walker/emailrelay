@@ -237,9 +237,7 @@ information, registry paths and environment variables.
 
 The header file "gnowide.h" has inline functions that convert to and from UTF-8
 before calling the "wide" Windows API functions. The actual convertion between
-UTF-8 and UTF-16 wide characters is done by the G::Convert class. As a temporary
-measure the G_ANSI pre-processor switch can be defined to go back to using
-"ansi" functions.
+UTF-8 and UTF-16 wide characters is done by the G::Convert class.
 
 The G::Path class holds filesystem paths using UTF-8. Windows-specific source
 code, such as in "gfile_win32.cpp", passes the UTF-8 strings to the "nowide"
