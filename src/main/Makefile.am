@@ -264,7 +264,8 @@ if GCONFIG_WINDOWS
  emailrelay_keygen_LDFLAGS = -static
 endif
 emailrelay_keygen_LDADD = \
- $(top_builddir)/src/gssl/libgsslkeygen.a \
+ $(top_builddir)/src/gssl/libgssl.a \
+ $(top_builddir)/src/glib/libglib.a \
  $(GCONFIG_TLS_LIBS) \
  $(OS_LIBS)
 else
@@ -274,7 +275,8 @@ if GCONFIG_WINDOWS
 emailrelay_keygen_LDFLAGS = -static
 endif
 emailrelay_keygen_LDADD = \
-  $(top_builddir)/src/gssl/libgsslkeygen.a \
+  $(top_builddir)/src/gssl/libgssl.a \
+  $(top_builddir)/src/glib/libglib.a \
   $(GCONFIG_TLS_LIBS) \
   $(OS_LIBS)
 endif

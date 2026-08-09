@@ -42,9 +42,9 @@
 #include <iomanip>
 #include <limits>
 
-// we need access to structure fields that are private in mbedtls v3.0 -- see
-// mbedtls migration guide
-// TODO dont use private mbedtls structure fields
+// early releases of mbedtls v3 were too strict wrt private
+// fields and require MBEDTLS_PRIVATE() to access them
+//
 #if MBEDTLS_VERSION_MAJOR >= 3
 #define GET MBEDTLS_PRIVATE
 #if MBEDTLS_VERSION_MINOR >= 1
@@ -57,7 +57,7 @@
 #define GET_RAW(field) field
 #endif
 
-#ifndef GCONFIG_HAVE_MBEDTLS_HASH_STATE
+#if !defined(GCONFIG_HAVE_MBEDTLS_HASH_STATE)
 #if MBEDTLS_VERSION_MAJOR >= 3
 #define GCONFIG_HAVE_MBEDTLS_HASH_STATE 0
 #else
@@ -65,11 +65,19 @@
 #endif
 #endif
 
-#ifndef GCONFIG_HAVE_MBEDTLS_PSA
-#if MBEDTLS_VERSION_MAJOR >= 3
-#define GCONFIG_HAVE_MBEDTLS_PSA 1
+#if !defined(GCONFIG_CRYPTOAPI_ENTROPY)
+#if GCONFIG_WINXP && MBEDTLS_VERSION_MAJOR >= 3
+#define GCONFIG_CRYPTOAPI_ENTROPY 1
 #else
-#define GCONFIG_HAVE_MBEDTLS_PSA 0
+#define GCONFIG_CRYPTOAPI_ENTROPY 0
+#endif
+#endif
+
+#if !defined(GCONFIG_NEED_MBEDTLS_PSA_INIT)
+#if MBEDTLS_VERSION_NUMBER >= 0x03030000
+#define GCONFIG_NEED_MBEDTLS_PSA_INIT 1
+#else
+#define GCONFIG_NEED_MBEDTLS_PSA_INIT 0
 #endif
 #endif
 
@@ -78,21 +86,20 @@ GSsl::MbedTls::LibraryImp::LibraryImp( G::StringArray & library_config , Library
 	m_config(library_config)
 {
 	mbedtls_debug_set_threshold( verbose ? 3 : 1 ) ;
-
-	if( m_config.psa() )
-	{
-		#if GCONFIG_HAVE_MBEDTLS_PSA
-			call( FN_OK(PSA_SUCCESS,psa_crypto_init) ) ;
-		#endif
-	}
+	m_rng = std::make_unique<Rng>( m_config ) ; // after set-threshold
 }
 
 GSsl::MbedTls::LibraryImp::~LibraryImp()
 = default;
 
+GSsl::MbedTls::Rng & GSsl::MbedTls::LibraryImp::rng()
+{
+	return *m_rng ;
+}
+
 const GSsl::MbedTls::Rng & GSsl::MbedTls::LibraryImp::rng() const
 {
-	return m_rng ;
+	return *m_rng ;
 }
 
 void GSsl::MbedTls::LibraryImp::addProfile( const std::string & profile_name , bool is_server_profile ,
@@ -209,10 +216,8 @@ GSsl::MbedTls::Config::Config( G::StringArray & config ) :
 	if( consume(config,"-tlsv1.3") ) m_max = TLS_v1_3 ;
 #endif
 
-#if GCONFIG_HAVE_MBEDTLS_PSA
 	if( consume(config,"nopsa") )
 		m_psa = false ;
-#endif
 }
 
 int GSsl::MbedTls::Config::min_() const noexcept
@@ -446,7 +451,7 @@ GSsl::MbedTls::ProfileImp::ProfileImp( const LibraryImp & library_imp , bool is_
 			throw Error( "mbedtls_ssl_conf_own_cert" , rc ) ;
 	}
 
-	// configure verification
+	// configure verification -- note that this has no effect for TLS1.3 before MbedTLS v3.6.2 (#9018)
 	{
 		if( ca_path.empty() )
 		{
@@ -491,7 +496,7 @@ GSsl::MbedTls::ProfileImp::ProfileImp( const LibraryImp & library_imp , bool is_
 
 	// hooks
 	{
-		mbedtls_ssl_conf_rng( &m_config , mbedtls_ctr_drbg_random , m_library_imp.rng().ptr() ) ;
+		mbedtls_ssl_conf_rng( &m_config , m_library_imp.rng().fn() , m_library_imp.rng().vptr() ) ;
 		mbedtls_ssl_conf_dbg( &m_config , onDebug , this ) ;
 	}
 
@@ -517,7 +522,6 @@ std::unique_ptr<GSsl::ProtocolImpBase> GSsl::MbedTls::ProfileImp::newProtocol( c
 
 mbedtls_x509_crl * GSsl::MbedTls::ProfileImp::crl() const
 {
-	// TODO certificate revocation list
 	return nullptr ;
 }
 
@@ -726,7 +730,7 @@ GSsl::Protocol::Result GSsl::MbedTls::ProtocolImp::handshake()
 	Result result = convert( "mbedtls_ssl_handshake" , rc ) ;
 	if( result == Protocol::Result::ok )
 	{
-		const char * vstr = "" ; // NOLINT
+		const char * vstr = nullptr ;
 		if( m_profile.authmode() == MBEDTLS_SSL_VERIFY_NONE )
 		{
 			m_verified = false ;
@@ -749,6 +753,7 @@ GSsl::Protocol::Result GSsl::MbedTls::ProtocolImp::handshake()
 			m_verified = true ;
 			vstr = "peer certificate verified" ;
 		}
+		G_ASSERT( vstr != nullptr ) ;
 
 		m_peer_certificate = getPeerCertificate() ;
 		m_peer_certificate_chain = m_peer_certificate ; // not implemented
@@ -783,8 +788,8 @@ std::string GSsl::MbedTls::ProtocolImp::getPeerCertificate()
 	const mbedtls_x509_crt * certificate = mbedtls_ssl_get_peer_cert( m_ssl.ptr() ) ;
 	if( certificate != nullptr )
 	{
-		const char * head = "-----BEGIN CERTIFICATE-----\n" ;
-		const char * tail = "-----END CERTIFICATE-----\n" ;
+		constexpr const char * head = "-----BEGIN CERTIFICATE-----\n" ;
+		constexpr const char * tail = "-----END CERTIFICATE-----\n" ;
 
 		const unsigned char * raw_p = certificate->GET_RAW(raw).GET_RAW(p) ;
 		std::size_t raw_n = certificate->GET_RAW(raw).GET_RAW(len) ;
@@ -795,7 +800,6 @@ std::string GSsl::MbedTls::ProtocolImp::getPeerCertificate()
 		int rc = mbedtls_pem_write_buffer( head , tail , raw_p , raw_n , &c , 0 , &n ) ;
 		if( n == 0U || rc != MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL )
 			throw Error( "certificate error" ) ;
-		n = n + n ; // old polarssl bug required this
 
 		// write it into the correctly sized buffer
 		std::vector<unsigned char> buffer( n ) ;
@@ -846,34 +850,60 @@ mbedtls_ssl_context * GSsl::MbedTls::Context::ptr()
 	return &x ;
 }
 
-mbedtls_ssl_context * GSsl::MbedTls::Context::ptr() const
+const mbedtls_ssl_context * GSsl::MbedTls::Context::ptr() const
 {
-	return const_cast<mbedtls_ssl_context*>(&x) ;
+	return &x ;
 }
 
 // ==
 
-GSsl::MbedTls::Rng::Rng() :
+#if defined(MBEDTLS_ENTROPY_HARDWARE_ALT)
+extern "C" int mbedtls_hardware_poll( void * vp , unsigned char * p , std::size_t n , std::size_t * n_p )
+{
+	return GSsl::MbedTls::Rng::getEntropy( vp , p , n , n_p ) ; // CryptoAPI
+}
+#endif
+
+GSsl::MbedTls::Rng::Rng( const Config & config ) :
 	x{} ,
 	entropy{}
 {
-	// quote: "in the default Mbed TLS the entropy collector tries to use what
-	// the platform you run can provide -- for Linux and UNIX-like systems this
-	// is /dev/urandom -- for windows this is CryptGenRandom of the CryptoAPI
-	// --  these are considered strong entropy sources -- when you run Mbed TLS
-	// on a different platform, such as an embedded platform, you have to add
-	// platform-specific or application-specific entropy sources"
-	mbedtls_entropy_init( &entropy ) ;
-
-	mbedtls_ctr_drbg_init( &x ) ;
-
-	static constexpr std::array<unsigned char,33> extra { "sdflkjsdlkjsdfkljxmvnxcvmxmncvxy" } ;
-	int rc = mbedtls_ctr_drbg_seed( &x , mbedtls_entropy_func , &entropy , extra.data() , extra.size()-1U ) ;
-	if( rc != 0 )
+	// for consistent TLS1.3 support we should initialise the PSA layer
+	// explicitly -- this has to be the first function call, but it also
+	// needs some entropy -- if the default entropy source has been disabled
+	// by MBEDTLS_NO_PLATFORM_ENTROPY we rely on mbedtls_hardware_poll()
+	// above
+	static constexpr bool need_psa_init = !!GCONFIG_NEED_MBEDTLS_PSA_INIT ;
+	if( need_psa_init && config.psa() )
 	{
-		mbedtls_entropy_free( &entropy ) ;
-		throw Error( "mbedtls_ctr_drbg_init" , rc ) ;
+		call( FN_OK(PSA_SUCCESS,psa_crypto_init) ) ;
 	}
+
+	// if we are using MbedTLS v3 and have initialised the PSA layer
+	// then we don't really need any of this and we could pass
+	// mbedtls_psa_get_random() and nullptr to mbedtls_ctr_drbg_random
+	// etc instead of pointers to mbedtls_ctr_drbg_random() and
+	// mbedtls_ctr_drbg_context.
+
+	mbedtls_entropy_init( &entropy ) ;
+	mbedtls_ctr_drbg_init( &x ) ;
+	G::ScopeExit cleanup( [&](){mbedtls_ctr_drbg_free(&x);mbedtls_entropy_free(&entropy);} ) ;
+
+	// for MbedTLS v3 on Windows the the entropy now comes from CNG (bcrypt) by
+	// default, not CryptoAPI -- this is not available pre-vista so if targeting
+	// windows xp we need to go back to CryptoAPI -- although this is not needed
+	// if we have mbedtls_hardware_poll()
+	#if GCONFIG_CRYPTOAPI_ENTROPY && !defined(MBEDTLS_ENTROPY_HARDWARE_ALT)
+	call( FN_OK(0,mbedtls_entropy_add_source) , &entropy , &Rng::getEntropy ,
+		nullptr, MBEDTLS_ENTROPY_BLOCK_SIZE , MBEDTLS_ENTROPY_SOURCE_STRONG ) ;
+	#endif
+
+	// seed the random number generator with initial entropy
+	static constexpr std::array<unsigned char,33> extra { "sdflkjsdlkjsdfkljxmvnxcvmxmncvxy" } ;
+	call( FN_OK(0,mbedtls_ctr_drbg_seed) , &x , mbedtls_entropy_func , &entropy ,
+		extra.data() , extra.size()-1U ) ;
+
+	cleanup.release() ;
 }
 
 GSsl::MbedTls::Rng::~Rng()
@@ -889,10 +919,41 @@ mbedtls_ctr_drbg_context * GSsl::MbedTls::Rng::ptr()
 }
 #endif
 
-mbedtls_ctr_drbg_context * GSsl::MbedTls::Rng::ptr() const
+const mbedtls_ctr_drbg_context * GSsl::MbedTls::Rng::ptr() const
+{
+	return &x ;
+}
+
+GSsl::MbedTls::RngFn GSsl::MbedTls::Rng::fn() const
+{
+	return mbedtls_ctr_drbg_random ;
+}
+
+void * GSsl::MbedTls::Rng::vptr() const
 {
 	return const_cast<mbedtls_ctr_drbg_context*>(&x) ;
 }
+
+#if GCONFIG_CRYPTOAPI_ENTROPY
+#include <wincrypt.h>
+int GSsl::MbedTls::Rng::getEntropy( void * , unsigned char * p , std::size_t n , std::size_t * n_p ) noexcept
+{
+	if( p == nullptr || n == 0U )
+		return MBEDTLS_ERR_ENTROPY_SOURCE_FAILED ;
+	HCRYPTPROV hprovider = 0 ;
+	if( !CryptAcquireContext( &hprovider , nullptr , nullptr , PROV_RSA_FULL , CRYPT_VERIFYCONTEXT | CRYPT_SILENT ) )
+		return MBEDTLS_ERR_ENTROPY_SOURCE_FAILED ;
+	if( !CryptGenRandom( hprovider , static_cast<DWORD>(n) , p ) )
+	{
+		CryptReleaseContext( hprovider , 0 ) ;
+		return MBEDTLS_ERR_ENTROPY_SOURCE_FAILED ;
+	}
+	CryptReleaseContext( hprovider , 0 ) ;
+	if( n_p )
+		*n_p = n ;
+	return 0 ;
+}
+#endif
 
 // ==
 
@@ -1011,7 +1072,7 @@ void GSsl::MbedTls::Key::load( const std::string & pem_file , const Rng & rng )
 		throw Error( "cannot load private key from " + pem_file ) ;
 
 	int rc = call_fn( mbedtls_pk_parse_key , &x , file.pu() , file.size() ,
-		nullptr , 0 , mbedtls_ctr_drbg_random , rng.ptr() ) ;
+		nullptr , 0 , rng.fn() , rng.vptr() ) ;
 
 	if( rc < 0 ) // negative error code
 		throw Error( "mbedtls_pk_parse_key" , rc ) ;
@@ -1025,9 +1086,9 @@ mbedtls_pk_context * GSsl::MbedTls::Key::ptr()
 }
 
 #ifndef G_LIB_SMALL
-mbedtls_pk_context * GSsl::MbedTls::Key::ptr() const
+const mbedtls_pk_context * GSsl::MbedTls::Key::ptr() const
 {
-	return const_cast<mbedtls_pk_context*>( &x ) ;
+	return &x ;
 }
 #endif
 
@@ -1070,14 +1131,71 @@ mbedtls_x509_crt * GSsl::MbedTls::Certificate::ptr()
 }
 
 #ifndef G_LIB_SMALL
-mbedtls_x509_crt * GSsl::MbedTls::Certificate::ptr() const
+const mbedtls_x509_crt * GSsl::MbedTls::Certificate::ptr() const
 {
 	if( loaded() )
-		return const_cast<mbedtls_x509_crt*>( &x ) ;
+		return &x ;
 	else
 		return nullptr ;
 }
 #endif
+
+std::string GSsl::MbedTls::Certificate::generate( const std::string & issuer_name , RngFn f_rng , void * p_rng )
+{
+	X<mbedtls_pk_context> key( mbedtls_pk_init , mbedtls_pk_free ) ;
+	{
+		const mbedtls_pk_type_t type = MBEDTLS_PK_RSA;
+		const unsigned int keysize = 4096U ;
+		const int exponent = 65537 ;
+		call( FN_OK(0,mbedtls_pk_setup) , key.ptr() , mbedtls_pk_info_from_type(type) ) ;
+		call( FN_OK(0,mbedtls_rsa_gen_key) , mbedtls_pk_rsa(key.x) , f_rng , p_rng , keysize , exponent ) ;
+	}
+
+	std::string s_key ;
+	{
+		std::vector<unsigned char> pk_buffer( 16000U ) ;
+		call( FN_OK(0,mbedtls_pk_write_key_pem) , key.ptr() , pk_buffer.data() , pk_buffer.size() ) ;
+		pk_buffer[pk_buffer.size()-1] = 0 ;
+		s_key = reinterpret_cast<const char*>( pk_buffer.data() ) ;
+	}
+
+	// see also mbedtls/programs/x509/cert_write.c ...
+
+	X<mbedtls_mpi> mpi( mbedtls_mpi_init , mbedtls_mpi_free ) ;
+	{
+		const char * serial = "1" ;
+		call( FN_OK(0,mbedtls_mpi_read_string) , mpi.ptr() , 10 , serial ) ;
+	}
+
+	X<mbedtls_x509write_cert> crt( mbedtls_x509write_crt_init , mbedtls_x509write_crt_free ) ;
+	{
+		const char * not_before = "20200101000000" ;
+		const char * not_after = "20401231235959" ;
+		const int is_ca = 0 ;
+		const int max_pathlen = -1 ;
+		call( FN(mbedtls_x509write_crt_set_subject_key) , crt.ptr() , key.ptr() ) ;
+		call( FN(mbedtls_x509write_crt_set_issuer_key) , crt.ptr() , key.ptr() ) ;
+		call( FN_OK(0,mbedtls_x509write_crt_set_subject_name) , crt.ptr() , issuer_name.c_str()/*sic*/ ) ;
+		call( FN_OK(0,mbedtls_x509write_crt_set_issuer_name) , crt.ptr() , issuer_name.c_str() ) ;
+		call( FN(mbedtls_x509write_crt_set_version) , crt.ptr() , MBEDTLS_X509_CRT_VERSION_3 ) ;
+		call( FN(mbedtls_x509write_crt_set_md_alg) , crt.ptr() , MBEDTLS_MD_SHA256 ) ;
+		call_mbedtls_x509write_crt_set_serial( crt.ptr() , mpi.ptr() , 1U ) ;
+		call( FN_OK(0,mbedtls_x509write_crt_set_validity) , crt.ptr() , not_before , not_after ) ;
+		call( FN_OK(0,mbedtls_x509write_crt_set_basic_constraints) , crt.ptr() , is_ca , max_pathlen ) ;
+		call( FN_OK(0,mbedtls_x509write_crt_set_subject_key_identifier) , crt.ptr() ) ;
+		call( FN_OK(0,mbedtls_x509write_crt_set_authority_key_identifier) , crt.ptr() ) ;
+	}
+
+	std::string s_crt ;
+	{
+		std::vector<unsigned char> crt_buffer( 4096 ) ;
+		call( FN_OK(0,mbedtls_x509write_crt_pem) , crt.ptr() , crt_buffer.data() , crt_buffer.size() , f_rng , p_rng ) ;
+		crt_buffer[crt_buffer.size()-1] = 0 ;
+		s_crt = reinterpret_cast<const char*>( crt_buffer.data() ) ;
+	}
+
+	return s_key + s_crt ;
+}
 
 // ==
 
@@ -1099,7 +1217,7 @@ std::string GSsl::MbedTls::Error::format( const std::string & fnname , int rc , 
 	buffer.back() = '\0' ;
 
 	std::ostringstream ss ;
-	ss << "tls error: " << fnname << "(): mbedtls [" << G::Str::printable(std::string(buffer.data())) << "]" ;
+	ss << "tls error: " << fnname << "(): mbedtls [" << G::Str::printable(std::string(buffer.data())) << "](" << rc << ")" ;
 	if( !more.empty() )
 		ss << " [" << more << "]" ;
 

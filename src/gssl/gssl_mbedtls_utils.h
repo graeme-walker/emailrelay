@@ -149,8 +149,8 @@ namespace GSsl
 		{
 			X( void (*init)(T*) , void (*free)(T*) ) : m_free(free) { init(&x) ; }
 			~X() { m_free(&x) ; }
-			T * ptr() { return &x ; }
-			const T * ptr() const { return &x ; }
+			T * ptr() noexcept { return &x ; }
+			const T * ptr() const noexcept { return &x ; }
 			T x ;
 			void (*m_free)(T*) ;
 			X * operator&() = delete ;
