@@ -22,8 +22,7 @@
 #include "gdescriptor.h"
 
 GNet::Descriptor::Descriptor() noexcept :
-	m_fd(INVALID_SOCKET) ,
-	m_handle(HNULL)
+	m_fd(INVALID_SOCKET)
 {
 }
 

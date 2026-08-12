@@ -70,7 +70,7 @@ std::pair<ServiceImp::StatusHandle,DWORD> ServiceImp::statusHandle( const std::s
 	m_handler_fn = fn ;
 	StatusHandle h = G::nowide::registerServiceCtrlHandlerW( service_name , ServiceImp::Handler ) ;
 	DWORD e = 0 ;
-	if( h == 0 )
+	if( h == HNULL )
 		e = GetLastError() ;
 	return { h , e } ;
 }
@@ -113,7 +113,7 @@ void ServiceImp::log( const std::string & s ) noexcept
 		if( first )
 		{
 			first = false ;
-			HKEY hkey = 0 ;
+			HKEY hkey = HNULL ;
 			G::nowide::regOpenKey( HKEY_LOCAL_MACHINE , G::Path("SOFTWARE")/G::Process::exe().withoutExtension().basename() , &hkey , true ) ;
 			std::string logfile ;
 			G::nowide::regGetValueString( hkey , "logfile" , &logfile ) ;

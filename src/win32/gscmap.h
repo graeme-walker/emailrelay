@@ -66,8 +66,8 @@ public:
 private:
 	struct Slot
 	{
-		Proc proc {0} ;
-		HWND hwnd {0} ;
+		Proc proc {nullptr} ;
+		HWND hwnd {HNULL} ;
 		void * context {nullptr} ;
 		Slot() = default ;
 		Slot( Proc proc_in , HWND hwnd_in , void * context_in ) : proc(proc_in) , hwnd(hwnd_in) , context(context_in) {}

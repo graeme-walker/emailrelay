@@ -21,15 +21,12 @@
 #include "gdef.h"
 #include "gappinst.h"
 
-HINSTANCE GGui::ApplicationInstance::m_hinstance = 0 ;
+HINSTANCE GGui::ApplicationInstance::m_hinstance = HNULL ;
 
 GGui::ApplicationInstance::ApplicationInstance( HINSTANCE h )
 {
 	hinstance( h ) ;
 }
-
-GGui::ApplicationInstance::~ApplicationInstance()
-= default ;
 
 void GGui::ApplicationInstance::hinstance( HINSTANCE h )
 {

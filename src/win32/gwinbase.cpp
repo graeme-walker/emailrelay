@@ -48,11 +48,11 @@ GGui::Size GGui::WindowBase::internalSize() const
 	{
 		G_ASSERT( rect.left == 0 ) ;
 		G_ASSERT( rect.top == 0 ) ;
-		return Size( rect.right , rect.bottom ) ;
+		return Size( rect.right , rect.bottom ) ; // NOLINT(*-return-braced-init-list)
 	}
 	else
 	{
-		return Size() ;
+		return {} ;
 	}
 }
 
@@ -63,11 +63,11 @@ GGui::Size GGui::WindowBase::externalSize() const
 	{
 		G_ASSERT( rect.right >= rect.left ) ;
 		G_ASSERT( rect.bottom >= rect.top ) ;
-		return Size( rect.right - rect.left , rect.bottom - rect.top ) ;
+		return Size( rect.right - rect.left , rect.bottom - rect.top ) ; // NOLINT(*-return-braced-init-list)
 	}
 	else
 	{
-		return Size() ;
+		return {} ;
 	}
 }
 

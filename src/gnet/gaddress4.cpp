@@ -55,7 +55,7 @@ int GNet::Address4::domain() noexcept
 GNet::Address4::Address4( std::nullptr_t ) :
 	m_inet{}
 {
-	m_inet.sin_family =  af() ;
+	m_inet.sin_family =  af() ; // NOLINT(*-narrowing-conversions)
 	m_inet.sin_port =  0 ;
 }
 

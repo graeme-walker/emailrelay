@@ -25,6 +25,7 @@
 #include "glog.h"
 #include <algorithm>
 #include <functional>
+#include <iterator>
 
 namespace GNet
 {
@@ -38,8 +39,8 @@ namespace GNet
 		{
 			if( (offset+1U) < handles.size() ) // if not already rightmost
 			{
-				std::rotate( handles.begin()+offset , handles.begin()+(offset+1U) , handles.end() ) ;
-				std::rotate( indexes.begin()+offset , indexes.begin()+(offset+1U) , indexes.end() ) ;
+				std::rotate( handles.begin()+offset , handles.begin()+(offset+1U) , handles.end() ) ; // NOLINT(*-narrowing-conversions)
+				std::rotate( indexes.begin()+offset , indexes.begin()+(offset+1U) , indexes.end() ) ; // NOLINT(*-narrowing-conversions)
 			}
 		}
 	}
@@ -141,8 +142,6 @@ bool GNet::EventLoopHandles::overflow( std::size_t list_size , std::function<std
 // --
 
 GNet::EventLoopConfig::EventLoopConfig() :
-	st_only(false) ,
-	update_all(false) ,
 	st_wait_limit(EventLoopHandlesImp::WAIT_LIMIT) ,
 	mt_wait_limit(EventLoopHandlesImp::WAIT_LIMIT) ,
 	mt_thread_limit(EventLoopHandlesImp::WAIT_LIMIT)
@@ -529,7 +528,7 @@ std::size_t GNet::EventLoopHandlesMt::capacityLimit( EventLoopConfig config ) no
 
 HANDLE GNet::EventLoopHandlesImp::createEvent() noexcept
 {
-	return CreateEventW( NULL , TRUE , FALSE , NULL ) ;
+	return CreateEventW( nullptr , TRUE , FALSE , nullptr ) ;
 }
 
 void GNet::EventLoopHandlesMt::setEvent( HANDLE h )
@@ -565,21 +564,21 @@ GNet::EventLoopThread::EventLoopThread( int id ) :
 	m_heventind(createEvent())
 {
 	static_assert( margin == 3U , "" ) ;
-	m_thread_handles[0] = 0 ;
-	m_thread_handles[1] = 0 ;
-	m_thread_handles[2] = 0 ;
-	m_thread_handle_count = margin ;
+	m_thread_handles[0] = HNULL ;
+	m_thread_handles[1] = HNULL ;
+	m_thread_handles[2] = HNULL ;
+	m_thread_handle_count = margin ; // NOLINT(*-prefer-member-initializer)
 
 	m_wait_handles[0] = m_hquitreq ;
 	m_wait_handles[1] = m_hstartreq ;
 	m_wait_handles[2] = m_hstopreq ;
-	m_wait_handle_count = margin ;
+	m_wait_handle_count = margin ; // NOLINT(*-prefer-member-initializer)
 
 	m_indexes[0] = ~(std::size_t(0U)) ;
 	m_indexes[1] = ~(std::size_t(0U)) ;
 	m_indexes[2] = ~(std::size_t(0U)) ;
 
-	m_stopped = true ;
+	m_stopped = true ; // NOLINT(*-prefer-member-initializer)
 	m_thread = std::thread( std::bind(&EventLoopThread::run,this,G::LogOutput::Instance::config(),G::LogOutput::Instance::fd()) ) ;
 }
 

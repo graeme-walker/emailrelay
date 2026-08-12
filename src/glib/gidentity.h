@@ -76,13 +76,13 @@ public:
 		///< Returns a string representation.
 
 	uid_t userid() const noexcept ;
-		///< Returns the user part (Unix).
+		///< Returns the user part (Unix) or the RID (Windows).
 
 	gid_t groupid() const noexcept ;
-		///< Returns the group part (Unix).
+		///< Returns the group part (Unix) or -1 (Windows).
 
 	std::string sid() const ;
-		///< Returns the sid (Windows).
+		///< Returns the SID (Windows).
 
 	bool operator==( const Identity & ) const noexcept ;
 		///< Comparison operator.

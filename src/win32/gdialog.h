@@ -55,7 +55,7 @@ public:
 		///< the dialog box is given no parent and therefore
 		///< appears on the task bar.
 
-	virtual ~Dialog() ;
+	~Dialog() override ;
 		///< Virtual destructor. If the dialog box is running it
 		///< is left running but in a headless chicken mode.
 

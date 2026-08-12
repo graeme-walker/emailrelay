@@ -122,7 +122,7 @@ HWND GGui::Control::handle( std::nothrow_t ) const noexcept
 
 HWND GGui::Control::handle() const
 {
-	if( m_hwnd == 0 )
+	if( m_hwnd == HNULL )
 	{
 		HWND hdialog_ = hdialog() ;
 		const_cast<Control*>(this)->m_hwnd = GetDlgItem( hdialog_ , m_id ) ;
@@ -138,13 +138,11 @@ HWND GGui::Control::handle() const
 }
 
 GGui::Control::~Control()
-{
-	G_ASSERT( m_no_redraw_count == 0 ) ;
-}
+= default ;
 
 void GGui::Control::subClass( SubClassMap & map )
 {
-	G_ASSERT( handle() != 0 ) ;
+	G_ASSERT( handle() != HNULL ) ;
 	SubClassMap::Proc old = reinterpret_cast<SubClassMap::Proc>( G::nowide::getWindowLongPtr( handle() , GWLP_WNDPROC ) ) ;
 	map.add( handle() , old , static_cast<void*>(this) ) ;
 	G::nowide::setWindowLongPtr( handle() , GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(gcontrol_wndproc_export) ) ;
@@ -192,7 +190,7 @@ LRESULT CALLBACK gcontrol_wndproc_export( HWND hwnd , UINT message , WPARAM wpar
 
 		// find the control object and the super-class window procedure
 		void * context = nullptr ;
-		auto super_class = reinterpret_cast<GGui::SubClassMap::Proc>( dialog->map().find(hwnd,&context) ) ;
+		auto super_class = dialog->map().find( hwnd , &context ) ;
 		GGui::Control * control = static_cast<GGui::Control*>(context) ;
 		G_ASSERT( control != nullptr ) ;
 		G_ASSERT( control->handle() == hwnd ) ;
@@ -235,12 +233,11 @@ GGui::ListBox::ListBox( Dialog & dialog , int id ) :
 }
 
 GGui::ListBox::~ListBox()
-{
-}
+= default ;
 
 void GGui::ListBox::set( const G::StringArray & list )
 {
-	if( list.size() == 0U )
+	if( list.empty() )
 	{
 		sendMessage( LB_RESETCONTENT , 0 , 0 ) ;
 		return ;
@@ -253,10 +250,9 @@ void GGui::ListBox::set( const G::StringArray & list )
 	sendMessage( LB_RESETCONTENT , 0 , 0 ) ;
 
 	// add
-	for( G::StringArray::const_iterator string_p = list.begin() ;
-		string_p != list.end() ; ++string_p )
+	for( const auto & line : list )
 	{
-		sendMessageString( LB_ADDSTRING , 0 , *string_p ) ;
+		sendMessageString( LB_ADDSTRING , 0 , line ) ;
 	}
 }
 
@@ -277,7 +273,7 @@ std::string GGui::ListBox::getItem( int index ) const
 
 	LRESULT rc = sendMessage( LB_GETTEXTLEN , static_cast<WPARAM>(index) ) ;
 	if( rc == LB_ERR || rc > 0xfff0 || rc <= 0 )
-		return std::string() ;
+		return {} ;
 
 	return sendMessageGetString( LB_GETTEXT , static_cast<WPARAM>(index) ) ;
 }
@@ -305,8 +301,7 @@ GGui::ListView::ListView( HWND hdialog , int id , HWND hcontrol ) :
 }
 
 GGui::ListView::~ListView()
-{
-}
+= default ;
 
 void GGui::ListView::set( const G::StringArray & list , unsigned int columns , unsigned int width )
 {
@@ -314,7 +309,7 @@ void GGui::ListView::set( const G::StringArray & list , unsigned int columns , u
 	std::size_t i = 0U ;
 	for( unsigned int c = 0U ; c < columns ; c++ )
 	{
-		G::nowide::sendMessageInsertColumn( handle() , c , list.at(i++) , width?width:100U ) ;
+		G::nowide::sendMessageInsertColumn( handle() , static_cast<int>(c) , list.at(i++) , static_cast<int>(width?width:100U) ) ;
 	}
 	if( columns != 0U )
 		update( list , columns ) ;
@@ -332,7 +327,7 @@ void GGui::ListView::update( const G::StringArray & list , unsigned int columns 
 	{
 		for( unsigned int c = 0U ; c < columns ; c++ )
 		{
-			G::nowide::sendMessageInsertItem( handle() , item , c , list.at(i++) ) ;
+			G::nowide::sendMessageInsertItem( handle() , static_cast<int>(item) , static_cast<int>(c) , list.at(i++) ) ;
 		}
 	}
 }
@@ -340,14 +335,12 @@ void GGui::ListView::update( const G::StringArray & list , unsigned int columns 
 // ==
 
 GGui::EditBox::EditBox( Dialog & dialog , int id ) :
-	Control( dialog , id ) ,
-	m_character_height(0)
+	Control( dialog , id )
 {
 }
 
 GGui::EditBox::~EditBox()
-{
-}
+= default ;
 
 void GGui::EditBox::set( const std::string & text )
 {
@@ -357,7 +350,7 @@ void GGui::EditBox::set( const std::string & text )
 
 void GGui::EditBox::set( const G::StringArray & list )
 {
-	if( list.size() == 0U )
+	if( list.empty() )
 	{
 		set( std::string() ) ;
 	}
@@ -469,8 +462,7 @@ GGui::CheckBox::CheckBox( Dialog & dialog , int id ) :
 }
 
 GGui::CheckBox::~CheckBox()
-{
-}
+= default ;
 
 bool GGui::CheckBox::get() const
 {
@@ -490,8 +482,7 @@ GGui::Button::Button( Dialog & dialog , int id ) :
 }
 
 GGui::Button::~Button()
-{
-}
+= default ;
 
 bool GGui::Button::enabled() const
 {

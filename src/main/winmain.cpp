@@ -53,7 +53,7 @@ int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous , LPSTR /*command_l
 			if( run.runnable() )
 			{
 				app.init( run.configuration(0U) , options_spec ) ;
-				app.createWindow( show_style , /*show=*/false , 10 , 10 ) ; // main window, not shown
+				app.createWindow( show_style , /*do_show=*/false , 10 , 10 ) ; // main window, not shown
 				run.signal().connect( G::Slot::slot(app,&Main::WinApp::onRunEvent) ) ;
 				run.run() ;
 			}

@@ -17,6 +17,7 @@
 ///
 /// \file licence.cpp
 ///
+// NOLINTBEGIN(*-avoid-c-arrays)
 const char * licence[] = {
 "                    GNU GENERAL PUBLIC LICENSE" ,
 "                       Version 3, 29 June 2007" ,
@@ -694,3 +695,4 @@ const char * licence[] = {
 "<http://www.gnu.org/philosophy/why-not-lgpl.html>." ,
 nullptr
 } ;
+// NOLINTEND(*-avoid-c-arrays)

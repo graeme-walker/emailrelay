@@ -60,8 +60,8 @@ public:
 	WinMenu & operator=( WinMenu && ) = delete ;
 
 private:
-	HMENU m_hmenu ;
-	HMENU m_hmenu_popup ;
+	HMENU m_hmenu {HNULL} ;
+	HMENU m_hmenu_popup {HNULL} ;
 } ;
 
 #endif

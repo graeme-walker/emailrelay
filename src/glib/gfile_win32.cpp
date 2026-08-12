@@ -57,7 +57,7 @@ namespace G
 		}
 		HANDLE handle( int fd )
 		{
-			return fd >= 0 ? reinterpret_cast<HANDLE>( _get_osfhandle(fd) ) : HNULL ;
+			return fd >= 0 ? reinterpret_cast<HANDLE>( _get_osfhandle(fd) ) : HNULL ; // NOLINT(*-no-int-to-ptr)
 		}
 		int fd( std::FILE * fp )
 		{
@@ -355,7 +355,7 @@ bool G::File::hardlink( const Path & , const Path & , std::nothrow_t )
 
 G::Path G::File::readlink( const Path & )
 {
-	return Path() ;
+	return {} ;
 }
 
 void G::File::link( const Path & , const Path & new_link )

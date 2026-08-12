@@ -37,9 +37,9 @@
 #include <fcntl.h>
 #include <direct.h> // _getcwd()
 
-G::Process::Id::Id() noexcept
+G::Process::Id::Id() noexcept :
+	m_pid(static_cast<unsigned>(::_getpid())) // or ::GetCurrentProcessId()
 {
-	m_pid = static_cast<unsigned int>(::_getpid()) ; // or ::GetCurrentProcessId()
 }
 
 std::string G::Process::Id::str() const

@@ -924,7 +924,7 @@ namespace G
 			if( w != !!IsWindowUnicode(hwnd) )
 				throw std::runtime_error( "unicode window mismatch" ) ;
 		}
-		inline LRESULT callWindowProc( LONG_PTR fn , HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam )
+		inline LRESULT callWindowProc( ULONG_PTR fn , HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam )
 		{
 			check_hwnd( hwnd ) ;
 			if( w )

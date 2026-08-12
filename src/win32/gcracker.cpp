@@ -40,7 +40,7 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam , LPARAM lparam , boo
 {
 	//G_DEBUG( "GGui::Cracker::crack: " << message << " " << wparam << " " << lparam ) ;
 	call_default = false ;
-	switch( message )
+	switch( message ) // NOLINT(*-switch-missing-default-case)
 	{
 		case WM_PAINT:
 		{
@@ -441,7 +441,7 @@ LRESULT GGui::Cracker::onControlColour_( WPARAM wparam , LPARAM lparam , WORD id
 
 HBRUSH GGui::Cracker::onControlColour( HDC , HWND , WORD )
 {
-	return 0 ;
+	return HNULL ;
 }
 
 void GGui::Cracker::onSysColourChange()

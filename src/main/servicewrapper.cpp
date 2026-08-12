@@ -167,7 +167,7 @@ struct ServiceEvent
 	{
 	}
 	ServiceEvent( std::nullptr_t ) noexcept :
-		m_h(0)
+		m_h(HNULL)
 	{
 	}
 	~ServiceEvent()
@@ -177,7 +177,7 @@ struct ServiceEvent
 	void create()
 	{
 		m_h = CreateEvent( nullptr , FALSE , FALSE , nullptr ) ;
-		if( m_h == 0 )
+		if( m_h == HNULL )
 		{
 			DWORD e = GetLastError() ;
 			throw ServiceError( "CreateEvent" , e ) ;
@@ -187,7 +187,7 @@ struct ServiceEvent
 	{
 		if( m_h )
 			CloseHandle( m_h ) ;
-		m_h = 0 ;
+		m_h = HNULL ;
 	}
 	void set() noexcept
 	{
@@ -200,7 +200,7 @@ struct ServiceEvent
 	}
 	HANDLE dup() const
 	{
-		HANDLE h = 0 ;
+		HANDLE h = HNULL ;
 		BOOL ok = DuplicateHandle( GetCurrentProcess() , m_h , GetCurrentProcess() , &h ,
 			0 , FALSE , DUPLICATE_SAME_ACCESS ) ;
 		if( !ok )
@@ -417,9 +417,9 @@ void Service::run()
 
 Service::Service() :
 	m_magic(Magic) ,
-	m_hservice(0) ,
+	m_hservice(HNULL) ,
 	m_status(SERVICE_START_PENDING) ,
-	m_hthread(0) ,
+	m_hthread(HNULL) ,
 	m_thread_id(0) ,
 	m_thread_exit(nullptr)
 {
@@ -694,12 +694,12 @@ std::string Service::quoted( const std::string & s )
 // ==
 
 ServiceChild::ServiceChild() :
-	m_hprocess(0)
+	m_hprocess(HNULL)
 {
 }
 
 ServiceChild::ServiceChild( std::string command_line ) :
-	m_hprocess(0)
+	m_hprocess(HNULL)
 {
 	G_SERVICE_DEBUG( "ServiceChild::ctor: spawning [" << command_line << "]" ) ;
 
@@ -731,7 +731,7 @@ void ServiceChild::close() noexcept
 	if( m_hprocess )
 	{
 		HANDLE h = m_hprocess ;
-		m_hprocess = 0 ;
+		m_hprocess = HNULL ;
 		closeHandle( h ) ;
 	}
 }

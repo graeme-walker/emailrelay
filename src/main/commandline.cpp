@@ -125,7 +125,7 @@ Main::CommandLine::CommandLine( Output & output , const G::Arg & args_in ,
 			config_names.emplace_back() ;
 
 		// parse each config name
-		for( std::size_t i = 0U ; i < config_names.size() ; i++ )
+		for( std::size_t i = 0U ; i < config_names.size() ; i++ ) // NOLINT(modernize-loop-convert)
 		{
 			m_config_names.push_back( config_names[i] ) ;
 			m_option_maps.emplace_back() ;
@@ -186,7 +186,7 @@ void Main::CommandLine::dump() const
 	for( std::size_t i = 0U ; i < m_config_names.size() ; i++ )
 	{
 		std::cout << m_config_names.at(i) << "...\n" ;
-		for( auto p = m_option_maps.at(i).begin() ; p != m_option_maps.at(i).end() ; ++p ) // NOLINT modernize-loop-convert
+		for( auto p = m_option_maps.at(i).begin() ; p != m_option_maps.at(i).end() ; ++p ) // NOLINT(modernize-loop-convert)
 		{
 			std::cout << "  " << (*p).first << "=[" << (*p).second.value() << "] (" << (*p).second.count() << ")\n" ;
 		}

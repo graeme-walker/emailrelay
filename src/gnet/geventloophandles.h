@@ -41,7 +41,7 @@ namespace GNet
 	struct EventLoopHandlesRc
 	{
 		using RcType = EventLoopHandlesRcType ;
-		EventLoopHandlesRc( RcType type , std::size_t index = 0U ) noexcept : m_type(type) , m_index(index) , m_error(0) {}
+		EventLoopHandlesRc( RcType type , std::size_t index = 0U ) noexcept : m_type(type) , m_index(index) {}
 		static EventLoopHandlesRc failure( DWORD error ) noexcept { EventLoopHandlesRc rc(RcType::failed) ; rc.m_error = error ; return rc ; }
 		RcType type() const noexcept { return m_type ; }
 		operator RcType () const noexcept { return m_type ; }
@@ -49,7 +49,7 @@ namespace GNet
 		//
 		RcType m_type ;
 		std::size_t m_index ; // ListItem index
-		DWORD m_error ; // if 'failed'
+		DWORD m_error {0} ; // if 'failed'
 	} ;
 	struct EventLoopHandlesBase
 	{
@@ -64,8 +64,8 @@ namespace GNet
 	struct EventLoopConfig
 	{
 		EventLoopConfig() ;
-		bool st_only ;
-		bool update_all ;
+		bool st_only {false} ;
+		bool update_all {false} ;
 		std::size_t st_wait_limit ;
 		std::size_t mt_wait_limit ;
 		std::size_t mt_thread_limit ;

@@ -19,6 +19,7 @@ readability-*,\
 -bugprone-macro-parentheses,\
 -bugprone-suspicious-include,\
 -bugprone-suspicious-stringview-data-usage,\
+-cppcoreguidelines-avoid-const-or-ref-data-members,\
 -cppcoreguidelines-avoid-do-while,\
 -cppcoreguidelines-avoid-magic-numbers,\
 -cppcoreguidelines-avoid-non-const-global-variables,\
@@ -39,6 +40,7 @@ readability-*,\
 -misc-no-recursion,\
 -misc-const-correctness,\
 -misc-use-internal-linkage,\
+-misc-misplaced-const,\
 -modernize-avoid-bind,\
 -modernize-concat-nested-namespaces,\
 -modernize-macro-to-enum,\
@@ -51,6 +53,7 @@ readability-*,\
 -modernize-use-trailing-return-type,\
 -performance-avoid-endl,\
 -performance-enum-size,\
+-performance-no-int-to-ptr,\
 -performance-unnecessary-copy-initialization,\
 -performance-unnecessary-value-param,\
 -readability-avoid-nested-conditional-operator,\

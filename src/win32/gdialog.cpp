@@ -55,7 +55,7 @@ GGui::Dialog::Dialog( const ApplicationBase & app , bool top_level ) :
 	m_title(app.title()) ,
 	m_modal(false) ,
 	m_focus_set(false) ,
-	m_hinstance(app.hinstance()) ,
+	m_hinstance(app.hinstance()) , // NOLINT(*-static-accessed-through-instance)
 	m_hwnd_parent(top_level?HNULL:app.handle()) ,
 	m_magic(Magic)
 {
@@ -157,7 +157,7 @@ INT_PTR GGui::Dialog::dlgProc( HWND hwnd , UINT message , WPARAM wparam , LPARAM
 
 INT_PTR GGui::Dialog::dlgProcImp( UINT message , WPARAM wparam , LPARAM lparam )
 {
-	switch( message )
+	switch( message ) // NOLINT(*-switch-missing-default-case)
 	{
 		case WM_VSCROLL:
 		case WM_HSCROLL:
@@ -258,7 +258,7 @@ INT_PTR GGui::Dialog::dlgProcImp( UINT message , WPARAM wparam , LPARAM lparam )
 
 HBRUSH GGui::Dialog::onControlColour( HDC , HWND , WORD )
 {
-	return 0 ;
+	return HNULL ;
 }
 
 void GGui::Dialog::onDestroy()
@@ -461,21 +461,21 @@ INT_PTR GGui::Dialog::onControlColour_( WPARAM wparam , LPARAM lparam , WORD typ
 
 LPARAM GGui::Dialog::toLongParam( Dialog * p )
 {
-	return reinterpret_cast<LPARAM>( static_cast<void*>(p) ) ;
+	return reinterpret_cast<LPARAM>( p ) ;
 }
 
 LONG_PTR GGui::Dialog::toLongPtr( Dialog * p )
 {
-	return reinterpret_cast<LONG_PTR>( static_cast<void*>(p) ) ;
+	return reinterpret_cast<LONG_PTR>( p ) ;
 }
 
 GGui::Dialog * GGui::Dialog::fromLongParam( LPARAM lparam )
 {
-	return reinterpret_cast<Dialog*>( reinterpret_cast<void*>(lparam) ) ;
+	return reinterpret_cast<Dialog*>( lparam ) ;
 }
 
 GGui::Dialog * GGui::Dialog::fromLongPtr( LONG_PTR p )
 {
-	return static_cast<Dialog*>( reinterpret_cast<void*>(p) ) ;
+	return reinterpret_cast<Dialog*>( p ) ;
 }
 

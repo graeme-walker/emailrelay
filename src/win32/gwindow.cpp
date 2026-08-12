@@ -234,7 +234,7 @@ UINT GGui::Window::classStyle( bool redraw )
 
 HBRUSH GGui::Window::classBrush()
 {
-	return (HBRUSH)( 1 + COLOR_BACKGROUND ) ;
+	return reinterpret_cast<HBRUSH>( 1 + COLOR_BACKGROUND ) ;
 }
 
 HICON GGui::Window::classIcon()
@@ -276,14 +276,16 @@ void GGui::Window::resize( Size new_size , bool repaint )
 	if( GetWindowRect( handle() , &rect ) )
 	{
 		HWND parent = GetParent( handle() ) ;
-		const bool child_window = parent != 0 ;
+		const bool child_window = parent != HNULL ;
 		if( child_window )
 		{
 			rect.left = 0 ;
 			rect.top = 0 ;
 		}
 
-		MoveWindow( handle() , rect.left , rect.top , new_size.dx , new_size.dy , repaint ) ;
+		MoveWindow( handle() , rect.left , rect.top ,
+			static_cast<int>(new_size.dx) , static_cast<int>(new_size.dy) ,
+			repaint ) ;
 	}
 }
 

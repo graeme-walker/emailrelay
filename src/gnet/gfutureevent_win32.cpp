@@ -75,7 +75,7 @@ private:
 		Handle( Handle && ) = delete ;
 		Handle & operator=( const Handle & ) = delete ;
 		Handle & operator=( Handle && ) = delete ;
-		HANDLE h{0} ;
+		HANDLE h {HNULL} ;
 	} ;
 
 private:
@@ -89,12 +89,10 @@ GNet::FutureEventImp::FutureEventImp( FutureEventHandler & handler , EventState 
 	m_handler(handler) ,
 	m_es(es)
 {
-	m_h = FutureEvent::createHandle() ;
-	if( m_h == 0 )
+	m_h = FutureEvent::createHandle() ; // NOLINT(*-prefer-member-initializer)
+	if( m_h == HNULL )
 		throw FutureEvent::Error( "CreateEventEx" ) ;
-
 	m_h2 = dup() ;
-
 	EventLoop::instance().addRead( Descriptor(INVALID_SOCKET,m_h.h) , *this , es ) ;
 }
 
@@ -109,7 +107,7 @@ HANDLE GNet::FutureEventImp::dup()
 	// duplicate the handle so that the kernel object is only deleted
 	// once both handles are closed -- we need the main thread and the
 	// worker thread to both keep the kernel event-object alive
-	HANDLE h = 0 ;
+	HANDLE h = HNULL ;
 	BOOL ok = DuplicateHandle(
 		GetCurrentProcess() , m_h.h ,
 		GetCurrentProcess() , &h ,
@@ -124,7 +122,7 @@ HANDLE GNet::FutureEventImp::dup()
 
 HANDLE GNet::FutureEventImp::handle() noexcept
 {
-	HANDLE h2 = 0 ;
+	HANDLE h2 = HNULL ;
 	std::swap( h2 , m_h2.h ) ;
 	return h2 ;
 }

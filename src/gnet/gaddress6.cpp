@@ -56,7 +56,7 @@ int GNet::Address6::domain() noexcept
 GNet::Address6::Address6( std::nullptr_t ) :
 	m_inet{}
 {
-	m_inet.sin6_family = af() ;
+	m_inet.sin6_family = af() ; // NOLINT(*-narrowing-conversions)
 	m_inet.sin6_port = 0 ;
 	m_inet.sin6_flowinfo = 0 ;
 	gdef_address6_init( m_inet ) ; // gdef.h

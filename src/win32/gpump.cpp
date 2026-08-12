@@ -45,7 +45,7 @@ void GGui::Pump::quit( const std::string & reason )
 {
 	G_DEBUG( "GGui::Pump::quit: quit-reason=[" << reason << "] run-id=" << m_run_id ) ;
 	m_quit_reason = reason ;
-	G::nowide::postMessage( 0 , Cracker::wm_quit() , m_run_id , 0 ) ; // PostMessage(), not PostQuitMessage()
+	G::nowide::postMessage( HNULL , Cracker::wm_quit() , m_run_id , 0 ) ; // PostMessage(), not PostQuitMessage()
 }
 
 bool GGui::Pump::getMessage( MSG * msg_p , bool block )

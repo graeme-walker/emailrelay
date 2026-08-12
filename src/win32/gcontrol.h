@@ -176,7 +176,7 @@ public:
 	ListBox( Dialog & dialog , int id ) ;
 		///< Constructor.
 
-	virtual ~ListBox() ;
+	~ListBox() override ;
 		///< Destructor.
 
 	void set( const G::StringArray & list ) ;
@@ -217,7 +217,7 @@ public:
 	ListView( HWND hdialog , int id , HWND hcontrol = HNULL ) ;
 		///< Constructor overload for property sheets.
 
-	virtual ~ListView() ;
+	~ListView() override ;
 		///< Destructor.
 
 	void set( const G::StringArray & list , unsigned int columns = 1U , unsigned int width_px = 0U ) ;
@@ -248,7 +248,7 @@ public:
 	EditBox( Dialog & dialog , int id ) ;
 		///< Constructor.
 
-	virtual ~EditBox() ;
+	~EditBox() override ;
 		///< Destructor.
 
 	void set( const G::StringArray & list ) ;
@@ -306,7 +306,7 @@ private:
 	unsigned characterHeight() ; // not const
 
 private:
-	unsigned m_character_height ;
+	unsigned int m_character_height {0U} ;
 } ;
 
 //| \class GGui::CheckBox
@@ -318,7 +318,7 @@ public:
 	CheckBox( Dialog & dialog , int id ) ;
 		///< Constructor.
 
-	virtual ~CheckBox() ;
+	~CheckBox() override ;
 		///< Destructor.
 
 	bool get() const ;
@@ -343,7 +343,7 @@ public:
 	Button( Dialog & dialog , int id ) ;
 		///< Constructor.
 
-	virtual ~Button() ;
+	~Button() override ;
 		///< Destructor.
 
 	bool enabled() const ;
