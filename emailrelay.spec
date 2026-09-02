@@ -1,6 +1,6 @@
 Summary: Simple e-mail message transfer agent and proxy using SMTP
 Name: emailrelay
-Version: 2.6.1
+Version: 2.7rc1
 Release: 1
 License: GPL3
 Group: System Environment/Daemons

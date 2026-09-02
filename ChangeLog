@@ -1,6 +1,21 @@
 E-MailRelay Change Log
 ======================
 
+2.6.1 -> 2.7
+------------
+* The "--port" option can be used more than once.
+* New "--poll-run" option added to run a script on every "--poll" cycle.
+* More sensible file ownership when doing "maildir" delivery.
+* Fix for verifier exit code 100.
+* Windows DPI awareness.
+* GUI support for Qt6 translations.
+* Windows build scripts updated for statically-linked Qt6 etc.
+* Files installed under /usr/lib now moved to /usr/share.
+* Documentation in CommonMark only.
+* No doxygen by default.
+* Sphinx used for "make website".
+* Icon refresh.
+
 2.6 -> 2.6.1
 ------------
 * Network filters can abandon the current message, like exit code 100 [fr #40].

@@ -1258,7 +1258,7 @@ appropriate mailbox from which to serve up e-mails.
 
 Delivery is normally only relevant to incoming messages being received from
 external systems, but it might also be desirable for outgoing messages that are
-addressed to local users. For these messages is makes sense to use the delivery
+addressed to local users. For these messages it makes sense to use the delivery
 mechanism to move the message files straight into the incoming mailbox rather
 than have the message forwarded to the smarthost and then come back in again.
 

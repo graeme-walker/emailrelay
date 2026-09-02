@@ -58,6 +58,7 @@ rem $ copy emailrelay-src\libexec\winbuildall.bat .
 rem
 
 setlocal
+set version=2.7
 set thisdir=%~dp0
 set thisdrive=%~d0
 set arch=%Platform%
