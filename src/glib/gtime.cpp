@@ -31,20 +31,20 @@ G::Time::Time( int hh , int mm , int ss ) :
 {
 }
 
-G::Time::Time( const DateTime::BrokenDownTime & tm ) :
+G::Time::Time( const BrokenDownTime & tm ) :
 	Time(tm.hour(),tm.min(),tm.sec())
 {
 }
 
 #ifndef G_LIB_SMALL
 G::Time::Time() :
-	Time(DateTime::SystemTime::now().utc())
+	Time(SystemTime::now().utc())
 {
 }
 #endif
 
 #ifndef G_LIB_SMALL
-G::Time::Time( DateTime::SystemTime t ) :
+G::Time::Time( SystemTime t ) :
 	Time(t.utc())
 {
 }
@@ -52,13 +52,13 @@ G::Time::Time( DateTime::SystemTime t ) :
 
 #ifndef G_LIB_SMALL
 G::Time::Time( const LocalTime & ) :
-	Time(DateTime::SystemTime::now().local())
+	Time(SystemTime::now().local())
 {
 }
 #endif
 
 #ifndef G_LIB_SMALL
-G::Time::Time( DateTime::SystemTime t , const LocalTime & ) :
+G::Time::Time( SystemTime t , const LocalTime & ) :
 	Time(t.local())
 {
 }

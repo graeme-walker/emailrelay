@@ -765,7 +765,7 @@ G::Options Main::Options::spec()
 			//example-unix: /usr/local/sbin/emailrelay-poll.sh
 			//example-windows: C:/ProgramData/E-MailRelay/poll.js
 			// Runs the specified external program every time the --poll timer
-			// expires, before any forwarding spooled mail messages. The two
+			// expires, before any forwarding of spooled mail messages. The two
 			// command-line arguments passed to the external program are
 			// the spool directory and the delivery directory. The program's
 			// standard error stream is logged and its standard output is

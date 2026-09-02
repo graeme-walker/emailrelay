@@ -1760,7 +1760,7 @@ sub testPollRun
 		PollRun => 1 ,
 	) ;
 	my $server = new Server() ;
-	$server->set_pollTimeout( "100ms" ) ;
+	$server->set_pollTimeout( "1" ) ;
 	my $outputfile = System::tempfile( "output" ) ;
 	Filter::create( $server->pollRun() , undef , {
 			unix => [
