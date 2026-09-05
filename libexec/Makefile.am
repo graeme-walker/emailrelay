@@ -19,7 +19,7 @@
 #
 
 work_scripts = \
-	cmake.pm \
+	doxygen.sh \
 	make-manifest.sh \
 	make-setup.sh \
 	make-format \
@@ -30,12 +30,12 @@ work_scripts = \
 	mbedtlsbuild.pl \
 	libresslbuild.pl \
 	qtbuild.pl \
-	doxygen.sh \
 	winbuild.pm \
 	winbuildall.bat \
 	winbuild-assembly.pl \
 	AutoMakeParser.pm \
 	BuildInfo.pm \
+	cmake.pm \
 	CompilationDatabase.pm \
 	ConfigStatus.pm \
 	reduce \

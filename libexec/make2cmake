@@ -164,7 +164,7 @@ sub create_cmake_file
 			print $fh "endif()\n" ;
 			print $fh "\n" ;
 		}
-		print $fh "set(CMAKE_EXE_LINKER_FLAGS \"\${CMAKE_EXE_LINKER_FLAGS} /MANIFEST:EMBED\")\n" ;
+		print $fh "set(CMAKE_EXE_LINKER_FLAGS \"\${CMAKE_EXE_LINKER_FLAGS} /MANIFEST:EMBED\")\n" if $m->{e_is_windows} ;
 		print $fh "set(CMAKE_MC_COMPILER mc CACHE FILEPATH \"Windows message compiler\")\n" if $m->{e_is_windows} ;
 		print $fh "set(QT_LIB /QT_LIB_NOT_SET CACHE PATH \"Direcrory containing Qt libraries\")\n" ;
 		print $fh "set(QT_INC /QT_INC_NOT_SET CACHE PATH \"Directory containing Qt headers\")\n" ;

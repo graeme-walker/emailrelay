@@ -155,8 +155,8 @@ sub read_makefiles
 			"Qt6Widgets" ,
 			"Qt6Gui" ,
 			"Qt6Core" ,
-			"Qt6EntryPoint" ,
 		) ;
+		push @qt6_libnames_release , "Qt6EntryPoint" if $opt_for_windows ;
 		my @qt6_libnames_debug = map { $_."d" } @qt6_libnames_release ;
 
 		my @qt5_static_libnames_release = (

@@ -154,7 +154,7 @@ $(ZIP): $(TAR)
 	sh -c "cd makezip.tmp && zip -r ../$(ZIP) ."
 
 APKBUILD: $(TAR)
-	sed -e '/^sha512sums=/q' -e '/^sha512sums=/d' -e 's/__VERSION__/'"`cat $(top_srcdir)/VERSION`/g" < "$(top_srcdir)/etc/apkbuild.in" > APKBUILD
+	sed -e '/^sha512sums=/q' -e '/^sha512sums=/d' -e 's/__VERSION__/'"`cat $(top_srcdir)/VERSION`/g" -e 's/__PKGVER__/'"`cat $(top_srcdir)/VERSION | sed 's/rc.*//'`/g" < "$(top_srcdir)/etc/apkbuild.in" > APKBUILD
 	echo "sha512sums=\"" >> APKBUILD
 	sha512sum < "$(TAR)" | sed 's/-/'$(TAR)'/' >> APKBUILD
 	echo "\"" >> APKBUILD
@@ -178,7 +178,7 @@ apk: $(TAR) APKBUILD APKBUILD.post-install
 	cp APKBUILD "apk.d/${USER}/build/APKBUILD"
 	cd "apk.d/${USER}/build" && abuild prepare mkusers build rootpkg && cd ../..
 	cp "${HOME}/packages/${USER}/x86_64/"emailrelay*.apk .
-	@echo "+++ " doas apk add emailrelay-$(VERSION)-r0.apk
+	@echo "+++ " doas apk add emailrelay-`cat $(top_srcdir)/VERSION | sed 's/rc.*//'`-r0.apk
 
 .PHONY: mbedtls
 mbedtls:
