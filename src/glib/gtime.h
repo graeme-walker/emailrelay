@@ -49,13 +49,13 @@ public:
 		///< clamped, with leap seconds allowed only just before
 		///< midnight.
 
-	explicit Time( const DateTime::BrokenDownTime & tm ) ;
+	explicit Time( const BrokenDownTime & tm ) ;
 		///< Constructor for the given broken-down time.
 
-	explicit Time( DateTime::SystemTime t ) ;
+	explicit Time( SystemTime t ) ;
 		///< Constructor for the given epoch time, using UTC.
 
-	Time( DateTime::SystemTime t , const LocalTime & ) ;
+	Time( SystemTime t , const LocalTime & ) ;
 		///< Constructor for the given epoch time, using the local timezone.
 
 	explicit Time( const LocalTime & ) ;

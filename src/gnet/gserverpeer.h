@@ -64,14 +64,14 @@ public:
 	struct Config /// A configuration structure for GNet::ServerPeer.
 	{
 		SocketProtocol::Config socket_protocol_config ;
-		G::DateTime::TimeInterval idle_timeout {0U} ;
+		G::TimeInterval idle_timeout {0U} ;
 		bool kick_idle_timer_on_send {false} ; // idle timeout when nothing received (false) or sent-or-received (true)
 		bool no_throw_on_peer_disconnect {false} ; // see SocketProtocolSink::onPeerDisconnect()
 		bool log_address {false} ;
 		bool log_port {false} ;
 		Config & set_socket_protocol_config( const SocketProtocol::Config & ) ;
 		Config & set_idle_timeout( unsigned int ) noexcept ;
-		Config & set_idle_timeout( G::DateTime::TimeInterval ) noexcept ;
+		Config & set_idle_timeout( G::TimeInterval ) noexcept ;
 		Config & set_kick_idle_timer_on_send( bool = true ) noexcept ;
 		Config & set_no_throw_on_peer_disconnect( bool = true ) noexcept ;
 		Config & set_all_timeouts( unsigned int ) noexcept ;
@@ -215,10 +215,10 @@ private:
 } ;
 
 // clang-format off
-inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_idle_timeout( unsigned int t ) noexcept { idle_timeout = G::DateTime::TimeInterval(t) ; return *this ; }
-inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_idle_timeout( G::DateTime::TimeInterval i ) noexcept { idle_timeout = i ; return *this ; }
+inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_idle_timeout( unsigned int t ) noexcept { idle_timeout = G::TimeInterval(t) ; return *this ; }
+inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_idle_timeout( G::TimeInterval i ) noexcept { idle_timeout = i ; return *this ; }
 inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_kick_idle_timer_on_send( bool b ) noexcept { kick_idle_timer_on_send = b ; return *this ; }
-inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_all_timeouts( unsigned int t ) noexcept { idle_timeout = G::DateTime::TimeInterval(t) ; socket_protocol_config.secure_connection_timeout = G::DateTime::TimeInterval(t) ; return *this ; }
+inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_all_timeouts( unsigned int t ) noexcept { idle_timeout = G::TimeInterval(t) ; socket_protocol_config.secure_connection_timeout = G::TimeInterval(t) ; return *this ; }
 inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_socket_protocol_config( const SocketProtocol::Config & config ) { socket_protocol_config = config ; return *this ; }
 inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_no_throw_on_peer_disconnect( bool b ) noexcept { no_throw_on_peer_disconnect = b ; return *this ; }
 inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_log_address( bool b ) noexcept { log_address = b ; return *this ; }

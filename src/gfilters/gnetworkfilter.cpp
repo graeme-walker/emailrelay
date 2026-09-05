@@ -60,7 +60,7 @@ void GFilters::NetworkFilter::start( const GStore::MessageId & message_id )
 	m_done_signal.reset() ;
 	if( m_client_ptr.get() == nullptr || m_client_ptr->busy() )
 	{
-		auto idle_timeout = G::DateTime::TimeInterval::zero() ;
+		auto idle_timeout = G::TimeInterval::zero() ;
 		m_client_ptr.reset( std::make_unique<GSmtp::RequestClient>(
 			m_es.eh(this) ,
 			"scanner" , "ok" ,

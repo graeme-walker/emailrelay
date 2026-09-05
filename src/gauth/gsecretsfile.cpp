@@ -38,7 +38,7 @@ GAuth::SecretsFile::SecretsFile( const G::Path & path , bool auto_reread , const
 	m_auto(auto_reread) ,
 	m_debug_name(debug_name) ,
 	m_file_time(0) ,
-	m_check_time(G::DateTime::SystemTime::now())
+	m_check_time(G::SystemTime::now())
 {
 	m_valid = !path.str().empty() ;
 	if( m_valid )
@@ -70,7 +70,7 @@ void GAuth::SecretsFile::reread( int )
 {
 	if( m_auto )
 	{
-		auto now = G::DateTime::SystemTime::now() ;
+		auto now = G::SystemTime::now() ;
 		G_DEBUG( "GAuth::SecretsFile::reread: file time checked at " << m_check_time << ": now " << now ) ;
 		if( !now.sameSecond(m_check_time) ) // at most once a second
 		{
@@ -93,7 +93,7 @@ void GAuth::SecretsFile::read( const G::Path & path )
 	showDiagnostics( m_contents , path , m_debug_name , false ) ;
 }
 
-G::DateTime::SystemTime GAuth::SecretsFile::readFileTime( const G::Path & path )
+G::SystemTime GAuth::SecretsFile::readFileTime( const G::Path & path )
 {
 	G::Root claim_root ;
 	return G::File::time( path ) ;

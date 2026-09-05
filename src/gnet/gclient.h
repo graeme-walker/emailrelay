@@ -93,9 +93,9 @@ public:
 		bool sync_dns {false} ;
 		bool auto_start {true} ;
 		bool bind_local_address {false} ;
-		G::DateTime::TimeInterval connection_timeout {0U} ;
-		G::DateTime::TimeInterval response_timeout {0U} ;
-		G::DateTime::TimeInterval idle_timeout {0U} ;
+		G::TimeInterval connection_timeout {0U} ;
+		G::TimeInterval response_timeout {0U} ;
+		G::TimeInterval idle_timeout {0U} ;
 		bool no_throw_on_peer_disconnect {false} ; // call SocketProtocolSink::onPeerDisconnect() instead
 
 		Config & set_stream_socket_config( const StreamSocket::Config & ) ;
@@ -106,12 +106,13 @@ public:
 		Config & set_bind_local_address( bool = true ) noexcept ;
 		Config & set_local_address( const Address & ) ;
 		Config & set_connection_timeout( unsigned int ) noexcept ;
-		Config & set_connection_timeout( G::DateTime::TimeInterval ) noexcept ;
+		Config & set_connection_timeout( G::TimeInterval ) noexcept ;
 		Config & set_response_timeout( unsigned int ) noexcept ;
-		Config & set_response_timeout( G::DateTime::TimeInterval ) noexcept ;
+		Config & set_response_timeout( G::TimeInterval ) noexcept ;
 		Config & set_idle_timeout( unsigned int ) noexcept ;
-		Config & set_idle_timeout( G::DateTime::TimeInterval ) noexcept ;
+		Config & set_idle_timeout( G::TimeInterval ) noexcept ;
 		Config & set_all_timeouts( unsigned int ) noexcept ; // secure_connection, connection, response, idle
+		Config & set_all_timeouts( G::TimeInterval ) noexcept ; // secure_connection, connection, response, idle
 		Config & set_no_throw_on_peer_disconnect( bool = true ) noexcept ;
 	} ;
 
@@ -330,12 +331,12 @@ inline GNet::Client::Config & GNet::Client::Config::set_sync_dns( bool b ) noexc
 inline GNet::Client::Config & GNet::Client::Config::set_auto_start( bool b ) noexcept { auto_start = b ; return *this ; }
 inline GNet::Client::Config & GNet::Client::Config::set_bind_local_address( bool b ) noexcept { bind_local_address = b ; return *this ; }
 inline GNet::Client::Config & GNet::Client::Config::set_local_address( const Address & a ) { local_address = a ; return *this ; }
-inline GNet::Client::Config & GNet::Client::Config::set_connection_timeout( unsigned int t ) noexcept { connection_timeout = G::DateTime::TimeInterval(t) ; return *this ; }
-inline GNet::Client::Config & GNet::Client::Config::set_connection_timeout( G::DateTime::TimeInterval i ) noexcept { connection_timeout = i ; return *this ; }
-inline GNet::Client::Config & GNet::Client::Config::set_response_timeout( unsigned int t ) noexcept { response_timeout = G::DateTime::TimeInterval(t) ; return *this ; }
-inline GNet::Client::Config & GNet::Client::Config::set_response_timeout( G::DateTime::TimeInterval i ) noexcept { response_timeout = i ; return *this ; }
-inline GNet::Client::Config & GNet::Client::Config::set_idle_timeout( unsigned int t ) noexcept { idle_timeout = G::DateTime::TimeInterval(t) ; return *this ; }
-inline GNet::Client::Config & GNet::Client::Config::set_idle_timeout( G::DateTime::TimeInterval i ) noexcept { idle_timeout = i ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_connection_timeout( unsigned int t ) noexcept { connection_timeout = G::TimeInterval(t) ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_connection_timeout( G::TimeInterval i ) noexcept { connection_timeout = i ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_response_timeout( unsigned int t ) noexcept { response_timeout = G::TimeInterval(t) ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_response_timeout( G::TimeInterval i ) noexcept { response_timeout = i ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_idle_timeout( unsigned int t ) noexcept { idle_timeout = G::TimeInterval(t) ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_idle_timeout( G::TimeInterval i ) noexcept { idle_timeout = i ; return *this ; }
 inline GNet::Client::Config & GNet::Client::Config::set_no_throw_on_peer_disconnect( bool b ) noexcept { no_throw_on_peer_disconnect = b ; return *this ; }
 // clang-format on
 

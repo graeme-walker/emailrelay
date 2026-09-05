@@ -38,19 +38,19 @@ namespace G
 	namespace DateTime
 	{
 		G_EXCEPTION_CLASS( Error , tx("date/time error") )
-		class SystemTime ;
-		class TimerTime ;
-		class TimeInterval ;
-		class BrokenDownTime ;
-		class Test ;
-		class Zone ;
 	}
+	class SystemTime ;
+	class TimerTime ;
+	class TimeInterval ;
+	class BrokenDownTime ;
+	class Test ;
+	class Zone ;
 }
 
-//| \class G::DateTime::BrokenDownTime
+//| \class G::BrokenDownTime
 /// An encapsulation of 'struct std::tm'.
 ///
-class G::DateTime::BrokenDownTime
+class G::BrokenDownTime
 {
 public:
 	explicit BrokenDownTime( const struct std::tm & ) ;
@@ -167,14 +167,14 @@ private:
 	static constexpr int monthDays( const std::tm & tm ) noexcept ;
 
 private:
-	friend class G::DateTime::Test ;
+	friend class G::Test ;
 	struct std::tm m_tm {} ;
 } ;
 
-//| \class G::DateTime::SystemTime
+//| \class G::SystemTime
 /// Represents a unix-epoch time with microsecond resolution.
 ///
-class G::DateTime::SystemTime
+class G::SystemTime
 {
 public:
 	using time_point_type = std::chrono::time_point<std::chrono::system_clock> ;
@@ -263,8 +263,8 @@ public:
 		///< decimal point, and then the six-digit us() value.
 
 private:
-	friend class G::DateTime::TimeInterval ;
-	friend class G::DateTime::Test ;
+	friend class G::TimeInterval ;
+	friend class G::Test ;
 	using duration_type = time_point_type::duration ;
 	explicit SystemTime( time_point_type ) ;
 	SystemTime & add( unsigned long us ) ;
@@ -273,11 +273,11 @@ private:
 	time_point_type m_tp ;
 } ;
 
-//| \class G::DateTime::TimerTime
+//| \class G::TimerTime
 /// A monotonically increasing subsecond-resolution timestamp, notionally
 /// unrelated to time_t.
 ///
-class G::DateTime::TimerTime
+class G::TimerTime
 {
 public:
 	using time_point_type = std::chrono::time_point<std::chrono::steady_clock> ;
@@ -339,8 +339,8 @@ public:
 		///< or TimeInterval::limit() on overflow.
 
 private:
-	friend class G::DateTime::TimeInterval ;
-	friend class G::DateTime::Test ;
+	friend class G::TimeInterval ;
+	friend class G::Test ;
 	explicit TimerTime( time_point_type ) ;
 	static TimerTime test( int , int ) ;
 	unsigned long s() const ; // Test
@@ -351,11 +351,11 @@ private:
 	time_point_type m_tp ;
 } ;
 
-//| \class G::DateTime::TimeInterval
+//| \class G::TimeInterval
 /// A time interval class. Underflows are mapped to the zero()
 /// interval and overflows are mapped to limit().
 ///
-class G::DateTime::TimeInterval
+class G::TimeInterval
 {
 public:
 	using s_type = unsigned int ;
@@ -468,10 +468,10 @@ private:
 	us_type m_us ;
 } ;
 
-//| \class G::DateTime::Zone
+//| \class G::Zone
 /// A static class that knows about timezone offsets.
 ///
-class G::DateTime::Zone
+class G::Zone
 {
 public:
 	using Offset = std::pair<bool,unsigned int> ;
@@ -495,55 +495,52 @@ public:
 
 namespace G
 {
-	namespace DateTime
+	std::ostream & operator<<( std::ostream & , const SystemTime & ) ;
+	std::ostream & operator<<( std::ostream & , const TimeInterval & ) ;
+	inline bool operator<( const TimerTime & a , const TimerTime & b ) noexcept(TimerTime::less_noexcept)
 	{
-		std::ostream & operator<<( std::ostream & , const SystemTime & ) ;
-		std::ostream & operator<<( std::ostream & , const TimeInterval & ) ;
-		inline bool operator<( const TimerTime & a , const TimerTime & b ) noexcept(TimerTime::less_noexcept)
-		{
-			return TimerTime::less( a , b ) ;
-		}
+		return TimerTime::less( a , b ) ;
 	}
 }
 
-constexpr G::DateTime::BrokenDownTime::BrokenDownTime() noexcept :
+constexpr G::BrokenDownTime::BrokenDownTime() noexcept :
 	m_tm{}
 {
 	///< m_tm.tm_isdst = -1 ; // not c++11 constexpr, but set to -1 before mktime()
 }
 
-inline bool G::DateTime::TimerTime::less( const TimerTime & a , const TimerTime & b ) noexcept(less_noexcept)
+inline bool G::TimerTime::less( const TimerTime & a , const TimerTime & b ) noexcept(less_noexcept)
 {
 	return a.m_tp < b.m_tp ;
 }
 
-inline bool G::DateTime::BrokenDownTime::operator==( const BrokenDownTime & other ) const noexcept
+inline bool G::BrokenDownTime::operator==( const BrokenDownTime & other ) const noexcept
 {
 	return sameMinute(other) && m_tm.tm_sec == other.m_tm.tm_sec ;
 }
 
-inline bool G::DateTime::BrokenDownTime::operator!=( const BrokenDownTime & other ) const noexcept
+inline bool G::BrokenDownTime::operator!=( const BrokenDownTime & other ) const noexcept
 {
 	return !sameMinute(other) || m_tm.tm_sec != other.m_tm.tm_sec ;
 }
 
-constexpr G::DateTime::BrokenDownTime G::DateTime::BrokenDownTime::null() noexcept
+constexpr G::BrokenDownTime G::BrokenDownTime::null() noexcept
 {
 	return {} ;
 }
 
-constexpr bool G::DateTime::BrokenDownTime::valid( int n , int lo , int hi ) noexcept
+constexpr bool G::BrokenDownTime::valid( int n , int lo , int hi ) noexcept
 {
 	return n >= lo && n <= hi ;
 }
 
-constexpr int G::DateTime::BrokenDownTime::monthDays( int y , int m ) noexcept
+constexpr int G::BrokenDownTime::monthDays( int y , int m ) noexcept
 {
 	return ( m == 1 || m == 3 || m == 5 || m == 7 || m == 8 || m == 10 || m == 12 ) ? 31 :
 		( m == 2 ? ( ( ( ((y & 3) == 0) && !((y % 100) == 0) ) || ((y % 400) == 0) ) ? 29 : 28 ) : 30 ) ;
 }
 
-constexpr int G::DateTime::BrokenDownTime::monthDays( const std::tm & tm ) noexcept
+constexpr int G::BrokenDownTime::monthDays( const std::tm & tm ) noexcept
 {
 	static_assert( BrokenDownTime::monthDays( 1996 , 2 ) == 29 , "" ) ;
 	static_assert( BrokenDownTime::monthDays( 2000 , 2 ) == 29 , "" ) ;
@@ -555,7 +552,7 @@ constexpr int G::DateTime::BrokenDownTime::monthDays( const std::tm & tm ) noexc
 	return monthDays( 1900+tm.tm_year , tm.tm_mon+1 ) ;
 }
 
-constexpr bool G::DateTime::BrokenDownTime::valid() const noexcept
+constexpr bool G::BrokenDownTime::valid() const noexcept
 {
 	return
 		valid( m_tm.tm_sec , 0 , 60 ) &&

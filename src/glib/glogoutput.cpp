@@ -371,7 +371,7 @@ void G::LogOutput::assertionAbort()
 
 bool G::LogOutput::updateTime()
 {
-	auto now = DateTime::SystemTime::now() ;
+	auto now = SystemTime::now() ;
 	m_time_us = now.us() ;
 	bool new_hour = false ;
 	if( m_time_s == 0 || m_time_s != now.s() || m_time_buffer[0] == '\0' )

@@ -51,8 +51,8 @@ public:
 	using value_type = Map::value_type ;
 	using iterator = Map::iterator ;
 	using const_iterator = Map::const_iterator ;
-	using IntervalPair = std::pair<bool,DateTime::TimeInterval> ;
-	using IntervalsPair = std::pair<bool,std::vector<DateTime::TimeInterval>> ;
+	using IntervalPair = std::pair<bool,TimeInterval> ;
+	using IntervalsPair = std::pair<bool,std::vector<TimeInterval>> ;
 
 public:
 	void insert( const Map::value_type & ) ;

@@ -521,10 +521,14 @@ void GNet::Client::onPeerDisconnect()
 #ifndef G_LIB_SMALL
 GNet::Client::Config & GNet::Client::Config::set_all_timeouts( unsigned int all_timeouts ) noexcept
 {
+	return set_all_timeouts( G::TimeInterval(all_timeouts) ) ;
+}
+GNet::Client::Config & GNet::Client::Config::set_all_timeouts( G::TimeInterval all_timeouts ) noexcept
+{
 	socket_protocol_config.secure_connection_timeout = all_timeouts ;
 	connection_timeout = all_timeouts ;
 	response_timeout = all_timeouts ;
-	idle_timeout = all_timeouts * 2U ;
+	idle_timeout = all_timeouts + all_timeouts ;
 	return *this ;
 }
 #endif

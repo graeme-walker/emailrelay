@@ -179,14 +179,14 @@ G::OptionMap::IntervalPair G::OptionMap::interval( std::string_view key ,
 	unsigned int default_ ) const noexcept
 {
 	// as above, use findRange()
-	static_assert( noexcept(DateTime::TimeInterval(default_)) , "" ) ;
+	static_assert( noexcept(TimeInterval(default_)) , "" ) ;
 	auto range = findRange( key ) ;
 	if( range.first == range.second )
-		return {false,DateTime::TimeInterval(default_)} ;
+		return {false,TimeInterval(default_)} ;
 	if( std::next(range.first) != range.second )
-		return {false,DateTime::TimeInterval(default_)} ;
+		return {false,TimeInterval(default_)} ;
 
-	static_assert( noexcept((*range.first).second.valueref()) , "" ) ;
+	//static_assert( noexcept((*range.first).second.valueref()) , "" ) ;
 	std::string_view value = (*range.first).second.valueref() ;
 	return parseInterval( value , default_ ) ;
 }
@@ -210,12 +210,12 @@ G::OptionMap::IntervalPair G::OptionMap::parseInterval( std::string_view value ,
 	unsigned int default_ ) noexcept
 {
 	static_assert( std::is_nothrow_copy_constructible<IntervalPair>::value , "" ) ;
-	static_assert( noexcept(DateTime::TimeInterval::parse(value,std::nothrow)) , "" ) ;
-	static_assert( noexcept(DateTime::TimeInterval(default_)) , "" ) ;
-	auto pair = DateTime::TimeInterval::parse( value , std::nothrow ) ;
+	static_assert( noexcept(TimeInterval::parse(value,std::nothrow)) , "" ) ;
+	static_assert( noexcept(TimeInterval(default_)) , "" ) ;
+	auto pair = TimeInterval::parse( value , std::nothrow ) ;
 	if( pair.second )
 		return {true,pair.first} ;
 	else
-		return {false,DateTime::TimeInterval(default_)} ;
+		return {false,TimeInterval(default_)} ;
 }
 

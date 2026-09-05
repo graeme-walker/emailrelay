@@ -1,7 +1,7 @@
 //
 // SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
-// 
+//
 // Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
@@ -41,7 +41,7 @@ namespace G
 	{
 		static constexpr std::string_view good_format( "%ntYyCGgmUWVjdwuHIMSDFRT" , 24U ) ;
 		static_assert( good_format[good_format.size()-1U] == 'T' , "" ) ;
-		static constexpr DateTime::TimeInterval::us_type million = 1000000U ;
+		static constexpr TimeInterval::us_type million = 1000000U ;
 
 		bool next( int & n , int lo , int hi ) noexcept // NOLINT(misc-use-internal-linkage)
 		{
@@ -129,15 +129,17 @@ namespace G
 	}
 }
 
-G::DateTime::BrokenDownTime::BrokenDownTime( const struct std::tm & tm_in ) :
+#ifndef G_LIB_SMALL
+G::BrokenDownTime::BrokenDownTime( const struct std::tm & tm_in ) :
 	m_tm(tm_in)
 {
 	// dont trust the dst flag passed in -- force mktime()
 	// to do the extra work (strftime() does anyway)
 	m_tm.tm_isdst = -1 ;
 }
+#endif
 
-G::DateTime::BrokenDownTime::BrokenDownTime( int y , int mon , int d , int h , int min , int s ) :
+G::BrokenDownTime::BrokenDownTime( int y , int mon , int d , int h , int min , int s ) :
 	m_tm{}
 {
 	m_tm.tm_year = y - 1900 ;
@@ -151,12 +153,14 @@ G::DateTime::BrokenDownTime::BrokenDownTime( int y , int mon , int d , int h , i
 	m_tm.tm_yday = 0 ;
 }
 
-std::time_t G::DateTime::BrokenDownTime::epochTimeFromLocal() const
+#ifndef G_LIB_SMALL
+std::time_t G::BrokenDownTime::epochTimeFromLocal() const
 {
 	return valid() ? DateTimeImp::mktimelocal( m_tm ) : std::time_t(0) ;
 }
+#endif
 
-std::time_t G::DateTime::BrokenDownTime::epochTimeFromUtc() const
+std::time_t G::BrokenDownTime::epochTimeFromUtc() const
 {
 	if( !valid() )
 		return std::time_t(0) ;
@@ -185,7 +189,7 @@ std::time_t G::DateTime::BrokenDownTime::epochTimeFromUtc() const
 	return t ;
 }
 
-G::DateTime::BrokenDownTime G::DateTime::BrokenDownTime::local( SystemTime t )
+G::BrokenDownTime G::BrokenDownTime::local( SystemTime t )
 {
 	BrokenDownTime bdt ;
 	bdt.m_tm.tm_isdst = -1 ;
@@ -193,7 +197,7 @@ G::DateTime::BrokenDownTime G::DateTime::BrokenDownTime::local( SystemTime t )
 	return bdt ;
 }
 
-G::DateTime::BrokenDownTime G::DateTime::BrokenDownTime::utc( SystemTime t )
+G::BrokenDownTime G::BrokenDownTime::utc( SystemTime t )
 {
 	BrokenDownTime bdt ;
 	bdt.m_tm.tm_isdst = -1 ;
@@ -201,17 +205,19 @@ G::DateTime::BrokenDownTime G::DateTime::BrokenDownTime::utc( SystemTime t )
 	return bdt ;
 }
 
-G::DateTime::BrokenDownTime G::DateTime::BrokenDownTime::midday( int year , int month , int day )
+G::BrokenDownTime G::BrokenDownTime::midday( int year , int month , int day )
 {
 	return { year , month , day , 12 , 0 , 0 } ;
 }
 
-G::DateTime::BrokenDownTime G::DateTime::BrokenDownTime::midnight( int year , int month , int day )
+#ifndef G_LIB_SMALL
+G::BrokenDownTime G::BrokenDownTime::midnight( int year , int month , int day )
 {
 	return { year , month , day , 0 , 0 , 0 } ;
 }
+#endif
 
-bool G::DateTime::BrokenDownTime::format( char * out , std::size_t out_size , const char * fmt ) const
+bool G::BrokenDownTime::format( char * out , std::size_t out_size , const char * fmt ) const
 {
 	for( const char * p = std::strchr(fmt,'%') ; p && p[1] ; p = std::strchr(p+1,'%') )
 	{
@@ -225,18 +231,20 @@ bool G::DateTime::BrokenDownTime::format( char * out , std::size_t out_size , co
 	return std::strftime( out , out_size , fmt , &tm_copy ) > 0U ;
 }
 
-void G::DateTime::BrokenDownTime::format( std::vector<char> & out , const char * fmt ) const
+void G::BrokenDownTime::format( std::vector<char> & out , const char * fmt ) const
 {
 	if( !format( out.data() , out.size() , fmt ) )
 		throw DateTime::Error() ;
 }
 
-std::string G::DateTime::BrokenDownTime::str() const
+#ifndef G_LIB_SMALL
+std::string G::BrokenDownTime::str() const
 {
 	return str( "%F %T" ) ;
 }
+#endif
 
-std::string G::DateTime::BrokenDownTime::str( const char * fmt ) const
+std::string G::BrokenDownTime::str( const char * fmt ) const
 {
 	std::size_t n = std::strlen( fmt ) + 1U ;
 	for( const char * p = std::strchr(fmt,'%') ; p && p[1] ; p = std::strchr(p+1,'%') )
@@ -248,7 +256,7 @@ std::string G::DateTime::BrokenDownTime::str( const char * fmt ) const
 	return { buffer.data() } ;
 }
 
-G::DateTime::BrokenDownTime G::DateTime::BrokenDownTime::parse( const std::string & s )
+G::BrokenDownTime G::BrokenDownTime::parse( const std::string & s )
 {
 	if( s.size() >= 19U )
 	{
@@ -265,54 +273,56 @@ G::DateTime::BrokenDownTime G::DateTime::BrokenDownTime::parse( const std::strin
 	return null() ;
 }
 
-int G::DateTime::BrokenDownTime::hour() const
+int G::BrokenDownTime::hour() const
 {
 	return m_tm.tm_hour ;
 }
 
-int G::DateTime::BrokenDownTime::min() const
+int G::BrokenDownTime::min() const
 {
 	return m_tm.tm_min ;
 }
 
-int G::DateTime::BrokenDownTime::sec() const
+int G::BrokenDownTime::sec() const
 {
 	return m_tm.tm_sec ;
 }
 
-int G::DateTime::BrokenDownTime::year() const
+int G::BrokenDownTime::year() const
 {
 	return m_tm.tm_year + 1900 ;
 }
 
-int G::DateTime::BrokenDownTime::month() const
+int G::BrokenDownTime::month() const
 {
 	return m_tm.tm_mon + 1 ;
 }
 
-int G::DateTime::BrokenDownTime::day() const
+int G::BrokenDownTime::day() const
 {
 	return m_tm.tm_mday ;
 }
 
-int G::DateTime::BrokenDownTime::wday() const
+int G::BrokenDownTime::wday() const
 {
 	std::tm tm_copy = m_tm ;
 	DateTimeImp::mktime_( tm_copy ) ;
 	return tm_copy.tm_wday ;
 }
 
-bool G::DateTime::BrokenDownTime::sameMinute( const BrokenDownTime & other ) const noexcept
+#ifndef G_LIB_SMALL
+bool G::BrokenDownTime::sameMinute( const BrokenDownTime & other ) const noexcept
 {
 	return DateTimeImp::sameMinute( m_tm , other.m_tm ) ;
 }
+#endif
 
-bool G::DateTime::BrokenDownTime::operator<( const BrokenDownTime & other ) const noexcept
+bool G::BrokenDownTime::operator<( const BrokenDownTime & other ) const noexcept
 {
 	return DateTimeImp::less( m_tm , other.m_tm ) ;
 }
 
-G::DateTime::BrokenDownTime G::DateTime::BrokenDownTime::next( Unit unit ) const
+G::BrokenDownTime G::BrokenDownTime::next( Unit unit ) const
 {
 	namespace imp = DateTimeImp ;
 	auto tm = m_tm ;
@@ -330,7 +340,7 @@ G::DateTime::BrokenDownTime G::DateTime::BrokenDownTime::next( Unit unit ) const
 	return BrokenDownTime( tm ) ;
 }
 
-G::DateTime::BrokenDownTime G::DateTime::BrokenDownTime::previous( Unit unit ) const
+G::BrokenDownTime G::BrokenDownTime::previous( Unit unit ) const
 {
 	namespace imp = DateTimeImp ;
 	auto tm = m_tm ;
@@ -350,23 +360,23 @@ G::DateTime::BrokenDownTime G::DateTime::BrokenDownTime::previous( Unit unit ) c
 
 // ==
 
-G::DateTime::SystemTime::SystemTime( time_point_type tp ) :
+G::SystemTime::SystemTime( time_point_type tp ) :
 	m_tp(tp)
 {
 }
 
-G::DateTime::SystemTime::SystemTime( std::time_t t , unsigned long us ) noexcept
+G::SystemTime::SystemTime( std::time_t t , unsigned long us ) noexcept
 {
 	m_tp = std::chrono::system_clock::from_time_t(t) ;
 	m_tp += std::chrono::microseconds( us ) ;
 }
 
-G::DateTime::SystemTime G::DateTime::SystemTime::now() noexcept(now_noexcept)
+G::SystemTime G::SystemTime::now() noexcept(now_noexcept)
 {
 	return SystemTime( std::chrono::system_clock::now() ) ;
 }
 
-G::DateTime::SystemTime G::DateTime::SystemTime::operator-( const TimeInterval & interval ) const
+G::SystemTime G::SystemTime::operator-( const TimeInterval & interval ) const
 {
 	auto tp = m_tp ;
 	tp -= std::chrono::seconds( interval.s() ) ;
@@ -374,50 +384,54 @@ G::DateTime::SystemTime G::DateTime::SystemTime::operator-( const TimeInterval &
 	return SystemTime( tp ) ;
 }
 
-G::DateTime::TimeInterval G::DateTime::SystemTime::operator-( const SystemTime & start ) const
+G::TimeInterval G::SystemTime::operator-( const SystemTime & start ) const
 {
 	return { start , *this } ;
 }
 
-G::DateTime::TimeInterval G::DateTime::SystemTime::interval( const SystemTime & end ) const
+G::TimeInterval G::SystemTime::interval( const SystemTime & end ) const
 {
 	return { *this , end } ;
 }
 
-G::DateTime::SystemTime & G::DateTime::SystemTime::add( unsigned long us )
+#ifndef G_LIB_SMALL
+G::SystemTime & G::SystemTime::add( unsigned long us )
 {
 	m_tp += std::chrono::microseconds( us ) ;
 	return *this ;
 }
+#endif
 
-bool G::DateTime::SystemTime::sameSecond( const SystemTime & other ) const noexcept
+bool G::SystemTime::sameSecond( const SystemTime & other ) const noexcept
 {
 	return s() == other.s() ;
 }
 
-G::DateTime::BrokenDownTime G::DateTime::SystemTime::local() const
+G::BrokenDownTime G::SystemTime::local() const
 {
 	return BrokenDownTime::local( *this ) ;
 }
 
-G::DateTime::BrokenDownTime G::DateTime::SystemTime::utc() const
+G::BrokenDownTime G::SystemTime::utc() const
 {
 	return BrokenDownTime::utc( *this ) ;
 }
 
-unsigned int G::DateTime::SystemTime::ms() const
+#ifndef G_LIB_SMALL
+unsigned int G::SystemTime::ms() const
 {
 	using namespace std::chrono ;
 	return static_cast<unsigned int>((duration_cast<milliseconds>(m_tp.time_since_epoch()) % seconds(1)).count()) ;
 }
+#endif
 
-unsigned int G::DateTime::SystemTime::us() const
+unsigned int G::SystemTime::us() const
 {
 	using namespace std::chrono ;
 	return static_cast<unsigned int>((duration_cast<microseconds>(m_tp.time_since_epoch()) % seconds(1)).count()) ;
 }
 
-std::time_t G::DateTime::SystemTime::s() const
+std::time_t G::SystemTime::s() const
 {
 	using namespace std::chrono ;
 	G_ASSERT( system_clock::to_time_t(time_point_type()) == 0 ) ; // assert time_point_type uses time_t's 1970 epoch (as per c++17)
@@ -425,69 +439,81 @@ std::time_t G::DateTime::SystemTime::s() const
 	return static_cast<std::time_t>((duration_cast<seconds>(m_tp.time_since_epoch())).count()) ;
 }
 
-G::DateTime::SystemTime G::DateTime::SystemTime::zero()
+#ifndef G_LIB_SMALL
+G::SystemTime G::SystemTime::zero()
 {
 	using namespace std::chrono ;
 	return SystemTime( time_point_type() ) ;
 }
+#endif
 
-bool G::DateTime::SystemTime::isZero() const
+#ifndef G_LIB_SMALL
+bool G::SystemTime::isZero() const
 {
 	return m_tp == time_point_type( duration_type(0) ) ;
 }
+#endif
 
-bool G::DateTime::SystemTime::operator<( const SystemTime & other ) const
+bool G::SystemTime::operator<( const SystemTime & other ) const
 {
 	return m_tp < other.m_tp ;
 }
 
-bool G::DateTime::SystemTime::operator<=( const SystemTime & other ) const
+#ifndef G_LIB_SMALL
+bool G::SystemTime::operator<=( const SystemTime & other ) const
 {
 	return m_tp <= other.m_tp ;
 }
+#endif
 
-bool G::DateTime::SystemTime::operator==( const SystemTime & other ) const
+bool G::SystemTime::operator==( const SystemTime & other ) const
 {
 	return m_tp == other.m_tp ;
 }
 
-bool G::DateTime::SystemTime::operator!=( const SystemTime & other ) const
+bool G::SystemTime::operator!=( const SystemTime & other ) const
 {
 	return !( *this == other ) ;
 }
 
-bool G::DateTime::SystemTime::operator>( const SystemTime & other ) const
+#ifndef G_LIB_SMALL
+bool G::SystemTime::operator>( const SystemTime & other ) const
 {
 	return m_tp > other.m_tp ;
 }
+#endif
 
-bool G::DateTime::SystemTime::operator>=( const SystemTime & other ) const
+#ifndef G_LIB_SMALL
+bool G::SystemTime::operator>=( const SystemTime & other ) const
 {
 	return m_tp >= other.m_tp ;
 }
+#endif
 
-G::DateTime::SystemTime G::DateTime::SystemTime::operator+( TimeInterval interval ) const
+#ifndef G_LIB_SMALL
+G::SystemTime G::SystemTime::operator+( TimeInterval interval ) const
 {
 	SystemTime t( *this ) ;
 	t += interval ;
 	return t ;
 }
+#endif
 
-void G::DateTime::SystemTime::operator+=( TimeInterval i )
+void G::SystemTime::operator+=( TimeInterval i )
 {
 	using namespace std::chrono ;
 	m_tp += seconds(i.s()) ;
 	m_tp += microseconds(i.us()) ;
 }
 
-void G::DateTime::SystemTime::operator-=( TimeInterval i )
+void G::SystemTime::operator-=( TimeInterval i )
 {
 	using namespace std::chrono ;
 	m_tp -= seconds(i.s()) ;
 	m_tp -= microseconds(i.us()) ;
 }
 
-void G::DateTime::SystemTime::streamOut( std::ostream & stream ) const
+void G::SystemTime::streamOut( std::ostream & stream ) const
 {
 	int w = static_cast<int>( stream.width() ) ;
 	char c = stream.fill() ;
@@ -498,7 +524,7 @@ void G::DateTime::SystemTime::streamOut( std::ostream & stream ) const
 		<< std::setw(w) << std::setfill(c) ;
 }
 
-std::ostream & G::DateTime::operator<<( std::ostream & stream , const SystemTime & t )
+std::ostream & G::operator<<( std::ostream & stream , const SystemTime & t )
 {
 	t.streamOut( stream ) ;
 	return stream ;
@@ -506,139 +532,155 @@ std::ostream & G::DateTime::operator<<( std::ostream & stream , const SystemTime
 
 // ==
 
-G::DateTime::TimerTime::TimerTime( time_point_type tp ) :
+G::TimerTime::TimerTime( time_point_type tp ) :
 	m_tp(tp)
 {
 }
 
-G::DateTime::TimerTime G::DateTime::TimerTime::now() noexcept(now_noexcept)
+G::TimerTime G::TimerTime::now() noexcept(now_noexcept)
 {
 	time_point_type tp = std::chrono::steady_clock::now() ;
 	if( tp == time_point_type() ) tp += duration_type(1) ; // postcondition >zero()
 	return TimerTime( tp ) ;
 }
 
-G::DateTime::TimerTime G::DateTime::TimerTime::zero()
+G::TimerTime G::TimerTime::zero()
 {
 	return TimerTime( time_point_type() ) ;
 }
 
-bool G::DateTime::TimerTime::isZero() const noexcept
+bool G::TimerTime::isZero() const noexcept
 {
 	return m_tp == time_point_type( duration_type(0) ) ;
 }
 
-G::DateTime::TimerTime G::DateTime::TimerTime::test( int s , int us )
+#ifndef G_LIB_SMALL
+G::TimerTime G::TimerTime::test( int s , int us )
 {
 	using namespace std::chrono ;
 	return TimerTime( time_point_type( seconds(s) + microseconds(us) ) ) ;
 }
+#endif
 
-unsigned long G::DateTime::TimerTime::s() const
+unsigned long G::TimerTime::s() const
 {
 	using namespace std::chrono ;
 	return static_cast<unsigned long>( duration_cast<seconds>(m_tp.time_since_epoch()).count() ) ;
 }
 
-unsigned long G::DateTime::TimerTime::us() const
+unsigned long G::TimerTime::us() const
 {
 	using namespace std::chrono ;
 	return static_cast<unsigned long>( (duration_cast<microseconds>(m_tp.time_since_epoch()) % seconds(1)).count() ) ;
 }
 
-std::string G::DateTime::TimerTime::str() const
+#ifndef G_LIB_SMALL
+std::string G::TimerTime::str() const
 {
 	std::ostringstream ss ;
 	ss << s() << '.' << std::setw(6) << std::setfill('0') << us() ;
 	return ss.str() ;
 }
+#endif
 
-G::DateTime::TimerTime G::DateTime::TimerTime::operator+( const TimeInterval & interval ) const
+G::TimerTime G::TimerTime::operator+( const TimeInterval & interval ) const
 {
 	TimerTime t( *this ) ;
 	t += interval ;
 	return t ;
 }
 
-void G::DateTime::TimerTime::operator+=( TimeInterval i )
+void G::TimerTime::operator+=( TimeInterval i )
 {
 	using namespace std::chrono ;
 	m_tp += seconds(i.s()) ;
 	m_tp += microseconds(i.us()) ;
 }
 
-G::DateTime::TimeInterval G::DateTime::TimerTime::operator-( const TimerTime & start ) const
+#ifndef G_LIB_SMALL
+G::TimeInterval G::TimerTime::operator-( const TimerTime & start ) const
 {
 	return { start , *this } ;
 }
+#endif
 
-G::DateTime::TimeInterval G::DateTime::TimerTime::interval( const TimerTime & end ) const
+G::TimeInterval G::TimerTime::interval( const TimerTime & end ) const
 {
 	return { *this , end } ;
 }
 
-bool G::DateTime::TimerTime::sameSecond( const TimerTime & other ) const
+#ifndef G_LIB_SMALL
+bool G::TimerTime::sameSecond( const TimerTime & other ) const
 {
 	using namespace std::chrono ;
 	return
 		duration_cast<seconds>(m_tp.time_since_epoch()) ==
 		duration_cast<seconds>(other.m_tp.time_since_epoch()) ;
 }
+#endif
 
-bool G::DateTime::TimerTime::operator<=( const TimerTime & other ) const
+bool G::TimerTime::operator<=( const TimerTime & other ) const
 {
 	return m_tp <= other.m_tp ;
 }
 
-bool G::DateTime::TimerTime::operator==( const TimerTime & other ) const
+bool G::TimerTime::operator==( const TimerTime & other ) const
 {
 	return m_tp == other.m_tp ;
 }
 
-bool G::DateTime::TimerTime::operator!=( const TimerTime & other ) const
+#ifndef G_LIB_SMALL
+bool G::TimerTime::operator!=( const TimerTime & other ) const
 {
 	return m_tp != other.m_tp ;
 }
+#endif
 
-bool G::DateTime::TimerTime::operator>( const TimerTime & other ) const
+#ifndef G_LIB_SMALL
+bool G::TimerTime::operator>( const TimerTime & other ) const
 {
 	return m_tp > other.m_tp ;
 }
+#endif
 
-bool G::DateTime::TimerTime::operator>=( const TimerTime & other ) const
+#ifndef G_LIB_SMALL
+bool G::TimerTime::operator>=( const TimerTime & other ) const
 {
 	return m_tp >= other.m_tp ;
 }
+#endif
 
 // ==
 
-G::DateTime::TimeInterval::TimeInterval( Pair pair ) noexcept : // private ctor
+G::TimeInterval::TimeInterval( Pair pair ) noexcept : // private ctor
 	m_s(pair.first) ,
 	m_us(pair.second)
 {
 }
 
-G::DateTime::TimeInterval::TimeInterval( unsigned int s ) noexcept :
+G::TimeInterval::TimeInterval( unsigned int s ) noexcept :
 	TimeInterval(normalise(makePair(s,0U)))
 {
 }
 
-G::DateTime::TimeInterval::TimeInterval( unsigned int s , unsigned int us ) noexcept :
+G::TimeInterval::TimeInterval( unsigned int s , unsigned int us ) noexcept :
 	TimeInterval(normalise(makePair(s,us)))
 {
 }
 
-G::DateTime::TimeInterval::TimeInterval( const SystemTime & start , const SystemTime & end ) :
+#ifndef G_LIB_SMALL
+G::TimeInterval::TimeInterval( const SystemTime & start , const SystemTime & end ) :
+	TimeInterval(makePairFromTimepoints(start.m_tp,end.m_tp))
+{
+}
+#endif
+
+G::TimeInterval::TimeInterval( const TimerTime & start , const TimerTime & end ) :
 	TimeInterval(makePairFromTimepoints(start.m_tp,end.m_tp))
 {
 }
 
-G::DateTime::TimeInterval::TimeInterval( const TimerTime & start , const TimerTime & end ) :
-	TimeInterval(makePairFromTimepoints(start.m_tp,end.m_tp))
-{
-}
-
-G::DateTime::TimeInterval::Pair G::DateTime::TimeInterval::makePair( unsigned int s , unsigned int us ) noexcept
+G::TimeInterval::Pair G::TimeInterval::makePair( unsigned int s , unsigned int us ) noexcept
 {
 	// assert no overflow shenanigans required here
 	static_assert( std::is_same<decltype(s),s_type>::value , "" ) ;
@@ -647,7 +689,7 @@ G::DateTime::TimeInterval::Pair G::DateTime::TimeInterval::makePair( unsigned in
 }
 
 template <typename Tp>
-G::DateTime::TimeInterval::Pair G::DateTime::TimeInterval::makePairFromTimepoints( Tp start , Tp end )
+G::TimeInterval::Pair G::TimeInterval::makePairFromTimepoints( Tp start , Tp end )
 {
 	using namespace std::chrono ;
 	namespace imp = DateTimeImp ;
@@ -684,7 +726,7 @@ G::DateTime::TimeInterval::Pair G::DateTime::TimeInterval::makePairFromTimepoint
 	return { s , us } ;
 }
 
-G::DateTime::TimeInterval::Pair G::DateTime::TimeInterval::normalise( Pair pair ) noexcept
+G::TimeInterval::Pair G::TimeInterval::normalise( Pair pair ) noexcept
 {
 	namespace imp = DateTimeImp ;
 	s_type & s = pair.first ;
@@ -706,23 +748,23 @@ G::DateTime::TimeInterval::Pair G::DateTime::TimeInterval::normalise( Pair pair 
 	return pair ;
 }
 
-G::DateTime::TimeInterval::Pair G::DateTime::TimeInterval::limitPair() noexcept
+G::TimeInterval::Pair G::TimeInterval::limitPair() noexcept
 {
 	namespace imp = DateTimeImp ;
 	return { std::numeric_limits<s_type>::max() , imp::million-1U } ;
 }
 
-G::DateTime::TimeInterval G::DateTime::TimeInterval::limit() noexcept
+G::TimeInterval G::TimeInterval::limit() noexcept
 {
 	return TimeInterval( limitPair() ) ;
 }
 
-G::DateTime::TimeInterval G::DateTime::TimeInterval::zero() noexcept
+G::TimeInterval G::TimeInterval::zero() noexcept
 {
 	return TimeInterval( Pair{0U,0U} ) ;
 }
 
-std::pair<std::string_view,G::DateTime::TimeInterval::Units> G::DateTime::TimeInterval::parseUnits( std::string_view value ) noexcept
+std::pair<std::string_view,G::TimeInterval::Units> G::TimeInterval::parseUnits( std::string_view value ) noexcept
 {
 	if( Str::tailMatch( value , "ms" ) )
 		return { sv_substr_noexcept( value , 0U , value.size()-2U ) , Units::milliseconds } ;
@@ -737,7 +779,7 @@ std::pair<std::string_view,G::DateTime::TimeInterval::Units> G::DateTime::TimeIn
 	return { value , Units::none } ;
 }
 
-std::pair<G::DateTime::TimeInterval,bool> G::DateTime::TimeInterval::parse( std::string_view value , std::nothrow_t ) noexcept
+std::pair<G::TimeInterval,bool> G::TimeInterval::parse( std::string_view value , std::nothrow_t ) noexcept
 {
 	auto pair = parseUnits( value ) ;
 	if( pair.first.empty() || !Str::isNumeric(pair.first) )
@@ -746,7 +788,7 @@ std::pair<G::DateTime::TimeInterval,bool> G::DateTime::TimeInterval::parse( std:
 		return { parseImp(pair.first,pair.second) , true } ;
 }
 
-G::DateTime::TimeInterval G::DateTime::TimeInterval::parse( std::string_view value , bool throw_on_overflow )
+G::TimeInterval G::TimeInterval::parse( std::string_view value , bool throw_on_overflow )
 {
 	auto pair = parseUnits( value ) ;
 	if( pair.first.empty() || !Str::isNumeric(pair.first) )
@@ -758,7 +800,7 @@ G::DateTime::TimeInterval G::DateTime::TimeInterval::parse( std::string_view val
 	return result ;
 }
 
-G::DateTime::TimeInterval G::DateTime::TimeInterval::parseImp( std::string_view value , Units units , bool * overflow_p ) noexcept
+G::TimeInterval G::TimeInterval::parseImp( std::string_view value , Units units , bool * overflow_p ) noexcept
 {
 	G_ASSERT( !value.empty() && Str::isNumeric(value) ) ;
 	bool invalid = false ;
@@ -789,7 +831,7 @@ G::DateTime::TimeInterval G::DateTime::TimeInterval::parseImp( std::string_view 
 	return result ;
 }
 
-G::DateTime::TimeInterval G::DateTime::TimeInterval::ms( unsigned int ms ) noexcept
+G::TimeInterval G::TimeInterval::ms( unsigned int ms ) noexcept
 {
 	if( ms >= 1000U )
 		return { ms/1000U , (ms%1000U)*1000U } ;
@@ -797,66 +839,76 @@ G::DateTime::TimeInterval G::DateTime::TimeInterval::ms( unsigned int ms ) noexc
 		return { 0UL , ms * 1000U } ;
 }
 
-G::DateTime::TimeInterval::s_type G::DateTime::TimeInterval::s() const noexcept
+G::TimeInterval::s_type G::TimeInterval::s() const noexcept
 {
 	return m_s ;
 }
 
-G::DateTime::TimeInterval::us_type G::DateTime::TimeInterval::us() const noexcept
+G::TimeInterval::us_type G::TimeInterval::us() const noexcept
 {
 	return m_us ;
 }
 
-G::DateTime::TimeInterval::operator bool() const noexcept
+G::TimeInterval::operator bool() const noexcept
 {
 	return m_s || m_us ;
 }
 
-bool G::DateTime::TimeInterval::operator==( const TimeInterval & other ) const noexcept
+bool G::TimeInterval::operator==( const TimeInterval & other ) const noexcept
 {
 	return m_s == other.m_s && m_us == other.m_us ;
 }
 
-bool G::DateTime::TimeInterval::operator!=( const TimeInterval & other ) const noexcept
+#ifndef G_LIB_SMALL
+bool G::TimeInterval::operator!=( const TimeInterval & other ) const noexcept
 {
 	return !( *this == other ) ;
 }
+#endif
 
-bool G::DateTime::TimeInterval::operator<( const TimeInterval & other ) const noexcept
+bool G::TimeInterval::operator<( const TimeInterval & other ) const noexcept
 {
 	return m_s < other.m_s || ( m_s == other.m_s && m_us < other.m_us ) ;
 }
 
-bool G::DateTime::TimeInterval::operator<=( const TimeInterval & other ) const noexcept
+#ifndef G_LIB_SMALL
+bool G::TimeInterval::operator<=( const TimeInterval & other ) const noexcept
 {
 	return *this == other || *this < other ;
 }
+#endif
 
-bool G::DateTime::TimeInterval::operator>( const TimeInterval & other ) const noexcept
+bool G::TimeInterval::operator>( const TimeInterval & other ) const noexcept
 {
 	return m_s > other.m_s || ( m_s == other.m_s && m_us > other.m_us ) ;
 }
 
-bool G::DateTime::TimeInterval::operator>=( const TimeInterval & other ) const noexcept
+#ifndef G_LIB_SMALL
+bool G::TimeInterval::operator>=( const TimeInterval & other ) const noexcept
 {
 	return *this == other || *this > other ;
 }
+#endif
 
-G::DateTime::TimeInterval G::DateTime::TimeInterval::operator+( const TimeInterval & other ) const noexcept
+#ifndef G_LIB_SMALL
+G::TimeInterval G::TimeInterval::operator+( const TimeInterval & other ) const noexcept
 {
 	TimeInterval t( *this ) ;
 	t += other ;
 	return t ;
 }
+#endif
 
-G::DateTime::TimeInterval G::DateTime::TimeInterval::operator-( const TimeInterval & other ) const noexcept
+#ifndef G_LIB_SMALL
+G::TimeInterval G::TimeInterval::operator-( const TimeInterval & other ) const noexcept
 {
 	TimeInterval t( *this ) ;
 	t -= other ;
 	return t ;
 }
+#endif
 
-void G::DateTime::TimeInterval::operator+=( TimeInterval i ) noexcept
+void G::TimeInterval::operator+=( TimeInterval i ) noexcept
 {
 	namespace imp = DateTimeImp ;
 	bool overflow = false ;
@@ -876,7 +928,7 @@ void G::DateTime::TimeInterval::operator+=( TimeInterval i ) noexcept
 	}
 }
 
-void G::DateTime::TimeInterval::operator-=( TimeInterval i ) noexcept
+void G::TimeInterval::operator-=( TimeInterval i ) noexcept
 {
 	namespace imp = DateTimeImp ;
 	bool underflow = false ;
@@ -896,14 +948,14 @@ void G::DateTime::TimeInterval::operator-=( TimeInterval i ) noexcept
 	}
 }
 
-bool G::DateTime::TimeInterval::checkedAdd( s_type & s , unsigned int ds ) noexcept
+bool G::TimeInterval::checkedAdd( s_type & s , unsigned int ds ) noexcept
 {
 	const auto old = s ;
 	s += ds ;
 	return s < old ; // overflow
 }
 
-bool G::DateTime::TimeInterval::checkedSubtract( s_type & s , unsigned int ds ) noexcept
+bool G::TimeInterval::checkedSubtract( s_type & s , unsigned int ds ) noexcept
 {
 	if( ds > s )
 		return true ; // underflow
@@ -911,7 +963,7 @@ bool G::DateTime::TimeInterval::checkedSubtract( s_type & s , unsigned int ds ) 
 	return false ;
 }
 
-void G::DateTime::TimeInterval::streamOut( std::ostream & stream ) const
+void G::TimeInterval::streamOut( std::ostream & stream ) const
 {
 	int w = static_cast<int>( stream.width() ) ;
 	char c = stream.fill() ;
@@ -922,7 +974,7 @@ void G::DateTime::TimeInterval::streamOut( std::ostream & stream ) const
 		<< std::setw(w) << std::setfill(c) ;
 }
 
-std::ostream & G::DateTime::operator<<( std::ostream & stream , const TimeInterval & ti )
+std::ostream & G::operator<<( std::ostream & stream , const TimeInterval & ti )
 {
 	ti.streamOut( stream ) ;
 	return stream ;
@@ -930,7 +982,7 @@ std::ostream & G::DateTime::operator<<( std::ostream & stream , const TimeInterv
 
 // ==
 
-G::DateTime::Zone::Offset G::DateTime::Zone::offset( SystemTime t_in )
+G::Zone::Offset G::Zone::offset( SystemTime t_in )
 {
 	G_ASSERT( !(t_in == SystemTime::zero()) ) ;
 	SystemTime t_zone( BrokenDownTime::local(t_in).epochTimeFromUtc() ) ;
@@ -939,7 +991,8 @@ G::DateTime::Zone::Offset G::DateTime::Zone::offset( SystemTime t_in )
 	return Offset{ ahead , i.s() } ;
 }
 
-std::string G::DateTime::Zone::offsetString( int tz )
+#ifndef G_LIB_SMALL
+std::string G::Zone::offsetString( int tz )
 {
 	std::ostringstream ss ;
 	ss << ( tz < 0 ? "-" : "+" ) ;
@@ -947,8 +1000,9 @@ std::string G::DateTime::Zone::offsetString( int tz )
 	ss << (tz/10) << (tz%10) << "00" ;
 	return ss.str() ;
 }
+#endif
 
-std::string G::DateTime::Zone::offsetString( Offset offset )
+std::string G::Zone::offsetString( Offset offset )
 {
 	unsigned int hh = (offset.second+30U) / 3600U ;
 	unsigned int mm = ((offset.second+30U) / 60U) % 60 ;

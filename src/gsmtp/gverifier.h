@@ -56,10 +56,10 @@ public:
 	} ;
 	struct Config /// Configuration passed to address verifier constructors.
 	{
-		G::DateTime::TimeInterval timeout {60U} ;
+		G::TimeInterval timeout {60U} ;
 		std::string domain ;
 		Config & set_timeout( unsigned int ) noexcept ;
-		Config & set_timeout( G::DateTime::TimeInterval ) noexcept ;
+		Config & set_timeout( G::TimeInterval ) noexcept ;
 		Config & set_domain( const std::string & ) ;
 	} ;
 
@@ -81,8 +81,8 @@ public:
 } ;
 
 // clang-format off
-inline GSmtp::Verifier::Config & GSmtp::Verifier::Config::set_timeout( unsigned int s ) noexcept { timeout = G::DateTime::TimeInterval(s) ; return *this ; }
-inline GSmtp::Verifier::Config & GSmtp::Verifier::Config::set_timeout( G::DateTime::TimeInterval t ) noexcept { timeout = t ; return *this ; }
+inline GSmtp::Verifier::Config & GSmtp::Verifier::Config::set_timeout( unsigned int s ) noexcept { timeout = G::TimeInterval(s) ; return *this ; }
+inline GSmtp::Verifier::Config & GSmtp::Verifier::Config::set_timeout( G::TimeInterval t ) noexcept { timeout = t ; return *this ; }
 inline GSmtp::Verifier::Config & GSmtp::Verifier::Config::set_domain( const std::string & s ) { domain = s ; return *this ; }
 // clang-format on
 

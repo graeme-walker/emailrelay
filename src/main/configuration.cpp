@@ -225,11 +225,6 @@ const char * Main::Configuration::semanticError1() const
 {
 	using G::tx ;
 
-	if( contains("syslog") && !validSyslogFacility() )
-	{
-		return tx("invalid --syslog facility: use 'mail', 'user', 'daemon', or 'local0' to 'local7'") ;
-	}
-
 	{
 		std::array<const char*,5U> timeout_keys = {
 			"filter-timeout" ,
@@ -244,6 +239,17 @@ const char * Main::Configuration::semanticError1() const
 		}
 		if( contains("poll") && !validTimeout("poll") )
 			return tx("invalid poll interval") ;
+	}
+
+	if( contains("syslog") && !validSyslogFacility() )
+	{
+		return tx("invalid --syslog facility: use 'mail', 'user', 'daemon', or 'local0' to 'local7'") ;
+	}
+
+	const bool contains_poll = contains( "poll" ) ;
+	if( contains_poll && numberValue("poll",0U) == 0U )
+	{
+		return tx("invalid --poll period: try --forward-on-disconnect") ;
 	}
 
 	const bool contains_pop = contains( "pop" ) ;
@@ -838,8 +844,8 @@ GSmtp::Client::Config Main::Configuration::smtpClientConfig( const std::string &
 			.set_client_protocol_config(
 				GSmtp::ClientProtocol::Config()
 					.set_ehlo( client_domain )
-					.set_response_timeout( _responseTimeout() )
-					.set_ready_timeout( _promptTimeout() )
+					.set_response_timeout( _responseTimeoutInterval() )
+					.set_ready_timeout( _promptTimeoutInterval() )
 					.set_use_starttls_if_possible( clientTls() && !clientOverTls() )
 					.set_must_use_tls( contains("client-tls-required") && !clientOverTls() )
 					.set_authentication_fallthrough( false )
@@ -859,7 +865,7 @@ GSmtp::Client::Config Main::Configuration::smtpClientConfig( const std::string &
 					.set_socket_protocol_config(
 						GNet::SocketProtocol::Config()
 							.set_client_tls_profile( client_tls_profile )
-							.set_secure_connection_timeout( _secureConnectionTimeout() ) ) )
+							.set_secure_connection_timeout( _secureConnectionTimeoutInterval() ) ) )
 			.set_filter_config(
 				GSmtp::Filter::Config()
 					.set_domain( filter_domain )
@@ -964,18 +970,20 @@ unsigned int Main::Configuration::_adminPort() const noexcept { return numberVal
 std::pair<int,int> Main::Configuration::_adminServerSocketLinger() const noexcept { return std::make_pair( -1 , -1 ) ; }
 bool Main::Configuration::_allowRemoteClients() const noexcept { return contains( "remote-clients" ) ; }
 GSmtp::FilterFactoryBase::Spec Main::Configuration::_clientFilter() const { return filterValue( "client-filter" ) ; }
-G::DateTime::TimeInterval Main::Configuration::_connectionTimeout() const noexcept { return timeoutValue( "connection-timeout" , 40U ) ; }
+G::TimeInterval Main::Configuration::_connectionTimeout() const noexcept { return timeoutValue( "connection-timeout" , 40U ) ; }
 GSmtp::FilterFactoryBase::Spec Main::Configuration::_filter() const { return filterValue( "filter" ) ; }
-G::DateTime::TimeInterval Main::Configuration::_filterTimeout() const noexcept { return timeoutValue( "filter-timeout" , 60U ) ; }
-G::DateTime::TimeInterval Main::Configuration::_idleTimeout() const noexcept { return timeoutValue( "idle-timeout" , 1800U ) ; }
+G::TimeInterval Main::Configuration::_filterTimeout() const noexcept { return timeoutValue( "filter-timeout" , 60U ) ; }
+G::TimeInterval Main::Configuration::_idleTimeout() const noexcept { return timeoutValue( "idle-timeout" , 1800U ) ; }
 unsigned int Main::Configuration::_maxSize() const noexcept { return numberValue( "size" , 0U ) ; }
 unsigned int Main::Configuration::_popPort() const noexcept { return numberValue( "pop-port" , 110U ) ; }
 std::string Main::Configuration::_popSaslServerConfig() const { return stringValue( "server-auth-config" ) ; }
 std::pair<int,int> Main::Configuration::_popServerSocketLinger() const noexcept { return std::make_pair( -1 , -1 ) ; }
 unsigned int Main::Configuration::_port() const noexcept { return numberValue( "port" , 25U ) ; }
-G::DateTime::TimeInterval Main::Configuration::_promptTimeout() const noexcept { return timeoutValue( "prompt-timeout" , 20U ) ; }
-G::DateTime::TimeInterval Main::Configuration::_responseTimeout() const noexcept { return timeoutValue( "response-timeout" , 1800U ) ; }
-G::DateTime::TimeInterval Main::Configuration::_secureConnectionTimeout() const noexcept { return _connectionTimeout() ; }
+unsigned int Main::Configuration::_promptTimeout() const noexcept { return numberValue( "prompt-timeout" , 20U ) ; }
+unsigned int Main::Configuration::_responseTimeout() const noexcept { return numberValue( "response-timeout" , 1800U ) ; }
+G::TimeInterval Main::Configuration::_promptTimeoutInterval() const noexcept { return timeoutValue( "prompt-timeout" , 20U ) ; }
+G::TimeInterval Main::Configuration::_responseTimeoutInterval() const noexcept { return timeoutValue( "response-timeout" , 1800U ) ; }
+G::TimeInterval Main::Configuration::_secureConnectionTimeoutInterval() const noexcept { return _connectionTimeout() ; }
 bool Main::Configuration::_serverTlsRequired() const noexcept { return contains( "server-tls-required" ) ; }
 std::string Main::Configuration::_show() const { return stringValue( "show" ) ; }
 int Main::Configuration::_shutdownHowOnQuit() const noexcept { return 1 ; }
@@ -1012,7 +1020,7 @@ bool Main::Configuration::log() const noexcept { return contains( "log" ) || con
 std::string Main::Configuration::logFile() const { return contains("log-file") ? pathValue("log-file").str() : std::string() ; }
 G::Path Main::Configuration::pidFile() const { return pathValue( "pid-file" ) ; }
 bool Main::Configuration::pollingLog() const noexcept { return doPolling() && pollingTimeout().s() > 60U ; }
-G::DateTime::TimeInterval Main::Configuration::pollingTimeout() const noexcept { return timeoutValue( "poll" , 0U ) ; }
+G::TimeInterval Main::Configuration::pollingTimeout() const noexcept { return timeoutValue( "poll" , 0U ) ; }
 G::Path Main::Configuration::popSecretsFile() const { return contains( "pop-auth" ) ? pathValue( "pop-auth" ) : G::Path() ; }
 G::Path Main::Configuration::serverSecretsFile() const { return contains( "server-auth" ) ? pathValue( "server-auth" ) : G::Path() ; }
 G::Path Main::Configuration::serverTlsCaList() const { return contains( "server-tls-verify" ) ? pathValue( "server-tls-verify" ) : G::Path() ; }
