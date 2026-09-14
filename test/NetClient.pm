@@ -105,8 +105,11 @@ sub read
 		{
 			my $length = 1 ; # one at a time so we dont read beyond the match
 			my $data ;
-			$this->{m_s}->recv( $data , $length ) ;
-			return undef if !(defined($data) && $length) ; # disconnected
+			my $x = $this->{m_s}->recv( $data , $length ) ;
+			if( !defined($x) || !defined($data) )
+			{
+				die "recv: socket receive error: $$this{m_server} $$this{m_port}: not connected" ;
+			}
 			$buffer .= $data ;
 			_log( $buffer , $prompt ) if $verbose ;
 			if( $buffer =~ m/$prompt/ )
