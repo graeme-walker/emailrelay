@@ -76,7 +76,7 @@ public:
 		///< Contructor. Initialise with addPage() and then create().
 
 	void create( HWND hparent , const std::string & title , int icon_id ,
-		HWND notify_hwnd , unsigned int notify_message , bool fixed_size = true ) ;
+		HWND notify_hwnd , unsigned int notify_message , bool fixed_size ) ;
 			///< Creates the property sheet containing all the added pages and
 			///< hooks into the message pump. Throws on error.
 			///<
@@ -90,7 +90,7 @@ public:
 		///< Creates a property sheet page and adds it to to the internal
 		///< list.
 
-	virtual ~Stack() ;
+	~Stack() override ;
 		///< Destructor.
 
 	static bool stackMessage( MSG & msg ) ;
@@ -127,18 +127,18 @@ private:
 	using PageInfo = std::pair<Stack*,int> ;
 	static constexpr int MAGIC = 24938 ;
 	int m_magic {MAGIC} ;
-	HINSTANCE m_hinstance {0} ;
-	HWND m_hsheet {0} ;
+	HINSTANCE m_hinstance {HNULL} ;
+	HWND m_hsheet {HNULL} ;
 	StackPageCallback & m_callback ;
 	std::pair<DWORD,DWORD> m_style {0,0} ;
 	bool m_set_style {false} ;
 	bool m_fixed_size {false} ;
 	std::list<PageInfo> m_pages ;
 	std::vector<HPROPSHEETPAGE> m_hpages ;
-	HWND m_notify_hwnd {0} ;
+	HWND m_notify_hwnd {HNULL} ;
 	unsigned int m_notify_message {0U} ;
 	static std::list<HWND> m_list ;
-	ULONG_PTR m_wndproc_orig {0} ;
+	LONG_PTR m_wndproc_orig {0} ;
 	bool m_seen_wm_initdialog {false} ;
 } ;
 

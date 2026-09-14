@@ -70,9 +70,9 @@ std::string GSmtp::ServerText::receivedLine( const std::string & smtp_peer_name 
 	const std::string & peer_address , const std::string & receivedline_domain ,
 	bool authenticated , bool secure , const std::string & , const std::string & cipher_in )
 {
-	const G::SystemTime t = G::SystemTime::now() ;
+	auto t = G::SystemTime::now() ;
 	const G::BrokenDownTime tm = t.local() ;
-	const std::string zone = G::DateTime::offsetString(G::DateTime::offset(t)) ;
+	const std::string zone = G::Zone::offsetString(G::Zone::offset(t)) ;
 	const G::Date date( tm ) ;
 	const G::Time time( tm ) ;
 	const std::string esmtp = std::string("ESMTP") + (secure?"S":"") + (authenticated?"A":"") ; // RFC-3848

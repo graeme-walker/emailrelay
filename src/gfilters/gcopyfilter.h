@@ -24,6 +24,7 @@
 #include "gdef.h"
 #include "gsimplefilterbase.h"
 #include "gfilestore.h"
+#include "gfiledelivery.h"
 #include "genvelope.h"
 #include "gexception.h"
 
@@ -54,9 +55,7 @@ private:
 	GStore::FileStore & m_store ;
 	Filter::Config m_filter_config ;
 	std::string m_spec ;
-	bool m_pop_by_name {false} ;
-	bool m_hardlink {false} ;
-	bool m_no_delete {false} ;
+	GStore::FileDelivery::Config m_delivery_config ;
 } ;
 
 #endif

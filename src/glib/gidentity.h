@@ -33,6 +33,7 @@
 namespace G
 {
 	class Identity ;
+	class File ;
 }
 
 //| \class G::Identity
@@ -47,11 +48,20 @@ public:
 	G_EXCEPTION( NoSuchUser , tx("no such user") )
 	G_EXCEPTION( NoSuchGroup , tx("no such group") )
 	G_EXCEPTION( Error , tx("cannot read user database") )
+	struct FromFile
+	{
+		friend class G::File ;
+		private: FromFile() = default ;
+	} ;
 
 	explicit Identity( const std::string & username ,
 		const std::string & group_name_override = {} ) ;
 			///< Constructor for the named identity.
 			///< Throws NoSuchUser on error.
+
+	Identity( FromFile , uid_t , gid_t ) ;
+		///< Constructor taking Unix uid and gid, used by G::File.
+		///< Initialises with invalid() on Windows.
 
 	static Identity effective() noexcept ;
 		///< Returns the current effective identity.
@@ -76,13 +86,13 @@ public:
 		///< Returns a string representation.
 
 	uid_t userid() const noexcept ;
-		///< Returns the user part (Unix).
+		///< Returns the user part (Unix) or the RID (Windows).
 
 	gid_t groupid() const noexcept ;
-		///< Returns the group part (Unix).
+		///< Returns the group part (Unix) or -1 (Windows).
 
 	std::string sid() const ;
-		///< Returns the sid (Windows).
+		///< Returns the SID (Windows).
 
 	bool operator==( const Identity & ) const noexcept ;
 		///< Comparison operator.
@@ -104,8 +114,8 @@ public:
 		///< such group. Throws on error.
 
 	bool match( std::pair<int,int> uid_range ) const ;
-		///< Returns true if the user-id is in the given range
-		///< or if not implemented.
+		///< Returns true if this identity's user-id value (Unix)
+		///< or RID (Windows) is in the given inclusive range.
 
 private:
 	Identity() noexcept ;

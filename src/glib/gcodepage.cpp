@@ -170,7 +170,7 @@ std::string G::CodePageImp::toCodePage( std::string_view sv , const value_type *
 			if( map_p == map_end || (*map_p) == 0xFFFF )
 				result.append( 1U , e ) ;
 			else
-				result.append( 1U , static_cast<unsigned char>(static_cast<unsigned int>(std::distance(map_begin,map_p))) ) ;
+				result.append( 1U , static_cast<unsigned char>(static_cast<unsigned int>(std::distance(map_begin,map_p))) ) ; // NOLINT(*-narrowing-conversions)
 		}
 	}
 	return result ;
@@ -283,7 +283,8 @@ std::string G::CodePageImp::fromCodePageImp( unsigned int cp , std::string_view 
 	return Convert::narrow( buffer.data() , buffer.size() ) ;
 }
 
-#if 0
+// clang-format off
+/*
 #!/usr/bin/perl
 use strict ;
 use FileHandle ;
@@ -336,5 +337,5 @@ for my $url_pair ( @url )
 		print "}} ;\n" ;
 	}
 }
-#endif
-
+*/
+// clang-format on

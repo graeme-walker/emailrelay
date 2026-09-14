@@ -100,7 +100,7 @@ private:
 	SC_HANDLE h() const ;
 
 private:
-	SC_HANDLE m_h{0} ;
+	SC_HANDLE m_h {HNULL} ;
 } ;
 
 // ==
@@ -114,7 +114,7 @@ ServiceControl::Error::Error( const std::string & s , DWORD e ) :
 std::string ServiceControl::Error::decode( DWORD e )
 {
 	using G::txt ;
-	switch( e )
+	switch( e ) // NOLINT(*-switch-missing-default-case)
 	{
 		case ERROR_ACCESS_DENIED: return txt("access denied") ;
 		case ERROR_DATABASE_DOES_NOT_EXIST: return txt("service database does not exist") ;
@@ -135,10 +135,10 @@ std::string ServiceControl::Error::decode( DWORD e )
 
 // ==
 
-ServiceControl::Manager::Manager( DWORD access )
+ServiceControl::Manager::Manager( DWORD access ) :
+	m_h(G::nowide::openSCManagerW(access))
 {
-	m_h = G::nowide::openSCManagerW( access ) ;
-	if( m_h == 0 )
+	if( m_h == HNULL )
 	{
 		DWORD e = GetLastError() ;
 		throw Error( "cannot open service control manager" , e ) ;
@@ -170,10 +170,10 @@ ServiceControl::Service::~Service()
 
 SC_HANDLE ServiceControl::Service::open( SC_HANDLE hmanager , const std::string & name )
 {
-	SC_HANDLE h = G::nowide::openServiceW( hmanager , name ,
+	SC_HANDLE h = G::nowide::openService( hmanager , name ,
 		DELETE | SERVICE_STOP | SERVICE_QUERY_STATUS | SERVICE_START ) ;
 
-	if( h == 0 )
+	if( h == HNULL )
 	{
 		DWORD e = GetLastError() ;
 		throw Error( "cannot open service" , e ) ;
@@ -189,8 +189,8 @@ SC_HANDLE ServiceControl::Service::h() const
 void ServiceControl::Service::create( const Manager & manager , const std::string & name ,
 	const std::string & display_name , DWORD start_type , const std::string & commandline )
 {
-	m_h = G::nowide::createServiceW( manager.h() , name , display_name , start_type , commandline ) ;
-	if( m_h == 0 )
+	m_h = G::nowide::createService( manager.h() , name , display_name , start_type , commandline ) ;
+	if( m_h == HNULL )
 	{
 		DWORD e = GetLastError() ;
 		if( e == ERROR_SERVICE_EXISTS )
@@ -204,11 +204,11 @@ void ServiceControl::Service::create( const Manager & manager , const std::strin
 			}
 
 			// try again
-			m_h = G::nowide::createServiceW( manager.h() , name , display_name , start_type , commandline ) ;
-			if( m_h == 0 )
+			m_h = G::nowide::createService( manager.h() , name , display_name , start_type , commandline ) ;
+			if( m_h == HNULL )
 				e = GetLastError() ;
 		}
-		if( m_h == 0 )
+		if( m_h == HNULL )
 			throw Error( "cannot create service" , e ) ;
 	}
 }

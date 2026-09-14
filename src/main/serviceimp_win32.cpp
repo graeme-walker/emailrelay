@@ -68,9 +68,9 @@ std::pair<std::string,DWORD> ServiceImp::remove( const std::string & service_nam
 std::pair<ServiceImp::StatusHandle,DWORD> ServiceImp::statusHandle( const std::string & service_name , HandlerFn fn )
 {
 	m_handler_fn = fn ;
-	StatusHandle h = G::nowide::registerServiceCtrlHandlerW( service_name , ServiceImp::Handler ) ;
+	StatusHandle h = G::nowide::registerServiceCtrlHandler( service_name , ServiceImp::Handler ) ;
 	DWORD e = 0 ;
-	if( h == 0 )
+	if( h == HNULL )
 		e = GetLastError() ;
 	return { h , e } ;
 }
@@ -78,7 +78,7 @@ std::pair<ServiceImp::StatusHandle,DWORD> ServiceImp::statusHandle( const std::s
 DWORD ServiceImp::dispatch( ServiceMainFn service_main_fn )
 {
 	m_service_main_fn = service_main_fn ;
-	bool ok = G::nowide::startServiceCtrlDispatcherW( ServiceImp::ServiceMainW ) ;
+	bool ok = G::nowide::startServiceCtrlDispatcher( ServiceImp::ServiceMainW ) ;
 	DWORD e = GetLastError() ;
 	return ok ? DWORD(0) : e ;
 }
@@ -113,7 +113,7 @@ void ServiceImp::log( const std::string & s ) noexcept
 		if( first )
 		{
 			first = false ;
-			HKEY hkey = 0 ;
+			HKEY hkey = HNULL ;
 			G::nowide::regOpenKey( HKEY_LOCAL_MACHINE , G::Path("SOFTWARE")/G::Process::exe().withoutExtension().basename() , &hkey , true ) ;
 			std::string logfile ;
 			G::nowide::regGetValueString( hkey , "logfile" , &logfile ) ;

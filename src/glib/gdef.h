@@ -450,6 +450,13 @@
 			#define GCONFIG_HAVE_WINDOWS_IPHLPAPI_H 1
 		#endif
 	#endif
+	#if !defined(GCONFIG_HAVE_SHELLSCALINGAPI_H)
+		#if defined(G_WINDOWS) && !defined(G_MINGW)
+			#define GCONFIG_HAVE_SHELLSCALINGAPI_H 1
+		#else
+			#define GCONFIG_HAVE_SHELLSCALINGAPI_H 0
+		#endif
+	#endif
 	#if !defined(GCONFIG_HAVE_GAI_STRERROR)
 		#define GCONFIG_HAVE_GAI_STRERROR 1
 	#endif
@@ -830,6 +837,9 @@
 		#if GCONFIG_HAVE_WINDOWS_VERSIONHELPERS_H
 			#include <versionhelpers.h>
 		#endif
+		#if GCONFIG_HAVE_SHELLSCALINGAPI_H
+			#include <ShellScalingApi.h>
+		#endif
 	#endif
 
 	/* Include commonly-used c++ headers
@@ -953,7 +963,7 @@
 
 		/* Define a few Windows-style types under unix
 	 	*/
-		#if ! defined(G_WINDOWS)
+		#if !defined(G_WINDOWS)
 			using BOOL = unsigned char ;
 			using HDC = unsigned int ;
 			using HWND = unsigned int ;
@@ -962,12 +972,10 @@
 			using TCHAR = wchar_t ;
 			using SOCKET = int ;
 			using DWORD = unsigned int ;
+			static constexpr HANDLE HNULL = 0U ;
+		#else
+			#define HNULL nullptr
 		#endif
-
-		/* Define a null value for opaque pointer types that are
-	 	 * never dereferenced
-	 	 */
-		#define HNULL 0
 
 		/* Define fixed-size types - the underlying types should come
 	 	 * from C99's stdint.h, but they are all optional

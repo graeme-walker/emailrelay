@@ -95,13 +95,13 @@ std::size_t GNet::TaskImp::m_zcount = 0U ;
 
 // ==
 
-GNet::TaskImp::TaskImp( Task & task , EventState , bool sync ,
+GNet::TaskImp::TaskImp( Task & task , EventState es , bool sync ,
 	const G::ExecutableCommand & commandline , const G::Environment & env ,
 	G::NewProcess::Fd fd_stdin , G::NewProcess::Fd fd_stdout , G::NewProcess::Fd fd_stderr ,
 	const G::Path & cd , const std::string & exec_error_format ,
 	const G::Identity & id ) :
 		m_task(&task) ,
-		m_es(EventState::create(std::nothrow)) ,
+		m_es(EventState::create().eh(this,es.esrc())) ,
 		m_future_event(*this,m_es) ,
 		m_timer(*this,&TaskImp::onTimeout,m_es) ,
 		m_process( commandline.exe() , commandline.args() ,
@@ -150,19 +150,16 @@ GNet::TaskImp::~TaskImp()
 	}
 }
 
-void GNet::TaskImp::onException( ExceptionSource * , std::exception & e , bool done )
+void GNet::TaskImp::onException( ExceptionSource * esrc , std::exception & e , bool done )
 {
-	// we cannot use the exception handler inherited from the Task because we
-	// may be detached, with the Task already deleted
-	if( !done )
-		G_LOG( "GNet::TaskImp: exception: " << e.what() ) ;
+	if( m_task && m_task->m_es.hasExceptionHandler() )
+		m_task->m_es.eh()->onException( esrc , e , done ) ;
+	else if( !done )
+		G_WARNING( "GNet::TaskImp: exception: " << e.what() ) ;
 }
 
 bool GNet::TaskImp::zombify()
 {
-	G_ASSERT( m_es.esrc() == nullptr ) ;
-	G_ASSERT( m_es.logging() == nullptr ) ;
-
 	// detach the TaskImp from the Task
 	m_task = nullptr ;
 
@@ -278,7 +275,6 @@ void GNet::Task::stop()
 	m_busy = false ;
 }
 
-#ifndef G_LIB_SMALL
 std::pair<int,std::string> GNet::Task::run( const G::ExecutableCommand & commandline ,
 	const G::Environment & env ,
 	G::NewProcess::Fd fd_stdin ,
@@ -293,7 +289,6 @@ std::pair<int,std::string> GNet::Task::run( const G::ExecutableCommand & command
 		m_exec_error_format , m_id ) ;
 	return m_imp->wait() ;
 }
-#endif
 
 void GNet::Task::start( const G::ExecutableCommand & commandline )
 {
@@ -318,6 +313,11 @@ void GNet::Task::start( const G::ExecutableCommand & commandline ,
 	m_imp = std::make_unique<TaskImp>( *this , m_es , false , commandline ,
 		env , fd_stdin , fd_stdout , fd_stderr , cd ,
 		m_exec_error_format , m_id ) ;
+}
+
+bool GNet::Task::busy() const noexcept
+{
+	return m_busy ;
 }
 
 void GNet::Task::done( int exit_code , const std::string & output )

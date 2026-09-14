@@ -38,13 +38,11 @@ std::string G::Environment::get( const std::string & name , const std::string & 
 	return p ? std::string(p) : default_ ;
 }
 
-#ifndef G_LIB_SMALL
 G::Path G::Environment::getPath( const std::string & name , const G::Path & default_ )
 {
 	const char * p = std::getenv( name.c_str() ) ;
 	return p ? G::Path(p) : default_ ;
 }
-#endif
 
 char * G::EnvironmentUnixImp::stringdup( const std::string & s )
 {

@@ -107,8 +107,10 @@ test_names = \
 	testScannerTimeout.test \
 	testScannerOverUnixDomainSockets.test \
 	testVerifierPass.test \
+	testVerifierAbort.test \
 	testNetworkVerifierPass.test \
 	testNetworkVerifierFail.test \
+	testPollRun.test \
 	testProxyConnectsOnce.test \
 	testProxyServerRejection.test \
 	testProxyClientFilterFails.test \
@@ -202,8 +204,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/glib \
 	-I$(top_srcdir)/src/gssl \
-	-I$(top_srcdir)/src/gnet \
-	-D "G_SPOOLDIR=$(e_spooldir)"
+	-I$(top_srcdir)/src/gnet
 
 COMMON_LDADD = \
 	$(top_builddir)/src/glib/libglib.a

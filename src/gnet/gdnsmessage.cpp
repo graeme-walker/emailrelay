@@ -117,12 +117,10 @@ std::size_t GNet::DnsMessage::n() const noexcept
 	return m_buffer.size() ;
 }
 
-#ifndef G_LIB_SMALL
 GNet::DnsMessage GNet::DnsMessage::empty()
 {
 	return {} ;
 }
-#endif
 
 GNet::DnsMessage GNet::DnsMessage::request( const std::string & type , const std::string & hostname , unsigned int id )
 {
@@ -185,26 +183,20 @@ bool GNet::DnsMessage::TC() const
 	return !!( byte(2U) & 0x02 ) ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::DnsMessage::RD() const
 {
 	return !!( byte(2U) & 0x01 ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 bool GNet::DnsMessage::RA() const
 {
 	return !!( byte(3U) & 0x80 ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 unsigned int GNet::DnsMessage::Z() const
 {
 	return ( byte(3U) & 0x70 ) >> 4 ;
 }
-#endif
 
 unsigned int GNet::DnsMessage::RCODE() const
 {
@@ -221,19 +213,15 @@ unsigned int GNet::DnsMessage::ANCOUNT() const
 	return word(6U) ;
 }
 
-#ifndef G_LIB_SMALL
 unsigned int GNet::DnsMessage::NSCOUNT() const
 {
 	return word(8U) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 unsigned int GNet::DnsMessage::ARCOUNT() const
 {
 	return word(10U) ;
 }
-#endif
 
 GNet::DnsMessage GNet::DnsMessage::rejection( const DnsMessage & message , unsigned int rcode )
 {
@@ -334,12 +322,10 @@ unsigned int GNet::DnsMessageQuestion::qtype() const
 	return m_qtype ; // eg. AAAA
 }
 
-#ifndef G_LIB_SMALL
 unsigned int GNet::DnsMessageQuestion::qclass() const
 {
 	return m_qclass ; // eg. IN
 }
-#endif
 
 // ==
 
@@ -417,19 +403,15 @@ GNet::DnsMessageRR::DnsMessageRR( const DnsMessage & msg , unsigned int offset )
 		throw DnsMessage::Error( "invalid rr class" ) ;
 }
 
-#ifndef G_LIB_SMALL
 unsigned int GNet::DnsMessageRR::type() const
 {
 	return m_type ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 unsigned int GNet::DnsMessageRR::class_() const
 {
 	return m_class ;
 }
-#endif
 
 bool GNet::DnsMessageRR::isa( std::string_view type_name ) const noexcept
 {
@@ -441,45 +423,37 @@ unsigned int GNet::DnsMessageRR::size() const
 	return m_size ;
 }
 
-#ifndef G_LIB_SMALL
 std::string GNet::DnsMessageRR::name() const
 {
 	return m_name ;
 }
-#endif
 
 std::string GNet::DnsMessageRR::rdataDname( unsigned int rdata_offset ) const
 {
 	return DnsMessageNameParser::read( m_msg , m_rdata_offset + rdata_offset ) ;
 }
 
-#ifndef G_LIB_SMALL
 std::string GNet::DnsMessageRR::rdataDname( unsigned int * rdata_offset_p ) const
 {
 	std::string dname = DnsMessageNameParser::read( m_msg , m_rdata_offset + *rdata_offset_p ) ;
 	*rdata_offset_p += DnsMessageNameParser::size( m_msg , m_rdata_offset + *rdata_offset_p ) ;
 	return dname ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 std::string GNet::DnsMessageRR::rdataSpan( unsigned int rdata_begin ) const
 {
 	return rdataSpan( rdata_begin , rdataSize() ) ;
 }
-#endif
 
 std::string GNet::DnsMessageRR::rdataSpan( unsigned int rdata_begin , unsigned int rdata_end ) const
 {
 	return m_msg.span( m_rdata_offset + rdata_begin , m_rdata_offset + rdata_end ) ;
 }
 
-#ifndef G_LIB_SMALL
 unsigned int GNet::DnsMessageRR::rdataOffset() const
 {
 	return m_rdata_offset ;
 }
-#endif
 
 unsigned int GNet::DnsMessageRR::rdataSize() const
 {

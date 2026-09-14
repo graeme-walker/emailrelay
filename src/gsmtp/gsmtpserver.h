@@ -60,7 +60,7 @@ public:
 	{
 		bool allow_remote {false} ;
 		G::StringArray interfaces ;
-		unsigned int port {0U} ;
+		std::vector<unsigned> ports {0U} ;
 		std::string ident ;
 		bool anonymous_smtp {false} ;
 		bool anonymous_content {false} ;
@@ -77,7 +77,7 @@ public:
 
 		Config & set_allow_remote( bool = true ) noexcept ;
 		Config & set_interfaces( const G::StringArray & ) ;
-		Config & set_port( unsigned int ) noexcept ;
+		Config & set_ports( const std::vector<unsigned> & ) ;
 		Config & set_ident( const std::string & ) ;
 		Config & set_anonymous( bool = true ) noexcept ;
 		Config & set_anonymous_smtp( bool = true ) noexcept ;
@@ -224,7 +224,7 @@ private:
 
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_allow_remote( bool b ) noexcept { allow_remote = b ; return *this ; }
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_interfaces( const G::StringArray & a ) { interfaces = a ; return *this ; }
-inline GSmtp::Server::Config & GSmtp::Server::Config::set_port( unsigned int n ) noexcept { port = n ; return *this ; }
+inline GSmtp::Server::Config & GSmtp::Server::Config::set_ports( const std::vector<unsigned> & p ) { ports = p ; return *this ; }
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_ident( const std::string & s ) { ident = s ; return *this ; }
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_anonymous( bool b ) noexcept { anonymous_smtp = anonymous_content = b ; return *this ; }
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_anonymous_smtp( bool b ) noexcept { anonymous_smtp = b ; return *this ; }

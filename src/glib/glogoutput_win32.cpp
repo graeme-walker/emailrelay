@@ -103,9 +103,9 @@ void G::LogOutput::register_( const Path & exe_path )
 	std::string reg_path = std::string("SYSTEM/CurrentControlSet/services/eventlog/Application/")
 		.append( exe_path.withoutExtension().basename() ) ;
 
-	HKEY key = 0 ;
+	HKEY key = HNULL ;
 	LONG e = nowide::regCreateKey( reg_path , &key ) ;
-	if( e == ERROR_SUCCESS && key != 0 )
+	if( e == ERROR_SUCCESS && key != HNULL )
 	{
 		DWORD types = EVENTLOG_INFORMATION_TYPE | EVENTLOG_WARNING_TYPE | EVENTLOG_ERROR_TYPE ;
 		nowide::regSetValue( key , "EventMessageFile" , exe_path.str() ) ;
@@ -113,7 +113,7 @@ void G::LogOutput::register_( const Path & exe_path )
 		nowide::regSetValue( key , "CategoryMessageFile" , exe_path.str() ) ;
 		nowide::regSetValue( key , "TypesSupported" , types ) ;
 	}
-	if( key != 0 )
+	if( key != HNULL )
 		RegCloseKey( key ) ;
 }
 

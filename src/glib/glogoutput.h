@@ -275,7 +275,7 @@ private:
 	std::vector<char> m_buffer ;
 	G::omembuf m_streambuf ; // omembuf over m_buffer
 	Stream m_stream ; // std::ostream over m_streambuf
-	HANDLE m_handle {0} ; // windows only
+	HANDLE m_handle {HNULL} ; // windows only
 	Path m_path ; // with %d etc
 	Path m_real_path ;
 	int m_fd {-1} ;

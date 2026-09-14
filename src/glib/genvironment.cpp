@@ -44,7 +44,6 @@ void G::Environment::sanitise( Map & map )
 	}
 }
 
-#ifndef G_LIB_SMALL
 bool G::Environment::add( std::string_view key , std::string_view value )
 {
 	if( !key.empty() && key.find('\0') == std::string::npos && value.find('\0') == std::string::npos )
@@ -57,19 +56,16 @@ bool G::Environment::add( std::string_view key , std::string_view value )
 		return false ;
 	}
 }
-#endif
 
 bool G::Environment::contains( const std::string & name ) const
 {
 	return m_map.find(name) != m_map.end() ;
 }
 
-#ifndef G_LIB_SMALL
 std::string G::Environment::value( const std::string & name , const std::string & default_ ) const
 {
 	return contains(name) ? (*m_map.find(name)).second : default_ ;
 }
-#endif
 
 std::string G::Environment::block() const
 {
@@ -83,7 +79,6 @@ std::string G::Environment::block() const
 	return result ;
 }
 
-#ifndef G_LIB_SMALL
 std::wstring G::Environment::block( std::wstring (*fn)(std::string_view) ) const
 {
 	std::size_t n = std::accumulate( m_map.begin() , m_map.end() , std::size_t(0U) ,
@@ -95,7 +90,6 @@ std::wstring G::Environment::block( std::wstring (*fn)(std::string_view) ) const
 	result.append( 1U , L'\0' ) ;
 	return result ;
 }
-#endif
 
 std::vector<char*> G::Environment::array( const std::string & block )
 {

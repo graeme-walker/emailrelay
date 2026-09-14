@@ -51,12 +51,10 @@ void GNet::LineBuffer::add( const char * data , std::size_t size )
 		m_in.append( data , size ) ;
 }
 
-#ifndef G_LIB_SMALL
 void GNet::LineBuffer::add( const std::string & s )
 {
 	m_in.append( s ) ;
 }
-#endif
 
 void GNet::LineBuffer::extensionStart( const char * data , std::size_t size )
 {
@@ -263,10 +261,8 @@ GNet::LineBuffer::Config GNet::LineBuffer::Config::pop()
 	return crlf() ;
 }
 
-#ifndef G_LIB_SMALL
 GNet::LineBuffer::Config GNet::LineBuffer::Config::http()
 {
 	return crlf() ;
 }
-#endif
 

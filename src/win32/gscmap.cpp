@@ -24,20 +24,19 @@
 #include "gassert.h"
 
 GGui::SubClassMap::SubClassMap()
-{
-}
+= default ;
 
 void GGui::SubClassMap::add( HWND hwnd , SubClassMap::Proc proc , void *context )
 {
-	for( std::size_t i = 0U ; i < m_list.size() ; i++ )
+	for( auto & item : m_list )
 	{
-		if( m_list[i].hwnd == 0 || m_list[i].hwnd == hwnd )
+		if( item.hwnd == HNULL || item.hwnd == hwnd )
 		{
-			m_list[i] = Slot( proc , hwnd , context ) ;
+			item = Slot( proc , hwnd , context ) ;
 			return ;
 		}
 	}
-	m_list.push_back( Slot(proc,hwnd,context) ) ;
+	m_list.emplace_back( proc , hwnd , context ) ;
 }
 
 GGui::SubClassMap::Proc GGui::SubClassMap::find( HWND hwnd , void **context_p )
@@ -45,24 +44,24 @@ GGui::SubClassMap::Proc GGui::SubClassMap::find( HWND hwnd , void **context_p )
 	if( context_p != nullptr )
 		*context_p = nullptr ;
 
-	for( std::size_t i = 0U ; i < m_list.size() ; i++ )
+	for( const auto & item : m_list )
 	{
-		if( m_list[i].hwnd == hwnd )
+		if( item.hwnd == hwnd )
 		{
 			if( context_p != nullptr )
-				*context_p = m_list[i].context ;
-			return m_list[i].proc ;
+				*context_p = item.context ;
+			return item.proc ;
 		}
 	}
-	return 0 ;
+	return nullptr ;
 }
 
 void GGui::SubClassMap::remove( HWND hwnd )
 {
-	for( std::size_t i = 0U ; i < m_list.size() ; i++ )
+	for( auto & item : m_list )
 	{
-		if( m_list[i].hwnd == hwnd )
-			m_list[i].hwnd = 0 ;
+		if( item.hwnd == hwnd )
+			item.hwnd = HNULL ;
 	}
 }
 

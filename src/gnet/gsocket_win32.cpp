@@ -36,7 +36,7 @@ bool GNet::SocketBase::supports( Address::Family af , int type , int protocol )
 
 bool GNet::SocketBase::create( int domain , int type , int protocol )
 {
-	m_fd = Descriptor( ::socket( domain , type , protocol ) , 0 ) ;
+	m_fd = Descriptor( ::socket( domain , type , protocol ) , HNULL ) ;
 	if( !m_fd.validfd() )
 	{
 		saveReason() ;
@@ -182,7 +182,7 @@ std::string GNet::SocketBase::reasonString( int e )
 	//if( e == WSAESTALE ) p = "" ;
 	//if( e == WSAEREMOTE ) p = "" ;
 	if( p )
-		return std::string( p ) ;
+		return { p } ;
 
 	std::string s = G::Process::strerror( e ) ;
 	if( G::Str::imatch(s,"unknown error") )
@@ -195,7 +195,7 @@ std::string GNet::SocketBase::reasonString( int e )
 
 std::string GNet::Socket::canBindHint( const Address & , bool , const Config & )
 {
-	return std::string() ; // not implemented
+	return {} ; // not implemented
 }
 
 void GNet::Socket::setOptionReuse()

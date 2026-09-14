@@ -363,7 +363,7 @@
 # recommended because it will make the password easily visible to all users
 # on the local machine.
 #
-#client-auth /etc/private/emailrelay.auth
+#client-auth /etc/emailrelay.auth
 
 # Name: client-auth-config
 # Format: client-auth-config <config>
@@ -390,7 +390,7 @@
 # "plain:b". A special value of "pam:" can be used for authentication using
 # linux PAM.
 #
-#server-auth /etc/private/emailrelay.auth
+#server-auth /etc/emailrelay.auth
 
 # Name: server-auth-config
 # Format: server-auth-config <config>
@@ -414,7 +414,7 @@
 # fields. A special value of "pam:" can be used for authentication using
 # linux PAM.
 #
-#pop-auth /etc/private/emailrelay-pop.auth
+#pop-auth /etc/emailrelay-pop.auth
 
 # TLS options
 # -----------
@@ -434,7 +434,7 @@
 # one specifying the key file and the second the certificate file. Keep the
 # file permissions tight to avoid accidental exposure of the private key.
 #
-#client-tls-certificate /etc/ssl/certs/emailrelay.pem
+#client-tls-certificate /etc/private/emailrelay.pem
 
 # Name: client-tls-connection
 # Format: client-tls-connection
@@ -495,7 +495,7 @@
 # the first specifying the key file and the second the certificate file. Keep
 # the file permissions tight to avoid accidental exposure of the private key.
 #
-#server-tls-certificate /etc/ssl/certs/emailrelay.pem
+#server-tls-certificate /etc/private/emailrelay.pem
 
 # Name: server-tls-connection
 # Format: server-tls-connection
@@ -571,7 +571,7 @@
 # when the program starts up, typically after it has become a background
 # daemon. The immediate parent directory is created if necessary.
 #
-#pid-file /run/emailrelay/emailrelay.pid
+#pid-file /run/emailrelay.pid
 
 # Name: user
 # Format: user <username>

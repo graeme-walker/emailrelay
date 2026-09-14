@@ -1,6 +1,9 @@
 #!/usr/bin/env perl
 #
-# Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# 
+# Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,7 +36,6 @@
 
 use strict ;
 use Cwd ;
-use FileHandle ;
 use File::Find ;
 use File::Basename ;
 use File::Spec ;
@@ -49,19 +51,17 @@ my $cfg_show_list = exists( $opt{list} ) ;
 my $cfg_test_mode = exists( $opt{test} ) ;
 my $cfg_debug = exists( $opt{debug} ) ;
 $CompilationDatabase::debug = $cfg_debug ;
-$AutoMakeParser::debug = $cfg_debug ;
 
 my $base_dir = @ARGV ? $ARGV[0] : dirname($0)."/../src" ;
 my $config_status = @ARGV > 1 ? $ARGV[1] : undef ;
 my $base_to_top = @ARGV > 2 ? $ARGV[2] : ".." ;
 
-my $cs = new ConfigStatus( $config_status ) ;
-my %switches = $cs->switches() ;
-my %vars = $cs->vars() ;
-$vars{top_srcdir} = $base_to_top ;
-$vars{top_builddir} = "." ;
+my $cs = new ConfigStatus() ;
+$cs->parse( ConfigStatus::find($config_status) ) ;
+$cs->varsref()->{top_srcdir} = $base_to_top ;
+$cs->varsref()->{top_builddir} = "." ;
 
-my $cdb = new CompilationDatabase( $base_dir , \%switches , \%vars , {test_mode=>$cfg_test_mode,full_paths=>1} ) ;
+my $cdb = new CompilationDatabase( $base_dir , $cs , {test_mode=>$cfg_test_mode,full_paths=>1} ) ;
 if( $cfg_show_list )
 {
 	print join( "\n" , $cdb->list() , "" ) ;

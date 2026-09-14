@@ -22,6 +22,7 @@
 # Additional pseudo-targets:
 #	* rpm - builds an rpm package using rpmbuild
 #	* deb - builds a deb package using debhelper
+#	* apk - builds an alpine apk package using abuild
 #	* cmake - generates cmake files under ./build/
 #	* tidy - runs cmake-tidy
 #	* format - runs cmake-format
@@ -67,9 +68,6 @@ ACLOCAL_AMFLAGS = -I m4
 
 e_doc_DATA = AUTHORS NEWS README ChangeLog
 
-uninstall-local:
-	-for try in 1 2 3 4 ; do echo "$(e_pamdir)/" "$(e_initdir)/" "$(e_sysconfdir)/" "$(e_examplesdir)/" "$(e_libexecdir)/" "$(e_spooldir)/" "$(e_docdir)/" "$(pkgdatadir)/" | tr ' ' '\n' | grep "/emailrelay/" | while read d ; do rmdir "$(DESTDIR)/$$d" 2>/dev/null ; done ; done
-
 RPM_ROOT ?= ${HOME}/rpmbuild
 #ARCH ?= $(shell arch)
 ARCH ?= x86_64
@@ -103,16 +101,12 @@ deb: $(DEB)
 $(DEB): dist
 	-mv emailrelay-$(VERSION) emailrelay-$(VERSION).old.$$$$ || true
 	tar -xzf $(TAR)
-	mkdir emailrelay-$(VERSION)/debian/source
-	mv emailrelay-$(VERSION)/debian/source_format emailrelay-$(VERSION)/debian/source/format
-	cd emailrelay-$(VERSION) && fakeroot debian/rules binary # or dpkg-buildpackage -b --jobs=10
+	cd emailrelay-$(VERSION) && dpkg-buildpackage -us -uc -b -jauto
 
 .PHONY: deb-src
 deb-src: dist
 	-mv emailrelay-$(VERSION) emailrelay-$(VERSION).old.$$$$ || true
 	tar -xzf $(TAR)
-	mkdir emailrelay-$(VERSION)/debian/source
-	mv emailrelay-$(VERSION)/debian/source_format emailrelay-$(VERSION)/debian/source/format
 	dpkg-source --build emailrelay-$(VERSION)
 
 .PHONY: tidy
@@ -158,6 +152,33 @@ $(ZIP): $(TAR)
 	-@rm -rf makezip.tmp/* 2>/dev/null
 	tar -C makezip.tmp --strip-components=1 -xzf $(TAR)
 	sh -c "cd makezip.tmp && zip -r ../$(ZIP) ."
+
+APKBUILD: $(TAR)
+	sed -e '/^sha512sums=/q' -e '/^sha512sums=/d' -e 's/__VERSION__/'"`cat $(top_srcdir)/VERSION`/g" -e 's/__PKGVER__/'"`cat $(top_srcdir)/VERSION | sed 's/rc.*//'`/g" < "$(top_srcdir)/etc/apkbuild.in" > APKBUILD
+	echo "sha512sums=\"" >> APKBUILD
+	sha512sum < "$(TAR)" | sed 's/-/'$(TAR)'/' >> APKBUILD
+	echo "\"" >> APKBUILD
+	grep -A 999 "^sha512sums=" < "$(top_srcdir)/etc/apkbuild.in" | grep -v '^sha512sums=' >> APKBUILD || true
+
+APKBUILD.post-install:
+	cp "$(top_srcdir)/etc/apkbuild.post-install" APKBUILD.post-install
+
+.PHONY: apkbuild
+apkbuild: APKBUILD APKBUILD.post-install
+
+.PHONY: apk
+apk: $(TAR) APKBUILD APKBUILD.post-install
+	if grep -q "^PACKAGER_PRIVKEY=" "${HOME}/.abuild/abuild.conf" 2>/dev/null ; then : ; else abuild-keygen -i -n -a ; fi
+	mkdir -p "apk.d/${USER}/build"
+	cp "$(TAR)" "apk.d/${USER}/build/$(TAR)"
+	cp APKBUILD.post-install "apk.d/${USER}/build/emailrelay.post-install"
+	cp APKBUILD "apk.d/${USER}/build/APKBUILD"
+	sed -i -e 's;^source=.*;source="$(TAR)";' "apk.d/${USER}/build/APKBUILD"
+	cd "apk.d/${USER}/build" && abuild clean unpack && cd ../..
+	cp APKBUILD "apk.d/${USER}/build/APKBUILD"
+	cd "apk.d/${USER}/build" && abuild prepare mkusers build rootpkg && cd ../..
+	cp "${HOME}/packages/${USER}/x86_64/"emailrelay*.apk .
+	@echo "+++ " doas apk add emailrelay-`cat $(top_srcdir)/VERSION | sed 's/rc.*//'`-r0.apk
 
 .PHONY: mbedtls
 mbedtls:

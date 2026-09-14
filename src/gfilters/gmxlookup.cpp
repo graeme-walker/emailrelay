@@ -44,12 +44,10 @@ bool GFilters::MxLookup::enabled()
 	return true ;
 }
 
-#ifndef G_LIB_SMALL
 GFilters::MxLookup::MxLookup( GNet::EventState es , Config config ) :
 	MxLookup(es,config,GNet::nameservers(53U))
 {
 }
-#endif
 
 GFilters::MxLookup::MxLookup( GNet::EventState es , Config config ,
 	const std::vector<GNet::Address> & nameservers ) :

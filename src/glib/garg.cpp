@@ -51,7 +51,6 @@ G::Arg::Arg( const StringArray & args ) :
 {
 }
 
-#ifndef G_LIB_SMALL
 G::Arg::Arg( const Path & argv0 , const std::string & command_line_tail )
 {
 	if( argv0.empty() )
@@ -59,7 +58,6 @@ G::Arg::Arg( const Path & argv0 , const std::string & command_line_tail )
 	parseImp( command_line_tail ) ;
 	m_array.insert( m_array.begin() , argv0.str() ) ;
 }
-#endif
 
 G::Arg::Arg( const std::string & command_line )
 {
@@ -78,12 +76,10 @@ G::Arg G::Arg::windows()
 	return arg ;
 }
 
-#ifndef G_LIB_SMALL
 G::Path G::Arg::v0()
 {
 	return m_v0 ;
 }
-#endif
 
 G::StringArray G::Arg::array( unsigned int shift ) const
 {
@@ -98,12 +94,10 @@ bool G::Arg::contains( std::string_view option , std::size_t option_args , bool 
 	return find( cs , option , option_args , nullptr ) != 0U ;
 }
 
-#ifndef G_LIB_SMALL
 std::size_t G::Arg::count( std::string_view option ) const
 {
 	return find( true , option , 0U , nullptr ) ;
 }
-#endif
 
 std::size_t G::Arg::find( bool cs , std::string_view option , std::size_t option_args ,
 	std::size_t * index_p ) const
@@ -230,12 +224,10 @@ G::Path G::Arg::exe()
 	return exeImp( true ) ;
 }
 
-#ifndef G_LIB_SMALL
 G::Path G::Arg::exe( std::nothrow_t )
 {
 	return exeImp( false ) ;
 }
-#endif
 
 G::Path G::Arg::exeImp( bool do_throw )
 {
@@ -263,12 +255,10 @@ G::Path G::Arg::exeImp( bool do_throw )
 	}
 }
 
-#ifndef G_LIB_SMALL
 G::StringArray::const_iterator G::Arg::cbegin() const
 {
 	return m_array.size() <= 1U ? cend() : std::next( m_array.cbegin() ) ;
 }
-#endif
 
 G::StringArray::const_iterator G::Arg::cend() const
 {

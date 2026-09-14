@@ -29,14 +29,12 @@
 #include <stdexcept>
 #include <utility>
 
-#ifndef G_LIB_SMALL
 G::OptionParser::OptionParser( const Options & spec , OptionMap & values_out , StringArray & errors_out ) :
 	m_spec(spec) ,
 	m_map(values_out) ,
 	m_errors(&errors_out)
 {
 }
-#endif
 
 G::OptionParser::OptionParser( const Options & spec , OptionMap & values_out , StringArray * errors_out ) :
 	m_spec(spec) ,
@@ -260,12 +258,10 @@ void G::OptionParser::errorDuplicate( const std::string & name )
 	error( str( format(txt("duplicate use of %1%")) % ("\"--"+name+"\"") ) ) ;
 }
 
-#ifndef G_LIB_SMALL
 void G::OptionParser::errorExtraValue( char c , const std::string & )
 {
 	error( str( format(txt("cannot give a value with %1%")) % ("\"-"+std::string(1U,c)+"\"") ) ) ;
 }
-#endif
 
 void G::OptionParser::errorExtraValue( const std::string & name , const std::string & value )
 {

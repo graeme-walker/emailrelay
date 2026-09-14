@@ -118,7 +118,7 @@ OS_EXTRA_DIST = \
 
 else
 
-AM_CPPFLAGS = -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gssl -DG_LIB_SMALL
+AM_CPPFLAGS = -I$(top_srcdir)/src/glib -I$(top_srcdir)/src/gssl
 
 OS_SOURCES = \
 	gdescriptor_unix.cpp \

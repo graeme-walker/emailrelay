@@ -1,0 +1,118 @@
+#
+# APKBUILD for E-MailRelay
+#
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: FSFAP
+#
+# https://wiki.alpinelinux.org/wiki/APKBUILD_Reference
+#
+# Set _unity=1 for a smaller unity build, although it might stress the
+# build machine.
+#
+_srcver="__VERSION__" # with eg. "rc1"
+pkgver="__PKGVER__"
+pkgname="emailrelay"
+pkgdesc="E-mail store-and-forward transfer agent and pop server."
+pkgrel="0"
+install=emailrelay.post-install
+maintainer="Graeme Walker <graeme_walker@users.sourceforge.net>"
+license="GPL-3.0-or-later"
+source="http://sourceforge.net/projects/emailrelay/files/emailrelay/$pkgver/emailrelay-$_srcver-src.tar.gz"
+url="https://sourceforge.net/projects/emailrelay"
+subpackages="$pkgname-doc $pkgname-openrc"
+arch="all"
+options="suid"
+depends=""
+makedepends="perl"
+builddir="$srcdir/$pkgname-$_srcver"
+_group="daemon"
+_unity=0
+_configure_options="--disable-gui --without-pam --without-doxygen --without-man2html --without-mbedtls --with-openssl --disable-install-pam --enable-install-config"
+_configure_dirs="e_initdir=/etc/init.d e_egconfdir=/usr/share/emailrelay e_systemddir=/usr/share/emailrelay"
+
+build() {
+	if test -d "$builddir" ; then : ; else
+		warning "invalid build directory: check _srcver value in APKBUILD"
+	fi
+	if test "$_unity" -eq 1
+	then
+		# (unity build for smaller binaries -- see unity/Makefile.am)
+		./configure.sh $_configure_options $_configure_dirs
+		make -C unity small PROGRAMS_="emailrelay emailrelay-submit"
+		make -C doc
+		make -C etc
+		make -C bin
+		make -C test emailrelay_test_client
+	else
+		./configure.sh -z $_configure_options $_configure_dirs
+		make
+		make -C test programs
+	fi
+}
+check() {
+	if test "$_unity" -eq 1
+	then
+		make -C test check check_PROGRAMS="" TEST_LOG_FLAGS="-q -v -d ../unity -x /none" SH_LOG_FLAGS="-b ../unity"
+	else
+		make check
+	fi
+}
+package() {
+	if test "$_unity" -eq 1
+	then
+		# cannot do a full 'make install' so do it piecemeal...
+
+		# binaries
+		install -d -m 755 "$pkgdir/usr/sbin"
+		install --strip -m 755 "unity/emailrelay" "$pkgdir/usr/sbin/"
+		install --strip -m u=rwx,g=rxs,o=rx --group "$_group" "unity/emailrelay-submit" "$pkgdir/usr/sbin/"
+
+		# spool directory
+		install -d -m 755 "$pkgdir/var/spool"
+		install -d -m u=rwx,g=rwxs,o=rx --group "$_group" "$pkgdir/var/spool/emailrelay"
+
+		# config files (post-install script does a no-clobber copy to /etc)
+		install -d -m 755 "$pkgdir/etc"
+		install -d -m 755 "$pkgdir/usr/share/emailrelay"
+		install -m 644 etc/emailrelay.conf "$pkgdir/usr/share/emailrelay/emailrelay.conf"
+
+		# other sub-directories
+		make -C doc install DESTDIR="$pkgdir"
+		make -C etc install DESTDIR="$pkgdir"
+		make -C bin install DESTDIR="$pkgdir"
+		install -m 644 README NEWS AUTHORS ChangeLog "$pkgdir/usr/share/doc/emailrelay/"
+	else
+		make install DESTDIR="$pkgdir"
+
+		# spool directory permissions
+		chgrp "$_group" "$pkgdir/var/spool/emailrelay"
+		chmod u=rwx,g=rxs,o=rx "$pkgdir/var/spool/emailrelay"
+
+		# group-suid permissions
+		chgrp "$_group" "$pkgdir/usr/sbin/emailrelay-submit"
+		chmod u=rwx,g=rxs,o=rx "$pkgdir/usr/sbin/emailrelay-submit"
+	fi
+
+	test "$_unity" -eq 0 && rm "$pkgdir/usr/sbin/emailrelay-passwd"
+	test "$_unity" -eq 0 && rm "$pkgdir/usr/share/emailrelay/emailrelay-icon.png"
+	rm "$pkgdir/usr/share/emailrelay/emailrelay.conf"
+	mv "$pkgdir/usr/share/emailrelay/emailrelay.auth" "$pkgdir/etc/"
+	rm "$pkgdir/usr/share/emailrelay/emailrelay.pam"
+	rm "$pkgdir/usr/share/emailrelay/emailrelay.service"
+	rmdir "$pkgdir/usr/share/emailrelay"
+}
+doc() {
+	# move doc and man trees into doc package
+	install -d -m 755 "$subpkgdir/usr/share/doc"
+	install -d -m 755 "$subpkgdir/usr/man"
+	mv "$pkgdir/usr/share/doc/emailrelay" "$subpkgdir/usr/share/doc/"
+	mv "$pkgdir/usr/share/man/man1" "$subpkgdir/usr/man/"
+	rmdir "$pkgdir/usr/share/man" || true
+	rmdir "$pkgdir/usr/share/doc" || true
+}
+openrc() {
+	# move init script into openrc package
+	install -d -m 755 "$subpkgdir/etc"
+	mv "$pkgdir/etc/init.d" "$subpkgdir/etc/"
+}
+

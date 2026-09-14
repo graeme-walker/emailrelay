@@ -15,6 +15,16 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+# make (--) and make install (==)...
+#
+#   emailrelay-foo.sh.in
+#     \--sed-> emailrelay-foo.sh
+#                \==> e_examples (examples/scripts)
+#   emailrelay.init.in
+#     \--sed-> emailrelay
+#                \==> e_initdir/ (examples/init)
+#
+
 example_scripts_static = \
 	emailrelay-bcc-check.pl \
 	emailrelay-check-ipaddress.pl \
@@ -42,11 +52,10 @@ example_scripts_in = \
 example_scripts_out = \
 	emailrelay-notify.sh \
 	emailrelay-resubmit.sh \
-	emailrelay-submit.sh \
-	emailrelay
+	emailrelay-submit.sh
 
 init_script_in = \
-	emailrelay.sh.in
+	emailrelay.init.in
 
 init_script_out = \
 	emailrelay
@@ -68,9 +77,10 @@ e_init_SCRIPTS = \
 	$(init_script_out)
 
 CLEANFILES = \
-	$(example_scripts_out)
+	$(example_scripts_out) \
+	$(init_script_out)
 
-do_sed = sed -e "s%__SPOOL_DIR__%${e_spooldir}%g" -e "s%__SBIN_DIR__%${sbindir}%g" -e "s%__SYSCONF_DIR__%${e_sysconfdir}%g" -e "s%__LIB_DIR__%${e_libdir}%g" -e "s%__RUN_DIR__%${e_rundir}%g"
+do_sed = sed -e "s%__SPOOL_DIR__%${e_spooldir}%g" -e "s%__SBIN_DIR__%${sbindir}%g" -e "s%__CONF_DIR__%${e_confdir}%g" -e "s%__EGCONF_DIR__%${e_egconfdir}%g" -e "s%__RUN_DIR__%${e_rundir}%g"
 
 emailrelay-notify.sh: emailrelay-notify.sh.in
 	$(do_sed) < $(srcdir)/emailrelay-notify.sh.in > emailrelay-notify.sh
@@ -84,7 +94,7 @@ emailrelay-submit.sh: emailrelay-submit.sh.in
 	$(do_sed) < $(srcdir)/emailrelay-submit.sh.in > emailrelay-submit.sh
 	chmod +x emailrelay-submit.sh
 
-emailrelay: emailrelay.sh.in
-	$(do_sed) < $(srcdir)/emailrelay.sh.in > emailrelay
+emailrelay: emailrelay.init.in
+	$(do_sed) < $(srcdir)/emailrelay.init.in > emailrelay
 	chmod +x emailrelay
 

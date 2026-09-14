@@ -387,7 +387,7 @@ namespace G
 			std::size_t pos = start_pos ;
 			for(;;)
 			{
-				pos = s.find( &cc[0] , pos ) ;
+				pos = s.find( cc.data() , pos ) ;
 				if( pos == std::string::npos )
 				{
 					break ; // not found
@@ -510,17 +510,17 @@ std::string G::MapFile::strpath( const Path & path_in )
 G::MapFile::Error G::MapFile::readError( const Path & path , std::string_view kind )
 {
 	std::string description = "cannot read " + strkind(kind) + " file" + strpath(path) ;
-	return Error( description ) ;
+	return { description } ;
 }
 
 G::MapFile::Error G::MapFile::writeError( const Path & path , std::string_view kind )
 {
-	return Error( std::string("cannot create ").append(strkind(kind)).append(" file ").append(strpath(path)) ) ;
+	return { std::string("cannot create ").append(strkind(kind)).append(" file ").append(strpath(path)) } ;
 }
 
 G::MapFile::Error G::MapFile::missingValueError( const Path & path , const std::string & kind ,
 	const std::string & key )
 {
-	return Error( std::string("no item [").append(key).append("] in ").append(strkind(kind)).append(" file ").append(strpath(path)) ) ;
+	return { std::string("no item [").append(key).append("] in ").append(strkind(kind)).append(" file ").append(strpath(path)) } ;
 }
 

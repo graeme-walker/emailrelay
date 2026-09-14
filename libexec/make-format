@@ -1,6 +1,9 @@
 #!/usr/bin/env perl
 #
-# Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# 
+# Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,22 +21,37 @@
 #
 # make-format
 #
-# Runs clang-format with some post-processing to get close to the preferred
-# style.
+# Runs clang-format with some post-processing fix-ups to get close to
+# the preferred style.
 #
 # usage: make-format [options] { [--list] -d <dir> | <file> [<file> ...] }
+#          --quiet      : quiet
+#          --verbose    : verbose
+#          --backup     : create ".<time>.bak" backup files
+#          --extra<n>   : with optional fixup 'n'
+#          --extra<n>=0 : without optional fixup 'n'
+#
+# See also c++-tokens.
 #
 
 use strict ;
-use FileHandle ;
+use IO::File ;
 use File::Find ;
 use File::Copy ;
 use Data::Dumper ;
 use Getopt::Long ;
+use Cwd ;
 
 # configure
 my $cfg_formatter = "clang-format" ;
 my $cfg_tab = 4 ; # in .clang-format
+my $cfg_fix_indenting = 1 ;
+my $cfg_fix_eol_whitespace = 1 ;
+my $cfg_fix_default_initialisers = 1 ;
+my $cfg_fix_tx_whitespace = 1 ;
+my $cfg_fix_eq_default = 0 ;
+my $cfg_fix_inner_brackets = 1 ;
+my $cfg_check = 1 ;
 my @cfg_stop = qw(
 	/gdef\.h$
 	/gconfig_defs\.h$
@@ -46,22 +64,41 @@ my %opt = () ;
 GetOptions( \%opt ,
 	"quiet|q" ,
 	"verbose|v" ,
-	"formatter|f=s" , # clang-format
-	"nofixup" , # no post-processing
+	"formatter|f=s" , # clang-format program
 	"noformat|n" , # no clang-format
-	"nobackup|x" ,
+	"extra1|1" , # with extra fixups, part1
+	"extra2|2" , # with extra fixups, part2
+	"extra3|3" , # with extra fixups, part3
+	"extra4|4" , # with extra fixups, part4
+	"extra5|5" , # with extra fixups, part5
+	"extra6|6" , # with extra fixups, part6
+	"backup|b" ,
 	"list" , # list files, with -d
 	"d=s" , # base directory for --list
 ) or die ;
 $cfg_formatter = $opt{formatter} if $opt{formatter} ;
+set( \$cfg_fix_indenting , \%opt , "extra1" ) ;
+set( \$cfg_fix_eol_whitespace , \%opt , "extra2" ) ;
+set( \$cfg_fix_default_initialisers , \%opt , "extra3" ) ;
+set( \$cfg_fix_tx_whitespace , \%opt , "extra4" ) ;
+set( \$cfg_fix_eq_default , \%opt , "extra5" ) ;
+set( \$cfg_fix_inner_brackets , \%opt , "extra6" ) ;
 my @files = @ARGV ;
 die "usage error\n" if ( $opt{list} && !$opt{d} ) ;
+sub set
+{
+	my ( $value_ref , $opt_ref , $key ) = @_ ;
+	if( exists($opt_ref->{$key}) && defined($opt_ref->{$key}) )
+	{
+		$$value_ref = $opt_ref->{$key} ;
+	}
+}
 
 # deal with "--list -d ..."
 if( $opt{list} && $opt{d} )
 {
-	my @files = find_files( $opt{d} , \@cfg_stop ) ;
-	print join( "\n" , (@files,"") ) ;
+	my @file_list = find_files( $opt{d} , \@cfg_stop ) ;
+	print join( "\n" , (@file_list,"") ) ;
 	exit 0 ;
 }
 
@@ -72,16 +109,14 @@ if( !$opt{noformat} )
 	my ($v1,$v2) = ( $version =~ m/(\d+)\.(\d+)/ ) ;
 	die "make-format: error: cannot run [$cfg_formatter --version]\n"
 		if ( !$v1 && !$v2 ) ;
-	die "make-format: error: $cfg_formatter [$v1] is too old: use version 10 or later\n"
-		if ( $v1 < 10 ) ;
-	die "make-format: error: no .clang-format file in cwd\n"
-		if ! -e ".clang-format" ;
+	die "make-format: error: $cfg_formatter [$v1] is too old: use version 19 or later\n"
+		if ( $v1 < 19 ) ;
 }
 
 # check for future command-line options
 my $formatter_options = "" ;
 {
-	my $fh = new FileHandle( "$cfg_formatter --help |" ) ;
+	my $fh = new IO::File( "$cfg_formatter --help |" ) ;
 	while(<$fh>)
 	{
 		chomp( my $line = $_ ) ;
@@ -98,6 +133,12 @@ if( $opt{d} )
 	@files = find_files( $opt{d} , \@cfg_stop , $opt{verbose} ) ;
 }
 
+if( $opt{d} && !-e ".clang-format" && -e "$opt{d}/src/.clang-format" )
+{
+	File::Copy::copy( "$opt{d}/src/.clang-format" , "." ) or warn "warning: failed to copy .clang-format: $!\n" ;
+}
+die "error: no \".clang-format\" file in ".getcwd()."\n" if ! -e ".clang-format" ;
+
 # format each file
 for my $fname ( @files )
 {
@@ -105,7 +146,7 @@ for my $fname ( @files )
 	print "make-format: [$fname]\n" unless $opt{quiet} ;
 
 	# make a backup
-	if( !$opt{nobackup} )
+	if( $opt{backup} )
 	{
 		my $t = time() ;
 		File::Copy::copy( $fname , "$fname.$t.bak" ) or
@@ -123,69 +164,167 @@ for my $fname ( @files )
 	}
 
 	# fix things that clang-format has messed up
-	if( !$opt{nofixup} )
-	{
-		fixup( $fname ) ;
-	}
+	fixup( $fname ) ;
 }
 
 sub fixup
 {
 	my ( $fname ) = @_ ;
-	my $fh_in = new FileHandle( $fname ) or die ;
-	my $fh_out = new FileHandle( "$fname.new" , "w" ) or die ;
+	my $fh_in = new IO::File( $fname ) or die ;
+	my $fh_out = new IO::File( "$fname.new" , "w" ) or die ;
 	my $old_indent ;
 	my $bad_indent ;
+	my $active = 1 ;
 	while(<$fh_in>)
 	{
 		chomp( my $line = $_ ) ;
-		if( $line =~ m:^// clang-format off: )
+		if( $line =~ m:^\s*// clang-format on: )
 		{
-			$fh_out->close() ;
-			unlink( "$fname.new" ) ;
-			return ;
+			$active = 1 ;
 		}
+		elsif( $line =~ m:^\s*// clang-format off: )
+		{
+			$active = 0 ;
+		}
+		elsif( $line =~ m/^#/ )
+		{
+		}
+		elsif( $active )
+		{
+			if( $cfg_fix_indenting )
+			{
+				# clang-format tries to align with tabs followed by spaces --
+				# here we make sure that only tabs are used for indenting, with
+				# the indenting level increasing by no more than one tab on
+				# consecutive lines -- also add extra indents for method
+				# documentation
+				my ( $indent ) = ( $line =~ m/^(\s*)/ ) ;
+				if( $line =~ m/^\s*$/ )
+				{
+					$old_indent = undef ;
+					$bad_indent = undef ;
+				}
+				elsif( ( $fname =~ m/\.h$/ ) && ( $line =~ m:^\s*//: ) && ( $old_indent ne "" ) )
+				{
+					$bad_indent = $indent ;
+					$line =~ s/^\s*/$old_indent\t/ ;
+				}
+				elsif( defined($old_indent) && sizeof($indent) > (sizeof($old_indent)+$cfg_tab) )
+				{
+					$bad_indent = $indent ;
+					$line =~ s/^\s*/$old_indent\t/ ;
+				}
+				elsif( $indent =~ m/\t / )
+				{
+					$bad_indent = $indent ;
+					$line =~ s/^\s*/$old_indent\t/ ;
+				}
+				elsif( defined($bad_indent) && sizeof($indent) == sizeof($bad_indent) )
+				{
+					$line =~ s/^\s*/$old_indent\t/ ;
+				}
+				else
+				{
+					$old_indent = $indent ;
+					$bad_indent = undef ;
+				}
+			}
 
-		# clang-format tries to align with tabs followed by spaces --
-		# here we make sure that only tabs are used for indenting, with
-		# the indenting level increasing by no more than one tab on
-		# consecutive lines
-		my ( $indent ) = ( $line =~ m/^(\s*)/ ) ;
-		if( $line eq "" )
-		{
-			$old_indent = undef ;
-			$bad_indent = undef ;
-		}
-		elsif( defined($old_indent) && sizeof($indent) > (sizeof($old_indent)+$cfg_tab) )
-		{
-			$bad_indent = $indent ;
-			$line =~ s/^\s*/$old_indent\t/ ;
-		}
-		elsif( $indent =~ m/\t / )
-		{
-			$bad_indent = $indent ;
-			$line =~ s/^\s*/$old_indent\t/ ;
-		}
-		elsif( defined($bad_indent) && sizeof($indent) == sizeof($bad_indent) )
-		{
-			$line =~ s/^\s*/$old_indent\t/ ;
-		}
-		else
-		{
-			$old_indent = $indent ;
-			$bad_indent = undef ;
-		}
+			# add some more eol whitespace
+			if( $cfg_fix_eol_whitespace )
+			{
+				if( $line !~ m:^\s//: )
+				{
+					$line =~ s:(\S);$:$1 ;: ;
+					$line =~ s:(\S); //(.*):$1 ; //$2: ;
+				}
+			}
 
-		# add some more whitespace
-		$line =~ s:(\S);$:$1 ;: ;
-		$line =~ s:(\S); //(.*):$1 ; //$2: ;
-		$line =~ s:(\S),:$1 ,:g unless ( $line =~ m/["']/ or $line =~ m://.*,: ) ;
+			# fewer spaces in simple default initialisers
+			if( $cfg_fix_default_initialisers )
+			{
+				# "<ws><type> * <name> { <value> } ;"
+				# "<ws><type> <name> { <value> } ;"
+				# "<ws><type> <name> { <value> } ; // <comment>"
+				$line =~ s/^(\s+)([0-9A-Za-z:_]+) \* ([0-9A-Za-z_]+) \{ ([0-9A-Za-z:]*) \} ;$/$1$2 * $3 {$4} ;/ ;
+				$line =~ s/^(\s+)([0-9A-Za-z:_]+) ([0-9A-Za-z_]+) \{ ([0-9A-Za-z:]*) \} ;$/$1$2 $3 {$4} ;/ ;
+				$line =~ s/^(\s+)([0-9A-Za-z:_]+) ([0-9A-Za-z_]+) \{ ([0-9A-Za-z:]*) \} ; \/\/ (.*)/$1$2 $3 {$4} ; \/\/ $5/ ;
+			}
 
+			# fewer spaces in tx("...")
+			if( $cfg_fix_tx_whitespace )
+			{
+				$line =~ s/tx\( ("[^"]+") \)/tx($1)/ ;
+			}
+
+			# eq-default on its own line
+			if( $cfg_fix_eq_default )
+			{
+				if( $line =~ m/^\S.*= default\s*;\s*$/ )
+				{
+					$line =~ s/= default/\n= default/ ;
+				}
+			}
+
+			if( $cfg_fix_inner_brackets )
+			{
+				# eg: ( fn( x ) && fn( y ) ) -> ( fn(x) && fn(y) )
+				if( ( $line =~ m/\(\s[^\(]*\(\s/ ) && ( $line =~ m/\s\)/ ) )
+				{
+					$line = fix_inner_brackets( $line ) ;
+				}
+			}
+		}
 		print $fh_out $line , "\n" or die ;
 	}
 	$fh_in->close() ;
 	$fh_out->close() or die ;
 	rename( "$fname.new" , $fname ) or die ;
+}
+
+sub fix_inner_brackets
+{
+	# removes all whitespace within inner brackets
+	my ( $line ) = @_ ;
+	my @out = () ;
+	my $depth = 0 ;
+	my $qq = 0 ;
+	my $special = ',()[]&|=' ; # remove ws after any of these
+	for( my $i = 0 ; $i < length($line) ; $i++ )
+	{
+		my $c = substr( $line , $i , 1 ) ;
+		if( $c eq '"' )
+		{
+			push @out , $c ;
+			$qq = !$qq ;
+		}
+		elsif( $qq )
+		{
+			push @out , $c ;
+		}
+		elsif( $c eq "(" )
+		{
+			push @out , $c ;
+			$depth++ ;
+		}
+		elsif( $c eq ")" )
+		{
+			$depth-- ;
+			push @out , $c ;
+		}
+		elsif( $c =~ m/\s/ && $depth > 1 && (
+				( $out[-1] =~ m/[\Q$special\E]/ ) ||
+				( substr($line,$i+1) =~ m/\s*\)/ )
+			) )
+		{
+			# no-op
+		}
+		else
+		{
+			push @out , $c ;
+		}
+	}
+	return join('',@out) ;
 }
 
 sub sizeof

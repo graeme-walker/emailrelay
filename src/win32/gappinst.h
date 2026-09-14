@@ -50,9 +50,6 @@ protected:
 		///< Protected constructor that calls
 		///< hinstance(h).
 
-	~ApplicationInstance() ;
-		///< Destructor.
-
 public:
 	static void hinstance( HINSTANCE h ) ;
 		///< Sets the instance handle, which is

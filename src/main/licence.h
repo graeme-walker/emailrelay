@@ -19,5 +19,5 @@
 ///
 #ifndef G_MAIN_LICENCE_H
 #define G_MAIN_LICENCE_H
-extern const char * licence[] ;
+extern const char * licence[] ; // NOLINT(*-avoid-c-arrays)
 #endif

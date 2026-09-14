@@ -43,6 +43,16 @@ G::Root::Root() :
 	}
 }
 
+G::Root::Root( Identity id ) :
+	m_change_group(false)
+{
+	if( m_this == nullptr && m_initialised )
+	{
+		Process::beSpecial( id , false ) ;
+		m_this = this ;
+	}
+}
+
 G::Root::Root( bool change_group ) :
 	m_change_group(m_fixed_group?false:change_group)
 {

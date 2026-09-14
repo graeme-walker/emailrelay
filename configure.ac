@@ -19,7 +19,7 @@ dnl
 dnl Process this file with autoconf to produce a configure script.
 dnl
 
-AC_INIT([E-MailRelay],[2.6.1],[],[emailrelay])
+AC_INIT([E-MailRelay],[2.7rc1],[],[emailrelay])
 AC_CONFIG_SRCDIR([src/glib/gdef.h])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([no-define])
@@ -43,7 +43,6 @@ AC_CHECK_PROGS([MAKE],[make gmake])
 AC_CHECK_PROGS([AR],[ar gar])
 AC_CHECK_PROGS([GZIP],[gzip])
 AC_CHECK_PROG([GCONFIG_HAVE_DOXYGEN],[doxygen],[yes])
-AC_CHECK_PROG([GCONFIG_HAVE_MAN2HTML],[man2html],[yes])
 GCONFIG_FN_PROG_WINDRES
 GCONFIG_FN_PROG_WINDMC
 GCONFIG_FN_ARFLAGS
@@ -85,8 +84,10 @@ AC_ARG_ENABLE([epoll],AS_HELP_STRING([--enable-epoll],[enable epoll (default aut
 GCONFIG_FN_ENABLE_EPOLL
 AC_ARG_ENABLE([gui],AS_HELP_STRING([--enable-gui],[enable configuration gui (requires Qt) (default auto)]))
 GCONFIG_FN_ENABLE_GUI
-AC_ARG_ENABLE([install-hook],AS_HELP_STRING([--enable-install-hook],[enable fixing up the start/stop configuration file at install time (default yes)]))
-GCONFIG_FN_ENABLE_INSTALL_HOOK
+AC_ARG_ENABLE([install-config],AS_HELP_STRING([--enable-install-config],[enable no-clobber install of config file (default yes)]))
+GCONFIG_FN_ENABLE_INSTALL_CONFIG
+AC_ARG_ENABLE([install-pam],AS_HELP_STRING([--enable-install-pam],[enable no-clobber install of pam file (default yes)]))
+GCONFIG_FN_ENABLE_INSTALL_PAM
 AC_ARG_ENABLE([interface-names],AS_HELP_STRING([--enable-interface-names],[allow network interface names for defining listening addresses (default yes)]))
 GCONFIG_FN_ENABLE_INTERFACE_NAMES
 AC_ARG_ENABLE([pop],AS_HELP_STRING([--enable-pop],[enable pop (default yes)]))
@@ -114,12 +115,12 @@ GCONFIG_FN_ENABLE_ADMIN
 
 dnl "--with-whatever" for external dependencies
 dnl
-AC_ARG_WITH([doxygen],AS_HELP_STRING([--with-doxygen],[generate source code documentation with doxygen (default auto)]))
+AC_ARG_WITH([html],AS_HELP_STRING([--with-html],[generate html documentation with markdown (default no)]))
+GCONFIG_FN_WITH_HTML
+AC_ARG_WITH([doxygen],AS_HELP_STRING([--with-doxygen],[generate source code documentation with doxygen (default no)]))
 GCONFIG_FN_WITH_DOXYGEN
 AC_ARG_WITH([gettext],AS_HELP_STRING([--with-gettext],[use gettext (default auto)]))
 GCONFIG_FN_WITH_GETTEXT
-AC_ARG_WITH([man2html],AS_HELP_STRING([--with-man2html],[convert man pages to html using man2html (default auto)]))
-GCONFIG_FN_WITH_MAN2HTML
 AC_ARG_WITH([openssl],AS_HELP_STRING([--with-openssl],[use openssl for tls layer (default auto)]))
 AC_ARG_WITH([mbedtls],AS_HELP_STRING([--with-mbedtls],[use mbedtls for tls layer (default auto)]))
 GCONFIG_FN_TLS

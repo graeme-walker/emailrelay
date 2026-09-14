@@ -20,7 +20,6 @@
 
 #include "gdef.h"
 #include "gcopyfilter.h"
-#include "gfiledelivery.h"
 #include "gdirectory.h"
 #include "gstringtoken.h"
 #include "groot.h"
@@ -37,9 +36,10 @@ GFilters::CopyFilter::CopyFilter( GNet::EventState es , GStore::FileStore & stor
 	std::string_view spec_sv = spec ;
 	for( G::StringTokenView t( spec_sv , ";" , 1U ) ; t ; ++t )
 	{
-		if( t() == "p" || t() == "pop" ) m_pop_by_name = true ;
-		if( t() == "h" || t() == "hardlink" ) m_hardlink = true ;
-		if( t() == "n" || t() == "nodelete" || t() == "no_delete" ) m_no_delete = true ;
+		if( t() == "p" || t() == "pop" ) m_delivery_config.pop_by_name = true ;
+		if( t() == "h" || t() == "hardlink" ) m_delivery_config.hardlink = true ;
+		if( t() == "n" || t() == "nodelete" || t() == "no_delete" ) m_delivery_config.no_delete = true ;
+		if( t() == "s" || t() == "simple" ) m_delivery_config.simple = true ;
 	}
 }
 
@@ -71,7 +71,7 @@ GSmtp::Filter::Result GFilters::CopyFilter::run( const GStore::MessageId & messa
 			copy_names.push_back( name ) ;
 			GStore::FileDelivery::deliverTo( m_store , "copy" ,
 				subdir , envelope_path , content_path ,
-				m_hardlink , m_pop_by_name ) ;
+				m_delivery_config ) ;
 		}
 	}
 
@@ -88,7 +88,7 @@ GSmtp::Filter::Result GFilters::CopyFilter::run( const GStore::MessageId & messa
 			<< (ignore_names.empty()?"":" not [") << G::Str::join(",",ignore_names)
 			<< (ignore_names.empty()?"":"]") ) ;
 
-		if( m_no_delete )
+		if( m_delivery_config.no_delete )
 		{
 			return Result::ok ;
 		}
@@ -96,7 +96,7 @@ GSmtp::Filter::Result GFilters::CopyFilter::run( const GStore::MessageId & messa
 		{
 			G::Root claim_root ;
 			G::File::remove( envelope_path ) ;
-			if( !m_pop_by_name )
+			if( !m_delivery_config.pop_by_name )
 				G::File::remove( content_path ) ;
 			return Result::abandon ;
 		}

@@ -210,7 +210,11 @@ bool VerifierPeer::processRequest( const Request & request )
 
 int processRequest( const Request & request )
 {
-	if( request.valid_local && request.alice )
+	if( request.abort )
+	{
+		return 100 ;
+	}
+	else if( request.valid_local && request.alice )
 	{
 		std::cout
 			<< "alice" << "\n"

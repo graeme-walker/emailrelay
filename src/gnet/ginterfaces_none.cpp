@@ -80,6 +80,11 @@ std::vector<GNet::Address> GNet::Interfaces::addresses( const std::string & , un
 	return {} ;
 }
 
+std::size_t GNet::Interfaces::addresses( std::vector<Address> & , const std::string & , const std::vector<unsigned> & , int ) const
+{
+	return 0U ;
+}
+
 void GNet::Interfaces::readEvent()
 {
 }

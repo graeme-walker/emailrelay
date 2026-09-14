@@ -27,17 +27,14 @@
 #include "options.h"
 #include "run.h"
 #include "resource.h"
+#include "gcontrol.h"
 #include <clocale>
 
 int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous , LPSTR /*command_line*/ , int show_style )
 {
 	try
 	{
-		#if 0
-			// set the C locale from the environment -- this has no effect
-			// since we avoid things like atoi(), tolower(), strtoul() etc.
-			::setlocale( LC_ALL , "" ) ;
-		#endif
+		GGui::Control::init() ; // early DPI awareness
 
 		G::Arg arg = G::Arg::windows() ; // GetCommandLineW()
 
@@ -53,7 +50,7 @@ int WINAPI WinMain( HINSTANCE hinstance , HINSTANCE previous , LPSTR /*command_l
 			if( run.runnable() )
 			{
 				app.init( run.configuration(0U) , options_spec ) ;
-				app.createWindow( show_style , /*show=*/false , 10 , 10 ) ; // main window, not shown
+				app.createWindow( show_style , /*do_show=*/false , 10 , 10 ) ; // main window, not shown
 				run.signal().connect( G::Slot::slot(app,&Main::WinApp::onRunEvent) ) ;
 				run.run() ;
 			}

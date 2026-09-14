@@ -1674,6 +1674,40 @@ sub testVerifierPass
 	$server->cleanup() ;
 }
 
+sub testVerifierAbort
+{
+	# setup
+	my %args = (
+		Log => 1 ,
+		LogFile => 1 ,
+		Verbose => 1 ,
+		Domain => 1 ,
+		Port => 1 ,
+		SpoolDir => 1 ,
+		PidFile => 1 ,
+		Verifier => 1 ,
+	) ;
+	my $server = new Server() ;
+	$server->set_verifier( System::exe( $opt_test_bin_dir , "emailrelay_test_verifier" ) ) ;
+	Check::ok( $server->run(\%args) , "failed to run" , $server->message() ) ;
+	Check::running( $server->pid() , $server->message() ) ;
+	my $smtp_client = new SmtpClient( $server->smtpPort() ) ;
+	Check::ok( $smtp_client->open() ) ;
+
+	# test that the verifier is executed and exits with 100 and the connection aborts
+	$smtp_client->netclient()->cmd( "ehlo here" ) ;
+	$smtp_client->netclient()->cmd( 'mail from:<me@here>' ) ;
+	$smtp_client->netclient()->cmd( 'rcpt to:<abort!@there>' ) ;
+	System::waitForFileLine( $server->log() , "verifier: exit code 100" ) ;
+	my $disconnected = ( $smtp_client->doBadCommand() =~ m/receive error:.*not connected/ ) ;
+	Check::that( $disconnected , "did not disconnect" ) ;
+	Check::ok( (new SmtpClient($server->smtpPort()))->open() , "cannot reconnect" ) ;
+
+	# tear down
+	$server->kill() ;
+	$server->cleanup() ;
+}
+
 sub testNetworkVerifierPass
 {
 	# setup
@@ -1742,6 +1776,55 @@ sub testNetworkVerifierFail
 	$server->kill() ;
 	$verifier->kill() ;
 	$verifier->cleanup() ;
+	$server->cleanup() ;
+}
+
+sub testPollRun
+{
+	# setup
+	my %args = (
+		Log => 1 ,
+		LogFile => 1 ,
+		Verbose => 1 ,
+		Domain => 1 ,
+		Port => 1 ,
+		SpoolDir => 1 ,
+		PidFile => 1 ,
+		Poll => 1 ,
+		PollRun => 1 ,
+	) ;
+	my $server = new Server() ;
+	$server->set_pollTimeout( "1" ) ;
+	my $outputfile = System::tempfile( "output" ) ;
+	Filter::create( $server->pollRun() , undef , {
+			unix => [
+				"echo STDOUT" ,
+				'echo STDERR >&2' ,
+				"echo DONE > $outputfile" ,
+				"exit 0" ,
+			] ,
+			win32 => [
+				#"WScript.StdOut.WriteLine( \"STDOUT\" ) ;" , # this terminates cscript!
+				"WScript.StdErr.WriteLine( \"STDERR\" ) ;" ,
+				"var fs = WScript.CreateObject(\"Scripting.FileSystemObject\");" ,
+				"var out_ = fs.OpenTextFile( \"$outputfile\" , 8 , true ) ;" ,
+				"out_.WriteLine( \"DONE\" ) ;" ,
+				"out_.Close() ;" ,
+				"WScript.Quit(0);" ,
+			] ,
+		} ) ;
+	Check::fileExists( $server->pollRun() ) ;
+	Check::ok( $server->run(\%args) , "failed to run" , $server->message() ) ;
+	Check::running( $server->pid() , $server->message() ) ;
+
+	# test that the --poll-run script runs and stderr is logged
+	System::waitForFileLine( $outputfile , "DONE" , "poll-run script did not create an output file" , 2 ) ;
+	System::sleep_cs( 50 ) if System::windows() ;
+	Check::fileContains( $server->log() , "STDERR" , "stderr not captured from poll-run script" ) ;
+
+	# tear down
+	System::unlink( $outputfile ) ;
+	$server->kill() ;
 	$server->cleanup() ;
 }
 

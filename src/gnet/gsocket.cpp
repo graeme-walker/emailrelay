@@ -202,12 +202,10 @@ SOCKET GNet::SocketBase::fd() const noexcept
 	return m_fd.fd() ;
 }
 
-#ifndef G_LIB_SMALL
 GNet::Descriptor GNet::SocketBase::fdd() const noexcept
 {
 	return m_fd ;
 }
-#endif
 
 std::string GNet::SocketBase::reason() const
 {
@@ -591,14 +589,12 @@ GNet::DatagramSocket::DatagramSocket( Address::Family af , int protocol , const 
 {
 }
 
-#ifndef G_LIB_SMALL
 void GNet::DatagramSocket::disconnect()
 {
 	int rc = ::connect( fd() , nullptr , 0 ) ;
 	if( error(rc) )
 		saveReason() ;
 }
-#endif
 
 GNet::Socket::ssize_type GNet::DatagramSocket::read( char * buffer , size_type length )
 {

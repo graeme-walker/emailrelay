@@ -138,6 +138,9 @@ AC_DEFUN([GCONFIG_FN_CHECK_HEADERS],[
 	AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[#include <versionhelpers.h>]],[[]])],
 		AC_DEFINE([GCONFIG_HAVE_WINDOWS_VERSIONHELPERS_H],1,[Define true if versionhelpers.h is available]),
 		AC_DEFINE([GCONFIG_HAVE_WINDOWS_VERSIONHELPERS_H],0,[Define true if versionhelpers.h is available]))
+	AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[#include <ShellScalingApi.h>]],[[]])],
+		AC_DEFINE([GCONFIG_HAVE_SHELLSCALINGAPI_H],1,[Define true if ShellScalingApi.h is available]),
+		AC_DEFINE([GCONFIG_HAVE_SHELLSCALINGAPI_H],0,[Define true if ShellScalingApi.h is available]))
 	AC_CHECK_HEADER([pwd.h],
 		AC_DEFINE([GCONFIG_HAVE_PWD_H],1,[Define true if pwd.h is available]),
 		AC_DEFINE([GCONFIG_HAVE_PWD_H],0,[Define true if pwd.h is available]))
@@ -567,19 +570,31 @@ AC_DEFUN([GCONFIG_FN_ENABLE_GUI],
 	AC_SUBST([GCONFIG_QT_MOC],[$QT_MOC])
 	AC_SUBST([GCONFIG_QT_LRELEASE],[$QT_LRELEASE])
 
-	AM_CONDITIONAL([GCONFIG_GUI],[test "$gconfig_gui" = "yes"])
+	AM_CONDITIONAL([GCONFIG_ENABLE_GUI],[test "$gconfig_gui" = "yes"])
 ])
 
-dnl GCONFIG_FN_ENABLE_INSTALL_HOOK
-dnl ------------------------------
-dnl The "--disable-install-hook" option can be used to disable tricksy install
-dnl steps when building a package for distribution.
+dnl GCONFIG_FN_ENABLE_INSTALL_CONFIG
+dnl --------------------------------
+dnl The "--disable-install-config" option can be used to disable the
+dnl no-clobber install of the main configuration file
 dnl
-dnl Typically used after AC_ARG_ENABLE(install-hook).
+dnl Typically used after AC_ARG_ENABLE(install-config).
 dnl
-AC_DEFUN([GCONFIG_FN_ENABLE_INSTALL_HOOK],
+AC_DEFUN([GCONFIG_FN_ENABLE_INSTALL_CONFIG],
 [
-	AM_CONDITIONAL([GCONFIG_INSTALL_HOOK],test "$enable_install_hook" != "no")
+	AM_CONDITIONAL([GCONFIG_INSTALL_CONFIG],test "$enable_install_config" != "no")
+])
+
+dnl GCONFIG_FN_ENABLE_INSTALL_PAM
+dnl -----------------------------
+dnl The "--disable-install-pam" option can be used to disable the
+dnl no-clobber install of the pam configuration file
+dnl
+dnl Typically used after AC_ARG_ENABLE(install-pam).
+dnl
+AC_DEFUN([GCONFIG_FN_ENABLE_INSTALL_PAM],
+[
+	AM_CONDITIONAL([GCONFIG_INSTALL_PAM],test "$enable_install_pam" != "no")
 ])
 
 dnl GCONFIG_FN_ENABLE_INTERFACE_NAMES
@@ -2089,53 +2104,62 @@ dnl ----------------------------
 dnl Sets makefile variables for install directory paths, usually incorporating
 dnl the package name. These should be used in conjunction with DESTDIR when
 dnl writing install rules in makefiles. Standard extensions of these variables,
-dnl such as e_sysconf_DATA, are also magically meaningful.
+dnl such as e_conf_DATA, are also magically meaningful.
 dnl
 AC_DEFUN([GCONFIG_FN_SET_DIRECTORIES_E],
 [
-	if test "$e_libdir" = ""
+	if test "$e_docdir" = ""
 	then
-		e_libdir="$libexecdir/$PACKAGE"
+		# /usr/share/doc/package (also $docdir)
+		e_docdir="$datarootdir/doc/$PACKAGE"
+	fi
+	if test "$e_examplesrootdir" = ""
+	then
+		# /usr/share/doc/package/examples
+		e_examplesrootdir="$e_docdir/examples"
+	fi
+	if test "$e_egconfdir" = ""
+	then
+		e_egconfdir="$e_examplesrootdir/config"
 	fi
 	if test "$e_examplesdir" = ""
 	then
-		e_examplesdir="$e_libdir/examples"
+		e_examplesdir="$e_examplesrootdir/scripts"
 	fi
-	if test "$e_sysconfdir" = ""
+	if test "$e_confdir" = ""
 	then
-		e_sysconfdir="$sysconfdir"
-	fi
-	if test "$e_docdir" = ""
-	then
-		e_docdir="$docdir"
-		if test "$e_docdir" = ""
-		then
-			e_docdir="$datadir/$PACKAGE/doc"
-		fi
+		# /etc
+		e_confdir="$sysconfdir"
 	fi
 	if test "$e_spooldir" = ""
 	then
+		# /var/spool/package
 		e_spooldir="$localstatedir/spool/$PACKAGE"
 	fi
 	if test "$e_pamdir" = ""
 	then
+		# /etc/pam.d
 		e_pamdir="$sysconfdir/pam.d"
 	fi
 	if test "$e_initdir" = ""
 	then
-		e_initdir="$e_libdir/init"
+		# /usr/share/doc/package/examples/init
+		e_initdir="$e_examplesrootdir/init"
 	fi
 	if test "$e_bsdinitdir" = ""
 	then
 		if test "$gconfig_bsd" = "yes"
 		then
+			# /etc/rc.d
 			e_bsdinitdir="$sysconfdir/rc.d"
 		else
-			e_bsdinitdir="$e_libdir/init/bsd"
+			# /usr/share/doc/package/examples/init/bsd
+			e_bsdinitdir="$e_examplesrootdir/init/bsd"
 		fi
 	fi
 	if test "$e_icondir" = ""
 	then
+		# /usr/share/package (also $pkgdatadir)
 		e_icondir="$datadir/$PACKAGE"
 	fi
 	if test "$e_trdir" = ""
@@ -2150,8 +2174,7 @@ AC_DEFUN([GCONFIG_FN_SET_DIRECTORIES_E],
 	if test "$e_systemddir" = ""
 	then
 		# keep as an example file by default - installed fully by rpm and deb
-		e_systemddir="$e_examplesdir"
-		#e_systemddir="$libdir/systemd/system"
+		e_systemddir="$e_examplesrootdir/init"
 	fi
 
 	AC_SUBST([e_docdir])
@@ -2161,9 +2184,10 @@ AC_DEFUN([GCONFIG_FN_SET_DIRECTORIES_E],
 	AC_SUBST([e_trdir])
 	AC_SUBST([e_spooldir])
 	AC_SUBST([e_examplesdir])
-	AC_SUBST([e_libdir])
+	AC_SUBST([e_examplesrootdir])
+	AC_SUBST([e_egconfdir])
 	AC_SUBST([e_pamdir])
-	AC_SUBST([e_sysconfdir])
+	AC_SUBST([e_confdir])
 	AC_SUBST([e_rundir])
 	AC_SUBST([e_systemddir])
 ])
@@ -3086,20 +3110,33 @@ AC_DEFUN([GCONFIG_FN_WINDOWS_STARTUP_INFO_EX],
 
 dnl GCONFIG_FN_WITH_DOXYGEN
 dnl -----------------------
-dnl Tests for doxygen. Typically used after AC_CHECK_PROG(doxygen) and
-dnl AC_ARG_WITH(doxygen).
+dnl Sets GCONFIG_DOXYGEN for use in makefiles. Used after
+dnl AC_CHECK_PROG(GCONFIG_HAVE_DOXYGEN,doxygen) and AC_ARG_WITH(doxygen).
+dnl Defaults to "no".
 dnl
 AC_DEFUN([GCONFIG_FN_WITH_DOXYGEN],
 [
-	if test "$with_doxygen" != ""
+	GCONFIG_DOXYGEN="no"
+	if test "$with_doxygen" = "yes"
 	then
-		if test "$with_doxygen" = "yes" -a "$GCONFIG_HAVE_DOXYGEN" != "yes"
-		then
-			AC_MSG_WARN([forcing use of doxygen even though not found])
-		fi
-		GCONFIG_HAVE_DOXYGEN="$with_doxygen"
+		GCONFIG_DOXYGEN="yes"
 	fi
-	AC_SUBST([GCONFIG_HAVE_DOXYGEN])
+
+	if test "$GCONFIG_DOXYGEN" = "yes" -a "$GCONFIG_HAVE_DOXYGEN" != "yes"
+	then
+		AC_MSG_WARN([forcing use of doxygen even though not found])
+	fi
+
+	AC_SUBST([GCONFIG_DOXYGEN])
+])
+
+dnl GCONFIG_FN_WITH_HTML
+dnl --------------------
+dnl Enables "if GCONFIG_HTML" if --with-html.
+dnl
+AC_DEFUN([GCONFIG_FN_WITH_HTML],
+[
+	AM_CONDITIONAL([GCONFIG_HTML],[test "$with_html" = "yes"])
 ])
 
 dnl GCONFIG_FN_WITH_GETTEXT

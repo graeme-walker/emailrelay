@@ -26,7 +26,7 @@
 //
 
 #include "gdef.h"
-#include "gssl_mbedtls_keygen.h"
+#include "gssl_mbedtls.h"
 #include <stdexcept>
 #include <iostream>
 #include <fstream>
@@ -56,7 +56,9 @@ int main( int argc , char * argv [] )
 		std::string arg_name = arg1.empty() ? std::string("CN=example.com") : arg1  ;
 		std::string arg_filename = arg2 ;
 
-		std::string s = GSsl::MbedTls::generateKey( arg_name ) ;
+		G::StringArray config ;
+		GSsl::MbedTls::LibraryImp library( config ) ;
+		std::string s = GSsl::MbedTls::Certificate::generate( arg_name , library.rng().fn() , library.rng().ptr() ) ;
 		if( s.empty() )
 			throw std::runtime_error( "not implemented: rebuild with mbedtls" ) ;
 

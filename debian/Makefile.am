@@ -16,10 +16,9 @@
 #
 
 EXTRA_DIST = \
-	emailrelay.init \
 	emailrelay.default \
-	emailrelay.service \
-	emailrelay.pam \
+	emailrelay.install \
+	emailrelay.conf \
 	changelog \
 	conffiles \
 	control \
@@ -29,5 +28,5 @@ EXTRA_DIST = \
 	prerm \
 	postrm \
 	rules \
-	source_format
+	source/format
 

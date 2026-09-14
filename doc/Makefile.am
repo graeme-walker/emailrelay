@@ -15,49 +15,45 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-txt_files_install=\
-	readme.txt readme.md readme.rst \
-	developer.txt developer.md developer.rst \
-	reference.txt reference.md reference.rst \
-	userguide.txt userguide.md userguide.rst \
-	windows.txt windows.md windows.rst \
-	changelog.txt changelog.md changelog.rst \
-	doxygen.cfg.in
+#
+# doc/Makefile.am
+#
+# Generates nothing by default and installs only the CommonMark
+# documents, png files and man pages.
+#
+# If GCONFIG_DOXYGEN is set then "make doxygen" creates full doxygen
+# documentation under "doxygen/". Otherwise, by default, "make doxygen"
+# just creates a dummy index file "doxygen/index.html".
+#
+# If GCONFIG_HTML is defined then the effect is to run the "htmlfiles"
+# target by default and to install the generated HTML files and also
+# any files found under "doxygen/".
+#
+# Additional pseudo-targets:
+#    * htmlfiles -- builds HTML documentation using pandoc
+#    * doxygen -- generates doxygen output under doxygen/
+#    * sphinx -- runs sphinx-build into sphinx/
+#    * website -- runs "make-sphinx --website" into website/out/
+#    * release-notes -- generates RELEASE.md from the changelog
+#
+# Sphinx is configured in "conf.py" to generate documentation from
+# CommonMark source documents, converting CommonMark to RST internally
+# using MyST-Parser. The root document is configured as "contents.md".
+#
 
-txt_files_noinstall=\
-	.readthedocs.yaml \
-	index.rst \
-	conf.py
+md_files = \
+	contents.md \
+	developer.txt \
+	reference.txt \
+	userguide.txt \
+	windows.txt
 
-man_files_install=\
+man_files = \
 	emailrelay.1 \
 	emailrelay-passwd.1 \
 	emailrelay-submit.1
 
-man_files_clean=\
-	emailrelay.1.gz \
-	emailrelay-passwd.1.gz \
-	emailrelay-submit.1.gz
-
-html_files_install=\
-	index.html \
-	emailrelay-man.html \
-	readme.html \
-	developer.html \
-	reference.html \
-	userguide.html \
-	windows.html \
-	changelog.html
-
-html_files_noinstall=\
-	man2html-missing.html \
-	doxygen-missing.html
-
-css_files_install=\
-	emailrelay.css \
-	emailrelay-doxygen.css
-
-svg_files_noinstall=\
+svg_files = \
 	authentication.svg \
 	forwardto.svg \
 	serverclient.svg \
@@ -65,7 +61,7 @@ svg_files_noinstall=\
 	mailserver.svg \
 	popbyname.svg
 
-png_files_install=\
+png_files = \
 	authentication.png \
 	forwardto.png \
 	serverclient.png \
@@ -74,31 +70,56 @@ png_files_install=\
 	mailserver.png \
 	popbyname.png
 
-EXTRA_DIST = \
-	$(man_files_install) \
-	$(txt_files_install) \
-	$(txt_files_noinstall) \
-	$(css_files_install) \
-	$(png_files_install) \
-	$(svg_files_noinstall) \
-	$(html_files_install) \
-	$(html_files_noinstall)
+html_files = \
+	readme.html \
+	developer.html \
+	reference.html \
+	userguide.html \
+	windows.html \
+	changelog.html
 
-noinst_SCRIPTS = .dox
-man1_MANS = $(man_files_install)
-e_doc_DATA = $(txt_files_install) $(html_files_install) $(css_files_install) $(png_files_install)
-CLEANFILES = $(noinst_SCRIPTS) $(man_files_clean) emailrelay-man.html doxygen.out doxygen.cfg doxygen/search/* doxygen/*
+css_files = \
+	emailrelay.css \
+	emailrelay-doxygen.css
+
+if GCONFIG_HTML
+noinst_DATA = $(svg_files)
+man1_MANS = $(man_files)
+e_doc_DATA = $(md_files) $(html_files) $(css_files) $(png_files)
+else
+noinst_DATA = $(svg_files)
+man1_MANS = $(man_files)
+e_doc_DATA = $(md_files) $(png_files)
+endif
+
+EXTRA_DIST = \
+	.readthedocs.yaml \
+	conf.py \
+	$(man_files) \
+	$(md_files) \
+	$(css_files) \
+	$(png_files) \
+	$(svg_files)
+
+CLEANFILES = \
+	*.html \
+	*.1.gz \
+	RELEASE.md \
+	doxygen.out \
+	doxygen.cfg
+
+clean-local:
+	-rm -rf doxygen/
+	-rm -rf sphinx/
+	-rm -rf website/
 
 SUFFIXES = .txt .html
 
-run_doxygen=$(top_srcdir)/libexec/doxygen.sh
+run_doxygen=$(top_srcdir)/libexec/run_doxygen.pl
 
-.dox:
+doxygen:
 	-@chmod +x $(run_doxygen)
-	$(run_doxygen) "$(GCONFIG_HAVE_DOXYGEN)" "$(top_srcdir)" "$(top_builddir)" doxygen doxygen.cfg.in && touch .dox
-
-emailrelay-man.html: emailrelay.1
-	if test "$(GCONFIG_HAVE_MAN2HTML)" = "yes" ; then man2html -r -L. emailrelay.1 < /dev/null > emailrelay-man.html.tmp && mv emailrelay-man.html.tmp emailrelay-man.html ; grep -v '^Content-type:' < emailrelay-man.html | grep -v '^Time:' > emailrelay-man.html.tmp ; mv emailrelay-man.html.tmp emailrelay-man.html ; else cp man2html-missing.html emailrelay-man.html ; fi
+	$(run_doxygen) "$(GCONFIG_DOXYGEN)" "$(top_srcdir)" "$(top_builddir)" doxygen doxygen.cfg
 
 emailrelay.1.gz : emailrelay.1
 	if test -n "$(GZIP)" ; then $(GZIP) -c "$(top_srcdir)/doc/emailrelay.1" > emailrelay.1.gz ; fi
@@ -109,6 +130,8 @@ emailrelay-passwd.1.gz : emailrelay-passwd.1
 emailrelay-submit.1.gz : emailrelay-submit.1
 	if test -n "$(GZIP)" ; then $(GZIP) -c "$(top_srcdir)/doc/emailrelay-submit.1" > emailrelay-submit.1.gz ; fi
 
+if GCONFIG_HTML
+
 install-data-local: install-e_docDATA
 	$(mkinstalldirs) "$(DESTDIR)$(e_docdir)/doxygen"
 	if test -d doxygen ; then for file in doxygen/* ; do $(INSTALL) -m 644 "$$file" "$(DESTDIR)$(e_docdir)/$$file" || true ; done ; else true ; fi
@@ -118,22 +141,38 @@ uninstall-local:
 	-rmdir "$(DESTDIR)$(e_docdir)/doxygen" 2>/dev/null
 	-rmdir "$(DESTDIR)$(e_docdir)" 2>/dev/null
 
-.PHONY: rst
-rst:
-	ls -1 *.rst | grep -v index.rst | sed 's/.rst$$//' | xargs -i__ rst2html.py __.rst __.html
+endif
 
-.PHONY: md
-md:
-	for f in *.md ; do markdown $$f > "`basename $$f .md`".html ; done
+$(html_files): $(md_files)
+	pandoc -f markdown-raw_html-smart $(top_srcdir)/doc/reference.txt -t html -o reference.html
+	pandoc -f markdown-raw_html-smart $(top_srcdir)/doc/userguide.txt -t html -o userguide.html
+	pandoc -f markdown-raw_html-smart $(top_srcdir)/doc/developer.txt -t html -o developer.html
+	pandoc -f markdown-raw_html-smart $(top_srcdir)/doc/windows.txt -t html -o windows.html
+	pandoc -f markdown-raw_html-smart $(top_srcdir)/ChangeLog -t html -o changelog.html
+	pandoc -f markdown-raw_html-smart $(top_srcdir)/README -t html -o readme.html
+
+index.md:
+	echo readme userguide reference windows developer | perl -anE 'say "- [$$_]($$_.html)" for @F' > index.md
+
+index.html: index.md
+	pandoc -f markdown -t html -s --metadata title=E-MailRelay -o index.html < index.md
+
+.PHONY: htmlfiles
+htmlfiles: $(html_files) index.html
+
+.PHONY: sphinx-build
+sphinx-build:
+	sphinx-build -a -E -b html . ./sphinx-build
 
 .PHONY: sphinx
 sphinx:
-	sphinx-build -b html . ./_build
+	@chmod +x $(top_srcdir)/libexec/make-sphinx || true
+	$(top_srcdir)/libexec/make-sphinx --examples-dir=$(top_srcdir)/bin $(top_srcdir) sphinx
 
 .PHONY: website
 website:
-	@chmod +x $(top_srcdir)/libexec/make-website || true
-	$(top_srcdir)/libexec/make-website `cat $(top_srcdir)/VERSION`
+	@chmod +x $(top_srcdir)/libexec/make-sphinx || true
+	$(top_srcdir)/libexec/make-sphinx --website --examples-dir=$(top_srcdir)/bin $(top_srcdir) website
 
 .PHONY: release-notes
 release-notes:

@@ -30,18 +30,17 @@ namespace Main
 	const int close_pos = 1 ;
 	struct ScopeZero
 	{
-		ScopeZero( HMENU h ) : m_h(h) {}
-		~ScopeZero() { m_h = 0 ; }
+		ScopeZero( HMENU & h ) : m_h(h) {}
+		~ScopeZero() { m_h = HNULL ; }
 		HMENU & m_h ;
 	} ;
 }
 
-Main::WinMenu::WinMenu( unsigned int id ) :
-	m_hmenu_popup(0)
+Main::WinMenu::WinMenu( unsigned int id )
 {
 	HINSTANCE hinstance = GGui::ApplicationInstance::hinstance() ;
-	m_hmenu = G::nowide::loadMenu( hinstance , id ) ;
-	if( m_hmenu == nullptr )
+	m_hmenu = G::nowide::loadMenu( hinstance , static_cast<int>(id) ) ;
+	if( m_hmenu == HNULL )
 		throw Error() ;
 }
 
@@ -94,7 +93,7 @@ void Main::WinMenu::update( bool with_open , bool with_close )
 
 Main::WinMenu::~WinMenu()
 {
-	if( m_hmenu != nullptr )
+	if( m_hmenu != HNULL )
 		DestroyMenu( m_hmenu ) ;
 }
 

@@ -20,7 +20,7 @@
 
 #include "gdef.h"
 #include "goptionmap.h"
-#include "gstringfield.h"
+#include "gstringtoken.h"
 #include "gassert.h"
 #include <algorithm>
 
@@ -78,24 +78,20 @@ G::OptionMap::const_iterator G::OptionMap::begin() const noexcept
 	return m_map.cbegin() ;
 }
 
-#ifndef G_LIB_SMALL
 G::OptionMap::const_iterator G::OptionMap::cbegin() const noexcept
 {
 	return begin() ;
 }
-#endif
 
 G::OptionMap::const_iterator G::OptionMap::end() const noexcept
 {
 	return m_map.cend() ;
 }
 
-#ifndef G_LIB_SMALL
 G::OptionMap::const_iterator G::OptionMap::cend() const noexcept
 {
 	return end() ;
 }
-#endif
 
 void G::OptionMap::clear()
 {
@@ -158,6 +154,27 @@ std::string G::OptionMap::join( Map::const_iterator p , Map::const_iterator end 
 	return result ;
 }
 
+std::pair<bool,std::vector<unsigned>> G::OptionMap::numbers( std::string_view key , unsigned int default_ ) const
+{
+	std::pair<bool,std::vector<unsigned>> result { true , {default_} } ;
+	auto range = findRange( key ) ;
+	if( range.first == range.second )
+		return result ;
+
+	if( std::any_of( range.first , range.second ,
+		[](const value_type & v_){return !G::Str::isUInt(v_.second.valueref());}) )
+	{
+		result.first = false ; // invalid
+		return result ;
+	}
+
+	result.first = true ;
+	result.second.clear() ;
+	for( auto p = range.first ; p != range.second ; ++p )
+		result.second.push_back( G::Str::toUInt((*p).second.valueref()) ) ;
+	return result ;
+}
+
 unsigned int G::OptionMap::number( std::string_view key , unsigned int default_ ) const noexcept
 {
 	G_ASSERT( !G::Str::isUInt("") ) ;
@@ -173,5 +190,49 @@ unsigned int G::OptionMap::number( std::string_view key , unsigned int default_ 
 		const Map::value_type & value = *p ; // noexcept in practice
 		return G::Str::toUInt( value.second.valueref() , default_ ) ;
 	}
+}
+
+G::OptionMap::IntervalPair G::OptionMap::interval( std::string_view key ,
+	unsigned int default_ ) const noexcept
+{
+	// as above, use findRange()
+	static_assert( noexcept(TimeInterval(default_)) , "" ) ;
+	auto range = findRange( key ) ;
+	if( range.first == range.second )
+		return {false,TimeInterval(default_)} ;
+	if( std::next(range.first) != range.second )
+		return {false,TimeInterval(default_)} ;
+
+	//static_assert( noexcept((*range.first).second.valueref()) , "" ) ;
+	std::string_view value = (*range.first).second.valueref() ;
+	return parseInterval( value , default_ ) ;
+}
+
+G::OptionMap::IntervalsPair G::OptionMap::intervals( std::string_view key ) const
+{
+	IntervalsPair result { true , {} } ;
+	std::string s = value( key ) ;
+	for( StringToken t(s,",",1U) ; t ; ++t )
+	{
+		auto pair = parseInterval( t() , 0U ) ;
+		if( pair.first )
+			result.second.push_back( pair.second ) ;
+		else
+			result.first = false ;
+	}
+	return result ;
+}
+
+G::OptionMap::IntervalPair G::OptionMap::parseInterval( std::string_view value ,
+	unsigned int default_ ) noexcept
+{
+	static_assert( std::is_nothrow_copy_constructible<IntervalPair>::value , "" ) ;
+	static_assert( noexcept(TimeInterval::parse(value,std::nothrow)) , "" ) ;
+	static_assert( noexcept(TimeInterval(default_)) , "" ) ;
+	auto pair = TimeInterval::parse( value , std::nothrow ) ;
+	if( pair.second )
+		return {true,pair.first} ;
+	else
+		return {false,TimeInterval(default_)} ;
 }
 

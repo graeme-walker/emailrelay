@@ -70,12 +70,12 @@ void GAuth::SecretsFile::reread( int )
 {
 	if( m_auto )
 	{
-		G::SystemTime now = G::SystemTime::now() ;
+		auto now = G::SystemTime::now() ;
 		G_DEBUG( "GAuth::SecretsFile::reread: file time checked at " << m_check_time << ": now " << now ) ;
 		if( !now.sameSecond(m_check_time) ) // at most once a second
 		{
 			m_check_time = now ;
-			G::SystemTime t = readFileTime( m_path ) ;
+			auto t = readFileTime( m_path ) ;
 			G_DEBUG( "GAuth::SecretsFile::reread: current file time " << t << ": saved file time " << m_file_time ) ;
 			if( t != m_file_time )
 			{

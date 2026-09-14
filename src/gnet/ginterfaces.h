@@ -99,13 +99,19 @@ public:
 	const_iterator end() const ;
 		///< Returns a one-off-the-end iterator.
 
-	std::vector<Address> addresses( const std::string & name , unsigned int port , int af = AF_UNSPEC ) const ;
-		///< Returns addresses bound to the given interface.
-		///< Does a lazy load().
+	std::vector<Address> addresses( const std::string & name ,
+		unsigned int port , int af = AF_UNSPEC ) const ;
+			///< Returns addresses bound to the given interface.
+			///< Does a lazy load().
 
-	std::size_t addresses( std::vector<Address> & out , const std::string & name , unsigned int port , int af = AF_UNSPEC ) const ;
-		///< An overload that appends to the given list and returns
-		///< the number added.
+	std::size_t addresses( std::vector<Address> & out , const std::string & name ,
+		unsigned int port , int af = AF_UNSPEC ) const ;
+			///< An overload that appends to the given list and returns
+			///< the number added.
+
+	std::size_t addresses( std::vector<Address> & out , const std::string & name ,
+		const std::vector<unsigned> & ports , int af = AF_UNSPEC ) const ;
+			///< An overload for multiple ports.
 
 private: // overrides
 	void readEvent() override ; // GNet::EventHandler

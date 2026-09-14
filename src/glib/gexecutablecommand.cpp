@@ -25,7 +25,6 @@
 #include <algorithm>
 #include <iterator>
 
-#ifndef G_LIB_SMALL
 G::ExecutableCommand::ExecutableCommand( const std::string & s )
 {
 	if( !s.empty() )
@@ -36,7 +35,6 @@ G::ExecutableCommand::ExecutableCommand( const std::string & s )
 		m_args.pop_back() ; // remove exe
 	}
 }
-#endif
 
 G::ExecutableCommand::ExecutableCommand( const G::Path & exe_ , const G::StringArray & args_ ) :
 	m_exe(exe_) ,
@@ -67,7 +65,6 @@ void G::ExecutableCommand::add( const std::string & arg )
 	m_args.push_back( arg ) ;
 }
 
-#ifndef G_LIB_SMALL
 void G::ExecutableCommand::insert( const G::StringArray & array )
 {
 	if( !array.empty() )
@@ -77,5 +74,4 @@ void G::ExecutableCommand::insert( const G::StringArray & array )
 		m_exe = m_args.at( 0U ) ;
 	}
 }
-#endif
 

@@ -348,12 +348,10 @@ bool GNet::DnsBlockResult::allow() const
 	return m_type == Type::Inactive || m_type == Type::Local || m_type == Type::TimeoutAllow || m_type == Type::Allow ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::DnsBlockResult::deny() const
 {
 	return !allow() ;
 }
-#endif
 
 std::size_t GNet::DnsBlock::countResponders( const ResultList & list )
 {

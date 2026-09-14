@@ -58,7 +58,6 @@ G::LogStream & G::operator<<( LogStream & s , char value ) noexcept
 	return s ;
 }
 
-#ifndef G_LIB_SMALL
 G::LogStream & G::operator<<( LogStream & s , unsigned char value ) noexcept
 {
 	try
@@ -70,7 +69,6 @@ G::LogStream & G::operator<<( LogStream & s , unsigned char value ) noexcept
 	}
 	return s ;
 }
-#endif
 
 G::LogStream & G::operator<<( LogStream & s , int value ) noexcept
 {

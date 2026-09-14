@@ -56,7 +56,7 @@ int GNet::Address6::domain() noexcept
 GNet::Address6::Address6( std::nullptr_t ) :
 	m_inet{}
 {
-	m_inet.sin6_family = af() ;
+	m_inet.sin6_family = af() ; // NOLINT(*-narrowing-conversions)
 	m_inet.sin6_port = 0 ;
 	m_inet.sin6_flowinfo = 0 ;
 	gdef_address6_init( m_inet ) ; // gdef.h
@@ -266,14 +266,12 @@ bool GNet::Address6::validStrings( std::string_view host_part , std::string_view
 	return reason == nullptr ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::Address6::validPort( unsigned int port )
 {
 	sockaddr_type inet {} ;
 	const char * reason = setPort( inet , port ) ;
 	return reason == nullptr ;
 }
-#endif
 
 bool GNet::Address6::same( const Address6 & other , bool with_scope ) const
 {
@@ -314,14 +312,12 @@ unsigned long GNet::Address6::scopeId( unsigned long /*default*/ ) const
 	return m_inet.sin6_scope_id ;
 }
 
-#ifndef G_LIB_SMALL
 const sockaddr * GNet::Address6::address() const
 {
 	// core guidelines: C.183
 	// type-punning allowed by "common initial sequence" rule
 	return reinterpret_cast<const sockaddr*>( &m_inet ) ;
 }
-#endif
 
 sockaddr * GNet::Address6::address()
 {

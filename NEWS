@@ -1,10 +1,37 @@
 News
 ====
 
-The 2.6.1 point release rolls up the 2.6 fixes and adds feature request 40.
+The main functional changes in the 2.7 release are to fix the address verifier
+exit-100 bug, allow the "--port" option to be used more than once, add a new
+"--poll-run" option, and set better file permissions when delivering to a
+maildir mailbox.
 
-Note that recent versions of MbedTLS require that when verifiying a remote
-server's certificate the server's CNAME should be defined. That means that
-E-MailRelay's "--client-tls-verify" option also requires
-"--client-tls-verify-name" if using MbedTLS.
+Scripts for doing Windows builds and for generating documentation have been
+reworked, with a shift towards cmake, Qt6, MbedTLS v3 and sphinx, and away from
+doxygen.
 
+The documentation files are de-duplicated by standardising on the CommonMark
+format. These files can be processed by "pandoc" using its "-raw_html" and
+"-smart" options and by sphinx by using the MyST-Parser.
+
+Building for Windows using v3 of MbedTLS with TLS1.3 support can now be the
+default since the v2/v3 regression with respect to client verification of server
+certificates when using TLS1.3 has finally been resolved. However, using v3 for
+the Windows XP build requires some customisation to revert to using CryptoAPI
+rather than CNG (bcrypt).
+
+The G_LIB_SMALL optimisation is withdrawn since the same code-size benefits can
+be realised using compiler/linker options. These can be conveniently activated
+by passing "-z" to the "configure.sh" wrapper script. (For even smaller binaries
+use "make -C unity small", as before.)
+
+Alpine Linux packages can now be created with "make apk". This has triggered a
+rework of the autoconf "make install" logic so that the template config file,
+pam file, auth file, systemd unit file and sysv-init scripts are all installed
+as example files by default. The config file is additionally installed under
+/etc and the pam file is additionally installed to /etc/pam.d (e_pamdir) using
+no-clobber copies that can be disabled with "--disable-install-config"
+(previously "--disable-install-hook") and "--disable-install-pam" respectively.
+The sysv-init script is installed to /etc/init.d only if "e_initdir" is defined
+appropriately, and similarly, the systemd unit file is only installed under
+/usr/lib/systemd only if "e_systemddir" is so defined.

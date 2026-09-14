@@ -28,8 +28,7 @@ EXTRA_DIST=\
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/glib \
-	-D "G_SPOOLDIR=$(e_spooldir)" \
-	-D G_LIB_SMALL
+	-D "G_SPOOLDIR=$(e_spooldir)"
 
 noinst_LIBRARIES = libgstore.a
 

@@ -24,7 +24,7 @@
 #include "gassert.h"
 #include <algorithm>
 
-GNet::Listeners::Listeners( const Interfaces & if_ , const G::StringArray & listener_list , unsigned int port )
+GNet::Listeners::Listeners( const Interfaces & if_ , const G::StringArray & listener_list , const std::vector<unsigned> & ports )
 {
 	// listeners are file-descriptors, addresses or interface names (possibly decorated)
 	for( const auto & listener : listener_list )
@@ -34,20 +34,21 @@ GNet::Listeners::Listeners( const Interfaces & if_ , const G::StringArray & list
 		{
 			m_fds.push_back( fd ) ;
 		}
-		else if( isAddress(listener,port) )
+		else if( isAddress(listener,0U) )
 		{
-			m_fixed.push_back( address(listener,port) ) ;
+			for( unsigned int port : ports )
+				m_fixed.push_back( address(listener,port) ) ;
 		}
 		else
 		{
-			std::size_t n = if_.addresses( m_dynamic , basename(listener) , port , af(listener) ) ;
+			std::size_t n = if_.addresses( m_dynamic , basename(listener) , ports , af(listener) ) ;
 			if( n == 0U && isBad(listener) )
 				m_bad = listener ;
 			(n?m_used:m_empties).push_back( listener ) ;
 		}
 	}
 	if( empty() )
-		addWildcards( port ) ;
+		addWildcards( ports ) ;
 }
 
 int GNet::Listeners::af( const std::string & s )
@@ -79,13 +80,16 @@ int GNet::Listeners::parseFd( const std::string & listener )
     return -1 ;
 }
 
-void GNet::Listeners::addWildcards( unsigned int port )
+void GNet::Listeners::addWildcards( const std::vector<unsigned> & ports )
 {
-	if( StreamSocket::supports(Address::Family::ipv4) )
-		m_fixed.emplace_back( Address::Family::ipv4 , port ) ;
+	for( auto port : ports )
+	{
+		if( StreamSocket::supports(Address::Family::ipv4) )
+			m_fixed.emplace_back( Address::Family::ipv4 , port ) ;
 
-	if( StreamSocket::supports(Address::Family::ipv6) )
-		m_fixed.emplace_back( Address::Family::ipv6 , port ) ;
+		if( StreamSocket::supports(Address::Family::ipv6) )
+			m_fixed.emplace_back( Address::Family::ipv6 , port ) ;
+	}
 }
 
 bool GNet::Listeners::isAddress( const std::string & s , unsigned int port )

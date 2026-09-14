@@ -345,14 +345,12 @@ void GPop::StoreList::deleteFile( const G::Path & path , bool & all_ok ) const
 		G_ERROR( "StoreList::deleteFile: failed to delete " << path ) ;
 }
 
-#ifndef G_LIB_SMALL
 std::string GPop::StoreList::uidl( int id ) const
 {
 	G_ASSERT( valid(id) ) ;
 	std::size_t offset = static_cast<std::size_t>(id) - 1U ;
 	return valid(id) ? m_list.at(offset).uidl() : std::string() ;
 }
-#endif
 
 void GPop::StoreList::rollback()
 {

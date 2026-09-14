@@ -57,7 +57,7 @@ namespace G
 		}
 		HANDLE handle( int fd )
 		{
-			return fd >= 0 ? reinterpret_cast<HANDLE>( _get_osfhandle(fd) ) : HNULL ;
+			return fd >= 0 ? reinterpret_cast<HANDLE>( _get_osfhandle(fd) ) : HNULL ; // NOLINT(*-no-int-to-ptr)
 		}
 		int fd( std::FILE * fp )
 		{
@@ -287,6 +287,8 @@ G::File::Stat G::File::statImp( const char * path , bool /*symlink_nofollow*/ ) 
 			s.mode = static_cast<unsigned long>( statbuf.st_mode & 07777 ) ;
 			s.size = static_cast<unsigned long long>( statbuf.st_size ) ;
 			s.blocks = static_cast<unsigned long long>( statbuf.st_size >> 24 ) ;
+			s.ownership = Identity::invalid() ; // could do better
+			s.inherit = false ;
 		}
 		else
 		{
@@ -334,6 +336,11 @@ void G::File::chmod( const Path & , const std::string & )
 {
 }
 
+bool G::File::chown( const Path & , Identity , std::nothrow_t )
+{
+	return true ; // no-op
+}
+
 void G::File::chgrp( const Path & , const std::string & )
 {
 }
@@ -355,7 +362,7 @@ bool G::File::hardlink( const Path & , const Path & , std::nothrow_t )
 
 G::Path G::File::readlink( const Path & )
 {
-	return Path() ;
+	return {} ;
 }
 
 void G::File::link( const Path & , const Path & new_link )

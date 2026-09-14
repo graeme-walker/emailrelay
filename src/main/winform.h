@@ -79,11 +79,11 @@ public:
 		///< constructor has 'with_system_menu_quit'.
 
 private: // overrides
-	virtual void onInit( HWND , int ) override ; // Override from StackPageCallback.
-	virtual bool onApply() override ; // Override from StackPageCallback.
+	void onInit( HWND , int ) override ; // Override from StackPageCallback.
+	bool onApply() override ; // Override from StackPageCallback.
 
 public:
-	~WinForm() = default ;
+	~WinForm() override = default ;
 	WinForm( const WinForm & ) = delete ;
 	WinForm( WinForm && ) = delete ;
 	WinForm & operator=( const WinForm & ) = delete ;
@@ -104,7 +104,7 @@ private:
 	using StatusMap = std::map<std::string,std::pair<std::string,std::string>> ;
 	HWND m_hnotify ;
 	bool m_allow_apply ;
-	bool m_closed ;
+	bool m_closed {false} ;
 	std::unique_ptr<GGui::ListView> m_cfg_view ;
 	std::unique_ptr<GGui::ListView> m_status_view ;
 	std::unique_ptr<GGui::ListView> m_version_view ;

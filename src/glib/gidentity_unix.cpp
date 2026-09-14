@@ -45,6 +45,12 @@ G::Identity::Identity( uid_t uid , gid_t gid ) :
 {
 }
 
+G::Identity::Identity( FromFile , uid_t uid , gid_t gid ) :
+	m_uid(uid) ,
+	m_gid(gid)
+{
+}
+
 G::Identity::Identity() noexcept : // invalid()
 	m_uid(static_cast<uid_t>(-1)) ,
 	m_gid(static_cast<gid_t>(-1))
@@ -82,26 +88,22 @@ G::Identity G::Identity::invalid() noexcept
 	return {} ;
 }
 
-#ifndef G_LIB_SMALL
 G::Identity G::Identity::invalid( SignalSafe safe ) noexcept
 {
 	return Identity( safe ) ;
 }
-#endif
 
 G::Identity G::Identity::root() noexcept
 {
 	return { 0 , 0 } ;
 }
 
-#ifndef G_LIB_SMALL
 std::string G::Identity::str() const
 {
 	std::ostringstream ss ;
 	ss << static_cast<int>(m_uid) << "/" << static_cast<int>(m_gid) ;
 	return ss.str() ;
 }
-#endif
 
 uid_t G::Identity::userid() const noexcept
 {
@@ -128,7 +130,6 @@ bool G::Identity::operator!=( const Identity & other ) const noexcept
 	return !operator==( other ) ;
 }
 
-#ifndef G_LIB_SMALL
 std::pair<G::Identity,std::string> G::Identity::lookup( std::string_view name_in )
 {
 	Identity result ;
@@ -137,7 +138,6 @@ std::pair<G::Identity,std::string> G::Identity::lookup( std::string_view name_in
 		throw NoSuchUser( name_in ) ;
 	return std::make_pair( result , name ) ;
 }
-#endif
 
 std::pair<G::Identity,std::string> G::Identity::lookup( std::string_view name_in , std::nothrow_t )
 {

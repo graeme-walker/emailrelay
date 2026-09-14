@@ -36,6 +36,7 @@
 #include <vector>
 #include <memory>
 #include <new>
+#include <iterator>
 
 namespace GNet
 {
@@ -48,7 +49,7 @@ public:
 	EventLoopImp() ;
 		// Default constructor.
 
-	virtual ~EventLoopImp() ;
+	~EventLoopImp() override ;
 		// Destructor.
 
 private: // overrides
@@ -85,7 +86,7 @@ private:
 	struct Library
 	{
 		Library() ;
-		~Library() ;
+		~Library() ; // NOLINT(*-trivially-destructible)
 		Library( const Library & ) = delete ;
 		Library( Library && ) = delete ;
 		Library & operator=( const Library & ) = delete ;
@@ -133,9 +134,9 @@ private:
 	Library m_library ;
 	List m_list ;
 	std::unique_ptr<EventLoopHandles> m_handles ;
-	bool m_running ;
-	bool m_dirty ;
-	bool m_quit ;
+	bool m_running {false} ;
+	bool m_dirty {false} ;
+	bool m_quit {false} ;
 	std::string m_quit_reason ;
 	EventState m_es_current {EventState::Private(),nullptr,nullptr} ;
 } ;
@@ -147,17 +148,13 @@ std::unique_ptr<GNet::EventLoop> GNet::EventLoop::create()
 
 // ===
 
-GNet::EventLoopImp::EventLoopImp() :
-	m_running(false) ,
-	m_dirty(false) ,
-	m_quit(false)
+GNet::EventLoopImp::EventLoopImp()
 {
 	m_handles = std::make_unique<EventLoopHandles>() ;
 }
 
 GNet::EventLoopImp::~EventLoopImp()
-{
-}
+= default ;
 
 void GNet::EventLoopImp::disarm( ExceptionHandler * eh ) noexcept
 {
@@ -317,7 +314,7 @@ GNet::EventLoopImp::ListItem & GNet::EventLoopImp::findOrCreate( Descriptor fdd 
 	if( p == m_list.end() )
 	{
 		m_list.emplace_back( fdd ) ;
-		p = m_list.begin() + m_list.size() - 1U ;
+		p = std::prev( m_list.end() ) ; // (m_list.back() iterator)
 		(*p).m_events = 0 ; // => newly created
 	}
 	return *p ;
@@ -558,7 +555,5 @@ GNet::EventLoopImp::Library::Library()
 }
 
 GNet::EventLoopImp::Library::~Library()
-{
-	// WSACleanup() not
-}
+= default ; // WSACleanup() not
 

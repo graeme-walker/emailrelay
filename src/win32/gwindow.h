@@ -56,7 +56,7 @@ namespace GGui
 class GGui::Window : public Cracker
 {
 public:
-	explicit Window( HWND hwnd = 0 ) ;
+	explicit Window( HWND hwnd = HNULL ) ;
 		///< Constructor. Normally the default constructor is used, followed
 		///< by create(). Use registerWindowClass() before calling any
 		///< create() function.

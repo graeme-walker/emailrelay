@@ -142,10 +142,23 @@ struct ServiceError : public std::runtime_error
 	DWORD m_error ;
 } ;
 
+struct ServiceInfo
+{
+	G::Path batch_file ;
+	bool batch_file_exists {false} ;
+	G::Path config_file ;
+	bool config_file_exists {false} ;
+	G::Path server_exe ;
+	G::Path cwd ;
+	std::string commandline ; // (quoted)
+	std::string description ;
+	std::string error ;
+} ;
+
 struct ServiceChild
 {
 	ServiceChild() ;
-	explicit ServiceChild( std::string quoted_command_line ) ;
+	explicit ServiceChild( const ServiceInfo & ) ;
 	bool isRunning() const noexcept ;
 	static bool isRunning( HANDLE hprocess ) noexcept ;
 	void close() noexcept ;
@@ -167,7 +180,7 @@ struct ServiceEvent
 	{
 	}
 	ServiceEvent( std::nullptr_t ) noexcept :
-		m_h(0)
+		m_h(HNULL)
 	{
 	}
 	~ServiceEvent()
@@ -177,7 +190,7 @@ struct ServiceEvent
 	void create()
 	{
 		m_h = CreateEvent( nullptr , FALSE , FALSE , nullptr ) ;
-		if( m_h == 0 )
+		if( m_h == HNULL )
 		{
 			DWORD e = GetLastError() ;
 			throw ServiceError( "CreateEvent" , e ) ;
@@ -187,7 +200,7 @@ struct ServiceEvent
 	{
 		if( m_h )
 			CloseHandle( m_h ) ;
-		m_h = 0 ;
+		m_h = HNULL ;
 	}
 	void set() noexcept
 	{
@@ -200,7 +213,7 @@ struct ServiceEvent
 	}
 	HANDLE dup() const
 	{
-		HANDLE h = 0 ;
+		HANDLE h = HNULL ;
 		BOOL ok = DuplicateHandle( GetCurrentProcess() , m_h , GetCurrentProcess() , &h ,
 			0 , FALSE , DUPLICATE_SAME_ACCESS ) ;
 		if( !ok )
@@ -251,17 +264,6 @@ private:
 	static G::Path configFile( const G::MapFile , const std::string & ) ;
 	static G::Path serverExe( const G::MapFile , const std::string & ) ;
 	static G::Path wrapperConfigPath( const G::MapFile & , const std::string & , const std::string & ) ;
-	struct ServiceInfo
-	{
-		G::Path batch_file ;
-		bool batch_file_exists {false} ;
-		G::Path config_file ;
-		bool config_file_exists {false} ;
-		G::Path server_exe ;
-		std::string commandline ;
-		std::string description ;
-		std::string error ;
-	} ;
 	static ServiceInfo serviceInfo( const std::string & , std::string = {} ) ;
 	static void runThread( HANDLE , ServiceHandle , HANDLE ) ;
 	static std::string quoted( const std::string & ) ;
@@ -417,9 +419,9 @@ void Service::run()
 
 Service::Service() :
 	m_magic(Magic) ,
-	m_hservice(0) ,
+	m_hservice(HNULL) ,
 	m_status(SERVICE_START_PENDING) ,
-	m_hthread(0) ,
+	m_hthread(HNULL) ,
 	m_thread_id(0) ,
 	m_thread_exit(nullptr)
 {
@@ -436,7 +438,7 @@ void Service::start( const std::string & service_name )
 		ServiceInfo service_info = serviceInfo( service_name ) ;
 		if( !service_info.error.empty() )
 			throw ServiceError( service_info.error , ERROR_FILE_NOT_FOUND ) ;
-		m_child = ServiceChild( service_info.commandline ) ;
+		m_child = ServiceChild( service_info ) ;
 		m_thread_exit.create() ;
 		m_hthread = CreateThread( nullptr , 0 , RunThread , this , 0 , &m_thread_id ) ;
 		G_SERVICE_DEBUG( "Service::start: done" ) ;
@@ -539,7 +541,7 @@ G::Path Service::wrapperConfigPath( const G::MapFile & wrapper_config , const st
 	return dir/filename ;
 }
 
-Service::ServiceInfo Service::serviceInfo( const std::string & service_name , std::string display_name )
+ServiceInfo Service::serviceInfo( const std::string & service_name , std::string display_name )
 {
 	if( display_name.empty() )
 		display_name = service_name ;
@@ -571,6 +573,7 @@ Service::ServiceInfo Service::serviceInfo( const std::string & service_name , st
 			G_SERVICE_DEBUG( "serviceInfo: batch file command [" << bf.line() << "] (" << bf.lineArgsPos() << "/" << bf.line().size() << ")" ) ;
 			info.commandline = bf.line() ;
 			info.commandline.insert( bf.lineArgsPos() , " --hidden" ) ;
+			info.cwd = info.batch_file.dirname() ; // commandline is relative to the batch file directory
 			std::ostringstream ss ;
 			ss << display_name << " service (reads " << info.batch_file << " at service start time)" ; // see also Gui::Boot::install()
 			info.description = ss.str() ;
@@ -694,31 +697,37 @@ std::string Service::quoted( const std::string & s )
 // ==
 
 ServiceChild::ServiceChild() :
-	m_hprocess(0)
+	m_hprocess(HNULL)
 {
 }
 
-ServiceChild::ServiceChild( std::string command_line ) :
-	m_hprocess(0)
+ServiceChild::ServiceChild( const ServiceInfo & service_info ) :
+	m_hprocess(HNULL)
 {
-	G_SERVICE_DEBUG( "ServiceChild::ctor: spawning [" << command_line << "]" ) ;
+	G_SERVICE_DEBUG( "ServiceChild::ctor: cmd=[" << service_info.commandline << "]" ) ;
+	G_SERVICE_DEBUG( "ServiceChild::ctor: cwd=[" << service_info.cwd << "]") ;
+	G_SERVICE_DEBUG( "ServiceChild::ctor: id=[" << G::Identity::effective().str() << "]" ) ;
 
 	G::nowide::STARTUPINFO_REAL_type startup_info {} ;
 	DWORD startup_info_flags = G::nowide::STARTUPINFO_flags | CREATE_NO_WINDOW ;
 	auto * startup_info_ptr = reinterpret_cast<G::nowide::STARTUPINFO_BASE_type*>(& startup_info) ;
 	startup_info_ptr->cb = sizeof( startup_info ) ;
 
+	if( !service_info.cwd.empty() )
+		G::nowide::chdir( service_info.cwd ) ;
+
 	PROCESS_INFORMATION process_info {} ;
 
-	bool rc = G::nowide::createProcess( {} , command_line ,
-		nullptr , nullptr , nullptr ,
+	bool rc = G::nowide::createProcess( {} , service_info.commandline ,
+		nullptr , nullptr ,
+		service_info.cwd.empty() ? nullptr : &service_info.cwd ,
 		startup_info_flags , startup_info_ptr ,
 		&process_info , /*inherit=*/false ) ;
 
 	if( !rc )
 	{
 		DWORD e = GetLastError() ;
-		throw ServiceError( "cannot create process: [" + command_line + "]" , e ) ;
+		throw ServiceError( "cannot create process: [" + service_info.commandline + "]" , e ) ;
 	}
 
 	closeHandle( process_info.hThread ) ;
@@ -731,7 +740,7 @@ void ServiceChild::close() noexcept
 	if( m_hprocess )
 	{
 		HANDLE h = m_hprocess ;
-		m_hprocess = 0 ;
+		m_hprocess = HNULL ;
 		closeHandle( h ) ;
 	}
 }

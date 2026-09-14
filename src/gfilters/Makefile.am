@@ -23,8 +23,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/gnet \
 	-I$(top_srcdir)/src/win32 \
 	-I$(top_srcdir)/src/gstore \
-	-I$(top_srcdir)/src/gsmtp \
-	-DG_LIB_SMALL
+	-I$(top_srcdir)/src/gsmtp
 
 libgfilters_a_SOURCES = \
 	gcopyfilter.cpp \

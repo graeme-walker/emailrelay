@@ -30,14 +30,14 @@ GGui::DeviceContext::DeviceContext( HWND hwnd ) :
 
 GGui::DeviceContext::DeviceContext( HDC hdc ) :
 	m_hdc(hdc) ,
-	m_hwnd(0) ,
+	m_hwnd(HNULL) ,
 	m_do_release(false) // ignored
 {
 }
 
 GGui::DeviceContext::~DeviceContext()
 {
-	if( m_hwnd != 0 && m_do_release )
+	if( m_hwnd != HNULL && m_do_release )
 		::ReleaseDC( m_hwnd , m_hdc ) ;
 }
 
@@ -65,9 +65,9 @@ void GGui::DeviceContext::swapBuffers()
 
 // ===
 
-GGui::ScreenDeviceContext::ScreenDeviceContext()
+GGui::ScreenDeviceContext::ScreenDeviceContext() :
+	m_dc(::CreateDCA("DISPLAY",nullptr,nullptr,nullptr))
 {
-	m_dc = ::CreateDCA( "DISPLAY" , 0 , 0 , 0 ) ;
 }
 
 GGui::ScreenDeviceContext::~ScreenDeviceContext()

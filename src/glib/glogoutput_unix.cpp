@@ -88,11 +88,9 @@ void G::LogOutput::osinit()
 		::openlog( nullptr , LOG_PID , LogOutputImp::decode(m_config.m_facility) ) ;
 }
 
-#ifndef G_LIB_SMALL
 void G::LogOutput::register_( const Path & )
 {
 }
-#endif
 
 void G::LogOutput::oscleanup() const noexcept
 {

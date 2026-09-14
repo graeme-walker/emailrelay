@@ -37,9 +37,9 @@
 #include <fcntl.h>
 #include <direct.h> // _getcwd()
 
-G::Process::Id::Id() noexcept
+G::Process::Id::Id() noexcept :
+	m_pid(static_cast<unsigned>(::_getpid())) // or ::GetCurrentProcessId()
 {
-	m_pid = static_cast<unsigned int>(::_getpid()) ; // or ::GetCurrentProcessId()
 }
 
 std::string G::Process::Id::str() const
@@ -87,7 +87,7 @@ void G::Process::cd( const Path & dir )
 
 bool G::Process::cd( const Path & dir , std::nothrow_t )
 {
-	return 0 == ::_chdir( dir.cstr() ) ;
+	return 0 == nowide::chdir( dir ) ;
 }
 
 int G::Process::errno_( const SignalSafe & ) noexcept

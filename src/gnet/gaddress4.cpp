@@ -55,7 +55,7 @@ int GNet::Address4::domain() noexcept
 GNet::Address4::Address4( std::nullptr_t ) :
 	m_inet{}
 {
-	m_inet.sin_family =  af() ;
+	m_inet.sin_family =  af() ; // NOLINT(*-narrowing-conversions)
 	m_inet.sin_port =  0 ;
 }
 
@@ -251,12 +251,10 @@ unsigned long GNet::Address4::scopeId( unsigned long default_ ) const
 	return default_ ;
 }
 
-#ifndef G_LIB_SMALL
 const sockaddr * GNet::Address4::address() const
 {
 	return reinterpret_cast<const sockaddr*>(&m_inet) ;
 }
-#endif
 
 sockaddr * GNet::Address4::address()
 {

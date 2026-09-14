@@ -22,13 +22,11 @@
 #include "gprotocolmessage.h"
 #include "gmessagestore.h"
 
-#ifndef G_LIB_SMALL
 void GSmtp::ProtocolMessage::addContentLine( const std::string & line )
 {
 	addContent( line.data() , line.size() ) ;
 	addContent( "\r\n" , 2U ) ;
 }
-#endif
 
 GSmtp::ProtocolMessage::ToInfo::ToInfo( const VerifierStatus & status_in ) :
 	status(status_in) ,

@@ -35,6 +35,7 @@
 #include "gfilestore.h"
 #include "gfilterfactory.h"
 #include "gverifierfactory.h"
+#include "pollrunner.h"
 #include "gpopserver.h"
 #include "gsaslserversecrets.h"
 #include "glocal.h"
@@ -162,8 +163,11 @@ public:
 	bool pollingLog() const noexcept ;
 		///< Returns true if polling activity should be logged.
 
-	unsigned int pollingTimeout() const noexcept ;
+	G::TimeInterval pollingTimeout() const noexcept ;
 		///< Returns the timeout for periodic polling.
+
+	PollRunner::Spec pollRunner() const ;
+		///< Returns the path of any poll runner executable.
 
 	bool immediate() const noexcept ;
 		///< Returns true if forwarding should occur as soon as each
@@ -266,13 +270,18 @@ public:
 private:
 	bool contains( const char * ) const noexcept ;
 	unsigned int numberValue( std::string_view key , unsigned int default_ ) const noexcept ;
+	G::TimeInterval timeoutValue( std::string_view key , unsigned int default_ ) const noexcept ;
+	bool validTimeout( std::string_view key ) const noexcept ;
 	std::string stringValue( std::string_view ) const ;
 	std::string stringValue( std::string_view , const std::string & ) const ;
 	std::string stringValue( std::string_view , std::function<std::string()> ) const ;
+	bool validNumbers( std::string_view ) const ;
+	std::vector<unsigned> numberList( std::string_view key , unsigned int default_ ) const ;
 	G::Path pathValue( std::string_view ) const ;
 	G::Path pathValueImp( const std::string & ) const ;
 	GSmtp::FilterFactoryBase::Spec filterValue( std::string_view , G::StringArray * = nullptr ) const ;
 	GSmtp::VerifierFactoryBase::Spec verifierValue( std::string_view , G::StringArray * = nullptr ) const ;
+	PollRunner::Spec pollRunnerValue( std::string_view , G::StringArray * = nullptr ) const ;
 	static bool pathlike( std::string_view ) ;
 	//
 	const char * semanticError1() const ;
@@ -295,19 +304,22 @@ private:
 	bool _allowRemoteClients() const noexcept ;
 	GSmtp::FilterFactoryBase::Spec _clientFilter() const ;
 	std::pair<int,int> _clientSocketLinger() const ;
-	unsigned int _connectionTimeout() const noexcept ;
+	G::TimeInterval _connectionTimeout() const noexcept ;
 	GSmtp::FilterFactoryBase::Spec _filter() const ;
-	unsigned int _filterTimeout() const noexcept ;
-	unsigned int _idleTimeout() const noexcept ;
+	G::TimeInterval _filterTimeout() const noexcept ;
+	G::TimeInterval _idleTimeout() const noexcept ;
 	unsigned int _maxSize() const noexcept ;
 	bool _nodaemon() const noexcept ;
 	unsigned int _popPort() const noexcept ;
 	std::string _popSaslServerConfig() const ;
 	std::pair<int,int> _popServerSocketLinger() const noexcept ;
-	unsigned int _port() const noexcept ;
+	std::vector<unsigned> _ports() const ;
 	unsigned int _promptTimeout() const noexcept ;
 	unsigned int _responseTimeout() const noexcept ;
 	unsigned int _secureConnectionTimeout() const noexcept ;
+	G::TimeInterval _promptTimeoutInterval() const noexcept ;
+	G::TimeInterval _responseTimeoutInterval() const noexcept ;
+	G::TimeInterval _secureConnectionTimeoutInterval() const noexcept ;
 	bool _serverTlsRequired() const noexcept ;
 	std::string _show() const ;
 	int _shutdownHowOnQuit() const noexcept ;
@@ -349,7 +361,23 @@ inline
 unsigned int Main::Configuration::numberValue( std::string_view key , unsigned int default_ ) const noexcept
 {
 	static_assert( noexcept(m_map.number(key,default_)) , "" ) ;
-	return m_map.number( key , default_ ) ;
+	return m_map.number(key,default_) ;
+}
+
+inline
+bool Main::Configuration::validTimeout( std::string_view key ) const noexcept
+{
+	static_assert( noexcept(m_map.interval(key,1U)) , "" ) ;
+	auto pair = m_map.interval( key , 1U ) ;
+	auto status_ok = pair.first ;
+	return pair.second != G::TimeInterval::zero() && status_ok ;
+}
+
+inline
+G::TimeInterval Main::Configuration::timeoutValue( std::string_view key , unsigned int default_ ) const noexcept
+{
+	static_assert( noexcept(m_map.interval(key,default_)) , "" ) ;
+	return m_map.interval(key,default_).second ;
 }
 
 inline

@@ -29,8 +29,8 @@
 #include <stdexcept>
 #include <unistd.h>
 
-#ifndef G_SYSCONFDIR
-	#define G_SYSCONFDIR
+#ifndef G_CONFDIR
+	#define G_CONFDIR
 #endif
 #ifndef G_SPOOLDIR
 	#define G_SPOOLDIR
@@ -63,10 +63,10 @@ G::Path Gui::Dir::install()
 
 G::Path Gui::Dir::config()
 {
-	std::string sysconfdir( G_STR(G_SYSCONFDIR) ) ; // NOLINT readability-redundant-string-init
-	if( sysconfdir.empty() )
-		sysconfdir = "/etc" ;
-	return sysconfdir ;
+	std::string confdir( G_STR(G_CONFDIR) ) ; // NOLINT readability-redundant-string-init
+	if( confdir.empty() )
+		confdir = "/etc" ;
+	return confdir ;
 }
 
 G::Path Gui::Dir::spool()

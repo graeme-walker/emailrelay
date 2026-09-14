@@ -177,7 +177,7 @@ GSmtp::Server::Server( GNet::EventState es , GStore::MessageStore & store , Filt
 	const GAuth::SaslServerSecrets & server_secrets , const Config & server_config ,
 	const std::string & forward_to , int forward_to_family ,
 	const GSmtp::Client::Config & client_config ) :
-		GNet::MultiServer(es,server_config.interfaces,server_config.port,"smtp",
+		GNet::MultiServer(es,server_config.interfaces,server_config.ports,"smtp",
 			server_config.net_server_peer_config,
 			server_config.net_server_config) ,
 		m_store(store) ,
@@ -198,12 +198,10 @@ GSmtp::Server::~Server()
 	serverCleanup() ; // base class early cleanup
 }
 
-#ifndef G_LIB_SMALL
 GSmtp::Server::Config & GSmtp::Server::config()
 {
 	return m_server_config ;
 }
-#endif
 
 G::Slot::Signal<const std::string&,const std::string&> & GSmtp::Server::eventSignal() noexcept
 {

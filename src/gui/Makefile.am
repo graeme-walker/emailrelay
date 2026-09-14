@@ -108,18 +108,11 @@ AM_CPPFLAGS=\
 	-I$(top_srcdir)/src/gnet \
 	-I$(top_srcdir)/src/main \
 	-I$(top_srcdir)/src/main/icon \
-	-D "G_SBINDIR=$(sbindir)" \
 	-D "G_SPOOLDIR=$(e_spooldir)" \
-	-D "G_INITDIR=$(e_initdir)" \
-	-D "G_SYSCONFDIR=$(e_sysconfdir)" \
-	-D "G_ICONDIR=$(e_icondir)" \
-	-D "G_LIBDIR=$(e_libdir)" \
-	-D "G_MANDIR=$(mandir)" \
-	-D "G_DOCDIR=$(e_docdir)" \
-	-D "G_EXAMPLESDIR=$(e_examplesdir)" \
+	-D "G_CONFDIR=$(e_confdir)" \
 	$(GCONFIG_QT_CFLAGS)
 
-if GCONFIG_GUI
+if GCONFIG_ENABLE_GUI
 
 moc_guidialog.cpp: $(srcdir)/guidialog.h
 	$(GCONFIG_QT_MOC) $< -o $@
@@ -169,14 +162,14 @@ install-exec-hook:
 	@echo exec $(DESTDIR)$(sbindir)/emailrelay-gui.real --qmdir=$(DESTDIR)$(e_trdir) \"$$\@\" >> "$(DESTDIR)$(sbindir)/emailrelay-gui"
 	@echo "dir-install"=\"$(DESTDIR)/usr\" >> "$(DESTDIR)$(sbindir)/emailrelay-gui"
 	@echo "dir-spool"=\"$(DESTDIR)$(e_spooldir)\" >> "$(DESTDIR)$(sbindir)/emailrelay-gui"
-	@echo "dir-config"=\"$(DESTDIR)$(e_sysconfdir)\" >> "$(DESTDIR)$(sbindir)/emailrelay-gui"
+	@echo "dir-config"=\"$(DESTDIR)$(e_confdir)\" >> "$(DESTDIR)$(sbindir)/emailrelay-gui"
 	@chmod +x "$(DESTDIR)$(sbindir)/emailrelay-gui"
 
 uninstall-hook:
 	-rm -f "$(DESTDIR)$(sbindir)/emailrelay-gui"
 
 clean-local:
-	-rm -f payload
+	-rm -rf payload
 
 else
 
@@ -187,7 +180,7 @@ uninstall-hook:
 endif
 
 payload: $(top_srcdir)/libexec/make-setup.sh
-	-mkdir payload 2>/dev/null
+	-mkdir payload || true 2>/dev/null
 	-@chmod +x $(top_srcdir)/libexec/make-setup.sh
 	$(top_srcdir)/libexec/make-setup.sh $(MAKE_SETUP_DEBUG) $@
 

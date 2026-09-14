@@ -26,8 +26,8 @@
 #include "genvironment.h"
 #include "gstrmacros.h"
 
-#ifndef G_SYSCONFDIR
-	#define G_SYSCONFDIR
+#ifndef G_CONFDIR
+	#define G_CONFDIR
 #endif
 #ifndef G_SPOOLDIR
 	#define G_SPOOLDIR
@@ -51,10 +51,10 @@ G::Path Gui::Dir::install()
 
 G::Path Gui::Dir::config()
 {
-	std::string sysconfdir( G_STR(G_SYSCONFDIR) ) ;
-	if( sysconfdir.empty() )
-		sysconfdir = DirImp::rebase( "/Applications/E-MailRelay" ) ;
-	return sysconfdir ;
+	std::string confdir( G_STR(G_CONFDIR) ) ;
+	if( confdir.empty() )
+		confdir = DirImp::rebase( "/Applications/E-MailRelay" ) ;
+	return confdir ;
 }
 
 G::Path Gui::Dir::spool()

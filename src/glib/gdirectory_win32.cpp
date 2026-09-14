@@ -68,8 +68,8 @@ private:
 	nowide::FIND_DATA_type m_context ;
 	HANDLE m_handle ;
 	Directory m_dir ;
-	bool m_error ;
-	bool m_first ;
+	bool m_error {false} ;
+	bool m_first {true} ;
 } ;
 
 // ==
@@ -141,9 +141,7 @@ G::DirectoryIterator::~DirectoryIterator()
 // ===
 
 G::DirectoryIteratorImp::DirectoryIteratorImp( const Directory & dir ) :
-	m_dir(dir) ,
-	m_error(false) ,
-	m_first(true)
+	m_dir(dir)
 {
 	m_handle = nowide::findFirstFile( dir.path()/"*" , &m_context ) ;
 	if( m_handle == INVALID_HANDLE_VALUE )

@@ -120,10 +120,8 @@ bool GSmtp::Filter::Exit::abandon() const
 	return result == Result::abandon ;
 }
 
-#ifndef G_LIB_SMALL
 bool GSmtp::Filter::Exit::fail() const
 {
 	return result == Result::fail ;
 }
-#endif
 

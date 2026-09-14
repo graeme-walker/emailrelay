@@ -27,6 +27,8 @@
 #include "gstringview.h"
 #include "gexception.h"
 #include <iostream>
+#include <functional>
+#include <new>
 
 namespace GStore
 {
@@ -43,11 +45,6 @@ public:
 	G_EXCEPTION( ReadError , tx("cannot read envelope file") )
 	G_EXCEPTION( WriteError , tx("cannot write envelope file") )
 
-	static void read( std::istream & , Envelope & ) ;
-		///< Reads an envelope from a stream. Throws on error.
-		///< Input lines can be newline delimited, in which case
-		///< 'crlf' is set false.
-
 	static std::size_t write( std::ostream & , const Envelope & ) ;
 		///< Writes an envelope to a seekable stream. Returns the new
 		///< endpos value. Returns zero and sets the fail state on
@@ -55,6 +52,19 @@ public:
 		///< lines are CR-LF delimited. The structure 'crlf' and
 		///< 'endpos' fields should normally be updated after
 		///< using write().
+
+	static void read( std::istream & , Envelope & ) ;
+		///< Reads an envelope from a stream. Throws on error.
+		///< Input lines can be newline delimited, in which case
+		///< 'crlf' is set false.
+
+	static void read( std::istream & , Envelope & , std::nothrow_t ) ;
+		///< Overload that fails the stream on error.
+
+	static void readExtra( std::istream & , std::function<void(std::string_view,std::string_view)> ) ;
+		///< Reads extra headers from a stream that has already
+		///< been used by read(), with a callback for each
+		///< key-value pair.
 
 	static void copyExtra( std::istream & , std::ostream & ) ;
 		///< A convenience function to copy extra envelope lines from an

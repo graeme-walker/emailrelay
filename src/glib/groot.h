@@ -60,6 +60,11 @@ public:
 		///<
 		///< The implementation uses G::Process::beSpecial().
 
+	explicit Root( Identity ) ;
+		///< Overload that tries to switch the effective user to
+		///< the specified userid, but which fails silently.
+		///< In practice this requires root as the real id.
+
 	explicit Root( bool change_group ) ;
 		///< Constructor overload with explicit control over whether to change the
 		///< group-id or not.

@@ -48,12 +48,10 @@ GSsl::Library::~Library()
 		m_this = nullptr ;
 }
 
-#ifndef G_LIB_SMALL
 bool GSsl::Library::real()
 {
 	return true ;
 }
-#endif
 
 GSsl::Library * GSsl::Library::instance()
 {
@@ -65,12 +63,10 @@ bool GSsl::Library::enabled() const
 	return m_imp != nullptr ;
 }
 
-#ifndef G_LIB_SMALL
 std::string GSsl::Library::id() const
 {
 	return m_imp->id() ;
 }
-#endif
 
 void GSsl::Library::addProfile( const std::string & profile_name , bool is_server_profile ,
 	const std::string & key_file , const std::string & cert_file , const std::string & ca_file ,
@@ -155,12 +151,10 @@ std::string GSsl::Protocol::peerCertificate() const
 	return m_imp->peerCertificate() ;
 }
 
-#ifndef G_LIB_SMALL
 std::string GSsl::Protocol::peerCertificateChain() const
 {
 	return m_imp->peerCertificateChain() ;
 }
-#endif
 
 std::string GSsl::Protocol::protocol() const
 {
@@ -172,12 +166,10 @@ std::string GSsl::Protocol::cipher() const
 	return m_imp->cipher() ;
 }
 
-#ifndef G_LIB_SMALL
 bool GSsl::Protocol::verified() const
 {
 	return m_imp->verified() ;
 }
-#endif
 
 std::string GSsl::Protocol::str( Result result )
 {

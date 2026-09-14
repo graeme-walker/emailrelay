@@ -82,7 +82,7 @@ static bool isatty_( int ) { return false ; }
 
 std::string versionNumber()
 {
-	return "2.6.1" ;
+	return "2.7" ;
 }
 
 enum class Parts
@@ -394,7 +394,7 @@ void submit( const G::GetOpt & opt )
 		auto now = G::SystemTime::now() ;
 		auto tm = now.local() ;
 		G::Date date( tm ) ;
-		std::string zone = G::DateTime::offsetString( G::DateTime::offset(now) ) ;
+		std::string zone = G::Zone::offsetString( G::Zone::offset(now) ) ;
 		std::string date_str = date.dd() + " " + date.monthName(true) + " " + date.yyyy() ;
 		std::string time_str = G::Time(tm).hhmmss(":") ;
 		message.m_content.insert( message.m_content.begin() , G::Str::join(" ","Date:",date_str,time_str,zone) ) ;

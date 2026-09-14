@@ -23,6 +23,7 @@
 
 #include "gdef.h"
 #include "gpath.h"
+#include "gidentity.h"
 #include "gexception.h"
 #include "gcleanup.h"
 #include "gdatetime.h"
@@ -78,8 +79,7 @@ public:
 		unsigned long mode {0} ;
 		unsigned long long size {0} ;
 		unsigned long long blocks {0} ;
-		uid_t uid {0} ; // unix
-		gid_t gid {0} ; // unix
+		Identity ownership {Identity::invalid()} ; // unix uid/gid, windows sid
 		bool inherit {false} ; // unix, directory group ownership passed on to new files
 	} ;
 
@@ -202,6 +202,10 @@ public:
 		///< Sets the file permissions. Throws on error. The
 		///< spec is a simplified sub-set of the /bin/chmod
 		///< command syntax. The umask is ignored.
+
+	static bool chown( const Path & path , Identity , std::nothrow_t ) ;
+		///< Sets the file user and group ownership. Returns false on error.
+		///< Ignores ids of -1.
 
 	static void chgrp( const Path & file , const std::string & group ) ;
 		///< Sets the file group ownership. Throws on error.

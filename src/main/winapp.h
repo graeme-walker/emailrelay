@@ -69,7 +69,7 @@ public:
 	WinApp( HINSTANCE h , HINSTANCE p , const std::string & name ) ;
 		///< Constructor. Initialise with init().
 
-	virtual ~WinApp() ;
+	~WinApp() override ;
 		///< Destructor.
 
 	void init( const Main::Configuration & cfg , const G::Options & options_spec ) ;
@@ -144,12 +144,12 @@ private:
 	std::unique_ptr<GGui::Tray> m_tray ;
 	std::unique_ptr<Main::WinForm> m_form ;
 	std::unique_ptr<Main::WinMenu> m_menu ;
-	bool m_disable_output ;
+	bool m_disable_output {false} ;
 	Config m_cfg ;
-	bool m_quitting ;
-	int m_exit_code ;
-	bool m_in_do_open ;
-	bool m_in_do_close ;
+	bool m_quitting {false} ;
+	int m_exit_code {0} ;
+	bool m_in_do_open {false} ;
+	bool m_in_do_close {false} ;
 } ;
 
 #endif

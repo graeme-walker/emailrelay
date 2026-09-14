@@ -140,12 +140,10 @@ bool G::DirectoryIterator::isDir() const
 	return m_imp->isDir() ;
 }
 
-#ifndef G_LIB_SMALL
 std::string G::DirectoryIterator::sizeString() const
 {
 	return m_imp->sizeString() ;
 }
-#endif
 
 // ===
 

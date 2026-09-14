@@ -390,7 +390,7 @@ void GNet::SocketProtocolImp::secureConnect()
 	rawReset() ;
 	m_ssl = newProtocol( m_config.client_tls_profile ) ;
 	m_state = State::connecting ;
-	if( m_config.secure_connection_timeout != 0U )
+	if( m_config.secure_connection_timeout )
 		m_secure_connection_timer.startTimer( m_config.secure_connection_timeout ) ;
 	secureConnectImp() ;
 }
@@ -421,7 +421,7 @@ void GNet::SocketProtocolImp::secureConnectImp()
 	{
 		m_socket.dropWriteHandler() ;
 		m_state = State::idle ;
-		if( m_config.secure_connection_timeout != 0U )
+		if( m_config.secure_connection_timeout )
 			m_secure_connection_timer.cancelTimer() ;
 		m_peer_certificate = m_ssl->peerCertificate() ;
 		std::string protocol = m_ssl->protocol() ;
@@ -792,7 +792,6 @@ std::string GNet::SocketProtocolImp::peerCertificate() const
 	return m_peer_certificate ;
 }
 
-#ifndef G_LIB_SMALL
 void GNet::SocketProtocolImp::log( int level , const std::string & log_line )
 {
 	if( level == 1 )
@@ -802,7 +801,6 @@ void GNet::SocketProtocolImp::log( int level , const std::string & log_line )
 	else
 		G_WARNING( "GNet::SocketProtocolImp::log: tls: " << log_line ) ;
 }
-#endif
 
 void GNet::SocketProtocolImp::logSecure( const std::string & protocol , const std::string & cipher ) const
 {
@@ -878,19 +876,15 @@ void GNet::SocketProtocol::secureAccept()
 	m_imp->secureAccept() ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::SocketProtocol::secure() const
 {
 	return m_imp->secure() ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 bool GNet::SocketProtocol::raw() const
 {
 	return m_imp->raw() ;
 }
-#endif
 
 std::string GNet::SocketProtocol::peerCertificate() const
 {

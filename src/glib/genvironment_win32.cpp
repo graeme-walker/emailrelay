@@ -29,7 +29,7 @@ std::string G::Environment::get( const std::string & name , const std::string & 
 
 G::Path G::Environment::getPath( const std::string & name , const G::Path & default_ )
 {
-	return G::Path( nowide::getenv( name , default_.str() ) ) ;
+	return { nowide::getenv( name , default_.str() ) } ;
 }
 
 G::Environment G::Environment::minimal( bool )

@@ -27,6 +27,7 @@
 #include "gdatetime.h"
 #include "gexception.h"
 #include "gprocess.h"
+#include "gdirectory.h"
 #include "gslot.h"
 #include "groot.h"
 #include "gpath.h"
@@ -84,6 +85,7 @@ public:
 		static bool hardlink( const G::Path & , const G::Path & ) ;
 		static bool copy( const G::Path & , const G::Path & ) ;
 		static bool copy( const G::Path & , const G::Path & , bool hardlink ) ;
+		static bool chown( const G::Path & ) ;
 		static bool mkdir( const G::Path & ) ;
 		static bool isdir( const G::Path & , const G::Path & = {} , const G::Path & = {} ) ;
 		static std::ifstream & openIn( std::ifstream & , const G::Path & ) ;
@@ -148,6 +150,7 @@ private: // overrides
 	std::vector<MessageId> ids() override ;
 	std::vector<MessageId> failures() override ;
 	void unfailAll() override ;
+	void retry( unsigned int , bool ) override ;
 	void rescan() override ;
 
 public:
@@ -166,6 +169,7 @@ private:
 	static const std::string & crlf() ;
 	bool emptyCore() const ;
 	void clearAll() ;
+	void getBadEnvelopes( G::DirectoryList & ) const ;
 	static MessageId newId( unsigned long ) ;
 
 private:

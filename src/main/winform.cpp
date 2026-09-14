@@ -43,23 +43,23 @@ Main::WinForm::WinForm( HINSTANCE hinstance , const G::StringArray & cfg_data ,
 		GGui::Stack(*this,hinstance,style) ,
 		m_hnotify(hnotify) ,
 		m_allow_apply(allow_apply) ,
-		m_closed(false) ,
 		m_cfg_data(cfg_data)
 {
 	using G::txt ;
 
 	m_cfg_data.insert( m_cfg_data.begin() , "Value" ) ;
 	m_cfg_data.insert( m_cfg_data.begin() , "Key" ) ;
-	m_cfg_data.push_back( "tls library" ) ;
+	m_cfg_data.emplace_back( "tls library" ) ;
 	m_cfg_data.push_back( GSsl::Library::ids() ) ;
 
-  	addPage( txt("Configuration") , IDD_PROPPAGE_1 ) ;
-  	addPage( txt("Licence") , IDD_PROPPAGE_1 ) ;
-  	addPage( txt("Version") , IDD_PROPPAGE_1 ) ;
-  	addPage( txt("Status") , IDD_PROPPAGE_1 ) ;
+	addPage( txt("Configuration") , IDD_PROPPAGE_1 ) ;
+	addPage( txt("Licence") , IDD_PROPPAGE_1 ) ;
+	addPage( txt("Version") , IDD_PROPPAGE_1 ) ;
+	addPage( txt("Status") , IDD_PROPPAGE_1 ) ;
 
 	// create the stack
-  	create( parent , "E-MailRelay" , with_icon?IDI_ICON1:0 , hnotify , GGui::Cracker::wm_user_other() ) ;
+	bool fixed_size = false ; // allow DPI change
+	create( parent , "E-MailRelay" , with_icon?IDI_ICON1:0 , hnotify , GGui::Cracker::wm_user_other() , fixed_size ) ;
 
 	if( with_system_menu_quit )
 		addSystemMenuItem( txt("Quit") , quitId() ) ;
@@ -110,22 +110,22 @@ void Main::WinForm::onInit( HWND hdialog , int index )
 	if( index == 0 ) // "Configuration"
 	{
 		m_cfg_view = std::make_unique<GGui::ListView>( hdialog , IDC_LIST1 ) ;
-  		m_cfg_view->set( m_cfg_data , /*ncolumns=*/2U , /*widthpx=*/150U ) ;
+		m_cfg_view->set( m_cfg_data , /*columns=*/2U , /*width_px=*/150U ) ;
 	}
 	else if( index == 1 ) // "Licence"
 	{
 		m_licence_view = std::make_unique<GGui::ListView>( hdialog , IDC_LIST1 ) ;
-  		m_licence_view->set( licenceData() , 1U , 330U ) ;
+		m_licence_view->set( licenceData() , 1U , 330U ) ;
 	}
 	else if( index == 2 ) // "Version"
 	{
 		m_version_view = std::make_unique<GGui::ListView>( hdialog , IDC_LIST1 ) ;
-  		m_version_view->set( versionData() , 1U , 330U ) ;
+		m_version_view->set( versionData() , 1U , 330U ) ;
 	}
 	else if( index == 3 ) // "Status"
 	{
 		m_status_view = std::make_unique<GGui::ListView>( hdialog , IDC_LIST1 ) ;
-  		m_status_view->set( statusData() , 3U , 100U ) ;
+		m_status_view->set( statusData() , 3U , 100U ) ;
 	}
 }
 
@@ -227,16 +227,16 @@ G::StringArray Main::WinForm::licenceData() const
 void Main::WinForm::getStatusData( G::StringArray & out ) const
 {
 	// headings
-	out.push_back( "Status" ) ;
-	out.push_back( "" ) ;
-	out.push_back( "" ) ;
+	out.emplace_back( "Status" ) ;
+	out.emplace_back() ;
+	out.emplace_back() ;
 
 	// m_status_map
-	for( StatusMap::const_iterator p = m_status_map.begin() ; p != m_status_map.end() ; ++p )
+	for( const auto & map_item : m_status_map )
 	{
-		out.push_back( (*p).first ) ;
-		out.push_back( (*p).second.first ) ;
-		out.push_back( (*p).second.second ) ;
+		out.push_back( map_item.first ) ;
+		out.push_back( map_item.second.first ) ;
+		out.push_back( map_item.second.second ) ;
 	}
 
 	// gnet monitor report
@@ -268,9 +268,9 @@ void Main::WinForm::add( G::StringArray & list , std::string s )
 {
 	G::Str::trim( s , "\r\n" ) ;
 	if( s.empty() )
-		list.push_back( std::string() ) ;
+		list.emplace_back() ;
 	G::StringArray lines = split( s ) ;
-	for( G::StringArray::iterator p = lines.begin() ; p != lines.end() ; ++p )
-		list.push_back( *p ) ;
+	for( const auto & line : lines )
+		list.push_back( line ) ;
 }
 

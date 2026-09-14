@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+// Copyright (C) 2001-2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@
 // it is just "dir.cfg" somewhere inside the bundle.
 //
 // The main pointer variables are "dir-config", "dir-install" and "dir-run".
-// On unix these might be "/etc", "/usr/bin", and "/run", respectively.
+// On unix these might be "/etc", "/usr", and "/run", respectively.
 //
 // The pointer file on unix is cunningly formatted as an executable script that
 // runs the real GUI program.
@@ -128,13 +128,19 @@
 #include "glog.h"
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <fstream>
 #include <array>
+#include <vector>
 
 #ifdef G_WINDOWS
 #ifdef G_QT_STATIC
+#if QT_VERSION >= 0x060000
+Q_IMPORT_PLUGIN(QModernWindowsStylePlugin)
+#else
 Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
+#endif
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
 #endif
 #endif
@@ -194,41 +200,17 @@ static bool isWindows()
  #endif
 }
 
-class Application : public QApplication
-{
-public:
-	Application( int & argc , char * argv [] ) ; // NOLINT std::array
-	bool notify( QObject * p1 , QEvent * p2 ) override ;
-} ;
-Application::Application( int & argc , char * argv [] ) : // NOLINT std::array
-	QApplication(argc,argv)
-{
-}
-bool Application::notify( QObject * p1 , QEvent * p2 )
-{
-	try
-	{
-		return QApplication::notify( p1 , p2 ) ;
-	}
-	catch( std::exception & e )
-	{
-		G_ERROR( "exception: " << e.what() ) ;
-		errorBox( e.what() ) ;
-		std::string message = G::StringWrap::wrap( e.what() , "" , "" , 40U ) ;
-		qCritical( message.find(' ')==std::string::npos ? "exception: %s" : "%s" , message.c_str() ) ;
-		exit( 3 ) ;
-	}
-	return false ;
-}
-
 static G::Path search( const G::Path & base , const std::string & filename , const G::StringArray & dirs )
 {
 	for( const auto & dir : dirs )
 	{
-		if( !dir.empty() && G::File::exists(base/dir/filename) )
-			return base/dir/filename ;
+		if( dir.empty() )
+			continue ;
+		G::Path path = G::Path(dir).isAbsolute() ? (G::Path(dir)/filename) : (base/dir/filename) ;
+		if( G::File::exists(path) )
+			return path ;
 	}
-	return G::Path() ;
+	return {} ;
 }
 
 static std::string pointerFilename( const G::Path & argv0 )
@@ -246,16 +228,43 @@ static G::Path configFile( const G::Path & dir_config )
 		(dir_config/"emailrelay.conf") ;
 }
 
-static std::string value( const G::Arg & args , const std::string & option )
+static std::string value( const G::Arg & args_in , const std::string & option ,
+	const std::string & default_ = {} )
 {
-	std::size_t pos = args.index( option , 1U ) ;
-	std::size_t pos_eq = args.match( option+"=" ) ;
-	if( pos )
-		return args.v( pos + 1U ) ;
-	else if( pos_eq )
-		return G::Str::tail( args.v(pos_eq) , "=" ) ;
-	else
-		return std::string() ;
+	auto args = args_in.array( 1U ) ;
+	for( std::size_t i = 0U ; i < args.size() ; i++ )
+	{
+		if( args[i] == option && (i+1U) < args.size() )
+			return args[i+1U] ;
+		else if( args[i].find(option+"=") == 0U )
+			return G::Str::tail( args[i] , "=" ) ;
+	}
+	return default_ ;
+}
+
+static std::string language()
+{
+	// the default QLocale's language is set from the LANG environment
+	// variable in Qt5, but in Qt6 it uses GetLocaleInfo() etc
+	auto list = QLocale().uiLanguages() ;
+	return list.empty() ? std::string() : GQt::u8string_from_qstring(list.at(0)) ;
+}
+
+using Translators = std::vector<std::unique_ptr<QTranslator>> ;
+static bool load( Translators & translators , const std::string & name , const G::Path & dir , char sep )
+{
+	translators.emplace_back( std::make_unique<QTranslator>() ) ;
+	bool ok = translators.back()->load( QLocale() ,
+			GQt::qstring_from_u8string(name) ,
+			GQt::qstring_from_u8string(std::string(1U,sep)) ,
+			GQt::qstring_from_path(dir) ,
+			GQt::qstring_from_u8string(".qm") ) ;
+	if( !ok )
+	{
+		G_LOG( "main: translation not loaded: name=[" << name << "] dir=[" << dir << "] lang=[" << language() << "]" ) ;
+		translators.pop_back() ;
+	}
+	return ok ;
 }
 
 int main( int argc , char * argv [] )
@@ -263,7 +272,10 @@ int main( int argc , char * argv [] )
 	try
 	{
 		const G::Arg args( argc , argv ) ;
-		Application app( argc , argv ) ;
+		std::string language = value( args , "--lang" ) ;
+		if( !language.empty() )
+			QLocale::setDefault( QLocale(GQt::qstring_from_u8string(language)) ) ;
+		new QApplication( argc , argv ) ; // on the heap because of qt6 dtor bug
 		if( argc > 1 && std::string(argv[1]) == "--message" ) // message-box helper esp. for mac
 		{
 			std::ostringstream ss ;
@@ -273,6 +285,7 @@ int main( int argc , char * argv [] )
 			infoBox( ss.str() ) ;
 			return 1 ;
 		}
+		G::Path log_file = value( args , "--log-file" ) ;
 		G::LogOutput log_ouptut( "" ,
 			G::LogOutput::Config()
 				.set_output_enabled(true)
@@ -281,7 +294,8 @@ int main( int argc , char * argv [] )
 				.set_debug(args.count("-v")>2U)
 				.set_strip(args.count("-v")<2U)
 				.set_with_level(true)
-				.set_use_syslog(false) ) ;
+				.set_use_syslog(false) ,
+			log_file ) ;
 		G_LOG( "main: start: " << argv[0] ) ;
 
 		try
@@ -289,34 +303,25 @@ int main( int argc , char * argv [] )
 			G::Path argv0 = G::Arg::exe().empty() ? args.v(0U) : G::Arg::exe() ;
 			bool is_mac = isMac() || args.contains("--as-mac") ;
 
-			// load translations from 'translations/emailrelay*.qm' files according
-			// to the 'LANG' environment variable or an explicit '--qm' option
-			QTranslator translator ;
+			// load translations
+			Translators translators ;
 			{
-				G_LOG( "main: locale: " << GQt::u8string_from_qstring(QLocale::system().name()) ) ; // eg. "en_GB"
-				bool loaded = false ;
-				G::Path qmfile = value( args , "--qm" ) ;
-				G::Path qmdir = value( args , "--qmdir" ) ;
-				if( qmdir.empty() )
-					qmdir = argv0.dirname() / "translations" ;
-				if( !qmfile.empty() )
-					loaded = translator.load( GQt::qstring_from_path(qmfile) ) ;
-				if( !loaded )
-					loaded = translator.load( QLocale() ,
-						GQt::qstring_from_u8string("emailrelay") , GQt::qstring_from_u8string(".") ,
-						GQt::qstring_from_path(qmdir) , GQt::qstring_from_u8string(".qm") ) ;
-				if( loaded )
-					QCoreApplication::installTranslator( &translator ) ;
-				else
-					G_LOG( "main: no translations loaded" ) ;
-			}
-
-			// load an icon
-			if( !isWindows() && !isMac() && !args.contains("-qwindowicon") )
-			{
-				G::Path icon_png_path = search( argv0.dirname() , "emailrelay-icon.png" , {".","icon","resources"} ) ;
-				if( !icon_png_path.empty() )
-					app.setWindowIcon( QIcon(GQt::qstring_from_path(icon_png_path)) ) ;
+				std::string qmname = value( args , "--qm" , "emailrelay" ) ;
+				G::Path qmdir = value( args , "--qmdir" , (argv0.dirname()/"translations").str() ) ;
+				load( translators , qmname , qmdir , '.' ) ;
+				load( translators , "qtbase" , qmdir , '_' ) || // static build
+					load( translators , "qt" , qmdir , '_' ) ; // windeployqt
+				for( auto & translator_ptr : translators )
+				{
+					G_LOG( "main: translations loaded from [" <<
+						GQt::u8string_from_qstring(translator_ptr->filePath()) << "]" ) ;
+					QCoreApplication::installTranslator( translator_ptr.release() ) ;
+				}
+				{
+					auto c = GQt::u8string_from_qstring(QCoreApplication::translate("QProgressDialog","Cancel")) ;
+					auto b = GQt::u8string_from_qstring(QCoreApplication::translate("DirectoryPage","Browse")) ;
+					G_LOG( "main: translation: cancel=[" << c << "] browse=[" << b << "]" ) ;
+				}
 			}
 
 			// test-mode -- create a minimal payload, enable click-through,
@@ -429,10 +434,6 @@ int main( int argc , char * argv [] )
 					dir_install = !server_exe.empty() && !server_exe.dirname().empty() ?
 						server_exe.dirname() : argv0.dirname() ;
 				}
-				else
-				{
-					dir_install = argv0.dirname() ;
-				}
 				dir_install = pointer_map.expandedPathValue( "dir-install" , dir_install ) ; // override
 			}
 
@@ -440,6 +441,15 @@ int main( int argc , char * argv [] )
 			G_LOG_S( "main: dir-config=" << dir_config ) ;
 			G_LOG_S( "main: dir-install=" << dir_install ) ;
 			G_LOG_S( "main: dir-run=" << dir_run ) ;
+
+			// load an icon
+			if( !isWindows() && !isMac() && !args.contains("-qwindowicon") )
+			{
+				G::Path icon_png_path = search( argv0.dirname() , "emailrelay-icon.png" ,
+					{".","icon","resources",dir_install.str()+"/share/emailrelay"} ) ;
+				if( !icon_png_path.empty() )
+					QApplication::setWindowIcon( QIcon(GQt::qstring_from_path(icon_png_path)) ) ;
+			}
 
 			// set up the gui pages' config map
 			G::MapFile pages_config = server_config_map ;

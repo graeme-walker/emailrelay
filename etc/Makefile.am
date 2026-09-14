@@ -15,11 +15,22 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-if GCONFIG_PAM
- e_pam_DATA = emailrelay
-else
- e_pam_DATA =
-endif
+# make (--) and make install (==)...
+#
+#   emailrelay.auth.in
+#     \--cp-> emailrelay.auth
+#               \==> e_egconfdir/ (examples/config)
+#   emailrelay.conf.in
+#     \--sed-> emailrelay.conf
+#               \==> e_egconfdir/ (examples/config)
+#               \==nc=> e_confdir/ (/etc) [unless --disable-install-config]
+#   emailrelay.service.in
+#     \--sed-> emailrelay.service
+#               \==> e_systemddir/ (examples/init)
+#   emailrelay.pam
+#     \==> e_egconfdir/ (examples/config)
+#     \==nc=> e_pamdir/emailrelay (/etc/pam.d) [unless --disable-install-pam]
+#
 
 EXTRA_DIST = \
 	emailrelay.auth.in \
@@ -28,15 +39,17 @@ EXTRA_DIST = \
 	emailrelay.pam \
 	emailrelay.service.in \
 	emailrelay-fail2ban-jail \
-	emailrelay-fail2ban-filter
+	emailrelay-fail2ban-filter \
+	apkbuild.in \
+	apkbuild.post-install
 
 noinst_DATA = \
+	emailrelay.auth
+
+e_egconf_DATA = \
+	emailrelay.pam \
 	emailrelay.auth \
 	emailrelay.conf
-
-e_lib_DATA = \
-	emailrelay.auth.in \
-	emailrelay.conf.in
 
 e_examples_DATA = \
 	emailrelay-fail2ban-filter \
@@ -45,21 +58,25 @@ e_examples_DATA = \
 e_systemd_DATA = \
 	emailrelay.service
 
-emailrelay: emailrelay.pam
-	cp $(top_srcdir)/etc/emailrelay.pam $@
-
-do_sed = sed -e "s:__INIT_DIR__:$(e_initdir):g" -e "s:__RUN_DIR__:$(e_rundir):g" -e "s:__SYSCONF_DIR__:$(e_sysconfdir):g" -e "s:__SBIN_DIR__:$(sbindir):g"
+do_sed1 = sed \
+	-e "s:__RUN_DIR__:$(e_rundir):g" \
+	-e "s:__SYSCONF_DIR__:$(e_confdir):g" \
+	-e "s:__SBIN_DIR__:$(sbindir):g"
 
 emailrelay.service: emailrelay.service.in
-	$(do_sed) < $(srcdir)/emailrelay.service.in > emailrelay.service
+	$(do_sed1) < $(srcdir)/emailrelay.service.in > emailrelay.service
 
-do_sed2 = sed -e "s:/var/spool/emailrelay:$(e_spooldir):g" -e "s:^.spool-dir .*:spool-dir $(e_spooldir):g" -e "s:/etc:$(e_sysconfdir):g" -e "s:/usr/local/sbin:$(sbindir):g"
+do_sed2 = sed \
+	-e "s:/var/spool/emailrelay:$(e_spooldir):g" \
+	-e "s:/etc:$(e_confdir):g" \
+	-e "s:/run:$(e_rundir):g" \
+	-e "s:/usr/local/sbin:$(sbindir):g"
 
 emailrelay.conf: emailrelay.conf.in
 	$(do_sed2) < $(srcdir)/emailrelay.conf.in > emailrelay.conf
 
 emailrelay.auth: emailrelay.auth.in
-	$(do_sed2) < $(srcdir)/emailrelay.auth.in > emailrelay.auth
+	cp $(srcdir)/emailrelay.auth.in emailrelay.auth
 
 CLEANFILES = \
 	emailrelay \
@@ -67,18 +84,31 @@ CLEANFILES = \
 	emailrelay.conf \
 	emailrelay.service
 
-if GCONFIG_INSTALL_HOOK
-
-# don't clobber user's auth and conf files -- disable with 'configure --disable-install-hook'
-
-install-data-hook:
-	-$(MKDIR_P) "$(DESTDIR)$(e_sysconfdir)/" || true
-	if test -f "$(DESTDIR)$(e_sysconfdir)/emailrelay.conf" ; then : ; else $(INSTALL_DATA) "emailrelay.conf" "$(DESTDIR)$(e_sysconfdir)/" ; fi
-	if test -f "$(DESTDIR)$(e_sysconfdir)/emailrelay.auth" ; then : ; else $(INSTALL_DATA) "emailrelay.auth" "$(DESTDIR)$(e_sysconfdir)/" ; fi
-
-uninstall-hook:
-	-cp "$(DESTDIR)$(e_sysconfdir)/emailrelay.conf" /tmp/emailrelay.conf.uninstall || true
-	-rm "$(DESTDIR)$(e_sysconfdir)/emailrelay.conf" || true
-	-rm "$(DESTDIR)$(e_sysconfdir)/emailrelay.auth" || true
-
+# no-clobber install of config file -- disable with 'configure --disable-install-config'
+if GCONFIG_INSTALL_CONFIG
+gconfig_install_config:
+	-$(MKDIR_P) "$(DESTDIR)$(e_confdir)/" || true
+	if test -f "$(DESTDIR)$(e_confdir)/emailrelay.conf" ; then : ; else $(INSTALL_DATA) "emailrelay.conf" "$(DESTDIR)$(e_confdir)/" ; fi
+gconfig_uninstall_config:
+	-rm "$(DESTDIR)$(e_confdir)/emailrelay.conf" || true
+else
+gconfig_install_config:
+gconfig_uninstall_config:
 endif
+
+# no-clobber install of pam file -- disable with 'configure --disable-install-pam'
+if GCONFIG_INSTALL_PAM
+gconfig_install_pam:
+	-$(MKDIR_P) "$(DESTDIR)$(e_pamdir)/" || true
+	if test -f "$(DESTDIR)$(e_pamdir)/emailrelay" ; then : ; else $(INSTALL_DATA) "$(top_srcdir)/etc/emailrelay.pam" "$(DESTDIR)$(e_pamdir)/emailrelay" ; fi
+gconfig_uninstall_pam:
+	-rm "$(DESTDIR)$(e_pamdir)/emailrelay" || true
+else
+gconfig_install_pam:
+gconfig_uninstall_pam:
+endif
+
+install-data-hook: gconfig_install_config gconfig_install_pam
+
+uninstall-hook: gconfig_uninstall_config gconfig_uninstall_pam
+

@@ -58,6 +58,9 @@ public:
 		///< Destructor. Kills the spawned process and waits for it to
 		///< terminate, where necessary.
 
+	bool busy() const noexcept ;
+		///< Returns true if still busy from a prior call to start().
+
 	void start( const G::ExecutableCommand & commandline ) ;
 		///< Starts the task by spawning a new process with the given
 		///< command-line and also starting a thread to wait for it. The

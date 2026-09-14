@@ -60,8 +60,9 @@ sub new
 	return bless \%me , $classname ;
 }
 
-sub port { return shift->{'m_port'} }
-sub server { return shift->{'m_server'} }
+sub port { return shift->{m_port} }
+sub server { return shift->{m_server} }
+sub netclient { return shift->{m_nc} }
 
 sub open
 {

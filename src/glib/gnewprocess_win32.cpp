@@ -52,8 +52,8 @@ namespace G
 			private:
 			static void create( HANDLE & read , HANDLE & write ) ;
 			static void uninherited( HANDLE h ) ;
-			HANDLE m_read ;
-			HANDLE m_write ;
+			HANDLE m_read {HNULL} ;
+			HANDLE m_write {HNULL} ;
 		} ;
 		#if GCONFIG_HAVE_WINDOWS_STARTUP_INFO_EX
 			struct AttributeList
@@ -67,7 +67,7 @@ namespace G
 				void cleanup() noexcept ;
 				G::Buffer<char> m_buffer ;
 				std::array<HANDLE,4U> m_handles ;
-				pointer_type m_ptr {NULL} ;
+				pointer_type m_ptr {nullptr} ;
 			} ;
 		#else
 			struct AttributeList
@@ -80,10 +80,11 @@ namespace G
 		struct StartupInfo
 		{
 			nowide::STARTUPINFO_REAL_type m_startup_info ;
-			nowide::STARTUPINFO_BASE_type * m_ptr ;
-			DWORD m_flags ;
+			nowide::STARTUPINFO_BASE_type * m_ptr {nullptr} ;
+			DWORD m_flags {0U} ;
 			StartupInfo( AttributeList & attribute_list , HANDLE hstdin , HANDLE hstdout , HANDLE hstderr )
 			{
+				// NOLINTBEGIN(*-prefer-member-initializer)
 				#if GCONFIG_HAVE_WINDOWS_STARTUP_INFO_EX
 					nowide::STARTUPINFO_REAL_type zero {} ;
 					m_startup_info = zero ;
@@ -107,6 +108,7 @@ namespace G
 					m_ptr = &m_startup_info ;
 					m_flags = CREATE_NO_WINDOW | nowide::STARTUPINFO_flags ;
 				#endif
+				// NOLINTEND(*-prefer-member-initializer)
 			}
 		} ;
 		HANDLE fdhandle( int fd ) ;
@@ -167,9 +169,9 @@ private:
 
 private:
 	NewProcess::Config m_config ;
-	HANDLE m_hprocess ;
+	HANDLE m_hprocess {HNULL} ;
 	DWORD m_pid ;
-	bool m_killed ;
+	bool m_killed {false} ;
 	Pipe m_pipe ;
 	NewProcessWaitable m_waitable ;
 } ;
@@ -212,8 +214,6 @@ void G::NewProcess::kill( bool yield ) noexcept
 
 G::NewProcessImp::NewProcessImp( const Path & exe , const StringArray & args , const NewProcess::Config & config ) :
 	m_config(config) ,
-	m_hprocess(0) ,
-	m_killed(false) ,
 	m_waitable(HNULL,HNULL,0)
 {
 	G_DEBUG( "G::NewProcessImp::ctor: exe=[" << exe << "] args=[" << Str::join("],[",args) << "]" ) ;
@@ -235,7 +235,8 @@ G::NewProcessImp::NewProcessImp( const Path & exe , const StringArray & args , c
 		std::string s ;
 		if( m_config.exec_error_format_fn )
 		{
-			s = (config.exec_error_format_fn)(config.exec_error_format,e) ;
+			int ee = static_cast<int>( e ) ;
+			s = (config.exec_error_format_fn)(config.exec_error_format,ee) ;
 		}
 		else if( !m_config.exec_error_format.empty() )
 		{
@@ -452,12 +453,12 @@ G::NewProcessWindowsImp::AttributeList::AttributeList( const std::array<HANDLE,4
 	m_handles(handles_in)
 {
 	auto end = std::partition( m_handles.begin() , m_handles.end() ,
-		[](HANDLE h){return h!=0 && h!=INVALID_HANDLE_VALUE;} ) ;
+		[](HANDLE h){return h!=HNULL && h!=INVALID_HANDLE_VALUE;} ) ;
 	std::size_t handles_size = std::distance( m_handles.begin() , end ) ;
 	if( handles_size )
 	{
 		SIZE_T buffer_size = 0 ;
-		InitializeProcThreadAttributeList( NULL , 1 , 0 , &buffer_size ) ;
+		InitializeProcThreadAttributeList( nullptr , 1 , 0 , &buffer_size ) ;
 		if( buffer_size == 0 || buffer_size > 100000 )
 			throw Error() ;
 		m_buffer.resize( buffer_size ) ;
@@ -468,7 +469,8 @@ G::NewProcessWindowsImp::AttributeList::AttributeList( const std::array<HANDLE,4
 			throw Error() ;
 
 		ok = UpdateProcThreadAttribute( ptr , 0 , PROC_THREAD_ATTRIBUTE_HANDLE_LIST ,
-			m_handles.data() , handles_size * sizeof(HANDLE) , NULL , NULL ) ;
+			m_handles.data() , handles_size*sizeof(HANDLE) , // NOLINT(*-multi-level-implicit-pointer-conversion)
+			nullptr , nullptr ) ;
 		if( !ok )
 		{
 			cleanup() ;
@@ -487,7 +489,7 @@ void G::NewProcessWindowsImp::AttributeList::cleanup() noexcept
 {
 	if( m_ptr )
 		DeleteProcThreadAttributeList( m_ptr ) ;
-	m_ptr = NULL ;
+	m_ptr = nullptr ;
 }
 
 G::NewProcessWindowsImp::AttributeList::pointer_type G::NewProcessWindowsImp::AttributeList::ptr()
@@ -498,9 +500,7 @@ G::NewProcessWindowsImp::AttributeList::pointer_type G::NewProcessWindowsImp::At
 
 // ==
 
-G::NewProcessWindowsImp::Pipe::Pipe() :
-	m_read(HNULL) ,
-	m_write(HNULL)
+G::NewProcessWindowsImp::Pipe::Pipe()
 {
 	create( m_read , m_write ) ;
 	uninherited( m_read ) ;
@@ -573,31 +573,21 @@ std::size_t G::NewProcessWindowsImp::Pipe::read( HANDLE hread , char * buffer , 
 // ==
 
 G::NewProcessWaitable::NewProcessWaitable() :
-	m_hprocess(HNULL),
-	m_hpipe(HNULL) ,
-	m_pid(0),
-	m_rc(0),
-	m_status(0),
-	m_error(0) ,
 	m_test_mode(G::Test::enabled("waitpid-slow"))
 {
 }
 
 G::NewProcessWaitable::NewProcessWaitable( HANDLE hprocess , HANDLE hpipe , int ) :
-	m_buffer(1024U*4U) ,
+	m_buffer(4096U) ,
 	m_hprocess(hprocess),
 	m_hpipe(hpipe),
-	m_pid(0),
-	m_rc(0),
-	m_status(0),
-	m_error(0) ,
 	m_test_mode(G::Test::enabled("waitpid-slow"))
 {
 }
 
 void G::NewProcessWaitable::assign( HANDLE hprocess , HANDLE hpipe , int )
 {
-	m_buffer.resize( 1024U * 4U ) ;
+	m_buffer.resize( 4096U ) ;
 	m_data_size = 0U ;
 	m_hprocess = hprocess ;
 	m_hpipe = hpipe ;
@@ -632,7 +622,7 @@ G::NewProcessWaitable & G::NewProcessWaitable::wait()
 	std::size_t space = m_buffer.size() ;
 	for(;;)
 	{
-		HANDLE handles[2] ;
+		std::array<HANDLE,2U> handles ;
 		DWORD nhandles = 0 ;
 		if( NewProcessImp::valid(m_hprocess) )
 			handles[nhandles++] = m_hprocess ;
@@ -642,7 +632,7 @@ G::NewProcessWaitable & G::NewProcessWaitable::wait()
 			break ;
 
 		// wait on both handles to avoid the pipe-writer from blocking if the pipe fills
-		DWORD rc = WaitForMultipleObjects( nhandles , handles , FALSE , INFINITE ) ;
+		DWORD rc = WaitForMultipleObjects( nhandles , handles.data() , FALSE , INFINITE ) ;
 		HANDLE h = rc == WAIT_OBJECT_0 ? handles[0] : (rc==(WAIT_OBJECT_0+1)?handles[1]:HNULL) ;
 		if( h == m_hprocess && m_hprocess )
 		{

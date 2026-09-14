@@ -78,12 +78,10 @@ bool GNet::ServerPeer::secureAcceptCapable() const
 	return m_sp.secureAcceptCapable() ;
 }
 
-#ifndef G_LIB_SMALL
 void GNet::ServerPeer::expect( std::size_t n )
 {
 	m_line_buffer.expect( n ) ;
 }
-#endif
 
 GNet::StreamSocket & GNet::ServerPeer::socket()
 {
@@ -147,14 +145,12 @@ bool GNet::ServerPeer::send( std::string_view data )
 	return m_sp.send( data ) ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::ServerPeer::send( const std::vector<std::string_view> & segments , std::size_t offset )
 {
 	if( m_config.kick_idle_timer_on_send && m_config.idle_timeout )
 		m_idle_timer.startTimer( m_config.idle_timeout ) ;
 	return m_sp.send( segments , offset ) ;
 }
-#endif
 
 void GNet::ServerPeer::writeEvent()
 {
@@ -203,18 +199,16 @@ std::string_view GNet::ServerPeer::eventLoggingString() const
 
 void GNet::ServerPeer::setIdleTimeout( unsigned int s )
 {
-	m_config.idle_timeout = s ;
+	m_config.idle_timeout = G::TimeInterval( s ) ;
 	m_idle_timer.cancelTimer() ;
 	if( m_config.idle_timeout )
 		m_idle_timer.startTimer( m_config.idle_timeout ) ;
 }
 
-#ifndef G_LIB_SMALL
 void GNet::ServerPeer::finish()
 {
 	m_sp.shutdown() ;
 }
-#endif
 
 void GNet::ServerPeer::onPeerDisconnect()
 {

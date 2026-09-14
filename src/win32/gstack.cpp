@@ -33,24 +33,22 @@ namespace GGui
 {
 	namespace StackImp
 	{
+		Stack * m_this = nullptr ;
 		LRESULT CALLBACK wndProc( HWND hwnd , UINT message , WPARAM wparam , LPARAM lparam ) ;
 		INT_PTR CALLBACK dlgProc( HWND hdialog , UINT message , WPARAM wparam , LPARAM lparam ) ;
 		int CALLBACK sheetCallback( HWND hwnd , UINT message , LPARAM lparam ) ;
 		UINT CALLBACK pageCallback( HWND hwnd , UINT message , G::nowide::PROPSHEETPAGE_type * page ) ;
-
-		GGui::Stack * m_this = nullptr ;
-
-		template <typename T> T convert( void * p )
+		inline LONG_PTR convert_this_to_longptr( Stack * p )
 		{
-			return reinterpret_cast<T>( p ) ;
+			return reinterpret_cast<LONG_PTR>( p ) ;
 		}
-		template <typename T> T convert( ULONG_PTR p )
+		inline LONG_PTR convert_wndproc_to_longptr( WNDPROC p )
 		{
-			return reinterpret_cast<T>( p ) ;
+			return reinterpret_cast<LONG_PTR>( p ) ;
 		}
-		template <typename T> T convert( LRESULT (WINAPI *fn)(HWND,UINT,WPARAM,LPARAM) )
+		inline Stack * convert_longptr_to_this( LONG_PTR lp )
 		{
-			return reinterpret_cast<T>( fn ) ;
+			return reinterpret_cast<Stack*>( lp ) ;
 		}
 	}
 }
@@ -106,26 +104,21 @@ UINT CALLBACK GGui::StackImp::pageCallback( HWND hwnd , UINT message , G::nowide
 
 GGui::Stack::Stack( StackPageCallback & callback , HINSTANCE hinstance , std::pair<DWORD,DWORD> style ,
 	bool set_style ) :
-		WindowBase(0) ,
+		WindowBase(HNULL) ,
 		m_magic(MAGIC) ,
 		m_hinstance(hinstance) ,
-		m_hsheet(0) ,
 		m_callback(callback) ,
 		m_style(style) ,
-		m_set_style(set_style) ,
-		m_fixed_size(false) ,
-		m_notify_hwnd(0) ,
-		m_notify_message(0U) ,
-		m_wndproc_orig(0)
+		m_set_style(set_style)
 {
 }
 
 void GGui::Stack::create( HWND hparent , const std::string & title , int icon_id ,
 	HWND notify_hwnd , unsigned int notify_message , bool fixed_size )
 {
-	G_ASSERT( handle() == 0 ) ;
+	G_ASSERT( handle() == HNULL ) ;
 	G_ASSERT( !m_hpages.empty() ) ;
-	G_ASSERT( (notify_hwnd==0) == (notify_message==0U) ) ;
+	G_ASSERT( (notify_hwnd==HNULL) == (notify_message==0U) ) ;
 
 	G::ScopeExitSet<Stack*,nullptr> set_m_this( StackImp::m_this = this ) ;
 
@@ -140,7 +133,7 @@ void GGui::Stack::create( HWND hparent , const std::string & title , int icon_id
 	header.hInstance = m_hinstance ;
 	header.nPages = static_cast<UINT>(m_hpages.size()) ;
 	header.nStartPage = 0 ;
-	header.phpage = m_hpages.size() ? &m_hpages[0] : nullptr ;
+	header.phpage = m_hpages.empty() ? nullptr : m_hpages.data() ;
 	header.pfnCallback = StackImp::sheetCallback ;
 
 	// create the PropertySheet() with a callback that hook()s in StackImp::wndProc()
@@ -164,14 +157,14 @@ void GGui::Stack::create( HWND hparent , const std::string & title , int icon_id
 void GGui::Stack::addPage( const std::string & title , int dialog_id )
 {
 	int index = static_cast<int>( m_pages.size() ) ;
-	m_pages.push_back( PageInfo(this,index) ) ;
+	m_pages.emplace_back( this , index ) ;
 	PageInfo * page_info = &m_pages.back() ;
 
 	G::nowide::PROPSHEETPAGE_type page {} ;
 	page.dwSize = sizeof(page) ;
 	page.dwFlags = PSP_USECALLBACK | PSP_USETITLE ;
 	page.hInstance = m_hinstance ;
-	page.pszIcon = 0 ;
+	page.pszIcon = nullptr ;
 	page.pfnDlgProc = StackImp::dlgProc ;
 	page.lParam = reinterpret_cast<LPARAM>(page_info) ;
 	page.pfnCallback = StackImp::pageCallback ;
@@ -201,7 +194,7 @@ GGui::Stack::~Stack()
 
 void GGui::Stack::hook( HWND hsheet )
 {
-	G_ASSERT( m_hsheet == 0 ) ;
+	G_ASSERT( m_hsheet == HNULL ) ;
 	m_hsheet = hsheet ;
 
 	// use GGui::WindowBase as a convenience to any derived classes
@@ -209,15 +202,15 @@ void GGui::Stack::hook( HWND hsheet )
 
 	if( m_set_style )
 	{
-		G::nowide::setWindowLong( hsheet , GWL_STYLE , m_style.first ) ;
-		G::nowide::setWindowLong( hsheet , GWL_EXSTYLE , m_style.second ) ;
+		G::nowide::setWindowLong( hsheet , GWL_STYLE , static_cast<LONG>(m_style.first) ) ;
+		G::nowide::setWindowLong( hsheet , GWL_EXSTYLE , static_cast<LONG>(m_style.second) ) ;
 	}
 
 	if( G::nowide::getWindowLongPtr( hsheet , GWLP_USERDATA ) == 0 )
 	{
-		G::nowide::setWindowLongPtr( hsheet , GWLP_USERDATA , StackImp::convert<ULONG_PTR>(this) ) ;
+		G::nowide::setWindowLongPtr( hsheet , GWLP_USERDATA , StackImp::convert_this_to_longptr(this) ) ;
 		m_wndproc_orig = G::nowide::getWindowLongPtr( hsheet , GWLP_WNDPROC ) ;
-		G::nowide::setWindowLongPtr( hsheet , GWLP_WNDPROC , StackImp::convert<ULONG_PTR>(StackImp::wndProc) ) ;
+		G::nowide::setWindowLongPtr( hsheet , GWLP_WNDPROC , StackImp::convert_wndproc_to_longptr(StackImp::wndProc) ) ;
 	}
 }
 
@@ -232,8 +225,8 @@ void GGui::Stack::unhook()
 
 GGui::Stack * GGui::Stack::getObjectPointer( HWND hwnd )
 {
-	ULONG_PTR lp = G::nowide::getWindowLongPtr( hwnd , GWLP_USERDATA ) ;
-	Stack * This = StackImp::convert<Stack*>( lp ) ;
+	LONG_PTR lp = G::nowide::getWindowLongPtr( hwnd , GWLP_USERDATA ) ;
+	Stack * This = StackImp::convert_longptr_to_this( lp ) ;
 	G_ASSERT( This == nullptr || This->m_magic == MAGIC ) ;
 	return This ;
 }
@@ -270,16 +263,16 @@ LRESULT GGui::Stack::wndProc( HWND hsheet , UINT message , WPARAM wparam , LPARA
 	Stack * This = getObjectPointer( hsheet ) ;
 	if( message == WM_WINDOWPOSCHANGING && This && This->m_fixed_size && lparam )
 	{
-		// fiddling with the window-style doesn't always give the right
-		// degree of control, so disable resizing once 'fixed'
+		// optionally disable window resizing -- but note that
+		// this is not compatible with DPI awareness
 		WINDOWPOS * pos_p = reinterpret_cast<WINDOWPOS*>(lparam) ;
 		pos_p->flags |= SWP_NOSIZE ;
 	}
-	else if( message == WM_SYSCOMMAND && This && (wparam & 0xFFF0u) < 0xF000u )
+	else if( message == WM_SYSCOMMAND && This && (wparam & 0xFFF0U) < 0xF000U )
 	{
 		// emit a notification message if a derived class has added to the system menu
-		G_DEBUG( "GGui::Stack::wndProc: wm_syscommand " << (wparam & 0xFFF0u) ) ;
-		This->postNotifyMessage( 3U , wparam & 0xFFF0u ) ;
+		G_DEBUG( "GGui::Stack::wndProc: wm_syscommand " << (wparam & 0xFFF0U) ) ;
+		This->postNotifyMessage( 3U , static_cast<LPARAM>( wparam & 0xFFF0U ) ) ;
 	}
 
 	if( This && This->m_wndproc_orig )
@@ -308,6 +301,7 @@ int GGui::Stack::sheetCallback( HWND hsheet , UINT message , LPARAM /*lparam*/ )
 
 unsigned int GGui::Stack::pageCallback( HWND hpage , UINT message , G::nowide::PROPSHEETPAGE_type * /*page_p*/ )
 {
+	GDEF_IGNORE_PARAM( hpage ) ;
 	G_DEBUG( "GGui::Stack::pageCallback: hpage=" << hpage << " message=message" ) ;
 	if( message == PSPCB_CREATE )
 		return 1U ; // allow creation
@@ -330,7 +324,7 @@ bool GGui::Stack::dlgProc( HWND hpage , UINT message , WPARAM /*wparam*/ , LPARA
 			Stack * This = page_info->first ;
 			G_ASSERT( This->m_magic == MAGIC ) ;
 			This->m_seen_wm_initdialog = true ;
-			G::nowide::setWindowLongPtr( hpage , GWLP_USERDATA , StackImp::convert<ULONG_PTR>(This) ) ;
+			G::nowide::setWindowLongPtr( hpage , GWLP_USERDATA , StackImp::convert_this_to_longptr(This) ) ;
 			This->m_callback.onInit( hpage , page_info->second ) ;
 		}
 		return true ;

@@ -32,6 +32,7 @@ namespace GNet
 {
 	namespace GetAddrInfo
 	{
+		// NOLINTBEGIN(*-no-malloc, *-redundant-expression)
 		inline int getaddrinfo( const char * host_in , const char * service_in , addrinfo * hint_in , addrinfo ** results_out )
 		{
 			using ADDRINFO_type = G::nowide::ADDRINFO_type ;
@@ -115,6 +116,7 @@ namespace GNet
 		static_assert( EAI_NONAME == WSAHOST_NOT_FOUND , "" ) ;
 		static_assert( EAI_SERVICE == WSATYPE_NOT_FOUND , "" ) ;
 		static_assert( EAI_SOCKTYPE == WSAESOCKTNOSUPPORT , "" ) ;
+		// NOLINTEND(*-no-malloc, *-redundant-expression)
 	}
 }
 #else

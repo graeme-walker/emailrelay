@@ -1,6 +1,9 @@
 #!/usr/bin/env perl
 #
-# Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# 
+# Copyright (c) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,185 +21,148 @@
 #
 # libresslbuild.pl
 #
-# Builds libressl on Windows using nmake. See also libresslbuild.mak.
+# Builds libressl on Windows using cmake, with "/MT" used for
+# a statically-linked run-time library.
 #
-# usage: libresslbuild.pl [--arch <arch>] [--config <config>] [<src-dir> [<build-dir>]]
-#          --arch      x64 or x86
-#          --config    release or debug
-#          --makefile  libresslbuild.mak path
-#          <src-dir>   defaults to liberessl in dirname($0) or its parent or grandparent
-#          <build-dir> defaults to libressl-<arch>
+# usage: libresslbuild.pl [<options>] [<src-dir> [<build-dir>]]
+#         --arch={x64|x86}            build architecture
+#         --config={debug|release}    build type
+#         --cmake=<path>              cmake
+#         --makefile=<path>           nmake makefile if no cmake
+#         <src-dir>                   source directory
+#         <build-dir>                 build directory
 #
-# Eg:
-#    libresslbuild.pl --config=release libressl-9.9 libressl-x64
+# The command-line directories default as follows:
+#     src-dir    - dirname($0)/libressl
+#     build-dir  - <cwd>/libressl-<arch>
 #
-# Run from a 'vcvars' "developer command prompt".
-#
-# Libraries end up in in <build-dir>/library/<config> and headers under
-# <build-dir>/include.
-#
-# Synopsis:
-#    require "libresslbuild.pl" ;
-#    my $src_dir = LibresslBuild::find() ;
-#    LibresslBuild::copy_headers( $src_dir , $build_dir ) ;
-#    my $b = new LibresslBuild( $src_dir , $build_dir , $makefile , $arch , $config ) ;
-#    $b->copy_headers_() ;
-#    $b->build() or die ;
+# Libraries and headers end up in:
+#     libs    - <build-dir>/library/<config>
+#     headers - <build-dir>/include/openssl
 #
 
 use strict ;
-use FileHandle ;
 use Getopt::Long ;
 use File::Basename ;
 use File::Copy ;
 use Cwd ;
+use Getopt::Long ;
+use lib ( File::Basename::dirname($0) ) ;
+use cmake ;
 
-package LibresslBuild ;
+my $prefix = File::Basename::basename($0) ;
 
-sub new
+my %opt = () ;
+if( !GetOptions( \%opt , "help|h" , "makefile=s" , "config=s" , "arch=s" , "cmake:s" , "quiet|q" ) ||
+	$opt{help} )
 {
-	my ( $classname , $src_dir , $build_dir , $makefile , $arch , $config , $cflags_extra , $prefix , $quiet ) = @_ ;
-
-	$arch ||= "x64" ;
-	$config ||= "release" ;
-	$prefix ||= "libresslbuild" ;
-	$cflags_extra ||= "" ;
-
-	my $this = bless {
-		m_prefix => $prefix ,
-		m_quiet => $quiet ,
-		m_arch => $arch ,
-		m_config => $config ,
-		m_src_dir => $src_dir ,
-		m_build_dir => $build_dir ,
-		m_makefile => $makefile ,
-		m_cflags_extra => $cflags_extra ,
-	} , $classname ;
-	_init( $this ) ;
-	return $this ;
+	print "usage: $prefix [--config={debug|release}] [--arch={x64|x86}] [<source-dir> [<build-dir>]]\n" ;
+	exit( $opt{help} ? 0 : 1 ) ;
 }
 
-sub _init
+my $arch = $opt{arch} || $ENV{Platform} || "" ;
+my $os_arch = $arch || lc($^O) ;
+my $config = $opt{config} || "release" ;
+my $src_dir = $ARGV[0] || "libressl" ;
+my $build_dir = $ARGV[1] || "libressl-${os_arch}" ;
+my $quiet = $opt{quiet} ;
+my $makefile = $opt{makefile} || (dirname($0)."/libresslbuild.mak") ;
+( my $cmake = $opt{cmake} || cmake::pick() ) =~ s/"//g ;
+
+_warn( "unknown architecture [$arch]" ) if( $arch && $arch ne "x64" && $arch ne "x86" ) ;
+_die( "invalid build type [$config]" ) if( $config ne "debug" && $config ne "release" ) ;
+
+_log( "source-dir=$src_dir" ) ;
+_log( "build-dir=$build_dir" ) ;
+_log( "makefile=$makefile" ) ;
+_log( "cmake=$cmake" ) ;
+
+-f "$src_dir/ssl/ssl_init.c" or _die( "invalid libressl source directory [$src_dir]" ) ;
+
+my $build_dir_parent = File::Basename::dirname( $build_dir ) ;
+_mkdir( $build_dir_parent ) if( ! -d $build_dir_parent ) ;
+_mkdir( $build_dir ) ;
+
+# "cmake -B -S"
 {
-	my ( $this ) = @_ ;
-	-f "$$this{m_src_dir}/ssl/ssl_init.c" or die "$$this{m_prefix}: error: invalid libressl source directory [$$this{m_src_dir}]\n" ;
-	map { -d $_ || mkdir $_ or die "mkdir($_)" } (
-		File::Basename::dirname($this->{m_build_dir}) ,
-		"$$this{m_build_dir}" ,
-		#"$$this{m_build_dir}/library" ,
-		#"$$this{m_build_dir}/library/$$this{m_config}" ,
-		#"$$this{m_build_dir}/include" ,
+	my @cmake_options = () ;
+
+	my $a = $arch eq "x86" ? "Win32" : $arch ;
+	push @cmake_options , ("-A",$a) if $a ;
+	push @cmake_options , "-DCMAKE_MAKE_PROGRAM=/usr/bin/make" if( $^O eq "linux" ) ; # not gmake
+	push @cmake_options , "-DCMAKE_BUILD_TYPE=$config" ;
+	push @cmake_options , "-DLIBRESSL_APPS=Off" ;
+	push @cmake_options , "-DUSE_STATIC_MSVC_RUNTIMES=On" ;
+
+	_log( "$cmake ".join(" ",@cmake_options)." -B $build_dir -S $src_dir" ) ;
+	system( $cmake , @cmake_options ,
+		"-B" , $build_dir ,
+		"-S" , $src_dir ) == 0
+			or _die( "cmake failed" ) ;
+}
+
+# "cmake --build"
+{
+	_log( "$cmake --build $build_dir --config $config" ) ;
+	system( $cmake , "--build" , $build_dir , "--config" , $config ) == 0
+		or _die( "cmake build failed" ) ;
+}
+
+_copy_libraries( $build_dir ) ;
+
+_log( "done [$build_dir]" ) ;
+exit( 0 ) ;
+
+sub _mkdir
+{
+	my ( $dir ) = @_ ;
+	mkdir( $dir ) ;
+	-d $dir or die "$prefix: error: cannot create directory [$dir]: $!\n" ;
+}
+
+sub _copy_libraries
+{
+	my ( $build_dir ) = @_ ;
+	my @libs = (
+		"$build_dir/crypto/"._libname("crypto") ,
+		"$build_dir/ssl/"._libname("ssl") ,
 	) ;
+	_mkdir( "$build_dir/library" ) ;
+	_mkdir( "$build_dir/library/$config" ) ;
+	for my $lib ( @libs )
+	{
+		File::Copy::copy( $lib , "$build_dir/library/$config/" )
+			or _die( "library copy failed [$lib]: $!" ) ;
+	}
 }
 
-sub find
+sub _libname
 {
 	my ( $name ) = @_ ;
-	$name ||= "libressl" ;
-	my $base = File::Basename::dirname( $0 ) ;
-	for my $path ( "$base/$name" , "$base/../$name" , "$base/../../$name" )
+	if( $^O =~ m/win/i )
 	{
-		return $path if -d $path ;
+		return "$config/${name}.lib" ;
 	}
-	return $name ;
-}
-
-sub copy_headers_
-{
-	my ( $this ) = @_ ;
-	copy_headers( $this->{m_src_dir} , $this->{m_build_dir} , !$this->{m_quiet} ) ;
-}
-
-sub copy_headers
-{
-	my ( $src_dir , $build_dir , $verbose , @subdirs ) = @_ ;
-	push @subdirs , ( "openssl" ) if( scalar(@subdirs) == 0 ) ;
-	map { _copy_headers_imp( "$src_dir/include" , "$build_dir/include" , $_ , $verbose ) } @subdirs ;
-}
-
-sub _copy_headers_imp
-{
-	my ( $src_inc_dir , $dst_inc_dir , $subdir , $verbose ) = @_ ;
-
-	mkdir( $dst_inc_dir ) || die $dst_inc_dir if ! -d $dst_inc_dir ;
-	mkdir( "$dst_inc_dir/$subdir" ) || die $subdir if ! -d "$dst_inc_dir/$subdir" ;
-
-	print "copy " , Cwd::realpath("$src_inc_dir/$subdir") , "/*.h " ,
-		"$dst_inc_dir/$subdir\n" if $verbose ;
-
-	for my $header ( glob("$src_inc_dir/$subdir/*.h") )
+	else
 	{
-		if( -f $header )
-		{
-			File::Copy::copy( $header , "$dst_inc_dir/$subdir/" ) or die ;
-		}
+		return "lib${name}.a" ;
 	}
 }
 
-sub build
+sub _die
 {
-	my ( $this ) = @_ ;
-	die if $^O eq "linux" ;
-	my @commands = ( "nmake /f $$this{m_makefile} " .
-		"ARCH=$$this{m_arch} " .
-		"CONFIG=$$this{m_config} " .
-		"SRC_DIR=$$this{m_src_dir} " .
-		"BUILD_DIR=$$this{m_build_dir} " .
-		"CFLAGS_EXTRA=$$this{m_cflags_extra}" ) ;
-	my $ok = 1 ;
-	for my $cmd ( @commands )
-	{
-		print "$cmd\n" unless $this->{m_quiet} ;
-		my $rc = system( $cmd ) ;
-		$ok = 0 if $rc != 0 ;
-	}
-	return $ok ;
+	my ( $s ) = @_ ;
+	die "$prefix: error: $s\n" ;
 }
 
-1 ;
-
-# ==
-
-package main ;
-use Getopt::Long ;
-
-if( basename($0) eq "libresslbuild.pl" )
+sub _warn
 {
-	my $prefix = File::Basename::basename($0) ;
-
-	my %opt = () ;
-	if( !GetOptions( \%opt , "help|h" , "makefile=s" , "config=s" , "arch=s" , "quiet|q" , "cflags-extra=s" , "as-windows" ) ||
-		$opt{help} )
-	{
-		print "usage: $prefix: [--config={debug|release}] [--arch={x64|x86}] [<source-dir> [<build-dir>]]\n" ;
-		exit( $opt{help} ? 0 : 1 ) ;
-	}
-
-	my $arch = $opt{arch} || $ENV{Platform} || "x64" ;
-	my $config = $opt{config} || "release" ;
-	my $src_dir = $ARGV[0] || LibresslBuild::find("libressl") ;
-	my $build_dir = $ARGV[1] || "libressl-${arch}" ;
-	my $quiet = $opt{quiet} ;
-	my $makefile = $opt{makefile} || (dirname($0)."/libresslbuild.mak") ;
-	my $cflags_extra = $opt{'cflags-extra'} ;
-
-	#die "$prefix: error: only runs on windows\n" if( $^O eq "linux" ) ;
-	die "$prefix: error: no vcvars environment\n" if( !$arch ) ;
-	die if( $arch ne "x64" && $arch ne "x86" ) ;
-	die if( $config ne "debug" && $config ne "release" ) ;
-
-	print "$prefix: source: $src_dir\n" unless $quiet ;
-	print "$prefix: build: $build_dir\n" unless $quiet ;
-	print "$prefix: makefile: $makefile\n" unless $quiet ;
-
-	my $b = new LibresslBuild( $src_dir , $build_dir , $makefile , $arch , $config , $cflags_extra , $prefix , $quiet ) ;
-	$b->copy_headers_() ;
-	my $ok = $b->build() ;
-	print "$prefix: error: failed\n" if( !$ok && !$quiet ) ;
-	exit( $ok ? 0 : 1 ) ;
+	my ( $s ) = @_ ;
+	warn "$prefix: warning: $s\n" ;
 }
-else
+
+sub _log
 {
-	1 ;
+	print "$prefix: " , @_ , "\n" unless $quiet ;
 }
 

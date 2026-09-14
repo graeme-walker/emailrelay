@@ -265,8 +265,8 @@ public:
 private:
 	std::vector<char> m_buffer ;
 	std::size_t m_data_size {0U} ;
-	HANDLE m_hprocess {0} ;
-	HANDLE m_hpipe {0} ;
+	HANDLE m_hprocess {HNULL} ;
+	HANDLE m_hpipe {HNULL} ;
 	pid_t m_pid {0} ;
 	int m_fd {-1} ;
 	int m_rc {0} ;

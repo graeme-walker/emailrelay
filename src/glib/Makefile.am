@@ -19,11 +19,7 @@ noinst_LIBRARIES = libglib.a
 
 EXTRA_LIBRARIES = libglibextra.a
 
-if GCONFIG_WINDOWS
 AM_CPPFLAGS =
-else
-AM_CPPFLAGS = -DG_LIB_SMALL
-endif
 
 UNIX_SOURCES = \
 	gcleanup_unix.cpp \
@@ -153,6 +149,7 @@ COMMON_SOURCES = \
 	gstringmap.h \
 	gstringwrap.cpp \
 	gstringwrap.h \
+	gstringvalue.h \
 	gstringview.h \
 	gstringview.cpp \
 	gtest.h \

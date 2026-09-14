@@ -68,6 +68,6 @@ void G::Pam::refreshCredentials()
 
 std::string G::Pam::name() const
 {
-	return std::string() ;
+	return {} ;
 }
 
