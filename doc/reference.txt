@@ -43,7 +43,6 @@ The `emailrelay` program supports the following command-line usage:
 
     Displays version information and then exits.
 
-
 ### SMTP client options ###
 
 *   --client-smtp-config <config> (-c)
@@ -69,51 +68,54 @@ The `emailrelay` program supports the following command-line usage:
 *   --poll <period> (-O)
 
     Causes forwarding of spooled mail messages to happen at regular intervals
-    (with the time given in seconds).
+    (with the time given in seconds by default). Use twice to define a
+    different first interval.
 
-*   --poll-run
+*   --poll-run <program>
 
     Runs the specified external program every time the `--poll` timer expires,
     before any forwarding of spooled mail messages. The two command-line
     arguments passed to the external program are the spool directory and the
     delivery directory. The program's standard error stream is logged and its
-    standard output is discarded. If the program does not finish by the time the
-    next poll occurs then forwarding will happen immediately with no attempt to
-    run the program again. Built-in scripts called `unfail:` and `retry:` are
-    available to remove `.bad` filename suffixes from envelope files either
-    unconditionally or up to some retry limit.
+    standard output is discarded. If the program does not finish by the time
+    the next poll occurs then forwarding will happen immediately with no
+    attempt to run the program again. Built-in scripts called `unfail:` and
+    `retry:` are available to remove `.bad` filename suffixes from envelope
+    files either unconditionally or up to some retry limit.
 
 *   --client-filter <program> (-Y)
 
     Runs the specified external filter program whenever a mail message is
     forwarded. The filter is passed the name of the message file in the spool
     directory so that it can edit it as required. A network filter can be
-    specified as `net:<tcp-address>` and prefixes of `spam:`, `spam-edit:` and
-    `exit:` are also allowed. The `spam:` and `spam-edit:` prefixes require a
-    SpamAssassin daemon to be running. For store-and-forward applications the
-    `--filter` option is normally more useful than `--client-filter`.
+    specified as `net:<tcp-address>` and prefixes of `spam:`, `spam-edit:`
+    and `exit:` are also allowed. The `spam:` and `spam-edit:` prefixes
+    require a SpamAssassin daemon to be running. For store-and-forward
+    applications the `--filter` option is normally more useful than
+    `--client-filter`.
 
 *   --client-interface <ip-address> (-6)
 
     Specifies the IP network address to be used to bind the local end of outgoing
-    SMTP connections. By default the address will depend on the routing tables
-    in the normal way. Use `0.0.0.0` to use only IPv4 addresses returned from
-    DNS lookups of the `--forward-to` address, or `::` for IPv6.
+    SMTP connections. By default the address will depend on the routing
+    tables in the normal way. Use `0.0.0.0` to use only IPv4 addresses
+    returned from DNS lookups of the `--forward-to` address, or `::` for
+    IPv6.
 
 *   --connection-timeout <time> (-U)
 
-    Specifies a timeout (in seconds) for establishing a TCP connection to remote
-    SMTP servers. The default is 40 seconds.
+    Specifies a timeout for establishing a TCP connection to remote SMTP servers.
+    The default is 40s.
 
 *   --idle-timeout <time>
 
-    Specifies a timeout (in seconds) for receiving network traffic from remote
-    SMTP and POP clients. The default is 60 seconds.
+    Specifies a timeout for receiving network traffic from remote SMTP and POP
+    clients. The default is 60s.
 
 *   --response-timeout <time> (-T)
 
-    Specifies a timeout (in seconds) for getting responses from remote SMTP
-    servers. The default is 60 seconds.
+    Specifies a timeout for getting responses from remote SMTP servers. The
+    default is 60s.
 
 *   --forward-to-all
 
@@ -133,7 +135,6 @@ The `emailrelay` program supports the following command-line usage:
     store-and-forward, but in practice clients tend to to time out while
     waiting for their mail message to be accepted.
 
-
 ### SMTP server options ###
 
 *   --port <port> (-p)
@@ -144,8 +145,8 @@ The `emailrelay` program supports the following command-line usage:
 
     Allows incoming connections from addresses that are not local. The default
     behaviour is to reject connections that are not local in order to prevent
-    accidental exposure to the public internet, although a firewall should also
-    be used. Local address ranges are defined in RFC-1918, RFC-6890 etc.
+    accidental exposure to the public internet, although a firewall should
+    also be used. Local address ranges are defined in RFC-1918, RFC-6890 etc.
 
 *   --address-verifier <program>
 
@@ -187,60 +188,59 @@ The `emailrelay` program supports the following command-line usage:
 *   --filter <program> (-z)
 
     Runs the specified external filter program whenever a mail message is stored.
-    The filter is passed the name of the message file in the spool directory so
-    that it can edit it as required. The mail message is rejected if the filter
-    program terminates with an exit code between 1 and 99. Use
+    The filter is passed the name of the message file in the spool directory
+    so that it can edit it as required. The mail message is rejected if the
+    filter program terminates with an exit code between 1 and 99. Use
     `net:<tcp-address>` to communicate with a filter daemon over the network,
-    or `spam:<tcp-address>` for a spamassassin spamd daemon to accept or reject
-    mail messages, or `spam-edit:<tcp-address>` to have spamassassin edit the
-    message content without rejecting it, or `exit:<number>` to emulate a
-    filter program that just exits.
+    or `spam:<tcp-address>` for a spamassassin spamd daemon to accept or
+    reject mail messages, or `spam-edit:<tcp-address>` to have spamassassin
+    edit the message content without rejecting it, or `exit:<number>` to
+    emulate a filter program that just exits.
 
 *   --filter-timeout <time> (-W)
 
-    Specifies a timeout (in seconds) for running a `--filter` program. The
-    default is 60 seconds.
+    Specifies a timeout for running a `--filter` program. The default is 60s.
 
 *   --interface <ip-address-list> (-I)
 
     Specifies the IP network addresses or interface names used to bind listening
-    ports. By default listening ports for incoming SMTP, POP and administration
-    connections will bind the 'any' address for IPv4 and for IPv6, ie.
-    `0.0.0.0` and `::`. Multiple addresses can be specified by using the option
-    more than once or by using a comma-separated list. Use a prefix of `smtp=`,
-    `pop=` or `admin=` on addresses that should apply only to those types of
-    listening port. Any link-local IPv6 addresses must include a zone name or
-    scope id.  Interface names can be used instead of addresses, in which case
-    all the addresses associated with that interface at startup will used for
-    listening. When an interface name is decorated with a `-ipv4` or `-ipv6`
-    suffix only their IPv4 or IPv6 addresses will be used (e.g. `ppp0-ipv4`).
-    To inherit listening file descriptors from the parent process on unix use a
-    syntax like this: `--interface=smtp=fd#3`.
+    ports. By default listening ports for incoming SMTP, POP and
+    administration connections will bind the 'any' address for IPv4 and for
+    IPv6, ie. `0.0.0.0` and `::`. Multiple addresses can be specified by
+    using the option more than once or by using a comma-separated list. Use a
+    prefix of `smtp=`, `pop=` or `admin=` on addresses that should apply only
+    to those types of listening port. Any link-local IPv6 addresses must
+    include a zone name or scope id.  Interface names can be used instead of
+    addresses, in which case all the addresses associated with that interface
+    at startup will used for listening. When an interface name is decorated
+    with a `-ipv4` or `-ipv6` suffix only their IPv4 or IPv6 addresses will
+    be used (eg. `ppp0-ipv4`).	To inherit listening file descriptors from
+    the parent process on unix use a syntax like this:
+    `--interface=smtp=fd#3`.
 
 *   --prompt-timeout <time> (-w)
 
-    Specifies a timeout (in seconds) for getting the initial prompt from a remote
-    SMTP server. If no prompt is received after this time then the SMTP dialog
-    goes ahead without it.
+    Specifies a timeout for getting the initial prompt from a remote SMTP server.
+    If no prompt is received after this time then the SMTP dialog goes ahead
+    without it.
 
 *   --server-smtp-config <config> (-Z)
 
     Configures the SMTP server protocol using a comma-separated list of optional
-    features, including 'pipelining', 'chunking', 'smtputf8', 'smtputf8strict',
-    'nostrictparsing' and 'noalabels'.
+    features, including 'pipelining', 'chunking', 'smtputf8',
+    'smtputf8strict', 'nostrictparsing' and 'noalabels'.
 
 *   --size <bytes> (-M)
 
     Limits the size of mail messages that can be submitted over SMTP.
-
 
 ### POP server options ###
 
 *   --pop (-B)
 
     Enables the POP server, listening by default on port 110, providing access to
-    spooled mail messages. Negotiated TLS using the POP `STLS` command will be
-    enabled if the `--server-tls` option is also given.
+    spooled mail messages. Negotiated TLS using the POP `STLS` command will
+    be enabled if the `--server-tls` option is also given.
 
 *   --pop-by-name (-J)
 
@@ -248,9 +248,9 @@ The `emailrelay` program supports the following command-line usage:
     same name as the user-id used for POP authentication. This allows POP
     clients to see only their own messages after they have been moved into
     separate sub-directories, typically by the built-in `deliver:` or `copy:`
-    filters. Content files can remain in the main spool directory to save disk
-    space; they will be deleted by the POP server when it deletes the last
-    matching envelope file.
+    filters. Content files can remain in the main spool directory to save
+    disk space; they will be deleted by the POP server when it deletes the
+    last matching envelope file.
 
 *   --pop-no-delete (-G)
 
@@ -260,7 +260,6 @@ The `emailrelay` program supports the following command-line usage:
 *   --pop-port <port> (-E)
 
     Sets the POP server's listening port number.
-
 
 ### Admin server options ###
 
@@ -275,7 +274,6 @@ The `emailrelay` program supports the following command-line usage:
 
     Enables the `terminate` command in the administration interface.
 
-
 ### Authentication options ###
 
 *   --client-auth <file> (-C)
@@ -283,26 +281,26 @@ The `emailrelay` program supports the following command-line usage:
     Enables SMTP client authentication with the remote server, using the account
     details taken from the specified secrets file. The secrets file should
     normally contain one line having between four and five space-separated
-    fields. The first field must be `client`, the second field is the password
-    type (`plain` or `md5`), the third is the xtext-encoded user-id and the
-    fourth is the xtext-encoded password. Alternatively, the user-id and
-    password fields can be Base64 encoded if the second field is `plain:b`. It
-    is also possible to do without a secrets file and give the Base64 encoded
-    user-id and password directly on the command-line or in the configuration
-    file formatted as `plain:<base64-user-id>:<base64-password>`. Note that
-    putting these account details on the command-line is not recommended
-    because it will make the password easily visible to all users on the local
-    machine.
+    fields. The first field must be `client`, the second field is the
+    password type (`plain` or `md5`), the third is the xtext-encoded user-id
+    and the fourth is the xtext-encoded password. Alternatively, the user-id
+    and password fields can be Base64 encoded if the second field is
+    `plain:b`. It is also possible to do without a secrets file and give the
+    Base64 encoded user-id and password directly on the command-line or in
+    the configuration file formatted as
+    `plain:<base64-user-id>:<base64-password>`. Note that putting these
+    account details on the command-line is not recommended because it will
+    make the password easily visible to all users on the local machine.
 
 *   --client-auth-config <config>
 
     Configures the SMTP client authentication module using a semicolon-separated
-    list of configuration items. Each item is a single-character key, followed
-    by a colon and then a comma-separated list. A 'm' character introduces an
-    ordered list of preferred authentication mechanisms and an 'x' introduces a
-    list of mechanisms to avoid. An 'a' list and a 'd' list can be used
-    similarly to prefer and avoid certain mechanisms once the session is
-    encrypted with TLS.
+    list of configuration items. Each item is a single-character key,
+    followed by a colon and then a comma-separated list. A 'm' character
+    introduces an ordered list of preferred authentication mechanisms and an
+    'x' introduces a list of mechanisms to avoid. An 'a' list and a 'd' list
+    can be used similarly to prefer and avoid certain mechanisms once the
+    session is encrypted with TLS.
 
 *   --server-auth <file> (-S)
 
@@ -311,30 +309,30 @@ The `emailrelay` program supports the following command-line usage:
     should contain lines that have four space-separated fields, starting with
     `server` in the first field; the second field is the password encoding
     (`plain` or `md5`), the third is the client user-id and the fourth is the
-    password. The user-id is RFC-1891 xtext encoded, and the password is either
-    xtext encoded or generated by `emailrelay-passwd`. Alternatively, the
-    username and password can be Base64 encoded if the second field is
+    password. The user-id is RFC-1891 xtext encoded, and the password is
+    either xtext encoded or generated by `emailrelay-passwd`. Alternatively,
+    the username and password can be Base64 encoded if the second field is
     `plain:b`. A special value of `pam:` can be used for authentication using
     linux PAM.
 
 *   --server-auth-config <config>
 
     Configures the SMTP server authentication module using a semicolon-separated
-    list of configuration items. Each item is a single-character key, followed
-    by a colon and then a comma-separated list. A 'm' character introduces an
-    ordered list of allowed authentication mechanisms and an 'x' introduces a
-    list of mechanisms to deny. An 'a' list and a 'd' list can be used
-    similarly to allow and deny mechanisms once the session is encrypted with
-    TLS. In typical usage you might have an empty allow list for an unencrypted
-    session and a single preferred mechanism once encrypted, `m:;a:plain`.
+    list of configuration items. Each item is a single-character key,
+    followed by a colon and then a comma-separated list. A 'm' character
+    introduces an ordered list of allowed authentication mechanisms and an
+    'x' introduces a list of mechanisms to deny. An 'a' list and a 'd' list
+    can be used similarly to allow and deny mechanisms once the session is
+    encrypted with TLS. In typical usage you might have an empty allow list
+    for an unencrypted session and a single preferred mechanism once
+    encrypted, `m:;a:plain`.
 
 *   --pop-auth <file> (-F)
 
     Specifies a file containing valid POP account details. The file format is the
-    same as for the SMTP server secrets file, ie. lines starting with `server`,
-    with user-id and password in the third and fourth fields. A special value
-    of `pam:` can be used for authentication using linux PAM.
-
+    same as for the SMTP server secrets file, ie. lines starting with
+    `server`, with user-id and password in the third and fourth fields. A
+    special value of `pam:` can be used for authentication using linux PAM.
 
 ### TLS options ###
 
@@ -347,9 +345,9 @@ The `emailrelay` program supports the following command-line usage:
 
     Defines the TLS certificate file when acting as a SMTP client. This file must
     contain the client's private key and certificate chain using the PEM file
-    format. Alternatively, use this option twice with the first one specifying
-    the key file and the second the certificate file. Keep the file permissions
-    tight to avoid accidental exposure of the private key.
+    format. Alternatively, use this option twice with the first one
+    specifying the key file and the second the certificate file. Keep the
+    file permissions tight to avoid accidental exposure of the private key.
 
 *   --client-tls-connection (-b)
 
@@ -371,10 +369,10 @@ The `emailrelay` program supports the following command-line usage:
 *   --client-tls-verify <ca-list>
 
     Enables verification of the remote SMTP server's certificate against any of
-    the trusted CA certificates in the specified file or directory. In many use
-    cases this should be a file containing just your self-signed root
-    certificate. Specify `<default>` (including the angle brackets) for the TLS
-    library's default set of trusted CAs.
+    the trusted CA certificates in the specified file or directory. In many
+    use cases this should be a file containing just your self-signed root
+    certificate. Specify `<default>` (including the angle brackets) for the
+    TLS library's default set of trusted CAs.
 
 *   --client-tls-verify-name <cname>
 
@@ -391,10 +389,10 @@ The `emailrelay` program supports the following command-line usage:
 *   --server-tls-certificate <pem-file>
 
     Defines the TLS certificate file when acting as a SMTP or POP server. This
-    file must contain the server's private key and certificate chain using the
-    PEM file format. Alternatively, use this option twice with the first
-    specifying the key file and the second the certificate file. Keep the file
-    permissions tight to avoid accidental exposure of the private key.
+    file must contain the server's private key and certificate chain using
+    the PEM file format. Alternatively, use this option twice with the first
+    specifying the key file and the second the certificate file. Keep the
+    file permissions tight to avoid accidental exposure of the private key.
 
 *   --server-tls-connection
 
@@ -410,27 +408,26 @@ The `emailrelay` program supports the following command-line usage:
 *   --server-tls-verify <ca-list>
 
     Enables verification of remote SMTP and POP clients' certificates against any
-    of the trusted CA certificates in the specified file or directory. In many
-    use cases this should be a file containing just your self-signed root
-    certificate. Specify `<default>` (including the angle brackets) for the TLS
-    library's default set of trusted CAs.
+    of the trusted CA certificates in the specified file or directory. In
+    many use cases this should be a file containing just your self-signed
+    root certificate. Specify `<default>` (including the angle brackets) for
+    the TLS library's default set of trusted CAs.
 
 *   --tls-config <options> (-9)
 
     Selects and configures the low-level TLS library, using a comma-separated
-    list of keywords. If OpenSSL and mbedTLS are both built in then keywords of
-    `openssl` and `mbedtls` will select one or the other. Keywords like
-    `tlsv1.0` can be used to set a minimum TLS protocol version, or `-tlsv1.2`
-    to set a maximum version.
-
+    list of keywords. If OpenSSL and mbedTLS are both built in then keywords
+    of `openssl` and `mbedtls` will select one or the other. Keywords like
+    `tlsv1.0` can be used to set a minimum TLS protocol version, or
+    `-tlsv1.2` to set a maximum version.
 
 ### Process options ###
 
 *   --dont-serve (-x)
 
     Disables all network serving, including SMTP, POP and administration
-    interfaces. The program will terminate as soon as any initial forwarding is
-    complete.
+    interfaces. The program will terminate as soon as any initial forwarding
+    is complete.
 
 *   --localedir <dir>
 
@@ -446,8 +443,8 @@ The `emailrelay` program supports the following command-line usage:
 *   --hidden (-H)
 
     Hides the application window and disables all message boxes, overriding any
-    `--show` option. This is useful when running as a windows service. Windows
-    only.
+    `--show` option. This is useful when running as a windows service.
+    Windows only.
 
 *   --no-smtp (-X)
 
@@ -456,25 +453,24 @@ The `emailrelay` program supports the following command-line usage:
 *   --pid-file <path> (-i)
 
     Causes the process-id to be written into the specified file when the program
-    starts up, typically after it has become a background daemon. The immediate
-    parent directory is created if necessary.
+    starts up, typically after it has become a background daemon. The
+    immediate parent directory is created if necessary.
 
 *   --user <username> (-u)
 
     When started as root the program switches to a non-privileged effective
     user-id when idle or when running external filter scripts and address
-    verifiers. This option can be used to define the non-privileged user-id. It
-    also determines the group ownership of new files and sockets if the
+    verifiers. This option can be used to define the non-privileged user-id.
+    It also determines the group ownership of new files and sockets if the
     directory owner is not 'sticky'. Specify `root` to disable all user-id
     switching. Unix only.
 
 *   --show <style>
 
     Starts the application window in the given style: `hidden`, `popup`,
-    `window`, `window,tray`, or `tray`. Ignored if also using `--no-daemon` or
-    `--hidden`. If none of `--window`, `--no-daemon` and `--hidden` are used
-    then the default style is `tray`. Windows only.
-
+    `window`, `window,tray`, or `tray`. Ignored if also using `--no-daemon`
+    or `--hidden`. If none of `--window`, `--no-daemon` and `--hidden` are
+    used then the default style is `tray`. Windows only.
 
 ### Logging options ###
 
@@ -486,8 +482,8 @@ The `emailrelay` program supports the following command-line usage:
 *   --log (-l)
 
     Enables logging to the standard error stream and to the system log. The
-    `--close-stderr` and `--no-syslog` options can be used to disable output to
-    standard error stream and the system log separately. Note that
+    `--close-stderr` and `--no-syslog` options can be used to disable output
+    to standard error stream and the system log separately. Note that
     `--as-server`, `--as-client` and `--as-proxy` imply `--log`, and
     `--as-server` and `--as-proxy` also imply `--close-stderr`.
 
@@ -505,9 +501,9 @@ The `emailrelay` program supports the following command-line usage:
 *   --log-file <file> (-N)
 
     Redirects standard-error logging to the specified file. Logging to the log
-    file is not affected by `--close-stderr`. The filename can include `%d` to
-    get daily log files; the `%d` is replaced by the current date in the local
-    timezone using a `YYYYMMDD` format.
+    file is not affected by `--close-stderr`. The filename can include `%d`
+    to get daily log files; the `%d` is replaced by the current date in the
+    local timezone using a `YYYYMMDD` format.
 
 *   --log-format
 
@@ -534,8 +530,8 @@ The `emailrelay` program supports the following command-line usage:
 *   --close-stderr (-e)
 
     Causes the standard error stream to be closed soon after start-up. This is
-    useful when operating as a background daemon and it is therefore implied by
-    `--as-server` and `--as-proxy`.
+    useful when operating as a background daemon and it is therefore implied
+    by `--as-server` and `--as-proxy`.
 
 Configuration
 -------------

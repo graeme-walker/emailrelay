@@ -87,9 +87,25 @@
 # Name: poll
 # Format: poll <period>
 # Description: Causes forwarding of spooled mail messages to happen at
-# regular intervals (with the time given in seconds).
+# regular intervals (with the time given in seconds by default). Use twice to
+# define a different first interval.
 #
 #poll 60
+
+# Name: poll-run
+# Format: poll-run <program>
+# Description: Runs the specified external program every time the "--poll"
+# timer expires, before any forwarding of spooled mail messages. The two
+# command-line arguments passed to the external program are the spool
+# directory and the delivery directory. The program's standard error stream
+# is logged and its standard output is discarded. If the program does not
+# finish by the time the next poll occurs then forwarding will happen
+# immediately with no attempt to run the program again. Built-in scripts
+# called "unfail:" and "retry:" are available to remove ".bad" filename
+# suffixes from envelope files either unconditionally or up to some retry
+# limit.
+#
+#poll-run /usr/local/sbin/emailrelay-poll.sh
 
 # Name: client-filter
 # Format: client-filter <program>
@@ -115,22 +131,22 @@
 
 # Name: connection-timeout
 # Format: connection-timeout <time>
-# Description: Specifies a timeout (in seconds) for establishing a TCP
-# connection to remote SMTP servers. The default is 40 seconds.
+# Description: Specifies a timeout for establishing a TCP connection to
+# remote SMTP servers. The default is 40s.
 #
 #connection-timeout 10
 
 # Name: idle-timeout
 # Format: idle-timeout <time>
-# Description: Specifies a timeout (in seconds) for receiving network traffic
-# from remote SMTP and POP clients. The default is 60 seconds.
+# Description: Specifies a timeout for receiving network traffic from remote
+# SMTP and POP clients. The default is 60s.
 #
 #idle-timeout 2
 
 # Name: response-timeout
 # Format: response-timeout <time>
-# Description: Specifies a timeout (in seconds) for getting responses from
-# remote SMTP servers. The default is 60 seconds.
+# Description: Specifies a timeout for getting responses from remote SMTP
+# servers. The default is 60s.
 #
 #response-timeout 2
 
@@ -243,10 +259,10 @@
 
 # Name: filter-timeout
 # Format: filter-timeout <time>
-# Description: Specifies a timeout (in seconds) for running a "--filter"
-# program. The default is 60 seconds.
+# Description: Specifies a timeout for running a "--filter" program. The
+# default is 60s.
 #
-#filter-timeout 10
+#filter-timeout 30
 
 # Name: interface
 # Format: interface <ip-address-list>
@@ -268,11 +284,11 @@
 
 # Name: prompt-timeout
 # Format: prompt-timeout <time>
-# Description: Specifies a timeout (in seconds) for getting the initial
-# prompt from a remote SMTP server. If no prompt is received after this time
-# then the SMTP dialog goes ahead without it.
+# Description: Specifies a timeout for getting the initial prompt from a
+# remote SMTP server. If no prompt is received after this time then the SMTP
+# dialog goes ahead without it.
 #
-#prompt-timeout 3
+#prompt-timeout 30
 
 # Name: server-smtp-config
 # Format: server-smtp-config <config>
@@ -363,7 +379,7 @@
 # recommended because it will make the password easily visible to all users
 # on the local machine.
 #
-#client-auth /etc/emailrelay.auth
+#client-auth /etc/private/emailrelay.auth
 
 # Name: client-auth-config
 # Format: client-auth-config <config>
@@ -390,7 +406,7 @@
 # "plain:b". A special value of "pam:" can be used for authentication using
 # linux PAM.
 #
-#server-auth /etc/emailrelay.auth
+#server-auth /etc/private/emailrelay.auth
 
 # Name: server-auth-config
 # Format: server-auth-config <config>
@@ -414,7 +430,7 @@
 # fields. A special value of "pam:" can be used for authentication using
 # linux PAM.
 #
-#pop-auth /etc/emailrelay-pop.auth
+#pop-auth /etc/private/emailrelay-pop.auth
 
 # TLS options
 # -----------
@@ -434,7 +450,7 @@
 # one specifying the key file and the second the certificate file. Keep the
 # file permissions tight to avoid accidental exposure of the private key.
 #
-#client-tls-certificate /etc/private/emailrelay.pem
+#client-tls-certificate /etc/ssl/certs/emailrelay.pem
 
 # Name: client-tls-connection
 # Format: client-tls-connection
@@ -495,7 +511,7 @@
 # the first specifying the key file and the second the certificate file. Keep
 # the file permissions tight to avoid accidental exposure of the private key.
 #
-#server-tls-certificate /etc/private/emailrelay.pem
+#server-tls-certificate /etc/ssl/certs/emailrelay.pem
 
 # Name: server-tls-connection
 # Format: server-tls-connection
@@ -571,7 +587,7 @@
 # when the program starts up, typically after it has become a background
 # daemon. The immediate parent directory is created if necessary.
 #
-#pid-file /run/emailrelay.pid
+#pid-file /run/emailrelay/emailrelay.pid
 
 # Name: user
 # Format: user <username>

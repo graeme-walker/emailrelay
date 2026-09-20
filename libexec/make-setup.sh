@@ -2,7 +2,7 @@
 #
 # SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 # SPDX-License-Identifier: GPL-3.0-or-later
-# 
+#
 # make-setup.sh
 #
 # Builds a gui payload tree by running "make install" into it and adding
