@@ -2,28 +2,37 @@
 #
 # SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
 # SPDX-License-Identifier: GPL-3.0-or-later
-# 
+#
 # make-sphinx
 #
-# Runs sphinx-build etc.
+# Runs sphinx-build with some minor tweaks. A set of source documents
+# is assembled in a "run" directory, including images and example
+# scripts.
 #
 # usage: make-sphinx [options] <top-src-dir> <run-dir> [<version>]
-#     --website            : tweaks for website
-#     --examples-dir=<dir> : examples directory
-#     --icon-dir=<dir>
-#     --doc-dir=<dir>
-#     --png-dir=<dir>
-#     --svg-dir=<dir>
+#     --pre                : pre-sphinx steps only
+#     --post               : post-sphinx steps only
+#     --website            : extra changes for website
+#     --out-dir=<dir>      : out directory (<run-dir>/out)
+#     --examples-dir=<dir> : examples directory (<src>/bin)
+#     --icon-dir=<dir>     : icon directory (<src>/main/icon)
+#     --doc-dir=<dir>      : doc directory (<src>/doc)
+#     --png-dir=<dir>      : png directory (<src>/doc)
+#     --svg-dir=<dir>      : svg directory (<src>/doc)
+#     --readme=<file>      : readme file (<src>/README)
+#     --changelog=<file>   : changelog file (<src>/ChangeLog)
 #
 # Typically run by doc/Makefile as:
 #     make-sphinx $(top_srcdir) sphinx
 #
 # The source documents and other pre-requisites assembled into a
 # clean "<run-dir>" and then sphinx-build is run with an output
-# directory of "<run-dir>/out".
+# directory of "<out-dir>", which is "<run-dir>/out" by default.
+# The <run-dir> can be the "doc" directory but it will then make
+# destructive changes.
 #
 # The following files are assembled into the <run-dir>:
-#   * conf.py
+#   * <doc-dir>/conf.py
 #   * <doc-dir>/*.md
 #   * <doc-dir>/*.txt
 #   * <png-dir>/*.png
@@ -37,43 +46,60 @@
 #   * <foo:bar> changed to <foo\:bar>
 #   * option anchors added to reference.txt as {#opt_foo}=
 #   * option strings `--foo` modified to [`--foo`](#opt_foo)
+#   * plaintext copyright footer removed
 #
 # And further tweaked if "--website":
 #   * "examples.rst" created
 #   * "download.rst" created
 #   * 'examples' and 'download' added to contents
-#   * 'developer' removed from contents
+#   * 'developer', 'readme' and 'changelog' removed from contents
 #   * green download button added to userguide
 #
-# After running sphinx-build the generated HTML is
-# further edited as follows:
-#   * h1 title in userguide.html set to the project name
+# After running sphinx-build the <out-dir> directory is further
+# modified as follows:
+#   * h1 in userguide.html is set to the project name (--website)
+#   * index.html file is created from the userguide (--website)
+#   * raw example scripts are added
+#   * SVG files are added
+#
+# If sphinx-build is run by some other means then this script
+# can do the pre and post processing something like this:
+#   $ libexec/make-sphinx --pre . doc     # modifies doc/*
+#   $ sphinx-build doc html
+#   $ libexec/make-sphinx --post --out-dir=html .
+#   $ git clean -f doc && git restore doc
 #
 
 use v5.10 ;
 use strict ;
 use File::Copy ;
 use File::Basename ;
+use Cwd ;
 use IO::File ;
 use Getopt::Long ;
 use Carp ;
 
 my %opt = () ;
-GetOptions( \%opt , "website" , "host=s" , "test=s" ,
-	"examples-dir=s" , "icon-dir=s" , "doc-dir=s" , "png-dir=s" , "svg-dir=s" , "changelog=s" ) or die ;
+GetOptions( \%opt , "verbose|v" , "website" , "host=s" , "pre" , "post" ,
+	"out-dir=s" , "examples-dir=s" , "icon-dir=s" , "doc-dir=s" , "png-dir=s" , "svg-dir=s" ,
+	"changelog=s" ) or die ;
 
-my $arg_src_dir = $ARGV[0] or die "usage error" ;
-my $arg_run_dir = $ARGV[1] or die "usage error" ;
+my $arg_src_dir = $ARGV[0] ;
+my $arg_run_dir = $ARGV[1] ;
 my $version = $ARGV[2] ;
+die "usage error" if !$arg_src_dir ;
+die "usage error" if ( !$arg_run_dir && !($opt{'out-dir'} && $opt{post}) ) ;
+$arg_run_dir ||= "" ;
 chomp( $version = `cat $arg_src_dir/VERSION` ) if !$version ;
-die "no version" if !$version ;
+die "make-sphinx: error: no version" if !$version ;
 
 my $cfg = {
 	website => $opt{website} ,
 	host => ( $opt{host} || "sourceforge" ) ,
 	version => $version ,
 	run_dir => $arg_run_dir ,
-	examples_dir => ( $opt{'examples-dir'} || "$arg_src_dir/examples" ) ,
+	out_dir => ( $opt{'out-dir'} || "$arg_run_dir/out" ) ,
+	examples_dir => ( $opt{'examples-dir'} || "$arg_src_dir/bin" ) ,
 	src_changelog => ( $opt{'changelog'} || "$arg_src_dir/ChangeLog" ) ,
 	src_readme => ( $opt{'readme'} || "$arg_src_dir/README" ) ,
 	src_icon_dir => ( $opt{'icon-dir'} || "$arg_src_dir/src/main/icon" ) ,
@@ -126,14 +152,23 @@ for my $k ( keys %{$cfg->{hosts}} )
 my @examples = glob( "$$cfg{examples_dir}/emailrelay-*.{js,pl,py}" ) ;
 scalar(@examples) or die "make-sphinx: error: no example scripts in [$$cfg{examples_dir}]\n" ;
 
-for( my $i = 0 ; $i < 5 ; $i++ )
+if( $opt{pre} )
 {
-	populate( $cfg ) if( $i == 0 ) ;
-	prepare( $cfg , \@examples ) if( $i == 1 ) ;
-	build( $cfg ) if( $i == 2 ) ;
-	fixup( $cfg ) if( $i == 3 ) ;
-	augment( $cfg , \@examples ) if( $i == 4 ) ;
-	last if( ($i+1) == $opt{test} ) ;
+	populate( $cfg ) ;
+	prepare( $cfg , \@examples ) ;
+}
+elsif( $opt{post} )
+{
+	fixup( $cfg ) ;
+	augment( $cfg , \@examples ) ;
+}
+else
+{
+	populate( $cfg ) ;
+	prepare( $cfg , \@examples ) ;
+	build( $cfg ) ;
+	fixup( $cfg ) ;
+	augment( $cfg , \@examples ) ;
 }
 
 exit( 0 ) ;
@@ -144,19 +179,19 @@ sub populate
 	my ( $cfg ) = @_ ;
 
 	# start with a clean <base-dir> directory
-	warn "make-sphinx: warning: output directory already exists\n" if -d $cfg->{run_dir} ;
+	warn "make-sphinx: warning: run directory already exists [$$cfg{run_dir}]\n" if -d $cfg->{run_dir} ;
 	-d $cfg->{run_dir} or mkdir $cfg->{run_dir} ;
 
-	# populate <base-dir> with all pre-requisites
-	File::Copy::copy( "conf.py" , $cfg->{run_dir} ) or die ;
-	File::Copy::copy( "$$cfg{src_icon_dir}/emailrelay-icon-tiny.png" , $cfg->{run_dir} ) ; # if exists
-	File::Copy::copy( "$$cfg{src_icon_dir}/emailrelay-icon-small.png" , $cfg->{run_dir} ) or die ;
-	File::Copy::copy( "$$cfg{src_icon_dir}/emailrelay-icon.png" , $cfg->{run_dir} ) or die ;
+	# populate <run-dir> with all pre-requisites
+	_copy( $cfg->{run_dir} , "$$cfg{src_doc_dir}/conf.py" ) or die ;
+	_copy( $cfg->{run_dir} , "$$cfg{src_icon_dir}/emailrelay-icon-tiny.png" ) ; # if exists
+	_copy( $cfg->{run_dir} , "$$cfg{src_icon_dir}/emailrelay-icon-small.png" ) or die ;
+	_copy( $cfg->{run_dir} , "$$cfg{src_icon_dir}/emailrelay-icon.png" ) or die ;
 	_copy_files( $cfg->{run_dir} , glob("$$cfg{src_doc_dir}/*.md") ) ;
 	_copy_files( $cfg->{run_dir} , glob("$$cfg{src_doc_dir}/*.txt") ) ;
 	_copy_files( $cfg->{run_dir} , glob("$$cfg{src_png_dir}/*.png") ) ;
-	File::Copy::copy( $cfg->{src_changelog} , "$$cfg{run_dir}/changelog.txt" ) or die ;
-	File::Copy::copy( $cfg->{src_readme} , "$$cfg{run_dir}/readme.txt" ) or die ;
+	_copy( $cfg->{run_dir} , $cfg->{src_changelog} , "changelog.txt" ) or die ;
+	_copy( $cfg->{run_dir} , $cfg->{src_readme} , "readme.txt" ) or die ;
 }
 
 sub prepare
@@ -171,8 +206,9 @@ sub prepare
 	{
 		$options->{prefix} = ( ( $f =~ m/reference.txt/ ) ? "" : "reference.txt" ) ;
 		_edit( sub{_edit_option_links($options,@_)} , $f , $cfg ) unless ( $f =~ m/changelog.txt/ ) ;
-		_edit( sub{state $x;_edit_shorten_heading(\$x,@_)} , $f , $cfg ) or warn "no heading change to [$f]\n" ;
+		_edit( sub{state $x;_edit_shorten_heading(\$x,@_)} , $f , $cfg ) or warn "make-sphinx: warning: no heading change to [$f]\n" ;
 		_edit( sub{_edit_fix_spaceship(@_)} , $f , $cfg ) ;
+		_edit( sub{state $x;_edit_remove_copyright(\$x,@_)} , $f , $cfg ) ;
 	}
 	for my $doc ( "userguide.txt" , "reference.txt" )
 	{
@@ -193,8 +229,8 @@ sub prepare
 sub build
 {
 	my ( $cfg ) = @_ ;
-	print "running \"sphinx-build -b html $$cfg{run_dir} $$cfg{run_dir}/out\"\n" ;
-	system( "sphinx-build -b html \"$$cfg{run_dir}\" \"$$cfg{run_dir}/out\"" ) == 0 or die ;
+	print "running \"sphinx-build -b html $$cfg{run_dir} $$cfg{out_dir}\"\n" ;
+	system( "sphinx-build -b html \"$$cfg{run_dir}\" \"$$cfg{out_dir}\"" ) == 0 or die ;
 }
 
 sub fixup
@@ -202,8 +238,8 @@ sub fixup
 	my ( $cfg ) = @_ ;
 	if( $cfg->{website} )
 	{
-		_edit( sub{_edit_h1(@_)} , "$$cfg{run_dir}/out/userguide.html" , $cfg ) or die ;
-		File::Copy::copy( "$$cfg{run_dir}/out/userguide.html" , "$$cfg{run_dir}/out/index.html" ) or die ;
+		_edit( sub{_edit_h1(@_)} , "$$cfg{out_dir}/userguide.html" , $cfg ) ; # or die ;
+		_copy( $cfg->{out_dir} , "$$cfg{out_dir}/userguide.html" , "index.html" ) or die ;
 	}
 }
 
@@ -211,32 +247,42 @@ sub augment
 {
 	my ( $cfg , $examples ) = @_ ;
 	# add in files that are onclick targets
-	_copy_files( "$$cfg{run_dir}/out" , glob("$$cfg{src_svg_dir}/*.svg") ) ;
-	_copy_scripts( "$$cfg{run_dir}/out" , @$examples ) ;
+	_copy_files( $cfg->{out_dir} , glob("$$cfg{src_svg_dir}/*.svg") ) ;
+	_copy_scripts( $cfg->{out_dir} , @$examples ) ;
 }
 
 # ===
+
+sub _copy
+{
+	my ( $dst_dir , $src_path , $new_name ) = @_ ;
+	die if !$dst_dir ;
+	my $dst = "$dst_dir/".($new_name?$new_name:File::Basename::basename($src_path)) ;
+	my $same = ( Cwd::realpath($src_path) eq Cwd::realpath($dst) ) ;
+	print "make-sphinx: info: [$src_path] -> [$dst]".($same?" (no-op)":"")."\n" if $opt{verbose} ;
+	return 1 if $same ;
+	return 1 if File::Copy::copy( $src_path , $dst ) ;
+	warn "make-sphinx: warning: cannot copy [$src_path] to [$dst]: $!\n" ;
+	return undef ;
+}
 
 sub _copy_files
 {
 	my ( $dst , @files ) = @_ ;
 	Carp::confess "no matching files" if scalar(@files) == 0 ;
-	map { File::Copy::copy( $_ , "$dst" ) or die } @files ;
+	map { _copy( $dst , $_ ) or die } @files ;
 }
 
 sub _copy_scripts
 {
 	my ( $dst , @files ) = @_ ;
-	for my $f ( @files )
-	{
-		File::Copy::copy( $f , "$dst/" ) or die ;
-	}
+	map { _copy( $dst , $_ ) or die } @files ;
 }
 
 sub _edit
 {
 	my ( $fn , $file , $cfg ) = @_ ;
-	my $fh_in = new IO::File( $file , "r" ) or die "cannot open [$file]: $!" ;
+	my $fh_in = new IO::File( $file , "r" ) or die "make-sphinx: error: cannot open [$file]: $!" ;
 	my $fh_out = new IO::File( "$file.tmp" , "w" ) or die ;
 	my $line_number = 1 ;
 	my $changed = 0 ;
@@ -258,6 +304,7 @@ sub _edit
 	$fh_in->close() ;
 	$fh_out->close() or die ;
 	rename( "$file.tmp" , $file ) or die ;
+	print "make-sphinx: info: edited [$file]\n" if $opt{verbose} ;
 	return $changed ;
 }
 
@@ -273,9 +320,9 @@ sub _edit_imp
 sub _edit_shorten_heading
 {
 	my ( $state , $line , $n , $cfg , $next_line ) = @_ ;
-	if( ( $line =~ m/^E-MailRelay / ) && $n == 1 )
+	if( $n == 1 )
 	{
-		$line =~ s/E-MailRelay // ;
+		if( $line =~ m/^E-MailRelay / ) { $line =~ s/E-MailRelay // }
 		$$state = length($line) ;
 	}
 	elsif( $n == 2 )
@@ -290,6 +337,14 @@ sub _edit_fix_spaceship
 {
 	my ( $line , $n , $cfg , $next_line ) = @_ ;
 	$line =~ s/<([a-z]+):([a-z]+)>/<$1\\:$2>/g ;
+	return $line ;
+}
+
+sub _edit_remove_copyright
+{
+	my ( $state , $line , $n , $cfg , $next_line ) = @_ ;
+	$$state = 1 if( $line =~ m/^______+$/ ) ;
+	return undef if $$state == 1 ;
 	return $line ;
 }
 
@@ -411,10 +466,7 @@ sub _edit_add_button
 sub _edit_h1
 {
 	my ( $line , $n , $cfg , $next_line ) = @_ ;
-	if( $line =~ m/^<h1>User .*h1>$/ )
-	{
-		$line =~ s/<h1>User Guide/<h1>E-MailRelay/ ;
-	}
+	$line =~ s/^<h1>[^<]+/<h1>E-MailRelay/ ;
 	return $line ;
 }
 
@@ -422,7 +474,7 @@ sub _make_scripts_rst
 {
 	my ( $dst , $files_ref , $strip_banners ) = @_ ;
 	my @files = @$files_ref ;
-	scalar(@files) or die "error: no example scripts" ;
+	scalar(@files) or die "make-sphinx: error: no example scripts" ;
 	my %syntax = (
 		js => "javascript" ,
 		pl => "perl" ,
@@ -441,7 +493,7 @@ sub _make_script_rst
 	die if !$x ;
 	my $name = File::Basename::basename( $path_in , ".$x" ) ;
 	my $path_out = "$dst/${name}_$x.rst" ;
-	my $fh_out = new IO::File( $path_out , "w" ) or die "cannot create [$path_out]: $!" ;
+	my $fh_out = new IO::File( $path_out , "w" ) or die "make-sphinx: cannot create [$path_out]: $!" ;
 	my $fh_in = new IO::File( $path_in , "r" ) or die ;
 	my $heading = "`${name}.${x} <${name}.${x}>`_" ;
 	print $fh_out ":orphan:\n\n" ;
