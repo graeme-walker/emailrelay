@@ -1,0 +1,33 @@
+#
+# github-winbuildall.yaml
+#
+# A manually-triggered workflow to do a full windows build,
+# including the statically-linked Qt GUI.
+#
+
+name: winbuildall
+on:
+  workflow_dispatch:
+
+jobs:
+  winbuildall-x64:
+    runs-on: windows-latest
+    if: github.event_name == 'workflow_dispatch'
+    env:
+      Platform: x64
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: download-libs
+        run: libexec/winbuildall.bat download
+      - name: vcvars
+        uses: microsoft/vcvars-action@v1
+        with:
+          architecture: x64
+      - name: winbuild-x64-release
+        run: libexec/winbuildall.bat
+      - name: archive-windows-x64-release
+        uses: actions/upload-artifact@v4
+        with:
+          name: emailrelay-windows-x64-release
+

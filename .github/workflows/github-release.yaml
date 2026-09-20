@@ -18,8 +18,9 @@ on:
     branches:
       - 'release/v*'
   workflow_dispatch:
+
 jobs:
-  build:
+  release-tarball:
     runs-on: ubuntu-latest
     permissions:
       contents: write

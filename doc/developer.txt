@@ -285,7 +285,7 @@ For active development use `winbuild.bat` to set up an environment that uses
 The `winbuild.bat` script expects to find mbedtls source code in a child or
 sibling directory and Qt libraries under `c:\qt`, but refer to `winbuild.pm` for
 the details. The build proceeds using `cmake` and `cmake --build`, resulting in
-statically-linked executables but with the GUI typically dynamically-linked.
+statically-linked executables but with the GUI dynamically-linked.
 
 The mbedtls code is built if necessary by running `cmake` and `cmake --build` in
 a `mbedtls-x64` build sub-directory. The mbedtls headers are copied into the
@@ -297,21 +297,20 @@ A release assembly can be created by running `winbuild-install.bat` or
 `winbuild-assemble.pl`. This makes use of the Qt `windeployqt` utility to
 assemble DLLs and it also generates the Qt `.qm` translation files.
 
-For public release builds the E-MailRelay GUI must be statically linked. Start
-with a normal build with a dynamically-linked GUI and use `winbuild.pl install`
-to create the release assembly. Then use the `qtbuild.pl` perl script to build
-static Qt libraries from source in a location that `winbuild.pl` will find
-(or use `winbuildall.bat`). Rebuild so that the GUI is now statically linked and
-manually copy the statically-linked `emailrelay-gui.exe` binary into the release
-assembly, replacing `emailrelay-setup.exe` and `emailrelay-gui.exe`. Remove the
-now-redundant DLLs (in the both the root and payload directories) before
-zipping.
+For public release builds the E-MailRelay GUI must be statically linked. The
+`winbuildall.bat` batch file should be used to do a full build of Qt, MbedTLS,
+LibreSSL and E-MailRelay (with static linking throughout, using `/MT`) and then
+create a release assembly ready for zipping up. The script will also build perl
+from source if perl is not otherwise available. The perl, Qt, MbedTLS, LibreSSL
+source code can be downloaded by running `libressl\winbuildall.bat download`
+from the E-MailRelay base directory, followed by `libressl\winbuildall.bat`
+once a MSVC development environment has been established.
 
-The `configure.sh` script can be used to cross-compile from Linux targeting
-Windows or embedded platforms, with static linking of the MbedTLS library.
-For example, to target ancient versions of Windows run
-`./configure.sh -m -w32` and then use `winbuild-assembly.pl --winxp`
-to make a simplified distribution zip file.
+The `configure.sh` script can be used to cross-compile for old versions of
+Windows from a Linux host. For example, `./configure.sh -m w32` will target
+Windows XP and also download MbedTLS source. The `winbuild-assembly.pl`
+script takes a `--winxp` option to create a simplified distribution assembly
+following a Windows XP build.
 
 Windows packaging
 -----------------
