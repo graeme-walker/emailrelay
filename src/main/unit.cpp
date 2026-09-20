@@ -375,7 +375,7 @@ void Main::Unit::start()
 	// kick off the polling cycle
 	//
 	if( m_configuration.doPolling() )
-		m_poll_timer->startTimer( m_configuration.pollingTimeout() ) ;
+		m_poll_timer->startTimer( m_configuration.pollingTimeoutFirst() ) ;
 }
 
 void Main::Unit::report()

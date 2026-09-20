@@ -140,9 +140,9 @@ bool Main::Run::runnable()
 
 	for( std::size_t i = 0U ; i < configurations() ; i++ )
 	{
-		if( !configuration(i).semanticError().empty() )
+		if( !configuration(i).error().empty() )
 		{
-			commandline().showSemanticError( configuration(i).semanticError() ) ;
+			commandline().showError( configuration(i).error() ) ;
 			return false ;
 		}
 	}
@@ -151,9 +151,9 @@ bool Main::Run::runnable()
 	{
 		for( std::size_t i = 0U ; i < configurations() ; i++ )
 		{
-			if( !configuration(i).semanticWarnings().empty() )
+			if( !configuration(i).warnings().empty() )
 			{
-				commandline().showSemanticWarnings( configuration(i).semanticWarnings() ) ;
+				commandline().showWarnings( configuration(i).warnings() ) ;
 			}
 		}
 	}
@@ -209,9 +209,9 @@ void Main::Run::run()
 	{
 		for( std::size_t i = 0U ; i < configurations() ; i++ )
 		{
-			if( !configuration(i).semanticWarnings().empty() )
+			if( !configuration(i).warnings().empty() )
 			{
-				commandline().logSemanticWarnings( configuration(i).semanticWarnings() ) ;
+				commandline().logWarnings( configuration(i).warnings() ) ;
 			}
 		}
 	}

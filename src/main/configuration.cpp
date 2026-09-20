@@ -203,39 +203,52 @@ bool Main::Configuration::anonymous( std::string_view type ) const
 	return false ;
 }
 
-std::string Main::Configuration::semanticError() const
+std::string Main::Configuration::error() const
 {
-	const char * error1 = semanticError1() ;
-	return error1 ? std::string(error1) : semanticError2() ;
+	const char * error0 = valueError() ;
+	if( error0 ) return {error0} ;
+	const char * error1 = semanticError() ;
+	if( error1 ) return {error1} ;
+	return specificationError() ;
 }
 
-const char * Main::Configuration::semanticError1() const
+const char * Main::Configuration::valueError() const
 {
 	using G::tx ;
 
+	std::array<const char*,5U> timeout_keys = {
+		"filter-timeout" ,
+		"prompt-timeout" ,
+		"response-timeout" ,
+		"idle-timeout" ,
+		"connection-timeout" } ;
+	for( auto key : timeout_keys )
 	{
-		std::array<const char*,5U> timeout_keys = {
-			"filter-timeout" ,
-			"prompt-timeout" ,
-			"response-timeout" ,
-			"idle-timeout" ,
-			"connection-timeout" } ;
-		for( auto key : timeout_keys )
-		{
-			if( contains(key) && !validTimeout(key) )
-				return tx("invalid timeout value") ;
-		}
-		if( contains("poll") && !validTimeout("poll") )
-			return tx("invalid poll interval") ;
+		if( contains(key) && !validTimeout(key) )
+			return tx("invalid timeout value") ;
 	}
 
+	auto poll_pair = m_map.intervals( "poll" ) ;
+	if( !poll_pair.first )
+		return tx("invalid --poll value") ;
+	if( poll_pair.second.size() > 2U )
+		return tx("too many --poll values") ;
+
 	if( contains("syslog") && !validSyslogFacility() )
-	{
 		return tx("invalid --syslog facility: use 'mail', 'user', 'daemon', or 'local0' to 'local7'") ;
-	}
 
 	if( !validNumbers("port") )
 		return tx("invalid --port value") ;
+
+	if( contains("domain") && stringValue("domain").empty() )
+		return tx("the --domain value must not be empty") ;
+
+	return nullptr ;
+}
+
+const char * Main::Configuration::semanticError() const
+{
+	using G::tx ;
 
 	const bool contains_pop = contains( "pop" ) ;
 	if( contains_pop && !GPop::enabled() )
@@ -433,15 +446,10 @@ const char * Main::Configuration::semanticError1() const
 		return tx("the --client-interface option cannot be used with a unix-domain forwarding address") ;
 	}
 
-	if( contains("domain") && stringValue("domain").empty() )
-	{
-		return tx("the --domain value must not be empty") ;
-	}
-
 	return nullptr ;
 }
 
-std::string Main::Configuration::semanticError2() const
+std::string Main::Configuration::specificationError() const
 {
 	using G::txt ;
 	using G::format ;
@@ -459,7 +467,7 @@ std::string Main::Configuration::semanticError2() const
 	return {} ;
 }
 
-G::StringArray Main::Configuration::semanticWarnings() const
+G::StringArray Main::Configuration::warnings() const
 {
 	using G::format ;
 	using G::txt ;
@@ -547,6 +555,22 @@ GSmtp::VerifierFactoryBase::Spec Main::Configuration::verifierValue( std::string
 {
 	std::string value = stringValue( option_name ) ;
 	return GVerifiers::VerifierFactory::parse( value , m_base_dir.str() , m_app_dir.str() , warnings_p ) ;
+}
+
+G::TimeInterval Main::Configuration::pollingTimeout() const
+{
+	auto poll_pair = m_map.intervals( "poll" ) ;
+	G_ASSERT( poll_pair.first && !poll_pair.second.empty() ) ;
+	auto & list = poll_pair.second ;
+	return list.at( list.size() - 1U ) ;
+}
+
+G::TimeInterval Main::Configuration::pollingTimeoutFirst() const
+{
+	auto poll_pair = m_map.intervals( "poll" ) ;
+	G_ASSERT( poll_pair.first && !poll_pair.second.empty() ) ;
+	auto & list = poll_pair.second ;
+	return list.at( 0U ) ;
 }
 
 Main::PollRunner::Spec Main::Configuration::pollRunnerValue( std::string_view option_name ,
@@ -851,8 +875,8 @@ GSmtp::Client::Config Main::Configuration::smtpClientConfig( const std::string &
 			.set_client_protocol_config(
 				GSmtp::ClientProtocol::Config()
 					.set_ehlo( client_domain )
-					.set_response_timeout( _responseTimeoutInterval() )
-					.set_ready_timeout( _promptTimeoutInterval() )
+					.set_response_timeout( _responseTimeout() )
+					.set_ready_timeout( _promptTimeout() )
 					.set_use_starttls_if_possible( clientTls() && !clientOverTls() )
 					.set_must_use_tls( contains("client-tls-required") && !clientOverTls() )
 					.set_authentication_fallthrough( false )
@@ -872,7 +896,7 @@ GSmtp::Client::Config Main::Configuration::smtpClientConfig( const std::string &
 					.set_socket_protocol_config(
 						GNet::SocketProtocol::Config()
 							.set_client_tls_profile( client_tls_profile )
-							.set_secure_connection_timeout( _secureConnectionTimeoutInterval() ) ) )
+							.set_secure_connection_timeout( _secureConnectionTimeout() ) ) )
 			.set_filter_config(
 				GSmtp::Filter::Config()
 					.set_domain( filter_domain )
@@ -986,11 +1010,9 @@ unsigned int Main::Configuration::_popPort() const noexcept { return numberValue
 std::string Main::Configuration::_popSaslServerConfig() const { return stringValue( "server-auth-config" ) ; }
 std::pair<int,int> Main::Configuration::_popServerSocketLinger() const noexcept { return std::make_pair( -1 , -1 ) ; }
 std::vector<unsigned> Main::Configuration::_ports() const { return numberList( "port" , 25U ) ; }
-unsigned int Main::Configuration::_promptTimeout() const noexcept { return numberValue( "prompt-timeout" , 20U ) ; }
-unsigned int Main::Configuration::_responseTimeout() const noexcept { return numberValue( "response-timeout" , 1800U ) ; }
-G::TimeInterval Main::Configuration::_promptTimeoutInterval() const noexcept { return timeoutValue( "prompt-timeout" , 20U ) ; }
-G::TimeInterval Main::Configuration::_responseTimeoutInterval() const noexcept { return timeoutValue( "response-timeout" , 1800U ) ; }
-G::TimeInterval Main::Configuration::_secureConnectionTimeoutInterval() const noexcept { return _connectionTimeout() ; }
+G::TimeInterval Main::Configuration::_promptTimeout() const noexcept { return timeoutValue( "prompt-timeout" , 20U ) ; }
+G::TimeInterval Main::Configuration::_responseTimeout() const noexcept { return timeoutValue( "response-timeout" , 1800U ) ; }
+G::TimeInterval Main::Configuration::_secureConnectionTimeout() const noexcept { return _connectionTimeout() ; }
 bool Main::Configuration::_serverTlsRequired() const noexcept { return contains( "server-tls-required" ) ; }
 std::string Main::Configuration::_show() const { return stringValue( "show" ) ; }
 int Main::Configuration::_shutdownHowOnQuit() const noexcept { return 1 ; }
@@ -1027,7 +1049,6 @@ bool Main::Configuration::log() const noexcept { return contains( "log" ) || con
 std::string Main::Configuration::logFile() const { return contains("log-file") ? pathValue("log-file").str() : std::string() ; }
 G::Path Main::Configuration::pidFile() const { return pathValue( "pid-file" ) ; }
 bool Main::Configuration::pollingLog() const noexcept { return doPolling() && pollingTimeout().s() > 60U ; }
-G::TimeInterval Main::Configuration::pollingTimeout() const noexcept { return timeoutValue( "poll" , 0U ) ; }
 G::Path Main::Configuration::popSecretsFile() const { return contains( "pop-auth" ) ? pathValue( "pop-auth" ) : G::Path() ; }
 G::Path Main::Configuration::serverSecretsFile() const { return contains( "server-auth" ) ? pathValue( "server-auth" ) : G::Path() ; }
 G::Path Main::Configuration::serverTlsCaList() const { return contains( "server-tls-verify" ) ? pathValue( "server-tls-verify" ) : G::Path() ; }

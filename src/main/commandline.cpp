@@ -421,14 +421,14 @@ void Main::CommandLine::showAdmin( bool e , const std::string & eot ) const
 	show.s() << "Admin server: " << (enabled?"enabled":"disabled") << eot ;
 }
 
-void Main::CommandLine::showSemanticError( const std::string & error ) const
+void Main::CommandLine::showError( const std::string & error ) const
 {
 	using G::txt ;
 	Show show( m_output , true , m_verbose ) ;
 	show.s() << m_arg_prefix << ": " << txt("usage error: ") << error << std::endl ;
 }
 
-void Main::CommandLine::showSemanticWarnings( const G::StringArray & warnings ) const
+void Main::CommandLine::showWarnings( const G::StringArray & warnings ) const
 {
 	using G::txt ;
 	if( !warnings.empty() )
@@ -441,10 +441,10 @@ void Main::CommandLine::showSemanticWarnings( const G::StringArray & warnings ) 
 	}
 }
 
-void Main::CommandLine::logSemanticWarnings( const G::StringArray & warnings ) const
+void Main::CommandLine::logWarnings( const G::StringArray & warnings ) const
 {
 	for( const auto & warning : warnings )
-		G_WARNING( "CommandLine::logSemanticWarnings: " << warning ) ;
+		G_WARNING( "CommandLine::logWarnings: " << warning ) ;
 }
 
 // ===

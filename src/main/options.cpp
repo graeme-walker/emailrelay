@@ -740,11 +740,13 @@ G::Options Main::Options::spec()
 	G::Options::add( opt , 'O' , "poll" ,
 		tx("enables polling of the spool directory for messages to be forwarded with the specified period! "
 			"(requires --forward-to)") , "" ,
-		M::one , "period" , 30 ,
+		M::many , "period" , 30 ,
 		t_smtpclient ) ;
 			//example: 60
+			//example: 500ms
 			// Causes forwarding of spooled mail messages to happen at regular intervals
-			// (with the time given in seconds).
+			// (with the time given in seconds by default). Use twice to define a
+			// different first interval.
 
 	G::Options::add( opt , '\0' , "poll-run" ,
 		tx("specifies an external program to run before --poll forwarding") , "" ,

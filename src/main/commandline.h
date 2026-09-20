@@ -90,14 +90,14 @@ public:
 	void showCopyright( bool error_stream = false , const std::string & = {} ) const ;
 		///< Writes a copyright message.
 
-	void showSemanticError( const std::string & semantic_error ) const ;
-		///< Displays the given semantic error. See Configuration::semanticError().
+	void showError( const std::string & semantic_error ) const ;
+		///< Displays the given error. See Configuration::error().
 
-	void showSemanticWarnings( const G::StringArray & semantic_warnings ) const ;
-		///< Displays the given semantic warnings. See Configuration::semanticWarnings().
+	void showWarnings( const G::StringArray & semantic_warnings ) const ;
+		///< Displays the given warnings. See Configuration::warnings().
 
-	void logSemanticWarnings( const G::StringArray & semantic_warnings ) const ;
-		///< Logs the given semantic warnings. See Configuration::semanticWarnings().
+	void logWarnings( const G::StringArray & semantic_warnings ) const ;
+		///< Logs the given warnings. See Configuration::warnings().
 
 public:
 	CommandLine( const CommandLine & ) = delete ;
