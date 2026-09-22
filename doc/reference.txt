@@ -1889,4 +1889,4 @@ and these default to `%ProgramFiles%/E-MailRelay` for programs and
 `%ProgramData%/E-MailRelay` for data.
 
 _____________________________________
-Copyright (C) 2001-2024 Graeme Walker
+Copyright (C) 2026 Graeme Walker

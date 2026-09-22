@@ -1,5 +1,8 @@
 #!/bin/sh
 #
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: FSFAP
+#
 # git-pre-commit
 #
 # A git pre-commit hook to check that CRLF files are checked

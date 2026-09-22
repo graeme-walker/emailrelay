@@ -159,4 +159,4 @@ start typing SMTP commands like `EHLO`, `MAIL FROM:<..>`, `RCPT TO:<...>`
 and `DATA`. Refer to RFC-821 Appendix F for some examples.
 
 _____________________________________
-Copyright (C) 2001-2024 Graeme Walker
+Copyright (C) 2026 Graeme Walker

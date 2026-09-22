@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 #
-# Copyright (C) 2020-2024 <richardwvm@users.sourceforge.net>
-# 
-# Copying and distribution of this file, with or without modification,
-# are permitted in any medium without royalty provided the copyright
-# notice and this notice are preserved.  This file is offered as-is,
-# without any warranty.
-# ===
+# SPDX-FileCopyrightText: Copyright (C) 2020-2024 <richardwvm@users.sourceforge.net>
+# SPDX-FileCopyrightText: Copyright (C) 2026 <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: FSFAP
 #
 # emailrelay-ldap-verify.py
 #
