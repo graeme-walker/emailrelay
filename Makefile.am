@@ -39,15 +39,18 @@ EXTRA_DIST = \
 	emailrelay.spec \
 	configure.sh \
 	ChangeLog \
-	LICENSE \
+	REUSE.toml \
 	VERSION \
 	bootstrap \
 	autogen.sh \
 	winbuild.bat \
 	winbuild.pl \
-	runperl.bat
+	runperl.bat \
+	LICENSES/FSFAP.txt \
+	LICENSES/GPL-2.0-or-later.txt \
+	LICENSES/GPL-3.0-or-later.txt
 
-SUBDIRS = libexec bin src etc doc debian test m4 bsd po unity
+SUBDIRS = libexec bin src etc doc debian test m4 bsd unity
 
 # work-round PKG_CHECK_MODULES if no pkg-config
 ACLOCAL_AMFLAGS = -I m4

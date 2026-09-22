@@ -126,7 +126,7 @@ GCONFIG_FN_SET_DIRECTORIES_E
 
 dnl generate files
 dnl
-AC_CONFIG_FILES([Makefile libexec/Makefile src/Makefile src/glib/Makefile src/gssl/Makefile src/gnet/Makefile src/gauth/Makefile src/gstore/Makefile src/gsmtp/Makefile src/gpop/Makefile src/gfilters/Makefile src/gverifiers/Makefile src/main/Makefile src/main/icon/Makefile src/win32/Makefile src/gui/Makefile bin/Makefile doc/Makefile etc/Makefile test/Makefile test/certificates/Makefile m4/Makefile bsd/Makefile debian/Makefile po/Makefile unity/Makefile])
+AC_CONFIG_FILES([Makefile libexec/Makefile src/Makefile src/glib/Makefile src/gssl/Makefile src/gnet/Makefile src/gauth/Makefile src/gstore/Makefile src/gsmtp/Makefile src/gpop/Makefile src/gfilters/Makefile src/gverifiers/Makefile src/main/Makefile src/main/icon/Makefile src/win32/Makefile src/gui/Makefile bin/Makefile doc/Makefile etc/Makefile test/Makefile test/certificates/Makefile m4/Makefile bsd/Makefile debian/Makefile unity/Makefile])
 AC_OUTPUT
 
 dnl final warnings

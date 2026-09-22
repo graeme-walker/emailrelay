@@ -1,0 +1,74 @@
+#
+# REUSE.toml
+#
+# https://reuse.software/
+#
+
+version = 1
+
+[[annotations]]
+path = [
+	"AUTHORS" ,
+	"autogen.sh" ,
+	"bootstrap" ,
+	"ChangeLog" ,
+	"debian/*" ,
+	"debian/source/format" ,
+	"doc/*" , # not conf.py
+	"emailrelay.spec" ,
+	"etc/apkbuild.post-install" ,
+	".gitattributes" ,
+	".github/workflows/github-release.yaml" ,
+	".gitignore" ,
+	"INSTALL" ,
+	"NEWS" ,
+	"README",
+	"README.md" ,
+	"src/.clang-format" ,
+	"src/.clang-tidy" ,
+	"src/gui/emailrelay-gui.exe.manifest" ,
+	"src/gui/emailrelay-gui.rc" ,
+	"src/gui/messages.mc" ,
+	"src/main/emailrelay.exe.manifest" ,
+	"src/main/emailrelay.rc" ,
+	"src/main/emailrelay-service.exe.manifest" ,
+	"src/main/icon/emailrelay-icon.ico" ,
+	"src/main/icon/emailrelay-icon.ico" ,
+	"src/main/icon/emailrelay-icon.png" ,
+	"src/main/icon/emailrelay-icon-small.png" ,
+	"src/main/icon/emailrelay-icon.svg" ,
+	"src/main/icon/emailrelay-icon-tiny.png" ,
+	"src/main/messages.mc" ,
+	"src/main/resource.h" ,
+	"test/certificates/*.crt" ,
+	"test/certificates/*.key" ,
+	"VERSION" ,
+	"winbuild.bat" ,
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Graeme Walker <graeme_walker@users.sourceforge.net>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = [
+	"doc/conf.py" ,
+	"etc/emailrelay.auth.in" ,
+	"etc/emailrelay.cfg.in" ,
+	"etc/emailrelay.conf.in" ,
+	"etc/emailrelay.service.in" ,
+	"etc/emailrelay-fail2ban-filter" ,
+	"etc/emailrelay-fail2ban-jail" ,
+	"etc/emailrelay.pam" ,
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Graeme Walker <graeme_walker@users.sourceforge.net>"
+SPDX-License-Identifier = "FSFAP"
+
+[[annotations]]
+path = [
+	"src/gui/emailrelay.no.qm" ,
+	"src/gui/emailrelay_tr.no_NO.ts" ,
+]
+SPDX-FileCopyrightText = "2026 Per-Arne Christensen <pac@kulturtanken.no>"
+SPDX-License-Identifier = "FSFAP"
+

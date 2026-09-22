@@ -32,6 +32,7 @@ std::vector<std::string> Gui::Legal::credits()
 	return {
 	#if GCONFIG_HAVE_OPENSSL
 		"<p>OpenSSL: "
+		"Copyright (c) 2016-2018 The OpenSSL Project.\n"
 		"This product includes software developed by the OpenSSL Project\n"
         "for use in the OpenSSL Toolkit (http://www.openssl.org/)</p>"
 		,
@@ -43,8 +44,8 @@ std::vector<std::string> Gui::Legal::credits()
 		,
 	#endif
 		"<p>Qt: "
-		"The Qt Toolkit is Copyright (C) 2018 The Qt Company Ltd.\n"
-		"and other contributors (https://www.qt.io/licensing/)</p>"
+		"The Qt Toolkit is Copyright (C) 2020 The Qt Company Ltd.\n"
+		"https://www.qt.io/licensing/</p>"
 	} ;
 }
 
