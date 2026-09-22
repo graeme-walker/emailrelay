@@ -66,3 +66,4 @@ Makefile.in
 /winbuild.ok
 /winbuild-*.bat
 CMakeLists.txt
+/README

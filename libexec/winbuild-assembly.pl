@@ -236,6 +236,8 @@ sub install_core
 {
 	my ( $src_dir , $build_exe_dir , $out_dir , $version , $is_payload ) = @_ ;
 
+	make_readme( $src_dir ) ; # make README from README.md
+
 	my %copy = qw(
 		__src__/README __base__/readme.txt
 		__src__/AUTHORS __base__/authors.txt
@@ -286,6 +288,22 @@ sub install_core
 			copy_files( $from , "$out_dir/$to" , {at_least=>1} ) ;
 		}
 	}
+}
+
+sub make_readme
+{
+	my ( $src_dir ) = @_ ;
+	my $fh_in = new IO::File( "$src_dir/README.md" , "r" ) or die ;
+	my $fh_out = new IO::File( "$src_dir/README" , "w" ) or die ;
+	my $state = 0 ;
+	while(<$fh_in>)
+	{
+		chomp( my $line = $_ ) ;
+		if( $line =~ m/^!/ ) { $state = 1 ; next }
+		if( $state == 1 ) { $state = 0 ; next }
+		if( $state == 0 ) { print $fh_out "$line\n" }
+	}
+	$fh_out->close() or die ;
 }
 
 sub copy_file

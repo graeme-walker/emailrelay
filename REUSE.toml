@@ -22,7 +22,6 @@ path = [
 	".gitignore" ,
 	"INSTALL" ,
 	"NEWS" ,
-	"README",
 	"README.md" ,
 	"src/.clang-format" ,
 	"src/.clang-tidy" ,

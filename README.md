@@ -11,7 +11,7 @@ fixed smarthost but DNS MX routing can also be configured. External scripts can
 be used for address validation and for processing e-mail messages as they
 are received.
 
-![whatisit.png](whatisit.png)
+![whatisit.png](doc/whatisit.png)
 
 E-MailRelay runs as a single process using the same non-blocking i/o model as
 Squid and nginx giving excellent scalability and resource usage.
@@ -26,7 +26,7 @@ To use E-MailRelay in store-and-forward mode use the `--as-server` option to
 start the storage daemon in the background, and then do delivery of spooled
 messages by running with `--as-client`.
 
-![serverclient.png](serverclient.png)
+![serverclient.png](doc/serverclient.png)
 
 For example, to start a storage daemon in the background listening on port 10025
 use a command like this:
@@ -45,9 +45,9 @@ like this:
         emailrelay --as-client smtp.example.com:25 --spool-dir /tmp
 
 To forward continuously you can add the `--poll` and `--forward-to` options to
-the server command-line:
+the server command-line.
 
-![forwardto.png](forwardto.png)
+![forwardto.png](doc/forwardto.png)
 
 For example, this starts a server that also forwards spooled-up e-mail every
 minute:
@@ -66,9 +66,10 @@ program with the `--filter` option, something like this:
 
 Look for example filter scripts in the `examples` directory.
 
-E-MailRelay can also be used as a personal internet mail server:
+E-MailRelay can also be used as a personal internet mail server by listening on
+port 25 and serving up received e-mails with POP.
 
-![mailserver.png](mailserver.png)
+![mailserver.png](doc/mailserver.png)
 
 Use `--remote-clients` (`-r`) to allow connections from outside the local
 network, define your domain name with `--domain` and use an address verifier as
@@ -76,7 +77,7 @@ a first line of defense against spammers:
 
         emailrelay --as-server -v -r --domain=example.com --address-verifier=account:
 
-Then enable POP access to the incoming e-mails with `--pop`, `--pop-port` and
+Enable POP access to the incoming e-mails with `--pop`, `--pop-port` and
 `--pop-auth`:
 
         emailrelay ... --pop --pop-port 10110 --pop-auth /etc/emailrelay.auth
@@ -91,31 +92,32 @@ or run:
 
         emailrelay --help --verbose
 
+Installation
+------------
+For a full installation of E-MailRelay on Windows run the `emailrelay-setup`
+program. On the last page choose the automatic startup option so that
+E-MailRelay runs as a Windows service and use the Windows `Services` utility to
+choose automatic or manual startup.
+
+To install E-MailRelay on Linux from source or from a RPM, DEB or APK package:
+
+		./bootstrap ; ./configure.sh ; make -j ; sudo make install
+        sudo rpm -i emailrelay*.rpm
+        sudo dpkg -i emailrelay*.deb
+        sudo apk add --allow-untrusted emailrelay*.apk
+
 Autostart
 ---------
-To install E-MailRelay on Windows run the `emailrelay-setup` program and choose
-the automatic startup option on the last page so that E-MailRelay runs as a
-Windows service. Use the Windows `Services` utility to configure the E-MailRelay
-service as automatic or manual startup.
-
-To install E-MailRelay on Linux from a RPM package:
-
-        sudo rpm -i emailrelay*.rpm
-
-Or from a DEB package:
-
-        sudo dpkg -i emailrelay*.deb
-
-To get the E-MailRelay server to start automatically you should check the
-configuration file `/etc/emailrelay.conf` is as you want it and then run the
+To get the E-MailRelay server to start automatically on Linux you should check
+the configuration file `/etc/emailrelay.conf` is as you want it and then run the
 following commands to activate the `systemd` service:
 
         systemctl enable emailrelay
         systemctl start emailrelay
         systemctl status emailrelay
 
-On other Linux systems try some combination of these commands to set up and
-activate the E-MailRelay service:
+On other Linux systems try some combination of these commands as root to set up
+and activate the E-MailRelay service:
 
         cp /usr/lib/emailrelay/init/emailrelay /etc/init.d/
         update-rc.d emailrelay enable

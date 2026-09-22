@@ -19,7 +19,7 @@
 #     --doc-dir=<dir>      : doc directory (<src>/doc)
 #     --png-dir=<dir>      : png directory (<src>/doc)
 #     --svg-dir=<dir>      : svg directory (<src>/doc)
-#     --readme=<file>      : readme file (<src>/README)
+#     --readme=<file>      : readme file (<src>/README.md)
 #     --changelog=<file>   : changelog file (<src>/ChangeLog)
 #
 # Typically run by doc/Makefile as:
@@ -47,6 +47,7 @@
 #   * option anchors added to reference.txt as {#opt_foo}=
 #   * option strings `--foo` modified to [`--foo`](#opt_foo)
 #   * plaintext copyright footer removed
+#   * readme file's image links are flattened
 #
 # And further tweaked if "--website":
 #   * "examples.rst" created
@@ -101,7 +102,7 @@ my $cfg = {
 	out_dir => ( $opt{'out-dir'} || "$arg_run_dir/out" ) ,
 	examples_dir => ( $opt{'examples-dir'} || "$arg_src_dir/bin" ) ,
 	src_changelog => ( $opt{'changelog'} || "$arg_src_dir/ChangeLog" ) ,
-	src_readme => ( $opt{'readme'} || "$arg_src_dir/README" ) ,
+	src_readme => ( $opt{'readme'} || "$arg_src_dir/README.md" ) ,
 	src_icon_dir => ( $opt{'icon-dir'} || "$arg_src_dir/src/main/icon" ) ,
 	src_doc_dir => ( $opt{'doc-dir'} || "$arg_src_dir/doc" ) ,
 	src_png_dir => ( $opt{'png-dir'} || "$arg_src_dir/doc" ) ,
@@ -200,6 +201,7 @@ sub prepare
 
 	_make_scripts_rst( $cfg->{run_dir} , $examples , 0 ) ; # "foo.js" -> "foo_js.rst" etc
 	my $options = {map=>{}} ;
+	_edit( sub{_edit_image_links(@_)} , "$$cfg{run_dir}/readme.txt" , $cfg ) or die ;
 	_edit( sub{_edit_option_anchors($options,@_)} , "$$cfg{run_dir}/reference.txt" , $cfg ) or die ;
 	_edit( sub{state $x;_edit_changelog(\$x,@_)} , "$$cfg{run_dir}/changelog.txt" , $cfg ) or die ;
 	for my $f ( glob( "$$cfg{run_dir}/*.txt" ) )
@@ -400,6 +402,16 @@ sub _edit_changelog
 	if( $line =~ m/^--+$/ && $$state >= 3 )
 	{
 		$line = '-' x $$state ;
+	}
+	return $line ;
+}
+
+sub _edit_image_links
+{
+	my ( $line , $n , $cfg , $next_line ) = @_ ;
+	if( $line =~ m:^!.*doc/: )
+	{
+		$line =~ s:doc/:: ;
 	}
 	return $line ;
 }
