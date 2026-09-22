@@ -1,20 +1,7 @@
 #!/bin/sh
 #
-# Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ===
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # configure.sh
 #
@@ -100,7 +87,7 @@ then
 	export LDFLAGS="-Wl,--gc-sections"
 fi
 
-MBEDTLS_DIR="`find \"$thisdir\" -maxdepth 1 -type d -name mbedtls\* 2>/dev/null | head -1`"
+MBEDTLS_DIR="`find \"$thisdir\" -maxdepth 1 -type d -name mbedtls\* ! -name mbedtls_build 2>/dev/null | head -1`"
 MBEDTLS_BUILD_DIR="$MBEDTLS_DIR"
 if test "$opt_get_mbedtls" != ""
 then
@@ -115,8 +102,13 @@ then
 	git -C "$thisdir/mbedtls" checkout --recurse-submodules -q "mbedtls-3.6.7"
 	set +e
 fi
-if test -d "$MBEDTLS_DIR" -a \( "$opt_win" != "" -o "$opt_rpi" != "" -o "$opt_openwrt" != "" \)
-then
+while test "$opt_win" != "" -o "$opt_rpi" != "" -o "$opt_openwrt" != ""
+do
+	if test ! -d "$MBEDTLS_DIR"
+	then
+		configure_mbedtls="--without-mbedtls"
+		break
+	fi
 	set -e
 	MBEDTLS_BUILD_DIR="`pwd`/mbedtls_build"
 	cfg="`pwd`/mbedtls_user_config.h"
@@ -208,7 +200,8 @@ then
 	export CXXFLAGS="$CXXFLAGS -I. -I../.. -DMBEDTLS_USER_CONFIG -I$MBEDTLS_DIR/include"
 	export LDFLAGS="$LDFLAGS -L$MBEDTLS_BUILD_DIR/library"
 	set +e
-fi
+	break
+done
 TlsHelp()
 {
 	local toolchain="$1"

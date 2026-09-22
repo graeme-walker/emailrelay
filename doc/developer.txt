@@ -307,7 +307,7 @@ assembly, replacing `emailrelay-setup.exe` and `emailrelay-gui.exe`. Remove the
 now-redundant DLLs (in the both the root and payload directories) before
 zipping.
 
-The `configure.sh` script can be used to cross-compile from Linux targeting 
+The `configure.sh` script can be used to cross-compile from Linux targeting
 Windows or embedded platforms, with static linking of the MbedTLS library.
 For example, to target ancient versions of Windows run
 `./configure.sh -m -w32` and then use `winbuild-assembly.pl --winxp`
@@ -394,4 +394,4 @@ script. These include the following:
 Use `./configure --help` to see a complete list of options.
 
 _____________________________________
-Copyright (C) 2001-2024 Graeme Walker
+Copyright (C) 2026 Graeme Walker

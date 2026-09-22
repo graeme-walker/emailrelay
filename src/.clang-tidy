@@ -39,8 +39,9 @@ readability-*,\
 -misc-non-private-member-variables-in-classes,\
 -misc-no-recursion,\
 -misc-const-correctness,\
--misc-use-internal-linkage,\
 -misc-misplaced-const,\
+-misc-use-anonymous-namespace,\
+-misc-use-internal-linkage,\
 -modernize-avoid-bind,\
 -modernize-concat-nested-namespaces,\
 -modernize-macro-to-enum,\

@@ -1,20 +1,6 @@
-#!/usr/bin/env perl
 #
-# Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ===
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # emailrelay_test.pl
 #
@@ -99,7 +85,7 @@ $System::localhost = "127.0.0.1" ; # in case localhost resolves to ipv6 first
 $System::verbose = 1 if exists $opts{v} ;
 $System::keep = 1 if exists $opts{t} ;
 $Server::keep_spool = 1 if exists $opts{s} ;
-$Server::tls_config = exists $opts{T} ? $opts{T} : "" ; # was "-tlsv1.2"
+$Server::tls_config = exists $opts{T} ? $opts{T} : "" ;
 $Server::with_valgrind = $opts{V} if exists $opts{V} ;
 $Server::bin_dir = $opt_bin_dir ;
 $Helper::bin_dir = $opt_test_bin_dir ;
@@ -273,7 +259,7 @@ sub _testServerStartsAndStops
 	Check::ok( $smtp_client->open({wait=>0}) , "cannot connect for smtp" , $server->smtpPort() ) ;
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ; # was if System::unix()
+	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
 	Check::fileEmpty( $server->stdout() ) ;
 	Check::fileEmpty( $server->stderr() ) if System::unix() ;
 	Check::fileContains( $server->log() , "smtp server on" , "log" ) ;

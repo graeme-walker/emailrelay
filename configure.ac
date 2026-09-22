@@ -22,7 +22,7 @@ dnl
 AC_INIT([E-MailRelay],[2.7rc1],[],[emailrelay])
 AC_CONFIG_SRCDIR([src/glib/gdef.h])
 AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE([no-define])
+AM_INIT_AUTOMAKE([-Wno-portability])
 AM_SILENT_RULES([no])
 AM_EXTRA_RECURSIVE_TARGETS([extra])
 AC_CONFIG_HEADERS([src/gconfig_defs.h])

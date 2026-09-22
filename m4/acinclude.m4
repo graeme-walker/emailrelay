@@ -1741,7 +1741,7 @@ AC_DEFUN([GCONFIG_FN_PROG_WINDMC],[
 		GCONFIG_WINDMC="`echo \"$CXX\" | sed -E 's/-[gc]\+\+.*/-windmc/'`"
 		if test "$GCONFIG_WINDMC" = ""
 		then
-			GCONFIG_WINDMC="./fakemc.exe"
+			GCONFIG_WINDMC="./mc-missing.exe"
 		fi
 	fi
 	AC_MSG_CHECKING([message compiler])

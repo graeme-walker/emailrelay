@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gstr.h
 ///
@@ -499,10 +487,10 @@ public:
 		///< Like head() but returning a view into the input string.
 
 	static std::string tail( std::string_view in , std::size_t pos , std::string_view default_ = {} ) ;
-			///< Returns the last part of the string after the given position.
-			///< The character at pos is not returned. Returns the supplied default
-			///< if pos is npos. Returns the empty string if pos is one-or-more
-			///< off the end.
+		///< Returns the last part of the string after the given position.
+		///< The character at pos is not returned. Returns the supplied default
+		///< if pos is npos. Returns the empty string if pos is one-or-more
+		///< off the end.
 
 	static std::string tail( std::string_view in , std::string_view sep , bool default_empty = true ) ;
 		///< Overload taking a separator string, and with the default
@@ -532,13 +520,13 @@ public:
 		///< The locale is ignored.
 
 	static std::size_t ifind( std::string_view s , std::string_view key ) ;
-			///< Returns the position of the key in 's' using a seven-bit case-insensitive
-			///< search. Returns std::string::npos if not found. The locale is ignored.
+		///< Returns the position of the key in 's' using a seven-bit case-insensitive
+		///< search. Returns std::string::npos if not found. The locale is ignored.
 
 	static std::size_t ifindat( std::string_view s , std::string_view key , std::size_t pos ) ;
-			///< Returns the position of the key in 's' at of after position 'pos'
-			///< using a seven-bit case-insensitive search. Returns std::string::npos
-			///< if not found. The locale is ignored.
+		///< Returns the position of the key in 's' at of after position 'pos'
+		///< using a seven-bit case-insensitive search. Returns std::string::npos
+		///< if not found. The locale is ignored.
 
 	static bool tailMatch( std::string_view in , std::string_view ending ) noexcept ;
 		///< Returns true if the string has the given ending (or the given ending is empty).

@@ -54,7 +54,6 @@ EXTRA_DIST = \
 	ChangeLog \
 	LICENSE \
 	VERSION \
-	README.md \
 	bootstrap \
 	autogen.sh \
 	winbuild.bat \

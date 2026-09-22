@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file configuration.cpp
 ///
@@ -248,12 +236,6 @@ const char * Main::Configuration::semanticError1() const
 
 	if( !validNumbers("port") )
 		return tx("invalid --port value") ;
-
-	const bool contains_poll = contains( "poll" ) ;
-	if( contains_poll && numberValue("poll",0U) == 0U )
-	{
-		return tx("invalid --poll period") ;
-	}
 
 	const bool contains_pop = contains( "pop" ) ;
 	if( contains_pop && !GPop::enabled() )
