@@ -16,8 +16,9 @@
 #         -o           cross-compile for openwrt (sdk under $HOME)
 #         -w32         cross-compile for windows 32-bit with mingw-w64
 #         -w64         cross-compile for windows 64-bit with mingw-w64
-#         -p           cross-compile for rpi
+#         -p           cross-compile for 64-bit rpi
 #         -m           git-clone mbedtls v3
+#         -M           download mbedtls v3
 #
 # If mbedtls source is found when cross-compiling then the source is
 # patched (if necessary) and configured and then cmake build instructions
@@ -31,7 +32,8 @@ while expr "x$1" : "x-" >/dev/null
 do
 	valued=0
 	case "`echo \"$1\" | sed 's/^--*//'`" in
-		m) opt_get_mbedtls=3 ;;
+		m) opt_clone_mbedtls=3 ;;
+		M) opt_get_mbedtls=3 ;;
 		d) opt_debug=1 ;;
 		s) opt_sanitise="$2" ; valued=1 ;;
 		z) opt_size=1 ;;
@@ -89,7 +91,7 @@ fi
 
 MBEDTLS_DIR="`find \"$thisdir\" -maxdepth 1 -type d -name mbedtls\* ! -name mbedtls_build 2>/dev/null | head -1`"
 MBEDTLS_BUILD_DIR="$MBEDTLS_DIR"
-if test "$opt_get_mbedtls" != ""
+if test "$opt_clone_mbedtls" != ""
 then
 	MBEDTLS_DIR="$thisdir/mbedtls"
 	set -e
@@ -101,6 +103,17 @@ then
 	fi
 	git -C "$thisdir/mbedtls" checkout --recurse-submodules -q "mbedtls-3.6.7"
 	set +e
+:
+elif test "$opt_get_mbedtls" != ""
+then
+	MBEDTLS_DIR="$thisdir/mbedtls-3.6.7"
+	mbedtls_filename=mbedtls-3.6.7.tar.bz2
+	mbedtls_url=https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.7/$mbedtls_filename
+	curl -L --no-progress-meter --output $mbedtls_filename $mbedtls_url || wget -nv $mbedtls_url
+	if sha256sum "$mbedtls_filename" | grep -q "a7e8bcbec0e6f761b4af24f25677626b35f762f68eef79c08677a363212d11f6" ; then : ; else
+		echo "error: incorrect checksum for mbedtls download [$mbedtls_filename]" ; exit 1
+	fi
+	tar -xjf "$mbedtls_filename"
 fi
 while test "$opt_win" != "" -o "$opt_rpi" != "" -o "$opt_openwrt" != ""
 do
@@ -173,7 +186,7 @@ do
 		cat <<-EOF > "$MBEDTLS_BUILD_DIR/toolchain-rpi.cmake"
 			set(CMAKE_SYSTEM_NAME Linux)
 			set(CMAKE_SYSTEM_PROCESSOR arm)
-			set(TOOLCHAIN_PREFIX arm-linux-gnueabihf-)
+			set(TOOLCHAIN_PREFIX aarch64-linux-gnu-)
 			set(CMAKE_C_COMPILER \${TOOLCHAIN_PREFIX}gcc)
 			set(CMAKE_CXX_COMPILER \${TOOLCHAIN_PREFIX}g++)
 			set(CMAKE_AR \${TOOLCHAIN_PREFIX}ar CACHE FILEPATH "Archiver")
@@ -246,7 +259,7 @@ then
 		export CXXFLAGS="$CXXFLAGS -D_WIN32_WINNT=0x0501 -DWINVER=0x0501"
 	fi
 	export LDFLAGS="$LDFLAGS -pthread"
-	if test -x "`which $CXX`" ; then : ; else echo "error: no mingw c++ compiler: [$CXX]\n" ; exit 1 ; fi
+	if test -x "`which $CXX`" ; then : ; else echo "error: no mingw c++ compiler: [$CXX]" >&2 ; exit 1 ; fi
 	$thisdir/configure $enable_debug --host $TARGET \
 		--enable-windows $enable_winxp --disable-interface-names \
 		$configure_mbedtls \
@@ -271,7 +284,7 @@ then
 :
 elif test "$opt_rpi" != ""
 then
-	TARGET="arm-linux-gnueabihf"
+	TARGET="aarch64-linux-gnu"
 	export CXX="$TARGET-g++"
 	export CC="$TARGET-gcc"
 	export AR="$TARGET-ar"
@@ -315,7 +328,7 @@ then
 	export CXXFLAGS="-fno-rtti -Os $CXXFLAGS"
 	export LDFLAGS="$LDFLAGS -static"
 	export LIBS="-lgcc_eh"
-	if test -x "$CXX" ; then : ; else echo "error: no c++ compiler for target [$SDK_COMPILER_PREFIX]: CXX=[$CXX]\n" ; exit 1 ; fi
+	if test -x "$CXX" ; then : ; else echo "error: no c++ compiler for target [$SDK_COMPILER_PREFIX]: CXX=[$CXX]" >&2 ; exit 1 ; fi
 	$thisdir/configure $enable_debug --host ${SDK_COMPILER_PREFIX} \
 		--disable-gui --without-pam --without-doxygen \
 		$configure_mbedtls \
@@ -396,7 +409,7 @@ then
 		e_rundir=/run/emailrelay \
 		$opt_passthrough "$@"
 	test "$?" -eq 0 || exit 1
-	if test "$opt_get_mbedtls" != ""
+	if test "$opt_clone_mbedtls" != ""
 	then
 		echo :
 		echo "build with..."

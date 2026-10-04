@@ -19,14 +19,21 @@
 #	$ ./bootstrap
 #	$ ./configure.sh
 #	$ make
-#	$ sudo make rpm
+#	$ make rpm DISRO=.rhel9
 #
 # or:
 #	$ apt install g++ make automake libssl-dev libpam0g-dev debhelper # deb
 #	$ ./bootstrap
 #	$ ./configure.sh
 #	$ make
-#	$ sudo make deb
+#	$ make deb DISTRO=+deb13
+#
+# or:
+#	$ apk add build-base autoconf automake git alpine-sdk abuild openssl-dev pkgconfig
+#	$ ./bootstrap
+#	$ ./configure.sh
+#	$ make
+#	$ make apk DISTRO=.alpine320 APK_UNITY=1
 #
 # and possibly:
 #	$ make cmake ; make -C build
@@ -61,13 +68,16 @@ e_doc_DATA = AUTHORS NEWS README ChangeLog
 README: README.md
 	sed '/^!/{N;d}' README.md > README
 
-RPM_ROOT ?= ${HOME}/rpmbuild
-#ARCH ?= $(shell arch)
-ARCH ?= x86_64
-RPM=$(RPM_ROOT)/RPMS/$(ARCH)/emailrelay-$(VERSION)-1.$(ARCH).rpm
+RPM_ARCH ?= x86_64
+APK_ARCH ?= x86_64
+DEB_ARCH ?= amd64
+DISTRO ?=
+
 TAR=emailrelay-$(VERSION).tar.gz
 ZIP=emailrelay-$(VERSION)-src.zip
-DEB=emailrelay_$(VERSION)_$(ARCH).deb
+RPM=emailrelay-$(VERSION)-1$(DISTRO).$(RPM_ARCH).rpm
+DEB=emailrelay_$(VERSION)-1$(DISTRO)_$(DEB_ARCH).deb
+APK=emailrelay-$(VERSION)-r0$(DISTRO).$(APK_ARCH).apk
 
 .PHONY: strip
 strip:
@@ -77,16 +87,14 @@ strip:
 rpm: $(RPM)
 
 $(RPM): dist
-	-rm -rf $(RPM_ROOT)/BUILD/emailrelay-$(VERSION)-1.$(ARCH)
-	test ! -d $(RPM_ROOT)/BUILD/emailrelay-$(VERSION)-1.$(ARCH)
-	-mkdir -p $(RPM_ROOT)/BUILD $(RPM_ROOT)/SOURCES $(RPM_ROOT)/SPECS 2>/dev/null
-	cp $(TAR) $(RPM_ROOT)/SOURCES/emailrelay-$(VERSION)-src.tar.gz
-	cp $(top_srcdir)/emailrelay.spec $(RPM_ROOT)/SPECS/
-	-chown root:root $(RPM_ROOT)/SPECS/emailrelay.spec
-	-rm -f $(RPM)
-	test ! -f $(RPM)
-	rpmbuild -ba $(RPM_ROOT)/SPECS/emailrelay.spec
-	test -f $(RPM)
+	-rm -f "emailrelay-$(VERSION)-1.$(RPM_ARCH).rpm"
+	-mkdir -p "rpmbuild/BUILD" "rpmbuild/SOURCES" "rpmbuild/SPECS" 2>/dev/null
+	cp $(TAR) "rpmbuild/SOURCES/emailrelay-$(VERSION)-src.tar.gz"
+	cp $(top_srcdir)/emailrelay.spec "rpmbuild/SPECS/"
+	-chown root:root "rpmbuild/SPECS/emailrelay.spec"
+	rpmbuild --define "_topdir `pwd`/rpmbuild" -ba "`pwd`/rpmbuild/SPECS/emailrelay.spec"
+	mv "rpmbuild/RPMS/$(RPM_ARCH)/emailrelay-$(VERSION)-1.$(RPM_ARCH).rpm" "$(RPM)"
+	-ls -l emailrelay*.rpm
 
 .PHONY: deb
 deb: $(DEB)
@@ -95,6 +103,8 @@ $(DEB): dist
 	-mv emailrelay-$(VERSION) emailrelay-$(VERSION).old.$$$$ || true
 	tar -xzf $(TAR)
 	cd emailrelay-$(VERSION) && dpkg-buildpackage -us -uc -b -jauto
+	mv "emailrelay_$(VERSION)_$(DEB_ARCH).deb" "$(DEB)"
+	-ls -l emailrelay*.deb
 
 .PHONY: deb-src
 deb-src: dist
@@ -148,6 +158,7 @@ $(ZIP): $(TAR)
 
 APKBUILD: $(TAR)
 	sed -e '/^sha512sums=/q' -e '/^sha512sums=/d' -e 's/__VERSION__/'"`cat $(top_srcdir)/VERSION`/g" -e 's/__PKGVER__/'"`cat $(top_srcdir)/VERSION | sed 's/rc.*//'`/g" < "$(top_srcdir)/etc/apkbuild.in" > APKBUILD
+	if test "0$(APK_UNITY)" -eq 1 ; then sed -i -e 's;^_unity=.*;_unity=1;' APKBUILD ; fi
 	echo "sha512sums=\"" >> APKBUILD
 	sha512sum < "$(TAR)" | sed 's/-/'$(TAR)'/' >> APKBUILD
 	echo "\"" >> APKBUILD
@@ -156,22 +167,37 @@ APKBUILD: $(TAR)
 APKBUILD.post-install:
 	cp "$(top_srcdir)/etc/apkbuild.post-install" APKBUILD.post-install
 
-.PHONY: apkbuild
-apkbuild: APKBUILD APKBUILD.post-install
-
 .PHONY: apk
-apk: $(TAR) APKBUILD APKBUILD.post-install
-	if grep -q "^PACKAGER_PRIVKEY=" "${HOME}/.abuild/abuild.conf" 2>/dev/null ; then : ; else abuild-keygen -i -n -a ; fi
-	mkdir -p "apk.d/${USER}/build"
-	cp "$(TAR)" "apk.d/${USER}/build/$(TAR)"
-	cp APKBUILD.post-install "apk.d/${USER}/build/emailrelay.post-install"
-	cp APKBUILD "apk.d/${USER}/build/APKBUILD"
-	sed -i -e 's;^source=.*;source="$(TAR)";' "apk.d/${USER}/build/APKBUILD"
-	cd "apk.d/${USER}/build" && abuild clean unpack && cd ../..
-	cp APKBUILD "apk.d/${USER}/build/APKBUILD"
-	cd "apk.d/${USER}/build" && abuild prepare mkusers build rootpkg && cd ../..
-	cp "${HOME}/packages/${USER}/x86_64/"emailrelay*.apk .
-	@echo "+++ " doas apk add emailrelay-`cat $(top_srcdir)/VERSION | sed 's/rc.*//'`-r0.apk
+apk: apk-key apk-d apk-build apk-package apk-rename
+
+.PHONY: apk-d
+apk-d: $(TAR) APKBUILD APKBUILD.post-install
+	mkdir -p apk.d
+	cp "$(TAR)" apk.d/
+	cp APKBUILD.post-install apk.d/emailrelay.post-install
+	cp APKBUILD apk.d/
+	sed -i -e 's;^source=.*;source="$(TAR)";' apk.d/APKBUILD
+	cd apk.d && unset REPODEST && abuild -P "`pwd`" -F clean unpack
+	cp APKBUILD apk.d/
+
+.PHONY: apk-build
+apk-build:
+	cd apk.d && unset REPODEST && abuild -P "`pwd`" -F prepare mkusers build
+
+.PHONY: apk-key
+apk-key:
+	if grep -q "^PACKAGER_PRIVKEY=" "${HOME}/.abuild/abuild.conf" 2>/dev/null ; then : ; else abuild-keygen -n -a ; fi
+
+.PHONY: apk-package
+apk-package:
+	cd apk.d && unset REPODEST && abuild -P "`pwd`" -F rootpkg
+
+.PHONY: apk-rename
+apk-rename:
+	mv apk.d/`basename \`pwd\``/$(APK_ARCH)/emailrelay-$(VERSION)-r0.apk emailrelay-$(VERSION)-r0$(DISTRO).$(APK_ARCH).apk
+	mv apk.d/`basename \`pwd\``/$(APK_ARCH)/emailrelay-doc-$(VERSION)-r0.apk emailrelay-doc-$(VERSION)-r0$(DISTRO).$(APK_ARCH).apk
+	mv apk.d/`basename \`pwd\``/$(APK_ARCH)/emailrelay-openrc-$(VERSION)-r0.apk emailrelay-openrc-$(VERSION)-r0$(DISTRO).$(APK_ARCH).apk
+	-ls -l emailrelay*.apk
 
 .PHONY: mbedtls
 mbedtls:

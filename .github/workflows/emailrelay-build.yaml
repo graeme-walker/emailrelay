@@ -1,0 +1,262 @@
+
+name: emailrelay-build
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - 'release/v*'
+  workflow_dispatch:
+
+jobs:
+
+  tarball:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+      - name: install-tools
+        run: "sudo apt-get install -y autoconf automake libtool"
+      - name: make-dist
+        run: |
+          ./autogen.sh
+          ./configure
+          make dist
+          for f in *.tar.gz; do
+            mv "$f" "${f%.tar.gz}-src.tar.gz"
+          done
+      - name: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-tarball
+          path: "emailrelay-*-src.tar.gz"
+          if-no-files-found: error
+
+  packages:
+    name: package-for-${{ matrix.distro }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: debian12
+            container: debian:bookworm-slim
+            package_type: deb
+            make_args: DISTRO=+deb12 deb
+            path_pattern: "emailrelay_*.deb"
+          - distro: debian13
+            container: debian:trixie-slim
+            package_type: deb
+            make_args: DISTRO=+deb13 deb
+            path_pattern: "emailrelay_*.deb"
+          - distro: ubuntu2404
+            container: ubuntu:24.04
+            package_type: deb
+            make_args: DISTRO=+ub2404 deb
+            path_pattern: "emailrelay_*.deb"
+          - distro: ubuntu2604
+            container: ubuntu:26.04
+            package_type: deb
+            make_args: DISTRO=+ub2604 deb
+            path_pattern: "emailrelay_*.deb"
+          - distro: redhat9
+            container: rockylinux:9
+            package_type: rpm
+            make_args: DISTRO=.rh9 rpm
+            path_pattern: "emailrelay*.rpm"
+          - distro: redhat10
+            container: rockylinux/rockylinux:10
+            package_type: rpm
+            make_args: DISTRO=.rh10 rpm
+            path_pattern: "emailrelay*.rpm"
+          - distro: alpine320
+            container: alpine:3.20
+            package_type: apk
+            make_args: DISTRO=.alpine320 APK_UNITY=1 apk
+            path_pattern: "emailrelay*.apk"
+    container:
+      image: ${{ matrix.container }}
+    steps:
+      - name: tools-deb
+        if: matrix.package_type == 'deb'
+        run: |
+          apt-get update
+          apt-get install -y build-essential git devscripts debhelper dh-exec libssl-dev libpam0g-dev pkg-config
+      - name: tools-rpm
+        if: matrix.package_type == 'rpm'
+        run: |
+          dnf groupinstall -y "Development Tools"
+          dnf install -y git rpm-build rpmdevtools systemd-rpm-macros openssl-devel pam-devel pkgconfig
+      - name: tools-apk
+        if: matrix.package_type == 'apk'
+        run: |
+          apk update
+          apk add build-base autoconf automake git alpine-sdk abuild openssl-dev pkgconfig
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: make-package
+        run: |
+          echo "sha=${{ github.sha }}"
+          ./autogen.sh
+          ./configure.sh
+          echo "make [${{ matrix.make_args }}]"
+          make ${{ matrix.make_args }}
+      - name: upload-package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.distro }}
+          path: ${{ matrix.path_pattern }}
+          if-no-files-found: error
+      - name: apk-copy-key
+        if: matrix.package_type == 'apk'
+        run: |
+          VERSION=$(cat VERSION)
+          cp ~/.abuild/*rsa.pub emailrelay-$VERSION-${{ matrix.distro }}.rsa.pub
+      - name: apk-upload-key
+        if: matrix.package_type == 'apk'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.distro }}-key
+          path: "*.rsa.pub"
+          if-no-files-found: error
+
+  winbuild:
+    runs-on: windows-latest
+    env:
+      Platform: x64
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: download-libs
+        run: "libexec/winbuildall.bat download"
+      - name: set-version
+        shell: cmd
+        run: |
+          set /p VERSION=<VERSION
+          echo VERSION=[%VERSION%]
+          echo VERSION=%VERSION%>>%GITHUB_ENV%
+      - name: msvc-environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: winbuildall
+        run: "libexec/winbuildall.bat release"
+      - name: compress
+        shell: cmd
+        run: |
+          7z a emailrelay-%VERSION%-w64.zip .\emailrelay-windows-x64-release\*
+      - name: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-x64
+          path: "emailrelay-*-w64.zip"
+
+  winxp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+      - name: install-tools
+        run: "sudo apt-get install -y autoconf automake libtool g++-mingw-w64-i686-posix zip"
+      - name: configure
+        run: |
+          ./autogen.sh
+          ./configure.sh -M -w32
+      - name: make-mbedtls
+        run: |
+          cmake --fresh -DMBEDTLS_CONFIG_FILE=mbedtls_user_config.h -B mbedtls_build -S mbedtls-3.6.7 --toolchain toolchain-w32.cmake
+          cmake --build mbedtls_build --target lib
+      - name: make
+        run: |
+          make -j
+          make -C src/main strip map
+      - name: assemble
+        run: |
+          perl libexec/winbuild-assembly.pl --winxp
+          ls -lR emailrelay-*-winxp
+      - name: zip
+        run: |
+          zip -r emailrelay-`cat VERSION`-winxp32.zip emailrelay-`cat VERSION`-winxp
+          ls -l *.zip
+      - name: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-tarball
+          path: "emailrelay-*-winxp32.zip"
+          if-no-files-found: error
+
+  website:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+      - name: install-tools
+        run: "sudo apt-get install -y python3-sphinx python3-myst-parser pandoc"
+      - name: run-sphinx
+        run: |
+          perl libexec/make-sphinx --website --examples-dir=bin . website
+      - name: tar
+        run: |
+          tar -C website/out -cf website-`cat VERSION`.tar .
+          gzip website-*.tar
+          ls -l website-*.tar.gz
+      - name: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: website
+          path: "website-*.tar.gz"
+          if-no-files-found: error
+
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    needs: [tarball, packages, winbuild, winxp, website]
+    permissions:
+      id-token: write
+      attestations: write
+      contents: write
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: download-artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: files/
+          merge-multiple: true
+          #pattern: ... # all uploaded artifacts by default
+      - name: get-version
+        id: get_version
+        run: |
+          echo "VERSION=$(cat VERSION | xargs)" >> $GITHUB_ENV
+          echo "version=$(cat VERSION | xargs)" >> $GITHUB_OUTPUT
+          echo "vversion=v$(cat VERSION | xargs)" >> $GITHUB_OUTPUT
+      - name: make-release-notes
+        run: "cd files && ../libexec/make-release-notes .."
+        continue-on-error: true
+      - name: list-files
+        run: "ls -lR files/"
+        continue-on-error: true
+      - name: log-version
+        run: |
+          echo version=v${{ steps.get_version.outputs.version }}
+          echo tag=${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || steps.get_version.outputs.vversion }}
+        continue-on-error: true
+      - name: attest
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            files/*.deb
+            files/*.rpm
+            files/*.apk
+            files/*.zip
+      - name: release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format( 'draft-{0}-{1}', github.ref_name, github.sha ) }}
+          draft: true
+          prerelease: ${{ contains(steps.get_version.outputs.version, 'rc') }}
+          working_directory: files
+          files: "*"
+          body_path: files/RELEASE.md
+
