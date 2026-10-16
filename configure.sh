@@ -360,18 +360,20 @@ then
 		--sysconfdir=/usr/pkg/etc \
 		--localstatedir=/var \
 		--mandir=/usr/pkg/man \
-		e_bsdinitdir=/etc/rc.d \
+		e_initdir=/usr/pkg/bin \
+		e_bsdinitdir=/usr/pkg/share/examples/rc.d \
 		$opt_passthrough "$@"
 :
 elif test "`uname`" = "FreeBSD"
 then
-	export CXXFLAGS="$CXXFLAGS -I/usr/local/include -I/usr/local/include/libav"
-	export LDFLAGS="$LDFLAGS -L/usr/local/lib -L/usr/local/lib/libav"
+	export CXXFLAGS="$CXXFLAGS -I/usr/local/include"
+	export LDFLAGS="$LDFLAGS -L/usr/local/lib"
 	$thisdir/configure $enable_debug \
 		--prefix=/usr/local \
 		--sysconfdir=/usr/local/etc \
 		--localstatedir=/usr/local/var \
 		--mandir=/usr/local/man \
+		e_initdir=/usr/local/bin \
 		e_bsdinitdir=/usr/local/etc/rc.d \
 		$opt_passthrough "$@"
 :
@@ -384,7 +386,8 @@ then
 		--sysconfdir=/etc \
 		--localstatedir=/var \
 		--mandir=/usr/local/man \
-		e_bsdinitdir=/usr/local/etc/rc.d \
+		e_initdir=/usr/local/bin \
+		e_bsdinitdir=/etc/rc.d \
 		$opt_passthrough "$@"
 :
 elif test "`uname`" = "Darwin"

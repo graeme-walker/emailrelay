@@ -66,7 +66,7 @@ ACLOCAL_AMFLAGS = -I m4
 e_doc_DATA = AUTHORS NEWS README ChangeLog
 
 README: README.md
-	sed '/^!/{N;d}' README.md > README
+	sed '/^!/{N;d;}' README.md > README
 
 RPM_ARCH ?= x86_64
 APK_ARCH ?= x86_64

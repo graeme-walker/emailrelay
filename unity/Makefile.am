@@ -134,32 +134,32 @@ strip:
 	"$(STRIP)" $(PROGRAMS_)
 
 emailrelay: emailrelay.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ emailrelay.cpp $(LIBS) $(GCONFIG_TLS_LIBS)
 
 emailrelay-submit: emailrelay-submit.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ emailrelay-submit.cpp $(LIBS) $(GCONFIG_TLS_LIBS)
 
 emailrelay-passwd: emailrelay-passwd.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ emailrelay-passwd.cpp $(LIBS) $(GCONFIG_TLS_LIBS)
 
 emailrelay-gui: emailrelay-gui.cpp $(MOC)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(CPPFLAGS_GUI) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS) $(GCONFIG_QT_LIBS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(CPPFLAGS_GUI) $(IFLAGS) -o $@ emailrelay-gui.cpp $(LIBS) $(GCONFIG_TLS_LIBS) $(GCONFIG_QT_LIBS)
 
 moc_guidialog.cpp: $(top_srcdir)/src/gui/guidialog.h
-	$(GCONFIG_QT_MOC) $< -o $@
+	$(GCONFIG_QT_MOC) $(top_srcdir)/src/gui/guidialog.h -o $@
 
 moc_guipage.cpp: $(top_srcdir)/src/gui/guipage.h
-	$(GCONFIG_QT_MOC) $< -o $@
+	$(GCONFIG_QT_MOC) $(top_srcdir)/src/gui/guipage.h -o $@
 
 moc_guipages.cpp: $(top_srcdir)/src/gui/guipages.h
-	$(GCONFIG_QT_MOC) $< -o $@
+	$(GCONFIG_QT_MOC) $(top_srcdir)/src/gui/guipages.h -o $@
 
 .PHONY: tidy
 tidy: emailrelay.cpp $(CDB) .clang-tidy
 	clang-tidy --header-filter=.* emailrelay.cpp
 
 .PHONY: tidygui
-tidygui: emailrelay.cpp $(CDB) $(MOC) .clang-tidy
+tidygui: emailrelay-gui.cpp $(CDB) $(MOC) .clang-tidy
 	-@rm $(top_builddir)/src/gui/moc_guipage.cpp 2>/dev/null
 	-@rm $(top_builddir)/src/gui/moc_guidialog.cpp 2>/dev/null
 	-@rm $(top_builddir)/src/gui/moc_guipages.cpp 2>/dev/null

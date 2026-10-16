@@ -156,7 +156,7 @@ set arch=%Platform%
 set cmake=
 :parse
 if "%~1"=="--no-gui" (set gui=0 & shift & goto parse)
-if "%~1"=="Debug" set config=debug
+if /I "%~1"=="debug" set config=debug
 if not "%~2"=="" set "arch=%~2"
 if not "%~3"=="" set "cmake=%~3"
 
