@@ -8,7 +8,7 @@ emailrelay (2.7) unstable; urgency=low
   * Fix for verifier exit code 100.
   * Windows DPI awareness.
   * GUI support for Qt6 translations.
-  * Windows build scripts updated for statically-linked Qt6.
+  * Windows build scripts updated for Qt6.
   * Files installed under /usr/lib now moved to /usr/share.
   * Documentation in CommonMark only.
   * No doxygen by default.

@@ -141,6 +141,7 @@ The `emailrelay` program supports the following command-line usage:
 *   --port <port> (-p)
 
     Sets the port number used for listening for incoming SMTP connections.
+    An ephemeral port number is assigned if the value is zero.
 
 *   --remote-clients (-r)
 
@@ -211,11 +212,11 @@ The `emailrelay` program supports the following command-line usage:
     using the option more than once or by using a comma-separated list. Use a
     prefix of `smtp=`, `pop=` or `admin=` on addresses that should apply only
     to those types of listening port. Any link-local IPv6 addresses must
-    include a zone name or scope id.  Interface names can be used instead of
+    include a zone name or scope id. Interface names can be used instead of
     addresses, in which case all the addresses associated with that interface
     at startup will used for listening. When an interface name is decorated
     with a `-ipv4` or `-ipv6` suffix only their IPv4 or IPv6 addresses will
-    be used (eg. `ppp0-ipv4`).	To inherit listening file descriptors from
+    be used (eg. `ppp0-ipv4`). To inherit listening file descriptors from
     the parent process on unix use a syntax like this:
     `--interface=smtp=fd#3`.
 
@@ -739,6 +740,7 @@ Bear in mind the following points when writing `--filter` programs:
 * Envelope files will have a file extension of `.new` or `.busy` when the filter runs.
 * Content files on Linux/Unix might be hard-linked if using `--filter=split:`.
 * On Linux/Unix the filter runs as an unprivileged user unless using `--user=root`.
+* Windows scripting errors should be caught and exit with a non-zero exit code.
 
 Network filters
 ---------------
@@ -1074,6 +1076,33 @@ Eg:
 With the `remote` parameter the recipient address is valid only if it matches a
 local account but it is treated as remote so that the e-mail message will be
 available for forwarding rather than delivery.
+
+Retries
+-------
+When an e-mail message fails to get forwarded it is left in a failed state with
+the envelope file having a `.bad` filename suffix. The failure reason is
+recorded in the envelope file with `Reason` and `ReasonCode` lines.
+
+To get failed message to be retried in the next `--poll` cycle it is normally
+necessary to manually rename the envelope file, removing the `.bad` suffix.
+
+To make this an automatic process the `--poll-run` feature can be used with the
+built-in `retry:` script. This will remove the `.bad` filename suffix from any
+failed e-mail messages, as long as they have not been retried too many times
+already. A separate configuration instance can be used to make the retry logic
+run independently of the normal forwarding cycle:
+
+	# normal forwarding...
+	spool-dir /var/spool/emailrelay
+	port 25
+	poll 60
+	forward-to example.com:25
+	# hourly retry...
+	retry-spool-dir /var/spool/emailrelay
+	retry-interface 127.0.0.1
+	retry-port 0
+	retry-poll 1h
+	retry-poll-run retry:5
 
 Authentication
 --------------

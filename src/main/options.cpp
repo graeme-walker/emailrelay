@@ -214,6 +214,7 @@ G::Options Main::Options::spec()
 			//default: 25
 			//example: 587
 			// Sets the port number used for listening for incoming SMTP connections.
+			// An ephemeral port number is assigned if the value is zero.
 
 	G::Options::add( opt , 'r' , "remote-clients" ,
 		tx("allows remote clients to connect") , "" ,
