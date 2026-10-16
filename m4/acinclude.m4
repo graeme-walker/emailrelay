@@ -2141,7 +2141,7 @@ AC_DEFUN([GCONFIG_FN_SET_DIRECTORIES_E],
 	then
 		if test "$gconfig_bsd" = "yes"
 		then
-			# /etc/rc.d
+			# /usr/local/etc/rc.d
 			e_bsdinitdir="$sysconfdir/rc.d"
 		else
 			# /usr/share/doc/package/examples/init/bsd

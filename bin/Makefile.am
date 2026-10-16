@@ -7,7 +7,7 @@
 #
 #   emailrelay-foo.sh.in
 #     \--sed-> emailrelay-foo.sh
-#                \==> e_examples (examples/scripts)
+#                \==> e_examplesdir/ (examples/scripts)
 #   emailrelay.init.in
 #     \--sed-> emailrelay
 #                \==> e_initdir/ (examples/init)

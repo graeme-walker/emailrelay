@@ -102,13 +102,13 @@ AM_CPPFLAGS=\
 if GCONFIG_ENABLE_GUI
 
 moc_guidialog.cpp: $(srcdir)/guidialog.h
-	$(GCONFIG_QT_MOC) $< -o $@
+	$(GCONFIG_QT_MOC) $(srcdir)/guidialog.h -o $@
 
 moc_guipage.cpp: $(srcdir)/guipage.h
-	$(GCONFIG_QT_MOC) $< -o $@
+	$(GCONFIG_QT_MOC) $(srcdir)/guipage.h -o $@
 
 moc_guipages.cpp: $(srcdir)/guipages.h
-	$(GCONFIG_QT_MOC) $< -o $@
+	$(GCONFIG_QT_MOC) $(srcdir)/guipages.h -o $@
 
 guidialog.o: moc_guidialog.cpp
 guipage.o: moc_guipage.cpp

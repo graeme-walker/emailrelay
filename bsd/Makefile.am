@@ -3,6 +3,13 @@
 ## SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+# make (--) and make install [--enable-bsd] (==)...
+#
+#   emailrelay-bsd.sh.in
+#     \--sed-> emailrelay
+#                \==> e_bsdinitdir/ (/usr/local/etc/rc.d)
+#
+
 if GCONFIG_BSD
 EXTRA_DIST = emailrelay-bsd.sh.in
 e_bsdinit_SCRIPTS = emailrelay
