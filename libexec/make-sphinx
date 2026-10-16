@@ -62,6 +62,7 @@
 #   * index.html file is created from the userguide (--website)
 #   * raw example scripts are added
 #   * SVG files are added
+#   * .nojekyll created
 #
 # If sphinx-build is run by some other means then this script
 # can do the pre and post processing something like this:
@@ -251,6 +252,8 @@ sub augment
 	# add in files that are onclick targets
 	_copy_files( $cfg->{out_dir} , glob("$$cfg{src_svg_dir}/*.svg") ) ;
 	_copy_scripts( $cfg->{out_dir} , @$examples ) ;
+	# tweak for GitHub pages
+	new IO::File( "$$cfg{out_dir}/.jekyll" , "w" ) ;
 }
 
 # ===

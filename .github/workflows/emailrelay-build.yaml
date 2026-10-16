@@ -1,5 +1,6 @@
 
 name: emailrelay-build
+run-name: emailrelay-build-${{ github.run_number }}
 
 on:
   push:
@@ -17,12 +18,12 @@ jobs:
       - name: checkout
         uses: actions/checkout@v7
       - name: install-tools
-        run: "sudo apt-get install -y autoconf automake libtool"
+        run: "sudo apt-get install -y autoconf automake"
       - name: make-dist
         run: |
           ./autogen.sh
           ./configure
-          make dist
+          make distcheck
           for f in *.tar.gz; do
             mv "$f" "${f%.tar.gz}-src.tar.gz"
           done
@@ -32,6 +33,19 @@ jobs:
           name: source-tarball
           path: "emailrelay-*-src.tar.gz"
           if-no-files-found: error
+
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+      - name: install-tools
+        run: "sudo apt-get install -y autoconf automake build-essential libssl-dev libpam0g-dev openssl"
+      - name: make-dist
+        run: |
+          ./autogen.sh
+          ./configure
+          make distcheck
 
   packages:
     name: package-for-${{ matrix.distro }}
