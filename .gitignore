@@ -8,6 +8,7 @@ Makefile.in
 /config.status
 /src/gconfig_defs.h
 /src/gconfig_defs.h.in
+/src/gconfig_defs.h.in~
 /src/stamp-h1
 /compile
 /config.guess
@@ -20,6 +21,7 @@ Makefile.in
 /py-compile
 /test-driver
 /ylwrap
+/makezip.tmp/
 .deps/
 .dirstamp
 *.o
@@ -27,6 +29,7 @@ Makefile.in
 *.exe
 *.auth
 *.tar.gz
+/emailrelay*.zip
 /bin/emailrelay
 /bin/emailrelay-notify.sh
 /bin/emailrelay-resubmit.sh
@@ -46,9 +49,7 @@ Makefile.in
 /etc/emailrelay.service
 /src/gssl/empty.cpp
 /src/gui/emailrelay-gui.real
-/src/gui/moc_guidialog.cpp
-/src/gui/moc_guipage.cpp
-/src/gui/moc_guipages.cpp
+/src/gui/moc_*.cpp
 /src/main/emailrelay
 /src/main/emailrelay-keygen
 /src/main/emailrelay-passwd
@@ -67,3 +68,6 @@ Makefile.in
 /winbuild-*.bat
 CMakeLists.txt
 /README
+/unity/.clang-tidy
+/unity/compile_commands.json
+/unity/*.cpp

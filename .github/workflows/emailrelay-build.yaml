@@ -1,5 +1,6 @@
 
 name: emailrelay-build
+run-name: emailrelay-build-${{ github.run_number }}
 
 on:
   push:
