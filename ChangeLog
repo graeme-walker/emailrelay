@@ -8,6 +8,7 @@ E-MailRelay Change Log
 * An initial "--poll" time can be specified by using "--poll" twice.
 * Timeout values can be specified with units, such as "100ms".
 * More sensible file ownership when doing "maildir" delivery.
+* Windows filter scripts have null handles open onto "NUL".
 * Fix for verifier exit code 100.
 * Windows DPI awareness.
 * GUI support for Qt6 translations.

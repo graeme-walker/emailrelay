@@ -6,7 +6,12 @@ exit-100 bug, allow the "--port" option to be used more than once, add a new
 "--poll-run" option, and set better file permissions when delivering to a
 maildir mailbox.
 
-Scripts for doing Windows builds and for generating documentation have been
+Scripts run by E-MailRelay on Windows now have their unused standard i/o handles
+explicitly opened to the null device. As a result filter scripts might behave
+differently when attempting to read from standard input or write to standard
+error.
+
+The scripts for doing Windows builds and for generating documentation have been
 reworked, with a shift towards cmake, Qt6, MbedTLS v3 and sphinx, and away from
 doxygen.
 
