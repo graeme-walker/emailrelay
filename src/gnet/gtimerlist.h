@@ -76,7 +76,7 @@ public:
 	void updateOnStart( TimerBase & ) ;
 		///< Called by Timer when a timer is started.
 
-	void updateOnCancel( TimerBase & ) ;
+	void updateOnCancel( TimerBase & ) noexcept ;
 		///< Called by Timer when a timer is cancelled.
 
 	std::pair<G::TimeInterval,bool> interval() const ;

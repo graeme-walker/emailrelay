@@ -598,6 +598,29 @@ sub editEnvelope
 	rename( "$path.tmp" , $path ) or die ;
 }
 
+sub failEnvelope
+{
+	my ( $path , $reason_code , $reason_text , $count ) = @_ ;
+	if( defined($reason_code) )
+	{
+		addEnvelopeReason( $path , $reason_code , $reason_text , $count ) ;
+	}
+	rename( $path , "$path.bad" ) or die ;
+}
+
+sub addEnvelopeReason
+{
+	my ( $path , $reason_code , $reason_text , $count ) = @_ ;
+	$count ||= 1 ;
+	my $fh = new IO::File( $path , "a" ) or die "cannot edit envelope [$path]: $!" ;
+	for( my $i = 0 ; $i < $count ; $i++ )
+	{
+		print $fh "X-MailRelay-Reason: $reason_text\r\n" ;
+		print $fh "X-MailRelay-ReasonCode: $reason_code\r\n" ;
+	}
+	$fh->close() or die ;
+}
+
 sub _pstatus
 {
 	my ( $pid , $key , $field ) = @_ ;

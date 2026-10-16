@@ -93,6 +93,9 @@ public:
 		///< Initiates forwarding asynchronously. Does nothing if there
 		///< is no forwarding address.
 
+	void cancelForwarding() noexcept ;
+		///< Cancels a requestForwarding().
+
 private: //overrides
 	std::string_view eventLoggingString() const noexcept override ;
 
