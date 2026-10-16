@@ -294,7 +294,7 @@ optionally edited to enable TLS v1.3. If necessary delete the `mbedtls-x64`
 build directory to trigger a rebuild.
 
 A release assembly can be created by running `winbuild-install.bat` or
-`winbuild-assemble.pl`. This makes use of the Qt `windeployqt` utility to
+`winbuild-assembly.pl`. This makes use of the Qt `windeployqt` utility to
 assemble DLLs and it also generates the Qt `.qm` translation files.
 
 For public release builds the E-MailRelay GUI must be statically linked. The
@@ -302,8 +302,8 @@ For public release builds the E-MailRelay GUI must be statically linked. The
 LibreSSL and E-MailRelay (with static linking throughout, using `/MT`) and then
 create a release assembly ready for zipping up. The script will also build perl
 from source if perl is not otherwise available. The perl, Qt, MbedTLS, LibreSSL
-source code can be downloaded by running `libressl\winbuildall.bat download`
-from the E-MailRelay base directory, followed by `libressl\winbuildall.bat`
+source code can be downloaded by running `libexec\winbuildall.bat download`
+from the E-MailRelay base directory, followed by `libexec\winbuildall.bat`
 once a MSVC development environment has been established.
 
 The `configure.sh` script can be used to cross-compile for old versions of
