@@ -50,12 +50,16 @@ public:
 	~PollRunner() override ;
 		///< Destructor.
 
-	bool busy() const ;
-		///< Returns true if busy from last time.
+	void disarm() noexcept ;
+		///< Prevents a call to Unit::requestForwarding() when the
+		///< current busy() task completes.
 
-	bool start() ;
-		///< Starts the task. Returns true if finished immediately, or calls
-		///< Unit::requestForwarding("poll") asynchronously when finished.
+	bool busy() const noexcept ;
+		///< Returns true if busy.
+
+	void start() ;
+		///< Runs or starts the task.
+		///< Precondition: !busy()
 
 public:
 	PollRunner( const PollRunner & ) = delete ;
@@ -67,18 +71,22 @@ private: // overrides
 	void onTaskDone( int , const std::string & ) override ;
 
 private:
-	static void fixPath( std::string & , const G::Path & , const G::Path & ) ;
+	void logStart() ;
+	void logEnd( int , const std::string & ) ;
+	static Spec parsePath( const std::string & , const G::Path & , const G::Path & ) ;
+	static G::Path fullPath( std::string_view , const G::Path & , const G::Path & ) ;
 	static unsigned int parseNumber( std::string_view ) ;
 	static bool parseVerbose( std::string_view ) ;
-	static Spec makeSpec( Spec::Type t , unsigned int n = 0U , bool v = false , const std::string & p = {} ) { Spec s {} ; s.type = t ; s.retry_limit = n ; s.verbose = v ; s.path = G::Path(p) ; return s ; } // c++11
+	static Spec makeSpec( Spec::Type t , unsigned int n = 0U , bool v = false , const G::Path & p = {} ) { Spec s {} ; s.type = t ; s.retry_limit = n ; s.verbose = v ; s.path = p ; return s ; } // c++11
 
 private:
 	GNet::EventState m_es ;
 	Unit & m_unit ;
 	GStore::MessageStore & m_store ;
 	Spec m_spec ;
-	GNet::Task m_task ;
 	G::ExecutableCommand m_cmd ;
+	GNet::Task m_task ;
+	bool m_disarmed {false} ;
 } ;
 
 #endif

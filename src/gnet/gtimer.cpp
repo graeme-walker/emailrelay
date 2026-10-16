@@ -81,12 +81,14 @@ void GNet::TimerBase::adjust( unsigned long order )
 	m_time += G::TimeInterval( 0 , order ) ;
 }
 
-void GNet::TimerBase::cancelTimer()
+void GNet::TimerBase::cancelTimer() noexcept
 {
+	static_assert( noexcept(TimerList::ptr()->updateOnCancel(*this)) , "" ) ;
 	if( m_active )
 	{
 		m_active = false ;
-		TimerList::instance().updateOnCancel( *this ) ;
+		if( TimerList::ptr() )
+			TimerList::ptr()->updateOnCancel( *this ) ;
 	}
 }
 

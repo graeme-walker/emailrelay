@@ -76,12 +76,13 @@ The `emailrelay` program supports the following command-line usage:
     Runs the specified external program every time the `--poll` timer expires,
     before any forwarding of spooled mail messages. The two command-line
     arguments passed to the external program are the spool directory and the
-    delivery directory. The program's standard error stream is logged and its
-    standard output is discarded. If the program does not finish by the time
-    the next poll occurs then forwarding will happen immediately with no
-    attempt to run the program again. Built-in scripts called `unfail:` and
-    `retry:` are available to remove `.bad` filename suffixes from envelope
-    files either unconditionally or up to some retry limit.
+    delivery directory. The program's standard output and standard error
+    streams are logged if verbose logging is enabled and the exit code is
+    non-zero. If the program does not finish by the time the next poll occurs
+    then forwarding will happen immediately with no attempt to run the
+    program again. Built-in scripts called `unfail:` and `retry:` are
+    available to remove `.bad` filename suffixes from envelope files either
+    unconditionally or up to some retry limit.
 
 *   --client-filter <program> (-Y)
 

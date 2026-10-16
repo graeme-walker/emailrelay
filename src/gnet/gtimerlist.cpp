@@ -113,7 +113,7 @@ void GNet::TimerList::updateOnStart( TimerBase & timer )
 		m_soonest = &timer ;
 }
 
-void GNet::TimerList::updateOnCancel( TimerBase & timer )
+void GNet::TimerList::updateOnCancel( TimerBase & timer ) noexcept
 {
 	G_ASSERT( !timer.active() ) ;
 	if( m_soonest == &timer )

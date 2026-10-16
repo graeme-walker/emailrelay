@@ -21,7 +21,10 @@ GVerifiers::ExecutableVerifier::ExecutableVerifier( GNet::EventState es , const 
 	m_timer(*this,&ExecutableVerifier::onTimeout,es) ,
 	m_config(config) ,
 	m_path(path) ,
-	m_task(*this,es,"<<verifier exec error: __strerror__>>",G::Root::nobody())
+	m_task(*this,es,GNet::Task::Config()
+		.set_type("address verifier")
+		.set_exec_error_format("<<exec error: __strerror__>>")
+		.set_identity(G::Root::nobody()))
 {
 }
 
@@ -60,9 +63,9 @@ void GVerifiers::ExecutableVerifier::onTaskDone( int exit_code , const std::stri
 {
 	m_timer.cancelTimer() ;
 	auto status = GSmtp::VerifierStatus::invalid( m_to_address ) ;
-	if( exit_code == 127 && G::Str::headMatch(result_in,"<<verifier exec error") )
+	if( exit_code == 127 && G::Str::headMatch(result_in,"<<exec error:") ) // see ctor
 	{
-		G_WARNING( "GVerifiers::ExecutableVerifier: address verifier: exec error" ) ;
+		G_WARNING( "GVerifiers::ExecutableVerifier: address verifier: " << G::Str::trimmed(result_in,"<>") ) ;
 		status = GSmtp::VerifierStatus::invalid( m_to_address , false , "error" , "exec error" ) ;
 	}
 	else
@@ -78,7 +81,7 @@ void GVerifiers::ExecutableVerifier::onTaskDone( int exit_code , const std::stri
 		std::size_t parts = result_parts.size() ;
 		result_parts.resize( 2U ) ;
 
-		G_LOG( "GVerifiers::ExecutableVerifier: address verifier: exit code " << exit_code << ": "
+		G_LOG( "GVerifiers::ExecutableVerifier: address verifier: exit=" << exit_code << " "
 			<< "[" << G::Str::printable(result_parts[0]) << "] [" << G::Str::printable(result_parts[1]) << "]" ) ;
 
 		if( exit_code == 0 && parts >= 2 )

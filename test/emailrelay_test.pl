@@ -1686,7 +1686,7 @@ sub testVerifierAbort
 	$smtp_client->netclient()->cmd( "ehlo here" ) ;
 	$smtp_client->netclient()->cmd( 'mail from:<me@here>' ) ;
 	$smtp_client->netclient()->cmd( 'rcpt to:<abort!@there>' ) ;
-	System::waitForFileLine( $server->log() , "verifier: exit code 100" ) ;
+	System::waitForFileLine( $server->log() , "verifier: exit=100" ) ;
 	my $disconnected = ( $smtp_client->doBadCommand() =~ m/receive error:.*not connected/ ) ;
 	Check::that( $disconnected , "did not disconnect" ) ;
 	Check::ok( (new SmtpClient($server->smtpPort()))->open() , "cannot reconnect" ) ;
@@ -1782,14 +1782,14 @@ sub testPollRun
 		PollRun => 1 ,
 	) ;
 	my $server = new Server() ;
-	$server->set_pollTimeout( "1" ) ;
+	$server->set_pollTimeout( "10ms,100s" ) ;
 	my $outputfile = System::tempfile( "output" ) ;
 	Filter::create( $server->pollRun() , undef , {
 			unix => [
 				"echo STDOUT" ,
 				'echo STDERR >&2' ,
 				"echo DONE > $outputfile" ,
-				"exit 0" ,
+				"exit 1" ,
 			] ,
 			win32 => [
 				"WScript.StdOut.WriteLine( \"STDOUT\" ) ;" ,
@@ -1798,21 +1798,60 @@ sub testPollRun
 				"var out_ = fs.OpenTextFile( \"$outputfile\" , 8 , true ) ;" ,
 				"out_.WriteLine( \"DONE\" ) ;" ,
 				"out_.Close() ;" ,
-				"WScript.Quit(0);" ,
+				"WScript.Quit(1);" ,
 			] ,
 		} ) ;
 	Check::fileExists( $server->pollRun() ) ;
 	Check::ok( $server->run(\%args) , "failed to run" , $server->message() ) ;
 	Check::running( $server->pid() , $server->message() ) ;
 
-	# test that the --poll-run script runs and stderr is logged
-	System::waitForFileLine( $outputfile , "DONE" , "poll-run script did not create an output file" , 2 ) ;
-	System::sleep_cs( 50 ) if System::windows() ;
+	# test that the --poll-run script runs and stdout and stderr are logged
+	System::waitForFileLine( $server->log() , "poll runner.*exit=1" , "poll-run script did not exit" , 2 ) ;
+	Check::fileContains( $outputfile , "DONE" , "poll-run script did not write its output file" ) ;
 	Check::fileContains( $server->log() , "STDERR" , "stderr not captured from poll-run script" ) ;
 	Check::fileContains( $server->log() , "STDOUT" , "stdout not captured from poll-run script" ) ;
 
 	# tear down
 	System::unlink( $outputfile ) ;
+	$server->kill() ;
+	$server->cleanup() ;
+}
+
+sub testPollRunRetry
+{
+	# setup
+	my %args = (
+		Log => 1 ,
+		LogFile => 1 ,
+		Verbose => 1 ,
+		Domain => 1 ,
+		Port => 1 ,
+		SpoolDir => 1 ,
+		PidFile => 1 ,
+		Poll => 1 ,
+		PollRun => 1 ,
+	) ;
+	my $server = new Server() ;
+	$server->set_pollRun( "retry:x,1,verbose" ) ; # retry if failed only once
+	$server->set_pollTimeout( "10ms,100s" ) ;
+	System::submitMessageSequence( $server->spoolDir() , 3 , 10 , "alice\@example.com" ) ;
+	my $epath1 = $server->spoolDir() . "/emailrelay.001.envelope" ;
+	my $epath2 = $server->spoolDir() . "/emailrelay.002.envelope" ;
+	my $epath3 = $server->spoolDir() . "/emailrelay.003.envelope" ;
+	System::failEnvelope( $epath1 , 201 , "failed" , 2 ) ; # not unfailed - too many failures
+	System::failEnvelope( $epath2 , 501 , "rejected" ) ; # not unfailed - rejected
+	System::failEnvelope( $epath3 , 201 , "failed" ) ; # gets unfailed
+	Check::ok( $server->run(\%args) , "failed to run" , $server->message() ) ;
+	Check::running( $server->pid() , $server->message() ) ;
+
+	# test that "retry:1" unfails one message having only one previous failure
+	System::waitForFileLine( $server->log() , "poll runner.*retrying" ) ;
+	Check::fileContains( $server->log() , "retrying.*003.*1/1" ) ;
+	Check::fileExists( "$epath1.bad" , "unexpected unfail of message 1" ) ;
+	Check::fileExists( "$epath2.bad" , "unexpected unfail of message 2" ) ;
+	Check::fileExists( "$epath3" , "message 3 not unfailed" ) ;
+
+	# tear down
 	$server->kill() ;
 	$server->cleanup() ;
 }

@@ -244,12 +244,12 @@ void Main::Unit::onPollTimeout()
 	{
 		G_WARNING_IF( m_poll_runner , "Main::Unit::onPollTimeout: poll runner busy from last time" ) ;
 		requestForwarding( "poll" ) ; // ignore the too-slow script and trigger forwarding anyways
+		m_poll_runner->disarm() ;
 	}
 	else
 	{
-		bool immediate = m_poll_runner->start() ;
-		if( immediate )
-			requestForwarding( "poll" ) ;
+		requestForwarding( "poll" ) ; // cancelled if asynchronous poll runner
+		m_poll_runner->start() ;
 	}
 }
 
@@ -272,6 +272,12 @@ void Main::Unit::requestForwarding( const std::string & reason )
 			m_forwarding_reason = reason ;
 		m_forwarding_timer->startTimer( 0U ) ;
 	}
+}
+
+void Main::Unit::cancelForwarding() noexcept
+{
+	static_assert( noexcept(m_forwarding_timer->cancelTimer()) , "" ) ;
+	m_forwarding_timer->cancelTimer() ;
 }
 
 void Main::Unit::onRequestForwardingTimeout()

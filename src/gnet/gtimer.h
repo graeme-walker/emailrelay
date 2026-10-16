@@ -45,7 +45,7 @@ public:
 		///< Starts or restarts the timer so that it expires
 		///< after the given interval.
 
-	void cancelTimer() ;
+	void cancelTimer() noexcept ;
 		///< Cancels the timer. Does nothing if not running.
 
 	bool active() const noexcept ;
@@ -141,7 +141,7 @@ public:
 		///< Starts or restarts the timer so that it expires
 		///< after the given interval.
 
-	void cancelTimer() ;
+	void cancelTimer() noexcept ;
 		///< Cancels the timer. Does nothing if not running.
 
 	bool active() const noexcept ;
@@ -183,7 +183,7 @@ void GNet::Timer<T>::startTimer( const G::TimeInterval & i )
 }
 
 template <typename T>
-void GNet::Timer<T>::cancelTimer()
+void GNet::Timer<T>::cancelTimer() noexcept
 {
 	TimerBase::cancelTimer() ;
 }

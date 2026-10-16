@@ -27,7 +27,10 @@ GFilters::ExecutableFilter::ExecutableFilter( GNet::EventState es ,
 		m_path(path) ,
 		m_timeout(filter_config.timeout) ,
 		m_timer(*this,&ExecutableFilter::onTimeout,es) ,
-		m_task(*this,es,"<<filter exec error: __strerror__>>",G::Root::nobody())
+		m_task(*this,es,GNet::Task::Config()
+			.set_type("filter")
+			.set_exec_error_format("<<exec error: __strerror__>>")
+			.set_identity(G::Root::nobody()))
 {
 }
 
@@ -113,7 +116,7 @@ void GFilters::ExecutableFilter::onTaskDone( int exit_code , const std::string &
 
 	// search the output for diagnostics
 	std::tie(m_response,m_response_code,m_reason) = parseOutput( output , "rejected" ) ;
-	if( m_response.find("filter exec error:") == 0U ) // see ctor
+	if( exit_code == 127 && G::Str::headMatch(output,"<<exec error:") ) // see ctor
 	{
 		m_reason = m_response ; // first
 		m_response = "rejected" ; // second
@@ -123,8 +126,8 @@ void GFilters::ExecutableFilter::onTaskDone( int exit_code , const std::string &
 	m_exit = Exit( exit_code , m_filter_type ) ;
 	if( !m_exit.ok() )
 	{
-		G_WARNING( "GFilters::ExecutableFilter::onTaskDone: " << prefix() << " failed: "
-			<< "exit code " << exit_code << ": [" << m_response << "]"
+		G_WARNING( "GFilters::ExecutableFilter::onTaskDone: " << prefix() << ": failed: "
+			<< "exit=" << exit_code << ": [" << m_response << "]"
 			<< (m_response_code?("("+G::Str::fromInt(m_response_code)+")"):"") ) ;
 	}
 

@@ -123,7 +123,7 @@ Causes forwarding of spooled mail messages to happen at regular intervals (with 
 .TP
 .PD
 .B \-\-poll-run \fI<program>\fR
-Runs the specified external program every time the \fI--poll\fR timer expires, before any forwarding of spooled mail messages. The two command-line arguments passed to the external program are the spool directory and the delivery directory. The program's standard error stream is logged and its standard output is discarded. If the program does not finish by the time the next poll occurs then forwarding will happen immediately with no attempt to run the program again. Built-in scripts called \fIunfail:\fR and \fIretry:\fR are available to remove \fI.bad\fR filename suffixes from envelope files either unconditionally or up to some retry limit.
+Runs the specified external program every time the \fI--poll\fR timer expires, before any forwarding of spooled mail messages. The two command-line arguments passed to the external program are the spool directory and the delivery directory. The program's standard output and standard error streams are logged if verbose logging is enabled and the exit code is non-zero. If the program does not finish by the time the next poll occurs then forwarding will happen immediately with no attempt to run the program again. Built-in scripts called \fIunfail:\fR and \fIretry:\fR are available to remove \fI.bad\fR filename suffixes from envelope files either unconditionally or up to some retry limit.
 .TP
 .B \-Y \fI<program>\fR
 .PD 0

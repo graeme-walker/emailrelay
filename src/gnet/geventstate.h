@@ -146,7 +146,7 @@ public:
 		///< and ExceptionSource set.
 
 	EventState logging( EventLogging * ) const noexcept ;
-		///< Returns a copy of this object with the ExceptionLogging
+		///< Returns a copy of this object with the EventLogging
 		///< pointer set to the given value.
 
 	EventStateUnbound unbound() const noexcept ;

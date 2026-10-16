@@ -65,14 +65,15 @@ public:
 	TaskImp & operator=( TaskImp && ) = delete ;
 
 private:
-	void onTimeout() ;
+	void onReaperTimeout() ;
 	static void waitThread( TaskImp * , HANDLE ) ; // thread function
 
 private:
 	Task * m_task ;
 	GNet::EventState m_es ;
+	std::string m_name ;
 	FutureEvent m_future_event ;
-	Timer<TaskImp> m_timer ;
+	Timer<TaskImp> m_reaper_timer ;
 	bool m_logged {false} ;
 	G::NewProcess m_process ;
 	G::threading::thread_type m_thread ;
@@ -90,8 +91,9 @@ GNet::TaskImp::TaskImp( Task & task , EventState es , bool sync ,
 	const G::Identity & id ) :
 		m_task(&task) ,
 		m_es(EventState::create().eh(this,es.esrc())) ,
+		m_name(commandline.exe().basename()) ,
 		m_future_event(*this,m_es) ,
-		m_timer(*this,&TaskImp::onTimeout,m_es) ,
+		m_reaper_timer(*this,&TaskImp::onReaperTimeout,m_es) ,
 		m_process( commandline.exe() , commandline.args() ,
 			G::NewProcess::Config()
 				.set_env(env)
@@ -158,11 +160,11 @@ bool GNet::TaskImp::zombify()
 			m_process.kill( true ) ;
 
 		m_zcount++ ;
-		m_timer.startTimer( 1U ) ; // periodic, until it finishes
+		m_reaper_timer.startTimer( 1U ) ; // periodic, until it finishes
 
 		static constexpr std::size_t warning_threshold = 30U ;
 		if( m_zcount == warning_threshold )
-			G_WARNING_ONCE( "GNet::Task::dtor: large number of threads waiting for processes to finish" ) ;
+			G_WARNING_ONCE( "GNet::TaskImp::zombify: large number of threads waiting for processes to finish" ) ;
 
 		return true ; // waiting
 	}
@@ -172,20 +174,20 @@ bool GNet::TaskImp::zombify()
 	}
 }
 
-void GNet::TaskImp::onTimeout()
+void GNet::TaskImp::onReaperTimeout()
 {
 	G_ASSERT( m_task == nullptr ) ;
 	if( m_thread.joinable() )
 	{
 		if( !m_logged )
-			G_LOG( "TaskImp::dtor: waiting for killed process to terminate: pid " << m_process.id() ) ;
+			G_LOG( "TaskImp::onReaperTimeout: waiting for killed process to terminate: pid " << m_process.id() ) ;
 		m_logged = true ;
-		m_timer.startTimer( 1U ) ;
+		m_reaper_timer.startTimer( 1U ) ;
 	}
 	else
 	{
 		if( m_logged )
-			G_LOG( "TaskImp::dtor: killed process has terminated: pid " << m_process.id() ) ;
+			G_LOG( "TaskImp::onReaperTimeout: killed process has terminated: pid " << m_process.id() ) ;
 		delete this ;
 		m_zcount-- ;
 	}
@@ -223,7 +225,6 @@ void GNet::TaskImp::onFutureEvent()
 	G_DEBUG( "GNet::TaskImp::onFutureEvent: exit code " << exit_code ) ;
 
 	std::string pipe_output = m_process.waitable().output() ;
-	G_LOG_MORE( "GNet::TaskImp::onFutureEvent: executable output: [" << G::Str::printable(pipe_output) << "]" ) ;
 
 	if( m_task )
 		m_task->done( exit_code , pipe_output ) ; // last
@@ -231,12 +232,11 @@ void GNet::TaskImp::onFutureEvent()
 
 // ==
 
-GNet::Task::Task( TaskCallback & callback , EventState es ,
-	const std::string & exec_error_format , const G::Identity & id ) :
+GNet::Task::Task( TaskCallback & callback , EventState es , const Config & config ) :
 		m_callback(callback) ,
 		m_es(es) ,
-		m_exec_error_format(exec_error_format) ,
-		m_id(id)
+		m_exec_error_timer(*this,&Task::onExecErrorTimeout,m_es) ,
+		m_config(config)
 {
 }
 
@@ -274,7 +274,7 @@ std::pair<int,std::string> GNet::Task::run( const G::ExecutableCommand & command
 	m_imp = std::make_unique<TaskImp>( *this ,
 		m_es , true , commandline , env ,
 		fd_stdin , fd_stdout , fd_stderr , cd ,
-		m_exec_error_format , m_id ) ;
+		m_config.exec_error_format , m_config.identity ) ;
 	return m_imp->wait() ;
 }
 
@@ -297,10 +297,35 @@ void GNet::Task::start( const G::ExecutableCommand & commandline ,
 	if( m_busy )
 		throw Busy() ;
 
+	m_name = commandline.exe().basename() ;
+	try
+	{
+		m_imp = std::make_unique<TaskImp>( *this , m_es , false , commandline ,
+			env , fd_stdin , fd_stdout , fd_stderr , cd ,
+			m_config.exec_error_format , m_config.identity ) ;
+	}
+	catch( std::exception & e )
+	{
+		if( m_config.force_async )
+		{
+			m_exec_error = e.what() ;
+			m_exec_error_timer.startTimer( 0U ) ;
+		}
+		else
+		{
+			throw ;
+		}
+	}
+	m_exec_error.clear() ;
 	m_busy = true ;
-	m_imp = std::make_unique<TaskImp>( *this , m_es , false , commandline ,
-		env , fd_stdin , fd_stdout , fd_stderr , cd ,
-		m_exec_error_format , m_id ) ;
+}
+
+void GNet::Task::onExecErrorTimeout()
+{
+	std::string e ;
+	std::swap( m_exec_error , e ) ;
+	if( m_busy && !e.empty() )
+		done( 127 , e ) ;
 }
 
 bool GNet::Task::busy() const noexcept
@@ -311,6 +336,8 @@ bool GNet::Task::busy() const noexcept
 void GNet::Task::done( int exit_code , const std::string & output )
 {
 	m_busy = false ;
+	G_LOG_MORE( "GNet::Task::done: " << m_config.type << " [" << m_name << "]: "
+		"exit=" << exit_code << " output=[" << G::Str::printable(output) << "]" ) ;
 	m_callback.onTaskDone( exit_code , output ) ;
 }
 

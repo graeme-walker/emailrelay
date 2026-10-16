@@ -119,6 +119,7 @@ public:
 	{
 		static bool at( LogOutput::Severity ) noexcept ;
 		static bool atVerbose() noexcept ;
+		static bool atMoreVerbose() noexcept ;
 		static bool atDebug() noexcept ;
 		static void context( std::string_view (*fn)(void*) = nullptr , void * fn_arg = nullptr ) noexcept ;
 		static void * contextarg() noexcept ;
@@ -310,6 +311,7 @@ inline G::LogOutput::Config & G::LogOutput::Config::set_stdout( bool value ) noe
 
 inline bool G::LogOutput::Instance::at( LogOutput::Severity s ) noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( s ) ; }
 inline bool G::LogOutput::Instance::atVerbose() noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( LogOutput::Severity::InfoVerbose ) ; }
+inline bool G::LogOutput::Instance::atMoreVerbose() noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( LogOutput::Severity::InfoMoreVerbose ) ; }
 inline bool G::LogOutput::Instance::atDebug() noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( LogOutput::Severity::Debug ) ; }
 inline void G::LogOutput::Instance::context( std::string_view (*fn)(void*) , void * fn_arg ) noexcept { if( LogOutput::m_instance ) LogOutput::m_instance->context( fn , fn_arg ) ; }
 inline void * G::LogOutput::Instance::contextarg() noexcept { if( LogOutput::m_instance ) return LogOutput::m_instance->contextarg() ; else return nullptr ; }

@@ -233,6 +233,9 @@ const char * Main::Configuration::valueError() const
 		return tx("invalid --poll value") ;
 	if( poll_pair.second.size() > 2U )
 		return tx("too many --poll values") ;
+	if( ( poll_pair.second.size() == 1U && !poll_pair.second[0U] ) ||
+		( poll_pair.second.size() == 2U && !poll_pair.second[1U] ) )
+			return tx("invalid zero --poll time") ;
 
 	if( contains("syslog") && !validSyslogFacility() )
 		return tx("invalid --syslog facility: use 'mail', 'user', 'daemon', or 'local0' to 'local7'") ;
@@ -529,6 +532,7 @@ G::StringArray Main::Configuration::warnings() const
 	filterValue( "filter" , &warnings ) ;
 	filterValue( "client-filter" , &warnings ) ;
 	verifierValue( "address-verifier" , &warnings ) ;
+	pollRunnerValue( "poll-run" , &warnings ) ;
 
 	return warnings ;
 }
