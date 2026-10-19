@@ -11,6 +11,7 @@ use strict ;
 use FileHandle ;
 use Fcntl qw(:seek :flock LOCK_EX);
 use File::Glob ;
+use IO::Socket::INET ;
 use Cwd ;
 use Check ;
 
@@ -846,6 +847,18 @@ sub processIsRunning
 }
 
 sub nextPort
+{
+	my $port ;
+	for( my $try = 0 ; $try < 5 ; $try++ )
+	{
+		$port = nextPortImp() ;
+		my $socket = new IO::Socket::INET( LocalPort=>$port , Proto=>'tcp' ) ;
+		if( $socket ) { close($socket) ; last }
+	}
+	return $port ;
+}
+
+sub nextPortImp
 {
 	# Returns the next port number in sequence. The implementation
 	# uses a state file, which is created if necessary with a random
