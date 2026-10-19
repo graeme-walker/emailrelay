@@ -10,6 +10,7 @@ E-MailRelay Change Log
 * More sensible file ownership when doing "maildir" delivery.
 * Windows filter scripts have null handles open onto "NUL".
 * Fix for verifier exit code 100.
+* Fix listening addresses when "--interface" has no addresses.
 * Windows DPI awareness.
 * GUI support for Qt6 translations.
 * Windows build scripts updated for Qt6.
@@ -17,7 +18,6 @@ E-MailRelay Change Log
 * Documentation in CommonMark only.
 * No doxygen by default.
 * Sphinx used for "make website".
-* Icon refresh.
 
 2.6 -> 2.6.1
 ------------

@@ -6,6 +6,7 @@ emailrelay (2.7) unstable; urgency=low
   * More sensible file ownership when doing "maildir" delivery.
   * Windows filter scripts have null handles open onto "NUL".
   * Fix for verifier exit code 100.
+  * Fix listening addresses when "--interface" has no addresses.
   * Windows DPI awareness.
   * GUI support for Qt6 translations.
   * Windows build scripts updated for Qt6.
@@ -13,7 +14,6 @@ emailrelay (2.7) unstable; urgency=low
   * Documentation in CommonMark only.
   * No doxygen by default.
   * Sphinx used for "make website".
-  * Icon refresh.
  -- maintainer graeme_walker <graeme_walker@users.sourceforge.net>  Fri, 19 Jun 2026 00:00:00 +0000
 
 emailrelay (2.6.1) unstable; urgency=low

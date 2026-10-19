@@ -106,6 +106,9 @@ GNet::Address6::Address6( std::string_view display_string ) :
 
 const char * GNet::Address6::setAddress( sockaddr_type & inet , std::string_view display_string )
 {
+	if( display_string.empty() )
+		return "empty string" ;
+
 	const std::string::size_type pos = display_string.find_last_of( Address6Imp::port_separators ) ;
 	if( pos == std::string::npos )
 		return "no port separator" ;
@@ -121,6 +124,9 @@ const char * GNet::Address6::setAddress( sockaddr_type & inet , std::string_view
 
 const char * GNet::Address6::setHostAddress( sockaddr_type & inet , std::string_view host_part )
 {
+	if( host_part.empty() )
+		return "empty string" ;
+
 	// wikipedia: "because all link-local addresses in a host have a common prefix, normal routing
 	// procedures cannot be used to choose the outgoing interface when sending packets
 	// to a link-local destination -- a special identifier, known as a zone index, is needed

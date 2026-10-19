@@ -94,6 +94,9 @@ GNet::Address4::Address4( std::string_view display_string ) :
 
 const char * GNet::Address4::setAddress( sockaddr_type & inet , std::string_view display_string )
 {
+	if( display_string.empty() )
+		return "empty string" ;
+
 	const std::string::size_type pos = display_string.find_last_of( Address4Imp::port_separators ) ;
 	if( pos == std::string::npos )
 		return "no port separator" ;
@@ -109,6 +112,9 @@ const char * GNet::Address4::setAddress( sockaddr_type & inet , std::string_view
 
 const char * GNet::Address4::setHostAddress( sockaddr_type & inet , std::string_view host_part )
 {
+	if( host_part.empty() )
+		return "empty string" ;
+
 	// start with a stricter check than inet_pton(), inet_addr() etc. since they allow eg. "123.123"
 	if( !Address4::format(host_part) )
 		return "invalid network address" ;

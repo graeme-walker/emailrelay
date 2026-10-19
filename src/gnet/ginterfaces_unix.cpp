@@ -10,6 +10,7 @@
 //   ip address del 127.0.0.2/8 dev lo
 //   ip address add fe80::dead:beef/64 dev eth0
 //   ip address del fe80::dead:beef/64 dev eth0
+//   ip link add dummy0 type dummy && ip link set dummy0 up
 //
 // BSD:
 //   ifconfig lo0 inet 127.0.0.2 alias netmask 255.0.0.0

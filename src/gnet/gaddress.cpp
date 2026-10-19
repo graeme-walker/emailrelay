@@ -32,7 +32,7 @@ bool GNet::Address::supports( Family f ) noexcept
 
 bool GNet::Address::supports( int af , int ) noexcept
 {
-	return af == Address4::af() || af == Address6::af() || af == AddressLocal::af() ;
+	return af != 0 && ( af == Address4::af() || af == Address6::af() || af == AddressLocal::af() ) ;
 }
 
 bool GNet::Address::supports( const Address::Domain & , int domain ) noexcept

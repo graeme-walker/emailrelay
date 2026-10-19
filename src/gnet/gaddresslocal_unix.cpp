@@ -137,15 +137,8 @@ GNet::AddressLocal::AddressLocal( std::string_view host_part ) :
 	AddressLocal(nullptr)
 {
 	namespace imp = AddressLocalImp ;
-
-	if( host_part.empty() || host_part.at(0) != '/' )
+	if( !validString( host_part ) )
 		throw Address::BadString() ;
-
-	if( host_part == "/"_sv || !G::Str::isPrintable(host_part) )
-		throw Address::BadString() ;
-
-	if( host_part.size() >= imp::psize() )
-		throw Address::BadString( "unix domain address too long" ) ;
 
 	std::memcpy( &m_local.sun_path[0] , host_part.data() , host_part.size() ) ;
 	imp::setsize( m_local ) ;
@@ -212,6 +205,8 @@ bool GNet::AddressLocal::validString( std::string_view path , std::string * reas
 		reason = "empty string" ;
 	if( path[0] != '/' )
 		reason = "not an absolute filesystem path" ;
+	if( path.at(path.size()-1U) == '/' )
+		reason = "invalid filesystem path" ;
 	if( !G::Str::isPrintable(path) )
 		reason = "invalid characters" ;
 	if( reason && reason_p )
