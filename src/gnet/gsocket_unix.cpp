@@ -58,7 +58,8 @@ bool GNet::SocketBase::prepare( bool /*accepted*/ )
 
 void GNet::SocketBase::destroy() noexcept
 {
-	if( m_domain == PF_UNIX && !m_accepted ) unlink() ;
+	if( m_domain == PF_UNIX && !m_accepted )
+		unlink() ;
 	::close( m_fd.fd() ) ;
 }
 
@@ -69,7 +70,7 @@ void GNet::SocketBase::unlink() noexcept
 		AddressStorage address_storage ;
 		int rc = ::getsockname( m_fd.fd() , address_storage.p1() , address_storage.p2() ) ;
 		std::string path = rc == 0 ? Address(address_storage).hostPartString() : std::string() ;
-		if( !path.empty() && path.at(0U) == '/' )
+		if( path.size() > 1U && path.at(0U) == '/' && G::Str::isPrintable(path) )
 		{
 			G_DEBUG( "GNet::SocketBase::unlink: deleting unix-domain socket: fd=" << m_fd.fd() << " path=[" << G::Str::printable(path) << "]" ) ;
 			G::File::remove( G::Path(path) , std::nothrow ) ; // best-effort -- see also G::Root

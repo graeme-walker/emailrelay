@@ -36,7 +36,8 @@ class GNet::MultiServer : private InterfacesHandler
 {
 public:
 	G_EXCEPTION( NoListeningAddresses , tx("no listening addresses") )
-	G_EXCEPTION( InvalidName , tx("invalid address or interface name") )
+	G_EXCEPTION( InvalidName , tx("invalid network address or interface name") )
+	G_EXCEPTION( InvalidAddress , tx("invalid network address") )
 	using AddressList = std::vector<Address> ;
 
 	struct ServerInfo /// A structure used in GNet::MultiServer::newPeer().

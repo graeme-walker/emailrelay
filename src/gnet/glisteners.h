@@ -45,17 +45,14 @@ public:
 	bool idle() const ;
 		///< Returns true if no inputs but some interfaces might come up.
 
-	bool hasBad() const ;
-		///< Returns true if one or more inputs are invalid.
+	G::StringArray interfaceNames() const ;
+		///< Returns names that were parsed as interfaces and that have addresses.
 
-	std::string badName() const ;
-		///< Returns the first invalid input.
+	G::StringArray emptyNames() const ;
+		///< Returns names that were parsed as interfaces but have no addresses.
 
-	bool hasEmpties() const ;
-		///< Returns true if some named interfaces have no addresses.
-
-	std::string logEmpties() const ;
-		///< Returns a log-line snippet for hasEmpties().
+	G::StringArray invalidNames() const ;
+		///< Returns names that were not parsed.
 
 	bool noUpdates() const ;
 		///< Returns true if some inputs are interfaces but
@@ -64,28 +61,34 @@ public:
 	const std::vector<int> & fds() const ;
 		///< Exposes the list of fd inputs.
 
-	const std::vector<Address> & fixed() const ;
-		///< Exposes the list of address inputs.
+	const std::vector<Address> & fixedAddresses() const ;
+		///< Exposes the list of fixed address inputs.
 
-	const std::vector<Address> & dynamic() const ;
+	const std::vector<Address> & interfaceAddresses() const ;
 		///< Exposes the list of interface addresses.
+
+	static std::string logString( const G::StringArray & names ) ;
+		///< A convenience function for logging and diagnostics.
 
 private:
 	bool empty() const ;
 	void addWildcards( const std::vector<unsigned> & ) ;
 	static int parseFd( const std::string & ) ;
-	static bool isAddress( const std::string & , unsigned int ) ;
+	static bool isLocalAddress( const std::string & ) ;
+	static bool isAddress( const std::string & ) ;
+	static bool isSpecialInterface( const std::string & name ) ;
+	static bool isValidInterface( const std::string & name ) ;
 	static Address address( const std::string & , unsigned int ) ;
 	static int af( const std::string & ) ;
 	static std::string basename( const std::string & ) ;
-	static bool isBad( const std::string & ) ;
 
 private:
 	std::string m_bad ;
-	G::StringArray m_empties ;
-	G::StringArray m_used ;
-	std::vector<Address> m_fixed ;
-	std::vector<Address> m_dynamic ;
+	G::StringArray m_invalid_names ;
+	G::StringArray m_empty_names ;
+	G::StringArray m_interface_names ;
+	std::vector<Address> m_fixed_addresses ;
+	std::vector<Address> m_interface_addresses ;
 	std::vector<int> m_fds ;
 } ;
 

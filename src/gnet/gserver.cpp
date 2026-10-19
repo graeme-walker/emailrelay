@@ -81,7 +81,7 @@ GNet::Server::~Server()
 
 GNet::Address GNet::Server::address() const
 {
-	bool with_scope = true ; // was false
+	bool with_scope = true ;
 	Address result = m_socket.getLocalAddress() ;
 	if( with_scope )
 		result.setScopeId( m_socket.getBoundScopeId() ) ;
