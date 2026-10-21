@@ -83,9 +83,9 @@ std::string GFilters::MxFilter::id() const
 	return m_id ;
 }
 
-bool GFilters::MxFilter::quiet() const
+int GFilters::MxFilter::verbosity() const noexcept
 {
-	return false ;
+	return m_filter_config.verbosity ;
 }
 
 bool GFilters::MxFilter::special() const

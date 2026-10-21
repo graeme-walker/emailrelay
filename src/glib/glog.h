@@ -73,4 +73,19 @@
 #define G_ERROR( expr )
 #endif
 
+#if ! defined(G_NO_LOG_V)
+#define G_LOG_V( verbosity , expr ) G_LOG_IMP( expr , G::LogOutput::infoSeverity(verbosity) )
+#else
+#define G_LOG_V( verbosity , expr )
+#endif
+
+#define G_LOG__IO( expr ) G_LOG_V( G::LogOutput::Instance::moduleVerbosity(0) , expr )
+#define G_LOG_S__CON( expr ) G_LOG_V( G::LogOutput::Instance::moduleVerbosity(1) , expr )
+#define G_LOG__CON( expr ) G_LOG_V( G::LogOutput::Instance::moduleVerbosity(1) , expr )
+#define G_LOG__AUTH( expr ) G_LOG_V( G::LogOutput::Instance::moduleVerbosity(2) , expr )
+#define G_LOG__SPAM( expr ) G_LOG_V( G::LogOutput::Instance::moduleVerbosity(3) , expr )
+#define G_LOG__STORE( expr ) G_LOG_V( G::LogOutput::Instance::moduleVerbosity(4) , expr )
+#define G_LOG__SMTPC( expr ) G_LOG_V( G::LogOutput::Instance::moduleVerbosity(5) , expr )
+#define G_LOG__SMTPS( expr ) G_LOG_V( G::LogOutput::Instance::moduleVerbosity(6) , expr )
+
 #endif

@@ -115,8 +115,9 @@ Main::PollRunner::Spec Main::PollRunner::parsePath( const std::string & spec , c
 {
 	if( G::Str::headMatch(spec,"run:") && !G::File::exists(fullPath(spec,base_dir,app_dir),std::nothrow) )
 	{
+		// eg. "run:@app/foo.sh;verbose"
 		std::string_view tail = G::Str::tailView( spec , ":" ) ;
-		G::StringTokenView t( tail , "," , 1U ) ;
+		G::StringTokenView t( tail , ";" , 1U ) ;
 		G::Path path = fullPath( t() , base_dir , app_dir ) ;
 		bool verbose = t.next()() == "verbose" ;
 		return makeSpec( Spec::Type::cmd , 0U , verbose , path ) ;
@@ -143,7 +144,7 @@ G::Path Main::PollRunner::fullPath( std::string_view path_in , const G::Path & b
 
 unsigned int Main::PollRunner::parseNumber( std::string_view s )
 {
-	for( G::StringTokenView t(s,",",1U) ; t ; ++t )
+	for( G::StringTokenView t(s,";",1U) ; t ; ++t )
 	{
 		if( G::Str::isUInt( t() ) )
 			return G::Str::toUInt( t() , 0U ) ;
@@ -153,7 +154,7 @@ unsigned int Main::PollRunner::parseNumber( std::string_view s )
 
 bool Main::PollRunner::parseVerbose( std::string_view s )
 {
-	for( G::StringTokenView t(s,",",1U) ; t ; ++t )
+	for( G::StringTokenView t(s,";",1U) ; t ; ++t )
 	{
 		if( t() == "verbose" )
 			return true ;

@@ -273,6 +273,7 @@ private:
 	GSmtp::FilterFactoryBase::Spec filterValue( std::string_view , G::StringArray * = nullptr ) const ;
 	GSmtp::VerifierFactoryBase::Spec verifierValue( std::string_view , G::StringArray * = nullptr ) const ;
 	PollRunner::Spec pollRunnerValue( std::string_view , G::StringArray * = nullptr ) const ;
+	unsigned int logFilterValue() const ;
 	static bool pathlike( std::string_view ) ;
 	//
 	const char * valueError() const ;

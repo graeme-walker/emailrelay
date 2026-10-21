@@ -12,7 +12,7 @@
 #include "glog.h"
 
 GFilters::SpamFilter::SpamFilter( GNet::EventState es , GStore::FileStore & file_store ,
-	Filter::Type , const Filter::Config & config , const std::string & server ,
+	Filter::Type , const Filter::Config & filter_config , const std::string & server ,
 	bool read_only , bool always_pass ) :
 		m_es(es) ,
 		m_done_timer(*this,&SpamFilter::onDoneTimeout,m_es) ,
@@ -21,8 +21,9 @@ GFilters::SpamFilter::SpamFilter( GNet::EventState es , GStore::FileStore & file
 		m_location(server) ,
 		m_read_only(read_only) ,
 		m_always_pass(always_pass) ,
-		m_connection_timeout(config.timeout) ,
-		m_response_timeout(config.timeout)
+		m_filter_config(filter_config) ,
+		m_connection_timeout(filter_config.timeout) ,
+		m_response_timeout(filter_config.timeout)
 {
 	m_client_ptr.eventSignal().connect( G::Slot::slot(*this,&GFilters::SpamFilter::clientEvent) ) ;
 	m_client_ptr.deletedSignal().connect( G::Slot::slot(*this,&GFilters::SpamFilter::clientDeleted) ) ;
@@ -39,9 +40,9 @@ std::string GFilters::SpamFilter::id() const
 	return m_location.displayString() ;
 }
 
-bool GFilters::SpamFilter::quiet() const
+int GFilters::SpamFilter::verbosity() const noexcept
 {
-	return false ;
+	return m_filter_config.verbosity ;
 }
 
 void GFilters::SpamFilter::start( const GStore::MessageId & message_id )

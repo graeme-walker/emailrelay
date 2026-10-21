@@ -72,6 +72,15 @@ G::Options Main::Options::spec()
 			// --as-client and --as-proxy imply --log, and --as-server and --as-proxy
 			// also imply --close-stderr.
 
+	G::Options::add( opt , '\0' , "log-filter" ,
+		tx("modifies what is logged") , "" ,
+		M::many , "spec" , 30 ,
+		t_logging ) ;
+			// Modifies what is logged. The value shoud be "-" followed by a
+			// module or category name in order to disable verbose informational
+			// logging of that type. Use a bogus value to see a list of possible
+			// module or category names in the error message.
+
 	#ifdef G_UNIX
 	G::Options::add( opt , 't' , "no-daemon" ,
 		tx("does not detach from the terminal") , "" ,

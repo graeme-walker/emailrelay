@@ -33,6 +33,11 @@ GFilters::SplitFilter::SplitFilter( GNet::EventState es , GStore::FileStore & st
 	}
 }
 
+int GFilters::SplitFilter::verbosity() const noexcept
+{
+	return m_filter_config.verbosity ;
+}
+
 GSmtp::Filter::Result GFilters::SplitFilter::run( const GStore::MessageId & message_id ,
 	bool & , GStore::FileStore::State e_state )
 {
@@ -51,7 +56,7 @@ GSmtp::Filter::Result GFilters::SplitFilter::run( const GStore::MessageId & mess
 	domains.erase( std::unique(domains.begin(),domains.end()) , domains.end() ) ;
 	if( domains.empty() )
 	{
-		G_LOG( "GFilters::SplitFilter::start: " << prefix() << ": no remote domains: nothing to do" ) ;
+		G_LOG_MORE( "GFilters::SplitFilter::start: " << prefix() << ": no remote domains: nothing to do" ) ;
 		return Result::ok ;
 	}
 

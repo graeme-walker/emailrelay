@@ -31,6 +31,11 @@ GFilters::CopyFilter::CopyFilter( GNet::EventState es , GStore::FileStore & stor
 	}
 }
 
+int GFilters::CopyFilter::verbosity() const noexcept
+{
+	return m_filter_config.verbosity ;
+}
+
 GSmtp::Filter::Result GFilters::CopyFilter::run( const GStore::MessageId & message_id ,
 	bool & , GStore::FileStore::State e_state )
 {
@@ -71,7 +76,7 @@ GSmtp::Filter::Result GFilters::CopyFilter::run( const GStore::MessageId & messa
 	}
 	else
 	{
-		G_LOG( "GFilters::CopyFilter::start: " << prefix() << ": "
+		G_LOG_V( verbosity() , "GFilters::CopyFilter::start: " << prefix() << ": "
 			<< message_id.str() << " copied to [" << G::Str::join(",",copy_names) << "]"
 			<< (ignore_names.empty()?"":" not [") << G::Str::join(",",ignore_names)
 			<< (ignore_names.empty()?"":"]") ) ;

@@ -159,7 +159,7 @@ void GSmtp::ProtocolMessageStore::filterDone( int filter_result )
 		int filter_response_code = (ok||abandon) ? 0 : m_filter->responseCode() ;
 		std::string filter_reason = (ok||abandon) ? std::string() : m_filter->reason() ;
 
-		G_LOG_IF( !m_filter->quiet() , "GSmtp::ProtocolMessageStore::filterDone: "
+		G_LOG_V( m_filter->verbosity() , "GSmtp::ProtocolMessageStore::filterDone: "
 			"filter [" << m_filter->id() << "]: [" << m_new_msg->id().str() << "]: "
 			<< m_filter->str(Filter::Type::server) ) ;
 

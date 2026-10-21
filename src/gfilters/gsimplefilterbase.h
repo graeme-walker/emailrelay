@@ -41,7 +41,6 @@ public:
 		///< Returns a logging prefix derived from Filter::Type and filter id.
 
 private: // overrides
-	bool quiet() const final ;
 	void start( const GStore::MessageId & ) final ;
 	std::string id() const final ;
 	G::Slot::Signal<int> & doneSignal() noexcept final ;

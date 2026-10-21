@@ -35,6 +35,15 @@ GFilters::FilterFactory::Spec GFilters::FilterFactory::parse( std::string_view s
 	const G::Path & base_dir , const G::Path & app_dir , G::StringArray * warnings_p )
 {
 	std::string_view tail = G::Str::tailView( spec_in , ":" ) ;
+
+	// remove verbose marker here and add it back at the end
+	int verbose = false ;
+	if( spec_in.find(',') == std::string::npos && G::Str::tailMatch( tail , ";verbose" ) )
+	{
+		verbose = true ;
+		tail = tail.substr( 0U , tail.size()-8U ) ;
+	}
+
 	Spec result ;
 	if( spec_in.empty() )
 	{
@@ -104,13 +113,21 @@ GFilters::FilterFactory::Spec GFilters::FilterFactory::parse( std::string_view s
 		fixFile( result , base_dir , app_dir ) ;
 		checkFile( result , warnings_p ) ;
 	}
+	if( verbose && result.first != "chain" )
+		result.second.append( ";verbose" ) ;
 	return result ;
 }
 
 std::unique_ptr<GSmtp::Filter> GFilters::FilterFactory::newFilter( GNet::EventState es ,
-	GSmtp::Filter::Type filter_type , const GSmtp::Filter::Config & filter_config ,
-	const FilterFactory::Spec & spec )
+	GSmtp::Filter::Type filter_type , GSmtp::Filter::Config filter_config ,
+	FilterFactory::Spec spec )
 {
+	if( spec.first != "chain" && G::Str::tailMatch( spec.second , ";verbose" ) )
+	{
+		filter_config.verbosity = 1 ;
+		spec.second = spec.second.substr( 0U , spec.second.size()-8U ) ;
+	}
+
 	if( spec.first == "chain" )
 	{
 		// (one level of recursion -- FilterChain::ctor calls newFilter())
@@ -119,12 +136,16 @@ std::unique_ptr<GSmtp::Filter> GFilters::FilterFactory::newFilter( GNet::EventSt
 	else if( spec.first == "spam" )
 	{
 		// "spam:" is read-only, not-always-pass
-		return std::make_unique<SpamFilter>( es , m_file_store , filter_type , filter_config , spec.second , true , false ) ;
+		bool read_only = true ;
+		bool always_pass = false ;
+		return std::make_unique<SpamFilter>( es , m_file_store , filter_type , filter_config , spec.second , read_only , always_pass ) ;
 	}
 	else if( spec.first == "spam-edit" )
 	{
 		// "spam-edit:" is read-write, always-pass
-		return std::make_unique<SpamFilter>( es , m_file_store , filter_type , filter_config , spec.second , false , true ) ;
+		bool read_only = false ;
+		bool always_pass = true ;
+		return std::make_unique<SpamFilter>( es , m_file_store , filter_type , filter_config , spec.second , read_only , always_pass ) ;
 	}
 	else if( spec.first == "net" )
 	{

@@ -90,19 +90,19 @@ bool GSmtp::Forward::sendNext()
 		}
 		else
 		{
-			G_LOG( "GSmtp::Forward::sendNext: forwarding [" << message->id().str() << "]" << messageInfo(*message) ) ;
+			G_LOG__SMTPC( "GSmtp::Forward::sendNext: forwarding [" << message->id().str() << "]" << messageInfo(*message) ) ;
 			start( std::move(message) ) ;
 			return true ;
 		}
 	}
 	if( m_message_count != 0U )
-		G_LOG( "GSmtp::Forward: forwarding: no more messages to send" ) ;
+		G_LOG__SMTPC( "GSmtp::Forward: forwarding: no more messages to send" ) ;
 	return false ;
 }
 
 void GSmtp::Forward::sendMessage( std::unique_ptr<GStore::StoredMessage> message )
 {
-	G_LOG( "GSmtp::Forward::sendMessage: forwarding [" << message->id().str() << "]" << messageInfo(*message) ) ;
+	G_LOG__SMTPC( "GSmtp::Forward::sendMessage: forwarding [" << message->id().str() << "]" << messageInfo(*message) ) ;
 	start( std::move(message) ) ;
 }
 
@@ -136,7 +136,7 @@ void GSmtp::Forward::routingFilterDone( int filter_result )
 	G_ASSERT( static_cast<int>(m_routing_filter->result()) == filter_result ) ;
 	G_DEBUG( "GSmtp::Forward::routingFilterDone: result=" << filter_result ) ;
 
-	G_LOG_IF( !m_routing_filter->quiet() , "GSmtp::Forward::routingFilterDone: routing-filter "
+	G_LOG_V( m_routing_filter->verbosity() , "GSmtp::Forward::routingFilterDone: routing-filter "
 		"[" << m_routing_filter->id() << "]: [" << m_message->id().str() << "]: "
 		<< m_routing_filter->str(Filter::Type::client) ) ;
 
@@ -187,7 +187,7 @@ bool GSmtp::Forward::updateClient( const GStore::StoredMessage & message )
 	bool new_selector = m_selector != message.clientAccountSelector() ;
 	if( unconnectable( message.forwardToAddress() ) )
 	{
-		G_LOG( "GSmtp::Forward::updateClient: forwarding [" << message.id().str() << "]: "
+		G_LOG__SMTPC( "GSmtp::Forward::updateClient: forwarding [" << message.id().str() << "]: "
 			"skipping message with unconnectable address [" << message.forwardToAddress() << "]" ) ;
 		return false ;
 	}
@@ -205,7 +205,7 @@ bool GSmtp::Forward::updateClient( const GStore::StoredMessage & message )
 		if( new_address ) ss << "[" << message.forwardToAddress() << "]" ;
 		if( new_address && new_selector ) ss << " and " ;
 		if( new_selector ) ss << "account selector [" << message.clientAccountSelector() << "]" ;
-		G_LOG( "GSmtpForward::updateClient: forwarding [" << message.id().str() << "]: new connection for " << ss.str() ) ;
+		G_LOG__SMTPC( "GSmtpForward::updateClient: forwarding [" << message.id().str() << "]: new connection for " << ss.str() ) ;
 
 		newClient( message ) ;
 	}

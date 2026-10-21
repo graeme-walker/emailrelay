@@ -18,17 +18,22 @@
 #include <sstream>
 
 GFilters::MessageIdFilter::MessageIdFilter( GNet::EventState es , GStore::FileStore & store ,
-	Filter::Type filter_type , const Filter::Config & config , const std::string & ) :
+	Filter::Type filter_type , const Filter::Config & filter_config , const std::string & ) :
 		SimpleFilterBase(es,filter_type,"msgid:") ,
 		m_store(store) ,
-		m_domain(config.domain)
+		m_filter_config(filter_config)
 {
+}
+
+int GFilters::MessageIdFilter::verbosity() const noexcept
+{
+	return m_filter_config.verbosity ;
 }
 
 GSmtp::Filter::Result GFilters::MessageIdFilter::run( const GStore::MessageId & message_id ,
 	bool & , GStore::FileStore::State )
 {
-	std::string e = process( m_store.contentPath(message_id) , m_domain ) ;
+	std::string e = process( m_store.contentPath(message_id) , m_filter_config.domain ) ;
 	if( !e.empty() )
 		throw Error( e ) ;
 	return Result::ok ;

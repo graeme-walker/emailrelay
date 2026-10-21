@@ -12,9 +12,10 @@
 #include "gstr.h"
 
 GFilters::NullFilter::NullFilter( GNet::EventState es , GStore::FileStore & ,
-	Filter::Type filter_type , const Filter::Config & ) :
+	Filter::Type filter_type , const Filter::Config & filter_config ) :
 		m_id("exit") ,
 		m_exit(0,filter_type) ,
+		m_filter_config(filter_config) ,
 		m_quiet(true) ,
 		m_timeout(0) ,
 		m_timer(*this,&NullFilter::onTimeout,es)
@@ -48,9 +49,9 @@ std::string GFilters::NullFilter::id() const
 	return m_id ;
 }
 
-bool GFilters::NullFilter::quiet() const
+int GFilters::NullFilter::verbosity() const noexcept
 {
-	return m_quiet ;
+	return m_quiet ? -2 : m_filter_config.verbosity ;
 }
 
 bool GFilters::NullFilter::special() const

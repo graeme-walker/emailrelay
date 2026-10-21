@@ -36,7 +36,8 @@ public:
 			///< Constructor.
 
 private: // overrides
-	Result run( const GStore::MessageId & , bool & , GStore::FileStore::State ) override ;
+	Result run( const GStore::MessageId & , bool & , GStore::FileStore::State ) override ; // GFilters::SimpleFilterBase
+	int verbosity() const noexcept override ; // GSmtp::Filter
 
 private:
 	using FileOp = GStore::FileStore::FileOp ;

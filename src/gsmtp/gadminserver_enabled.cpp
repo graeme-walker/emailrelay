@@ -78,7 +78,7 @@ GSmtp::AdminServerPeer::AdminServerPeer( GNet::EventStateUnbound esu , GNet::Ser
 		m_info_commands(info_commands) ,
 		m_with_terminate(with_terminate)
 {
-	G_LOG_S( "GSmtp::AdminServerPeer: admin connection from " << peerAddress().displayString() ) ;
+	G_LOG_S__CON( "GSmtp::AdminServerPeer: admin connection from " << peerAddress().displayString() ) ;
 	m_client_ptr.deletedSignal().connect( G::Slot::slot(*this,&AdminServerPeer::clientDone) ) ;
 	// dont prompt here -- it confuses some clients
 }
@@ -99,7 +99,7 @@ void GSmtp::AdminServerPeer::clientDone( const std::string & s )
 
 void GSmtp::AdminServerPeer::onDelete( const std::string & reason )
 {
-	G_LOG_S( "GSmtp::AdminServerPeer: admin connection closed: " << reason << (reason.empty()?"":": ")
+	G_LOG_S__CON( "GSmtp::AdminServerPeer: admin connection closed: " << reason << (reason.empty()?"":": ")
 		<< peerAddress().displayString() ) ;
 }
 

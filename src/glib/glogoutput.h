@@ -94,6 +94,7 @@ public:
 		bool m_use_syslog {false} ;
 		bool m_allow_bad_syslog {false} ;
 		bool m_stdout {false} ;
+		unsigned int m_filter {0U} ;
 		SyslogFacility m_facility {SyslogFacility::User} ;
 		Process::Umask::Mode m_umask {Process::Umask::Mode::NoChange} ;
 		Config() noexcept ;
@@ -113,6 +114,7 @@ public:
 		Config & set_facility( SyslogFacility ) noexcept ;
 		Config & set_umask( Process::Umask::Mode ) noexcept ;
 		Config & set_stdout( bool value = true ) noexcept ;
+		Config & set_filter( unsigned int value ) noexcept ;
 	} ;
 
 	struct Instance /// A set of convenience functions for calling LogOutput methods on LogOutput::instance().
@@ -126,6 +128,8 @@ public:
 		static LogStream start( LogOutput::Severity , const char * file , int line ) noexcept ;
 		static void output( LogStream & ) noexcept ;
 		static int fd() noexcept ;
+		static unsigned int filter() noexcept ;
+		static int moduleVerbosity( int module_id ) noexcept ;
 		static LogOutput::Config config() noexcept ;
 		Instance() = delete ;
 	} ;
@@ -173,6 +177,9 @@ public:
 	Config config() const noexcept ;
 		///< Returns the current configuration.
 
+	unsigned int filter() const noexcept ;
+		///< Returns the config() filter value.
+
 	int fd() const noexcept ;
 		///< Returns the output file descriptor.
 
@@ -199,6 +206,9 @@ public:
 	void output( LogStream & ) noexcept ;
 		///< Emits the current log line (see start()). Does nothing if there
 		///< is no LogOutput instance.
+
+	static Severity infoSeverity( int v ) noexcept ;
+		///< Returns an info severity that is Severity::InfoVerbose adjusted by the given value.
 
 	static void assertion( LogOutput * , const char * file , int line , bool test , const char * test_string ) ;
 		///< Performs an assertion check.
@@ -308,6 +318,7 @@ inline G::LogOutput::Config & G::LogOutput::Config::set_allow_bad_syslog( bool v
 inline G::LogOutput::Config & G::LogOutput::Config::set_facility( SyslogFacility facility ) noexcept { m_facility = facility ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_umask( Process::Umask::Mode umask ) noexcept { m_umask = umask ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_stdout( bool value ) noexcept { m_stdout = value ; return *this ; }
+inline G::LogOutput::Config & G::LogOutput::Config::set_filter( unsigned int value ) noexcept { m_filter = value ; return *this ; }
 
 inline bool G::LogOutput::Instance::at( LogOutput::Severity s ) noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( s ) ; }
 inline bool G::LogOutput::Instance::atVerbose() noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( LogOutput::Severity::InfoVerbose ) ; }
@@ -319,5 +330,6 @@ inline G::LogStream G::LogOutput::Instance::start( LogOutput::Severity s , const
 inline void G::LogOutput::Instance::output( LogStream & stream ) noexcept { if( LogOutput::m_instance ) LogOutput::m_instance->output( stream ) ; }
 inline int G::LogOutput::Instance::fd() noexcept { return LogOutput::m_instance ? LogOutput::m_instance->fd() : -1 ; }
 inline G::LogOutput::Config G::LogOutput::Instance::config() noexcept { return LogOutput::m_instance ? LogOutput::m_instance->config() : LogOutput::Config() ; }
+inline unsigned int G::LogOutput::Instance::filter() noexcept { return LogOutput::m_instance ? LogOutput::m_instance->filter() : 0U ; }
 
 #endif

@@ -25,7 +25,7 @@ GFilters::ExecutableFilter::ExecutableFilter( GNet::EventState es ,
 		m_filter_type(filter_type) ,
 		m_exit(0,filter_type) ,
 		m_path(path) ,
-		m_timeout(filter_config.timeout) ,
+		m_filter_config(filter_config) ,
 		m_timer(*this,&ExecutableFilter::onTimeout,es) ,
 		m_task(*this,es,GNet::Task::Config()
 			.set_type("filter")
@@ -37,9 +37,9 @@ GFilters::ExecutableFilter::ExecutableFilter( GNet::EventState es ,
 GFilters::ExecutableFilter::~ExecutableFilter()
 = default;
 
-bool GFilters::ExecutableFilter::quiet() const
+int GFilters::ExecutableFilter::verbosity() const noexcept
 {
-	return false ;
+	return m_filter_config.verbosity ;
 }
 
 std::string GFilters::ExecutableFilter::id() const
@@ -94,13 +94,13 @@ void GFilters::ExecutableFilter::start( const GStore::MessageId & message_id )
 	G_LOG( "GFilters::ExecutableFilter::start: " << prefix() << ": [" << message_id.str() << "]: running " << m_path ) ;
 	m_task.start( commandline ) ;
 
-	if( m_timeout )
-		m_timer.startTimer( m_timeout ) ;
+	if( m_filter_config.timeout )
+		m_timer.startTimer( m_filter_config.timeout ) ;
 }
 
 void GFilters::ExecutableFilter::onTimeout()
 {
-	G_WARNING( "GFilters::ExecutableFilter::onTimeout: " << prefix() << " timed out after " << m_timeout.s() << "s" ) ;
+	G_WARNING( "GFilters::ExecutableFilter::onTimeout: " << prefix() << " timed out after " << m_filter_config.timeout.s() << "s" ) ;
 	m_task.stop() ;
 	m_exit = Exit( 1 , m_filter_type ) ;
 	G_ASSERT( m_exit.fail() ) ;

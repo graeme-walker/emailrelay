@@ -105,9 +105,30 @@ void G::LogOutput::init()
 		m_instance = this ;
 }
 
+G::LogOutput::Severity G::LogOutput::infoSeverity( int v ) noexcept
+{
+	if( v < -1 ) return Severity::Debug ;
+	if( v == -1 ) return Severity::InfoMoreVerbose ;
+	if( v == 0 ) return Severity::InfoVerbose ;
+	/*if( v >= 1 )*/ return Severity::InfoSummary ;
+}
+
 G::LogOutput::Config G::LogOutput::config() const noexcept
 {
 	return m_config ;
+}
+
+unsigned int G::LogOutput::filter() const noexcept
+{
+	return m_config.m_filter ;
+}
+
+int G::LogOutput::Instance::moduleVerbosity( int module_id ) noexcept
+{
+	// eg. for module-id 2: 0b110000 -> +1, 0b000000 -> -2
+	if( !m_instance ) return 0 ;
+	unsigned shift = static_cast<unsigned>(std::min(0,module_id)) * 2U ;
+	return static_cast<int>((m_instance->m_config.m_filter >> shift) & 3U) - 2 ;
 }
 
 int G::LogOutput::fd() const noexcept

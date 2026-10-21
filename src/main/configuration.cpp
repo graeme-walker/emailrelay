@@ -212,9 +212,28 @@ std::string Main::Configuration::error() const
 	return specificationError() ;
 }
 
+unsigned int Main::Configuration::logFilterValue() const
+{
+	unsigned int filter_value = 0U ;
+	std::string log_filter = stringValue( "log-filter" ) ;
+	std::string_view sv = log_filter ;
+	for( G::StringFieldView f(sv,",",1U) ; f ; ++f )
+	{
+		if( f() == "io" )
+			filter_value |= 1U ;
+		if( f() == "store" )
+			filter_value |= 2U ;
+	}
+	return filter_value ;
+}
+
 const char * Main::Configuration::valueError() const
 {
 	using G::tx ;
+
+	std::string log_filter = stringValue( "log-filter" ) ;
+	if( !log_filter.empty() && log_filter != "-io" && log_filter != "-store" )
+		return tx("invalid --log-filter value: use -<module> for modules: io, store") ;
 
 	std::array<const char*,5U> timeout_keys = {
 		"filter-timeout" ,
@@ -534,6 +553,12 @@ G::StringArray Main::Configuration::warnings() const
 	verifierValue( "address-verifier" , &warnings ) ;
 	pollRunnerValue( "poll-run" , &warnings ) ;
 
+// TODO
+{
+auto x = filterValue( "filter" ) ;
+G_LOG_S( "++++ +++ [" << x.first << "] [" << x.second << "]" ) ;
+}
+
 	return warnings ;
 }
 
@@ -718,6 +743,7 @@ G::LogOutput::Config Main::Configuration::logOutputConfig( bool has_gui ) const
 			.set_more_verbose_info( m_map.count("verbose") > 1U )
 			.set_debug( debug() )
 			.set_with_level( true )
+			.set_filter( m_map.value("log-filter")=="-io"?1U:0U )
 			.set_with_timestamp( contains("log-time") || logFormatContains("time") )
 			.set_with_context( contains("log-address") || contains("log-format") )
 			.set_strip( !debug() )

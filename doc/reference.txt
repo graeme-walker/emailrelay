@@ -140,8 +140,8 @@ The `emailrelay` program supports the following command-line usage:
 
 *   --port <port> (-p)
 
-    Sets the port number used for listening for incoming SMTP connections.
-    An ephemeral port number is assigned if the value is zero.
+    Sets the port number used for listening for incoming SMTP connections. An
+    ephemeral port number is assigned if the value is zero.
 
 *   --remote-clients (-r)
 
@@ -506,6 +506,12 @@ The `emailrelay` program supports the following command-line usage:
     file is not affected by `--close-stderr`. The filename can include `%d`
     to get daily log files; the `%d` is replaced by the current date in the
     local timezone using a `YYYYMMDD` format.
+
+*   --log-filter <spec>
+
+    Modifies what is logged. The value shoud be `-` followed by a module name in
+    order to disable logging from that module. Use a bogus value to see a
+    list of possible modules in the error message.
 
 *   --log-format
 

@@ -55,9 +55,11 @@ public:
 	{
 		G::TimeInterval timeout {60U} ;
 		std::string domain ; // postcondition: !domain.empty()
+		int verbosity {0} ; // verbosity adjustment
 		Config & set_timeout( unsigned int ) noexcept ;
 		Config & set_timeout( G::TimeInterval ) noexcept ;
 		Config & set_domain( const std::string & ) ;
+		Config & set_verbosity( int ) ;
 	} ;
 
 	virtual ~Filter() = default ;
@@ -67,8 +69,9 @@ public:
 		///< Returns the id passed to the derived-class constructor.
 		///< Used in logging.
 
-	virtual bool quiet() const = 0 ;
-		///< Returns true if there is no need for logging.
+	virtual int verbosity() const noexcept = 0 ;
+		///< Returns a verbosity adjustment, typically from the Config
+		///< and originally derived from the filter specification string.
 
 	virtual void start( const GStore::MessageId & ) = 0 ;
 		///< Starts the filter for the given message. Any previous,
@@ -127,6 +130,7 @@ protected:
 inline GSmtp::Filter::Config & GSmtp::Filter::Config::set_timeout( unsigned int s ) noexcept { timeout = G::TimeInterval(s) ; return *this ; }
 inline GSmtp::Filter::Config & GSmtp::Filter::Config::set_timeout( G::TimeInterval t ) noexcept { timeout = t ; return *this ; }
 inline GSmtp::Filter::Config & GSmtp::Filter::Config::set_domain( const std::string & s ) { domain = s ; return *this ; }
+inline GSmtp::Filter::Config & GSmtp::Filter::Config::set_verbosity( int n ) { verbosity = n ; return *this ; }
 // clang-format on
 
 #endif

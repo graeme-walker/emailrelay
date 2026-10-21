@@ -13,15 +13,16 @@
 #include "glog.h"
 
 GFilters::NetworkFilter::NetworkFilter( GNet::EventState es ,
-	GStore::FileStore & file_store , Filter::Type , const Filter::Config & config ,
+	GStore::FileStore & file_store , Filter::Type , const Filter::Config & filter_config ,
 	const std::string & server ) :
 		m_es(es) ,
 		m_file_store(file_store) ,
 		m_timer(*this,&NetworkFilter::onTimeout,m_es) ,
 		m_done_signal(true) ,
 		m_location(server) ,
-		m_connection_timeout(config.timeout) ,
-		m_response_timeout(config.timeout)
+		m_filter_config(filter_config) ,
+		m_connection_timeout(filter_config.timeout) ,
+		m_response_timeout(filter_config.timeout)
 {
 	m_client_ptr.eventSignal().connect( G::Slot::slot(*this,&GFilters::NetworkFilter::clientEvent) ) ;
 }
@@ -36,9 +37,9 @@ std::string GFilters::NetworkFilter::id() const
 	return m_location.displayString() ;
 }
 
-bool GFilters::NetworkFilter::quiet() const
+int GFilters::NetworkFilter::verbosity() const noexcept
 {
-	return false ;
+	return m_filter_config.verbosity ;
 }
 
 void GFilters::NetworkFilter::start( const GStore::MessageId & message_id )

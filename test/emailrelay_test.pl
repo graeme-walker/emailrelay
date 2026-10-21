@@ -1832,7 +1832,7 @@ sub testPollRunRetry
 		PollRun => 1 ,
 	) ;
 	my $server = new Server() ;
-	$server->set_pollRun( "retry:x,1,verbose" ) ; # retry if failed only once
+	$server->set_pollRun( "retry:x;1;verbose" ) ; # retry if failed only once
 	$server->set_pollTimeout( "10ms,100s" ) ;
 	System::submitMessageSequence( $server->spoolDir() , 3 , 10 , "alice\@example.com" ) ;
 	my $epath1 = $server->spoolDir() . "/emailrelay.001.envelope" ;
