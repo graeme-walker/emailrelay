@@ -176,14 +176,20 @@ void * G::LogOutput::contextarg() noexcept
 bool G::LogOutput::at( Severity severity , int verbosity ) const noexcept
 {
 	bool do_output = m_config.m_output_enabled ;
+	int verbose_count = static_cast<int>( m_config.m_verbose_count ) ;
+
+	int severity_value = -1 ;
+	if( severity == Severity::InfoSummary )
+		severity_value = 0 ;
+	if( severity == Severity::InfoVerbose )
+		severity_value = 1 ;
+	if( severity == Severity::InfoMoreVerbose )
+		severity_value = 2 ;
+
 	if( severity == Severity::Debug )
 		do_output = m_config.m_output_enabled && m_config.m_debug ;
-	else if( severity == Severity::InfoSummary )
-		do_output = m_config.m_output_enabled && m_config.m_summary_info ;
-	else if( severity == Severity::InfoVerbose )
-		do_output = m_config.m_output_enabled && m_config.m_verbose_info ;
-	else if( severity == Severity::InfoMoreVerbose )
-		do_output = m_config.m_output_enabled && m_config.m_more_verbose_info ;
+	else if( severity_value != -1 )
+		do_output = m_config.m_output_enabled && severity_value <= std::max(0,verbose_count+verbosity) ;
 	return do_output ;
 }
 
@@ -419,10 +425,8 @@ G::LogOutput::Config::Config() noexcept
 = default;
 
 G::LogOutput::Config::Config( bool enabled , bool verbose ) noexcept :
+	m_verbose_count(enabled?1:0),
 	m_output_enabled(enabled),
-	m_summary_info(enabled),
-	m_verbose_info(verbose),
-	m_more_verbose_info(verbose),
 	m_debug(verbose)
 {
 }

@@ -34,7 +34,7 @@ public:
 		enum class Type { none , cmd , unfail , retry } ;
 		Type type {Type::none} ;
 		unsigned int retry_limit {0U} ;
-		int verbosity {0} ;
+		int verbosity {-1} ;
 		G::Path path ;
 	} ;
 
@@ -77,7 +77,7 @@ private:
 	static G::Path fullPath( std::string_view , const G::Path & , const G::Path & ) ;
 	static unsigned int parseNumber( std::string_view ) ;
 	static bool parseVerbose( std::string_view ) ;
-	static Spec makeSpec( Spec::Type t , unsigned int n = 0U , int verbosity = 0 , const G::Path & p = {} ) { Spec s {} ; s.type = t ; s.retry_limit = n ; s.verbosity = verbosity ; s.path = p ; return s ; } // c++11
+	static Spec makeSpec( Spec::Type t , unsigned int n = 0U , int verbosity = -1 , const G::Path & p = {} ) { Spec s {} ; s.type = t ; s.retry_limit = n ; s.verbosity = verbosity ; s.path = p ; return s ; } // c++11
 
 private:
 	GNet::EventState m_es ;

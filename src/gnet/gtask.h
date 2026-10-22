@@ -39,13 +39,9 @@ public:
 	{
 		std::string exec_error_format ; // eg. "exec error: __strerror__"
 		G::Identity identity {G::Identity::invalid()} ; // eg. G::Root::nobody()
-		std::string type ; // for logging
-		int verbosity {0} ;
 		bool force_async {false} ; // delayed exec errors on Windows
 		Config & set_exec_error_format( const std::string & ) ;
 		Config & set_identity( const G::Identity & ) ;
-		Config & set_type( const std::string & ) ;
-		Config & set_verbosity( int verbosity ) ;
 		Config & set_force_async( bool = true ) ;
 	} ;
 
@@ -90,6 +86,10 @@ public:
 			///< and pipe output. Throws if killed. The callback interface
 			///< is not used.
 
+	std::string name() const ;
+		///< Returns a short name for logging derived from the 
+		///< executable command-line.
+
 public:
 	Task( const Task & ) = delete ;
 	Task( Task && ) = delete ;
@@ -129,8 +129,6 @@ public:
 // clang-format off
 inline GNet::Task::Config & GNet::Task::Config::set_exec_error_format( const std::string & s ) { exec_error_format = s ; return *this ; }
 inline GNet::Task::Config & GNet::Task::Config::set_identity( const G::Identity & i ) { identity = i ; return *this ; }
-inline GNet::Task::Config & GNet::Task::Config::set_type( const std::string & s ) { type = s ; return *this ; }
-inline GNet::Task::Config & GNet::Task::Config::set_verbosity( int n ) { verbosity = n ; return *this ; }
 inline GNet::Task::Config & GNet::Task::Config::set_force_async( bool b ) { force_async = b ; return *this ; }
 // clang-format on
 

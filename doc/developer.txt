@@ -207,6 +207,32 @@ synchronisation back to the main thread uses the main event loop (see
 Multi-threading is also used in the Windows event loop once the number of
 handles goes above the WaitForMultipleObjects() limit.
 
+Logging
+-------
+Logging uses macros like G_DEBUG(), G_LOG(), G_WARNING() and G_ERROR(), defined
+in glog.h. The G_LOG() informational logging is split into three levels:
+summary, verbose and more-verbose.
+
+Informational log output takes account of the message severity (InfoSummary,
+InfoVerbose, InfoMoreVerbose), the overall verbose count and the module or
+object verbosity. A `module` is identified with a compile-time constant (see
+gmodule.h) which yields the module verbosity via the LogOutput 'filter'
+configuration. An object verbosity value typically comes from an object that
+has a verbosity() method.
+
+If the message severity value is taken as InfoSummary=0, InfoVerbose=1 and
+InfoMoreVerbose=2 then, assuming a module/object verbosity of zero, the message
+is emitted iff the message severity value is less than or equal to the verbose
+count. However, the module/object verbosity can adjust the verbose count up or
+down, so a verbosity of minus one will reduce the number of log messages from
+that module.
+
+The verbosity values for the modules are configured from the `--log-filter`
+command-line option and this sets a `filter` bit mask stored in the LogOutput
+instance. Verbosity values for individual objects are configured using modifiers
+on the command-line options that created them, such as `--filter` or
+`--poll-run`.
+
 E-MailRelay GUI
 ---------------
 The optional GUI program `emailrelay-gui` uses the Qt toolkit for its user

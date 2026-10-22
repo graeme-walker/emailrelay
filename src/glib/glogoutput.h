@@ -82,10 +82,8 @@ public:
 
 	struct Config /// A configuration structure for G::LogOutput.
 	{
+		unsigned int m_verbose_count {0U} ;
 		bool m_output_enabled {false} ;
-		bool m_summary_info {false} ;
-		bool m_verbose_info {false} ;
-		bool m_more_verbose_info {false} ;
 		bool m_debug {false} ;
 		bool m_with_level {false} ;
 		bool m_with_timestamp {false} ;
@@ -101,9 +99,7 @@ public:
 		Config() noexcept ;
 		Config( bool enabled , bool verbose ) noexcept ;
 		Config & set_output_enabled( bool value = true ) noexcept ;
-		Config & set_summary_info( bool value = true ) noexcept ;
-		Config & set_verbose_info( bool value = true ) noexcept ;
-		Config & set_more_verbose_info( bool value = true ) noexcept ;
+		Config & set_verbose_count( unsigned int ) noexcept ;
 		Config & set_debug( bool value = true ) noexcept ;
 		Config & set_with_level( bool value = true ) noexcept ;
 		Config & set_with_timestamp( bool value = true ) noexcept ;
@@ -304,9 +300,7 @@ inline void G::LogOutput::assertion( LogOutput * instance , const char * file , 
 }
 
 inline G::LogOutput::Config & G::LogOutput::Config::set_output_enabled( bool value ) noexcept { m_output_enabled = value ; return *this ; }
-inline G::LogOutput::Config & G::LogOutput::Config::set_summary_info( bool value ) noexcept { m_summary_info = value ; return *this ; }
-inline G::LogOutput::Config & G::LogOutput::Config::set_verbose_info( bool value ) noexcept { m_verbose_info = value ; return *this ; }
-inline G::LogOutput::Config & G::LogOutput::Config::set_more_verbose_info( bool value ) noexcept { m_more_verbose_info = value ; return *this ; }
+inline G::LogOutput::Config & G::LogOutput::Config::set_verbose_count( unsigned n ) noexcept { m_verbose_count = n ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_debug( bool value ) noexcept { m_debug = value ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_with_level( bool value ) noexcept { m_with_level = value ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_with_timestamp( bool value ) noexcept { m_with_timestamp = value ; return *this ; }

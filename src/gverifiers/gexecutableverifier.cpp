@@ -22,8 +22,6 @@ GVerifiers::ExecutableVerifier::ExecutableVerifier( GNet::EventState es , const 
 	m_config(config) ,
 	m_path(path) ,
 	m_task(*this,es,GNet::Task::Config()
-		.set_type("address verifier")
-		.set_verbosity(m_config.verbosity)
 		.set_exec_error_format("<<exec error: __strerror__>>")
 		.set_identity(G::Root::nobody()))
 {
@@ -62,6 +60,9 @@ void GVerifiers::ExecutableVerifier::onTimeout()
 
 void GVerifiers::ExecutableVerifier::onTaskDone( int exit_code , const std::string & result_in )
 {
+	G_LOG_MORE( "GVerifiers::ExecutableVerifier::onTaskDone: address verifier [" << m_task.name() << "]: "
+		"exit=" << exit_code << " output=[" << G::Str::printable(result_in) << "]" ) ;
+
 	m_timer.cancelTimer() ;
 	auto status = GSmtp::VerifierStatus::invalid( m_to_address ) ;
 	if( exit_code == 127 && G::Str::headMatch(result_in,"<<exec error:") ) // see ctor

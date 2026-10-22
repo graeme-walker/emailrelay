@@ -738,9 +738,7 @@ G::LogOutput::Config Main::Configuration::logOutputConfig( bool has_gui ) const
 	return
 		G::LogOutput::Config()
 			.set_output_enabled( log() )
-			.set_summary_info( log() )
-			.set_verbose_info( contains("verbose") )
-			.set_more_verbose_info( m_map.count("verbose") > 1U )
+			.set_verbose_count( m_map.count("verbose") )
 			.set_debug( debug() )
 			.set_with_level( true )
 			.set_filter( m_map.value("log-filter")=="-io"?1U:0U )

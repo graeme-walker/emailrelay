@@ -28,8 +28,6 @@ GFilters::ExecutableFilter::ExecutableFilter( GNet::EventState es ,
 		m_filter_config(filter_config) ,
 		m_timer(*this,&ExecutableFilter::onTimeout,es) ,
 		m_task(*this,es,GNet::Task::Config()
-			.set_type("filter")
-			.set_verbosity(filter_config.verbosity)
 			.set_exec_error_format("<<exec error: __strerror__>>")
 			.set_identity(G::Root::nobody()))
 {
@@ -113,6 +111,9 @@ void GFilters::ExecutableFilter::onTimeout()
 
 void GFilters::ExecutableFilter::onTaskDone( int exit_code , const std::string & output )
 {
+	G_LOG_MORE( "GFilters::ExecutableFilter::onTaskDone: filter [" << m_task.name() << "]: "
+		"exit=" << exit_code << " output=[" << G::Str::printable(output) << "]" ) ;
+
 	m_timer.cancelTimer() ;
 
 	// search the output for diagnostics

@@ -53,7 +53,6 @@ Main::PollRunner::PollRunner( GNet::EventState es , Unit & unit , GStore::Messag
 		m_spec(spec) ,
 		m_cmd(spec.path,{spool_dir.str(),delivery_dir.str()}),
 		m_task(*this,es,GNet::Task::Config()
-			.set_type("poll runner")
 			.set_exec_error_format("exec error: __strerror__")
 			.set_identity(G::Root::nobody())
 			.set_force_async())
@@ -119,12 +118,12 @@ Main::PollRunner::Spec Main::PollRunner::parsePath( const std::string & spec , c
 		std::string_view tail = G::Str::tailView( spec , ":" ) ;
 		G::StringTokenView t( tail , ";" , 1U ) ;
 		G::Path path = fullPath( t() , base_dir , app_dir ) ;
-		bool verbose = t.next()() == "verbose" ;
-		return makeSpec( Spec::Type::cmd , 0U , verbose , path ) ;
+		int verbosity = t.next()() == "verbose" ? 0 : -1 ;
+		return makeSpec( Spec::Type::cmd , 0U , verbosity , path ) ;
 	}
 	else
 	{
-		return makeSpec( Spec::Type::cmd , 0U , false , fullPath(spec,base_dir,app_dir) ) ;
+		return makeSpec( Spec::Type::cmd , 0U , /*verbosity=*/-1 , fullPath(spec,base_dir,app_dir) ) ;
 	}
 }
 
@@ -164,21 +163,15 @@ bool Main::PollRunner::parseVerbose( std::string_view s )
 
 void Main::PollRunner::logStart()
 {
-	G_LOG_S_V( m_spec.verbosity , "Main::PollRunner::logStart: poll runner [" << m_cmd.exe().basename() << "]: running " << m_cmd.exe() ) ;
+	G_LOG_V( m_spec.verbosity , "Main::PollRunner::logStart: poll runner [" << m_cmd.exe().basename() << "]: running " << m_cmd.exe() ) ;
 }
 
 void Main::PollRunner::logEnd( int ec , const std::string & output )
 {
-	if( G::LogOutput::Instance::atInfoMoreVerbose(m_spec.verbosity) )
-	{
-		// no-op -- already logged in GNet::Task::done()
-	}
-	else if( G::LogOutput::Instance::atInfoVerbose(m_spec.verbosity) )
-	{
-		std::ostringstream ss ;
-		ss << "poll runner [" << m_cmd.exe().basename() << "]: exit=" << ec
-			<< (output.empty()?"":" output=[") << G::Str::printable(output) << (output.empty()?"":"]") ;
-		G_LOG_V( m_spec.verbosity , "Main::PollRunner: " << ss.str() ) ;
-	}
+	int verbosity = m_spec.verbosity ;
+	if( ec != 0 )
+		verbosity++ ;
+	G_LOG_V( verbosity , "Main::PollRunner::logEnd: poll runner [" << m_task.name() << "]: "
+			"exit=" << ec << " output=[" << G::Str::printable(output) << "]" ) ;
 }
 
