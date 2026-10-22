@@ -831,11 +831,13 @@ GSmtp::Server::Config Main::Configuration::smtpServerConfig( const std::string &
 			.set_filter_config(
 				GSmtp::Filter::Config()
 					.set_domain( domain )
+					.set_verbosity( 0 )
 					.set_timeout( _filterTimeout() ) )
 			.set_filter_spec( _filter() )
 			.set_verifier_config(
 				GSmtp::Verifier::Config()
 					.set_domain( domain )
+					.set_verbosity( 0 )
 					.set_timeout( _filterTimeout() ) )
 			.set_verifier_spec( _verifier() )
 			.set_net_server_peer_config(

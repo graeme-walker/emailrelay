@@ -11,6 +11,7 @@
 
 #include "gdef.h"
 #include "glogstream.h"
+#include "gmodule.h"
 #include "gprocess.h"
 #include "gpath.h"
 #include "glimits.h"
@@ -119,9 +120,11 @@ public:
 
 	struct Instance /// A set of convenience functions for calling LogOutput methods on LogOutput::instance().
 	{
-		static bool at( LogOutput::Severity ) noexcept ;
-		static bool atVerbose() noexcept ;
-		static bool atMoreVerbose() noexcept ;
+		static bool at( LogOutput::Severity , int verbosity ) noexcept ;
+		static bool atInfoVerbose( int verbosity ) noexcept ;
+		static bool atInfoVerbose( ModuleId ) noexcept ;
+		static bool atInfoMoreVerbose( int verbosity ) noexcept ;
+		static bool atInfoMoreVerbose( ModuleId ) noexcept ;
 		static bool atDebug() noexcept ;
 		static void context( std::string_view (*fn)(void*) = nullptr , void * fn_arg = nullptr ) noexcept ;
 		static void * contextarg() noexcept ;
@@ -186,7 +189,7 @@ public:
 	void configure( const Config & ) ;
 		///< Updates the current configuration.
 
-	bool at( Severity ) const noexcept ;
+	bool at( Severity , int verbosity ) const noexcept ;
 		///< Returns true if logging should occur for the given severity level.
 
 	void context( std::string_view (*fn)(void*) = nullptr , void * fn_arg = nullptr ) noexcept ;
@@ -206,9 +209,6 @@ public:
 	void output( LogStream & ) noexcept ;
 		///< Emits the current log line (see start()). Does nothing if there
 		///< is no LogOutput instance.
-
-	static Severity infoSeverity( int v ) noexcept ;
-		///< Returns an info severity that is Severity::InfoVerbose adjusted by the given value.
 
 	static void assertion( LogOutput * , const char * file , int line , bool test , const char * test_string ) ;
 		///< Performs an assertion check.
@@ -320,10 +320,12 @@ inline G::LogOutput::Config & G::LogOutput::Config::set_umask( Process::Umask::M
 inline G::LogOutput::Config & G::LogOutput::Config::set_stdout( bool value ) noexcept { m_stdout = value ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_filter( unsigned int value ) noexcept { m_filter = value ; return *this ; }
 
-inline bool G::LogOutput::Instance::at( LogOutput::Severity s ) noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( s ) ; }
-inline bool G::LogOutput::Instance::atVerbose() noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( LogOutput::Severity::InfoVerbose ) ; }
-inline bool G::LogOutput::Instance::atMoreVerbose() noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( LogOutput::Severity::InfoMoreVerbose ) ; }
-inline bool G::LogOutput::Instance::atDebug() noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( LogOutput::Severity::Debug ) ; }
+inline bool G::LogOutput::Instance::at( LogOutput::Severity s , int verbosity = 0 ) noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( s , verbosity ) ; }
+inline bool G::LogOutput::Instance::atInfoVerbose( int verbosity ) noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( LogOutput::Severity::InfoVerbose , verbosity ) ; }
+inline bool G::LogOutput::Instance::atInfoVerbose( ModuleId id ) noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( LogOutput::Severity::InfoVerbose , moduleVerbosity(id.value) ) ; }
+inline bool G::LogOutput::Instance::atInfoMoreVerbose( int verbosity ) noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( LogOutput::Severity::InfoMoreVerbose , verbosity ) ; }
+inline bool G::LogOutput::Instance::atInfoMoreVerbose( ModuleId id ) noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( LogOutput::Severity::InfoMoreVerbose , moduleVerbosity(id.value) ) ; }
+inline bool G::LogOutput::Instance::atDebug() noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( LogOutput::Severity::Debug , 0 ) ; }
 inline void G::LogOutput::Instance::context( std::string_view (*fn)(void*) , void * fn_arg ) noexcept { if( LogOutput::m_instance ) LogOutput::m_instance->context( fn , fn_arg ) ; }
 inline void * G::LogOutput::Instance::contextarg() noexcept { if( LogOutput::m_instance ) return LogOutput::m_instance->contextarg() ; else return nullptr ; }
 inline G::LogStream G::LogOutput::Instance::start( LogOutput::Severity s , const char * file , int line ) noexcept { if( LogOutput::m_instance ) return LogOutput::m_instance->start( s , file , line ) ; else return {} ; }

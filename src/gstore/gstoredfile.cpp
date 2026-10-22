@@ -248,12 +248,12 @@ void GStore::StoredFile::addReason( const G::Path & path , const std::string & r
 
 void GStore::StoredFile::destroy()
 {
-	G_LOG__STORE( "GStore::StoredFile::destroy: deleting envelope [" << epath(m_state).basename() << "]" ) ;
+	G_LOG_M(store, "GStore::StoredFile::destroy: deleting envelope [" << epath(m_state).basename() << "]" ) ;
 	if( !FileOp::remove( epath(m_state) ) )
 		G_WARNING( "GStore::StoredFile::destroy: failed to delete envelope file "
 			<< "[" << epath(m_state).basename() << "] (" << G::Process::strerror(FileOp::errno_()) << ")" ) ;
 
-	G_LOG__STORE( "GStore::StoredFile::destroy: deleting content [" << cpath().basename() << "]" ) ;
+	G_LOG_M(store, "GStore::StoredFile::destroy: deleting content [" << cpath().basename() << "]" ) ;
 	m_content.reset() ; // close it before deleting
 	if( !FileOp::remove( cpath() ) )
 		G_WARNING( "GStore::StoredFile::destroy: failed to delete content file "

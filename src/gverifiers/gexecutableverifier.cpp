@@ -23,6 +23,7 @@ GVerifiers::ExecutableVerifier::ExecutableVerifier( GNet::EventState es , const 
 	m_path(path) ,
 	m_task(*this,es,GNet::Task::Config()
 		.set_type("address verifier")
+		.set_verbosity(m_config.verbosity)
 		.set_exec_error_format("<<exec error: __strerror__>>")
 		.set_identity(G::Root::nobody()))
 {

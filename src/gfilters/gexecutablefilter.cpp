@@ -29,6 +29,7 @@ GFilters::ExecutableFilter::ExecutableFilter( GNet::EventState es ,
 		m_timer(*this,&ExecutableFilter::onTimeout,es) ,
 		m_task(*this,es,GNet::Task::Config()
 			.set_type("filter")
+			.set_verbosity(filter_config.verbosity)
 			.set_exec_error_format("<<exec error: __strerror__>>")
 			.set_identity(G::Root::nobody()))
 {

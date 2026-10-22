@@ -294,7 +294,7 @@ std::string GAuth::SaslServerBasicImp::apply( const std::string & response , boo
 		std::ostringstream ss ;
 		ss << " of remote client using mechanism [" << G::Str::lower(m_mechanism) << "] and " << secret.info(id) ;
 		if( m_authenticated )
-			G_LOG__AUTH( "GAuth::SaslServerBasicImp::apply: successful authentication" << ss.str() ) ;
+			G_LOG_M(auth, "GAuth::SaslServerBasicImp::apply: successful authentication" << ss.str() ) ;
 		else
 			G_WARNING( "GAuth::SaslServerBasicImp::apply: failed authentication" << ss.str() ) ;
 	}
@@ -315,7 +315,7 @@ bool GAuth::SaslServerBasicImp::trustedCore( const std::string & address_wildcar
 	std::string & trustee = pair.first ;
 	if( !trustee.empty() )
 	{
-		G_LOG__AUTH( "GAuth::SaslServer::trusted: trusting [" << address_display << "]: "
+		G_LOG_M(auth, "GAuth::SaslServer::trusted: trusting [" << address_display << "]: "
 			<< "matched [" << address_wildcard << "] from " << pair.second ) ;
 		const_cast<SaslServerBasicImp*>(this)->m_trustee = trustee ;
 		return true ;

@@ -90,6 +90,7 @@ COMMON_SOURCES = \
 	gstrmacros.h \
 	gmd5.h \
 	gmd5.cpp \
+	gmodule.h \
 	gmsg.h \
 	gnewprocess.h \
 	gnowide.h \

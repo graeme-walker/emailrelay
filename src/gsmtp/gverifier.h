@@ -46,9 +46,11 @@ public:
 	{
 		G::TimeInterval timeout {60U} ;
 		std::string domain ;
+		int verbosity {0} ;
 		Config & set_timeout( unsigned int ) noexcept ;
 		Config & set_timeout( G::TimeInterval ) noexcept ;
 		Config & set_domain( const std::string & ) ;
+		Config & set_verbosity( int verbosity ) ;
 	} ;
 
 	virtual void verify( const Request & ) = 0 ;
@@ -72,6 +74,7 @@ public:
 inline GSmtp::Verifier::Config & GSmtp::Verifier::Config::set_timeout( unsigned int s ) noexcept { timeout = G::TimeInterval(s) ; return *this ; }
 inline GSmtp::Verifier::Config & GSmtp::Verifier::Config::set_timeout( G::TimeInterval t ) noexcept { timeout = t ; return *this ; }
 inline GSmtp::Verifier::Config & GSmtp::Verifier::Config::set_domain( const std::string & s ) { domain = s ; return *this ; }
+inline GSmtp::Verifier::Config & GSmtp::Verifier::Config::set_verbosity( int n ) { verbosity = n ; return *this ; }
 // clang-format on
 
 #endif

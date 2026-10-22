@@ -101,13 +101,13 @@ void Main::PollRunner::start()
 	}
 	else if( m_spec.type == Spec::Type::unfail )
 	{
-		G_LOG_S_IF( m_spec.verbose , "Main::PollRunner::start: poll runner: unfailing" ) ;
+		G_LOG_S_V( m_spec.verbosity , "Main::PollRunner::start: poll runner: unfailing" ) ;
 		m_store.unfailAll() ;
 	}
 	else if( m_spec.type == Spec::Type::retry )
 	{
-		G_LOG_S_IF( m_spec.verbose , "Main::PollRunner::start: poll runner: retrying" ) ;
-		m_store.retry( m_spec.retry_limit , m_spec.verbose ) ;
+		G_LOG_S_V( m_spec.verbosity , "Main::PollRunner::start: poll runner: retrying" ) ;
+		m_store.retry( m_spec.retry_limit , m_spec.verbosity ) ;
 	}
 }
 
@@ -164,27 +164,21 @@ bool Main::PollRunner::parseVerbose( std::string_view s )
 
 void Main::PollRunner::logStart()
 {
-	if( m_spec.verbose )
-	{
-		G_LOG_S( "Main::PollRunner::logStart: poll runner [" << m_cmd.exe().basename() << "]: running " << m_cmd.exe() ) ;
-	}
+	G_LOG_S_V( m_spec.verbosity , "Main::PollRunner::logStart: poll runner [" << m_cmd.exe().basename() << "]: running " << m_cmd.exe() ) ;
 }
 
 void Main::PollRunner::logEnd( int ec , const std::string & output )
 {
-	if( G::LogOutput::Instance::atMoreVerbose() )
+	if( G::LogOutput::Instance::atInfoMoreVerbose(m_spec.verbosity) )
 	{
 		// no-op -- already logged in GNet::Task::done()
 	}
-	else if( m_spec.verbose || ( ec != 0 && G::LogOutput::Instance::atVerbose() ) )
+	else if( G::LogOutput::Instance::atInfoVerbose(m_spec.verbosity) )
 	{
 		std::ostringstream ss ;
 		ss << "poll runner [" << m_cmd.exe().basename() << "]: exit=" << ec
 			<< (output.empty()?"":" output=[") << G::Str::printable(output) << (output.empty()?"":"]") ;
-		if( m_spec.verbose )
-			G_LOG_S( "Main::PollRunner: " << ss.str() ) ;
-		else
-			G_LOG( "Main::PollRunner: " << ss.str() ) ;
+		G_LOG_V( m_spec.verbosity , "Main::PollRunner: " << ss.str() ) ;
 	}
 }
 

@@ -105,14 +105,6 @@ void G::LogOutput::init()
 		m_instance = this ;
 }
 
-G::LogOutput::Severity G::LogOutput::infoSeverity( int v ) noexcept
-{
-	if( v < -1 ) return Severity::Debug ;
-	if( v == -1 ) return Severity::InfoMoreVerbose ;
-	if( v == 0 ) return Severity::InfoVerbose ;
-	/*if( v >= 1 )*/ return Severity::InfoSummary ;
-}
-
 G::LogOutput::Config G::LogOutput::config() const noexcept
 {
 	return m_config ;
@@ -181,7 +173,7 @@ void * G::LogOutput::contextarg() noexcept
 	return p ? p->m_context_fn_arg : nullptr ;
 }
 
-bool G::LogOutput::at( Severity severity ) const noexcept
+bool G::LogOutput::at( Severity severity , int verbosity ) const noexcept
 {
 	bool do_output = m_config.m_output_enabled ;
 	if( severity == Severity::Debug )
