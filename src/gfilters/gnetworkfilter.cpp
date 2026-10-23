@@ -14,12 +14,12 @@
 
 GFilters::NetworkFilter::NetworkFilter( GNet::EventState es ,
 	GStore::FileStore & file_store , Filter::Type , const Filter::Config & filter_config ,
-	const std::string & server ) :
+	const std::string & spec ) :
 		m_es(es) ,
 		m_file_store(file_store) ,
 		m_timer(*this,&NetworkFilter::onTimeout,m_es) ,
 		m_done_signal(true) ,
-		m_location(server) ,
+		m_location(spec) ,
 		m_filter_config(filter_config) ,
 		m_connection_timeout(filter_config.timeout) ,
 		m_response_timeout(filter_config.timeout)

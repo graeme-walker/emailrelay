@@ -157,8 +157,8 @@ public:
 	G::TimeInterval pollingTimeoutFirst() const ;
 		///< Returns the timeout for the initial polling interval.
 
-	PollRunner::Spec pollRunner() const ;
-		///< Returns the path of any poll runner executable.
+	PollRunner::Config pollRunnerConfig( G::StringArray * warnings_p = nullptr ) const ;
+		///< Returns the poll-runner configuration.
 
 	bool immediate() const noexcept ;
 		///< Returns true if forwarding should occur as soon as each
@@ -272,7 +272,6 @@ private:
 	G::Path pathValueImp( const std::string & ) const ;
 	GSmtp::FilterFactoryBase::Spec filterValue( std::string_view , G::StringArray * = nullptr ) const ;
 	GSmtp::VerifierFactoryBase::Spec verifierValue( std::string_view , G::StringArray * = nullptr ) const ;
-	PollRunner::Spec pollRunnerValue( std::string_view , G::StringArray * = nullptr ) const ;
 	static bool pathlike( std::string_view ) ;
 	//
 	const char * valueError() const ;

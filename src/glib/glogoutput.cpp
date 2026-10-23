@@ -112,16 +112,16 @@ G::LogOutput::Config G::LogOutput::config() const noexcept
 	return m_config ;
 }
 
-unsigned int G::LogOutput::filter() const noexcept
+unsigned int G::LogOutput::moduleMask() const noexcept
 {
-	return m_config.m_filter ;
+	return m_config.m_module_mask ;
 }
 
 int G::LogOutput::Instance::moduleVerbosity( int module_id ) noexcept
 {
 	if( !m_instance ) return 0 ;
 	unsigned shift = static_cast<unsigned>(std::min(0,module_id)) * 2U ;
-	unsigned bits = (m_instance->m_config.m_filter >> shift) & 3U ;
+	unsigned bits = (m_instance->m_config.m_module_mask >> shift) & 3U ;
 	if( bits == 1U ) return 1 ;
 	if( bits == 2U ) return -1 ;
 	if( bits == 3U ) return -2 ;
@@ -424,10 +424,37 @@ std::string_view G::LogOutput::levelString( Severity s ) noexcept
 	return "" ;
 }
 
-unsigned int G::LogOutput::parseFilterSpec( std::string_view spec )
+int G::LogOutput::parseVerbosity( std::string_view spec )
+{
+	for( StringTokenView t(spec,";",1U) ; t ; ++t )
+	{
+		if( t() == "verbose" ) return 1 ;
+		if( t() == "v-0" ) return 0 ;
+		if( t() == "v+1" ) return 1 ;
+		if( t() == "v-1" ) return -1 ;
+		if( t() == "v-2" ) return -2 ;
+	}
+	return 0 ;
+}
+
+std::string G::LogOutput::noVerbosity( std::string_view spec )
+{
+	std::string result = sv_to_string( spec ) ;
+	for( StringTokenView t(spec,";",1U) ; t ; ++t )
+	{
+		if( t() == "verbose" || t() == "v-0" || t() == "v+1" || t() == "v-1" || t() == "v-2" )
+		{
+			result.erase( t.pos()?(t.pos()-1U):0U , t.size()+1U ) ;
+			return result ;
+		}
+	}
+	return result ;
+}
+
+unsigned int G::LogOutput::parseModuleMask( std::string_view spec )
 {
 	constexpr unsigned int error = std::numeric_limits<unsigned>::max() ;
-	unsigned int filter = 0U ;
+	unsigned int module_mask = 0U ;
 	for( StringTokenView t(spec,",",1U) ; t ; ++t )
 	{
 		std::string_view s = t() ;
@@ -451,14 +478,14 @@ unsigned int G::LogOutput::parseFilterSpec( std::string_view spec )
 			if( m() == module_name )
 			{
 				name_match = true ;
-				filter |= bits ;
+				module_mask |= bits ;
 				break ;
 			}
 		}
 		if( !name_match )
 			return error ;
 	}
-	return filter ;
+	return module_mask ;
 }
 
 // ==

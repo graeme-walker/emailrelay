@@ -20,11 +20,11 @@
 GFilters::ExecutableFilter::ExecutableFilter( GNet::EventState es ,
 	GStore::FileStore & file_store , Filter::Type filter_type ,
 	const Filter::Config & filter_config ,
-	const std::string & path ) :
+	const std::string & spec ) :
 		m_file_store(file_store) ,
 		m_filter_type(filter_type) ,
 		m_exit(0,filter_type) ,
-		m_path(path) ,
+		m_path(spec) , // maybe also "run:<path>"?
 		m_filter_config(filter_config) ,
 		m_timer(*this,&ExecutableFilter::onTimeout,es) ,
 		m_task(*this,es,GNet::Task::Config()

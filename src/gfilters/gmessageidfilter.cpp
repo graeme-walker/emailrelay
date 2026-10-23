@@ -18,7 +18,7 @@
 #include <sstream>
 
 GFilters::MessageIdFilter::MessageIdFilter( GNet::EventState es , GStore::FileStore & store ,
-	Filter::Type filter_type , const Filter::Config & filter_config , const std::string & ) :
+	Filter::Type filter_type , const Filter::Config & filter_config , const std::string & /*spec*/ ) :
 		SimpleFilterBase(es,filter_type,"msgid:") ,
 		m_store(store) ,
 		m_filter_config(filter_config)

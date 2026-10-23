@@ -112,7 +112,7 @@ Main::Unit::Unit( Run & run , unsigned int unit_id , const std::string & version
 	// create the poll runner with a reference to the message store
 	//
 	m_poll_runner = std::make_unique<PollRunner>( m_es_log_only , *this , store() ,
-		m_configuration.pollRunner() , m_configuration.spoolDir().str() ,
+		m_configuration.pollRunnerConfig() , m_configuration.spoolDir().str() ,
 		m_configuration.deliveryDir().str() ) ;
 
 	// prepare authentication secrets

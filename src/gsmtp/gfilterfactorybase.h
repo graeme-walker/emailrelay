@@ -36,7 +36,7 @@ public:
 		Spec( std::string_view , std::string_view ) ;
 		Spec & operator+=( const Spec & ) ; // append to "chain"
 		std::string first ; // "exit", "file", "net", "spam", "chain", empty on error
-		std::string second ; // reason on error, or eg. "/bin/a" if "file", eg. "file:/bin/a;verbose,file:/bin/b" if "chain"
+		std::string second ; // reason on error, or eg. "/bin/a" if "file", eg. "file:/bin/a;v+1,file:/bin/b" if "chain"
 	} ;
 
 	virtual std::unique_ptr<Filter> newFilter( GNet::EventState ,
