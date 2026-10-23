@@ -83,6 +83,7 @@ COMMON_SOURCES = \
 	glimits.h \
 	glog.h \
 	glog.cpp \
+	glogmodule.h \
 	glogstream.h \
 	glogstream.cpp \
 	glogoutput.h \
@@ -90,7 +91,6 @@ COMMON_SOURCES = \
 	gstrmacros.h \
 	gmd5.h \
 	gmd5.cpp \
-	gmodule.h \
 	gmsg.h \
 	gnewprocess.h \
 	gnowide.h \

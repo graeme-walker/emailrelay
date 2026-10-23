@@ -90,7 +90,7 @@ void GFilters::ExecutableFilter::start( const GStore::MessageId & message_id )
 	args.push_back( cpath.str() ) ;
 	args.push_back( epath.str() ) ;
 	G::ExecutableCommand commandline( m_path.str() , args ) ;
-	G_LOG( "GFilters::ExecutableFilter::start: " << prefix() << ": [" << message_id.str() << "]: running " << m_path ) ;
+	G_LOG_V( verbosity() , "GFilters::ExecutableFilter::start: " << prefix() << ": [" << message_id.str() << "]: running " << m_path ) ;
 	m_task.start( commandline ) ;
 
 	if( m_filter_config.timeout )
@@ -111,7 +111,7 @@ void GFilters::ExecutableFilter::onTimeout()
 
 void GFilters::ExecutableFilter::onTaskDone( int exit_code , const std::string & output )
 {
-	G_LOG_MORE( "GFilters::ExecutableFilter::onTaskDone: filter [" << m_task.name() << "]: "
+	G_LOG_MORE_V( verbosity() , "GFilters::ExecutableFilter::onTaskDone: filter [" << m_task.name() << "]: "
 		"exit=" << exit_code << " output=[" << G::Str::printable(output) << "]" ) ;
 
 	m_timer.cancelTimer() ;

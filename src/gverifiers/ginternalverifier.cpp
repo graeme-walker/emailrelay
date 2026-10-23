@@ -13,6 +13,11 @@
 GVerifiers::InternalVerifier::InternalVerifier()
 = default;
 
+int GVerifiers::InternalVerifier::verbosity() const noexcept
+{
+	return 0 ;
+}
+
 void GVerifiers::InternalVerifier::verify( const GSmtp::Verifier::Request & request )
 {
 	// accept all addresses as if remote

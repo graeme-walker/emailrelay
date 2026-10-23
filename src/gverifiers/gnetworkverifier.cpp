@@ -31,6 +31,11 @@ GVerifiers::NetworkVerifier::~NetworkVerifier()
 	m_client_ptr.deletedSignal().disconnect() ;
 }
 
+int GVerifiers::NetworkVerifier::verbosity() const noexcept
+{
+	return m_config.verbosity ;
+}
+
 void GVerifiers::NetworkVerifier::verify( const GSmtp::Verifier::Request & request )
 {
 	m_command = request.command ;
@@ -44,7 +49,7 @@ void GVerifiers::NetworkVerifier::verify( const GSmtp::Verifier::Request & reque
 			idle_timeout ) ) ;
 	}
 
-	G_LOG( "GVerifiers::NetworkVerifier: verification request: ["
+	G_LOG_V( verbosity() , "GVerifiers::NetworkVerifier: verification request: ["
 		<< G::Str::printable(request.address) << "] (" << request.client_ip.displayString() << ")" ) ;
 
 	G::StringArray args ;
@@ -80,7 +85,7 @@ void GVerifiers::NetworkVerifier::clientEvent( const std::string & s1 , const st
 	G_DEBUG( "GVerifiers::NetworkVerifier::clientEvent: [" << s1 << "] [" << s2 << "]" ) ;
 	if( s1 == "verify" )
 	{
-		G_LOG( "GVerifiers::NetworkVerifier: verification response: [" << G::Str::printable(s2) << "]" ) ;
+		G_LOG_V( verbosity() , "GVerifiers::NetworkVerifier: verification response: [" << G::Str::printable(s2) << "]" ) ;
 
 		// parse the output from the remote verifier using pipe-delimited
 		// fields based on the script-based verifier interface, but backwards

@@ -87,7 +87,7 @@ public:
 			///< is not used.
 
 	std::string name() const ;
-		///< Returns a short name for logging derived from the 
+		///< Returns a short name for logging derived from the
 		///< executable command-line.
 
 public:

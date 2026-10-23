@@ -30,6 +30,7 @@ public:
 		///< Constructor.
 
 private: // overrides
+	int verbosity() const noexcept override ; // GSmtp::Verifier
 	G::Slot::Signal<GSmtp::Verifier::Command,const GSmtp::VerifierStatus&> & doneSignal() override ; // GSmtp::Verifier
 	void cancel() override ; // GSmtp::Verifier
 	void onTaskDone( int , const std::string & ) override ; // GNet::TaskCallback

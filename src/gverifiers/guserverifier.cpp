@@ -37,6 +37,11 @@ GVerifiers::UserVerifier::UserVerifier( GNet::EventState es ,
 	G_DEBUG( "GVerifiers::UserVerifier: uid range " << G::Range::str(m_range) ) ;
 }
 
+int GVerifiers::UserVerifier::verbosity() const noexcept
+{
+	return m_config.verbosity ;
+}
+
 void GVerifiers::UserVerifier::verify( const GSmtp::Verifier::Request & request )
 {
 	m_command = request.command ;

@@ -242,7 +242,7 @@ void Main::Unit::onPollTimeout()
 	m_poll_timer->startTimer( m_configuration.pollingTimeout() ) ;
 	if( m_poll_runner->busy() )
 	{
-		G_WARNING_IF( m_poll_runner , "Main::Unit::onPollTimeout: poll runner busy from last time" ) ;
+		G_WARNING_IF( !!m_poll_runner , "Main::Unit::onPollTimeout: poll runner busy from last time" ) ;
 		requestForwarding( "poll" ) ; // ignore the too-slow script and trigger forwarding anyways
 		m_poll_runner->disarm() ;
 	}
@@ -297,10 +297,10 @@ void Main::Unit::onRequestForwardingTimeout()
 	}
 	else
 	{
-		G_LOG_IF( logForwarding() , "Main::Unit::onRequestForwardingTimeout: " << format(txt("forwarding: [%1%]")) % m_forwarding_reason ) ;
+		G_LOG_M( forwarding , "Main::Unit::onRequestForwardingTimeout: " << format(txt("forwarding: [%1%]")) % m_forwarding_reason ) ;
 		if( store().empty() )
 		{
-			G_LOG_IF( logForwarding() , "Main::Unit::startForwarding: " << txt("forwarding: no messages to send") ) ;
+			G_LOG_M( forwarding , "Main::Unit::startForwarding: " << txt("forwarding: no messages to send") ) ;
 			m_event_signal.emit( m_unit_id , "forward" , "end" , "no messages" ) ;
 		}
 		else
@@ -312,11 +312,6 @@ void Main::Unit::onRequestForwardingTimeout()
 				m_event_signal.emit( m_unit_id , "forward" , "end" , error ) ;
 		}
 	}
-}
-
-bool Main::Unit::logForwarding() const
-{
-	return m_forwarding_reason != "poll" || m_configuration.pollingLog() || G::LogOutput::Instance::atDebug() ;
 }
 
 std::string Main::Unit::startForwarding()

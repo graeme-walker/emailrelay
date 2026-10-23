@@ -53,6 +53,10 @@ public:
 		Config & set_verbosity( int verbosity ) ;
 	} ;
 
+	virtual int verbosity() const noexcept = 0 ;
+		///< Returns a verbosity adjustment, typically from the Config
+		///< and originally derived from the verifier specification string.
+
 	virtual void verify( const Request & ) = 0 ;
 		///< Checks a recipient address and asynchronously returns a
 		///< GSmtp::VerifierStatus structure to indicate whether the address

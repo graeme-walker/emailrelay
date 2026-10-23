@@ -212,28 +212,9 @@ std::string Main::Configuration::error() const
 	return specificationError() ;
 }
 
-unsigned int Main::Configuration::logFilterValue() const
-{
-	unsigned int filter_value = 0U ;
-	std::string log_filter = stringValue( "log-filter" ) ;
-	std::string_view sv = log_filter ;
-	for( G::StringFieldView f(sv,",",1U) ; f ; ++f )
-	{
-		if( f() == "io" )
-			filter_value |= 1U ;
-		if( f() == "store" )
-			filter_value |= 2U ;
-	}
-	return filter_value ;
-}
-
 const char * Main::Configuration::valueError() const
 {
 	using G::tx ;
-
-	std::string log_filter = stringValue( "log-filter" ) ;
-	if( !log_filter.empty() && log_filter != "-io" && log_filter != "-store" )
-		return tx("invalid --log-filter value: use -<module> for modules: io, store") ;
 
 	std::array<const char*,5U> timeout_keys = {
 		"filter-timeout" ,
@@ -476,6 +457,9 @@ std::string Main::Configuration::specificationError() const
 	using G::txt ;
 	using G::format ;
 
+	if( G::LogOutput::parseFilterSpec(stringValue("log-filter")) == std::numeric_limits<unsigned>::max() )
+		return str( format( txt("invalid log filter specification: use <module>+1, <module>-1 or <module>-2 for modules %1%") ) % G::LogModule::list ) ;
+
 	GSmtp::FilterFactoryBase::Spec f ;
 	if( (f=_filter()).first.empty() ) // NOLINT assignment
 		return str( format( txt("invalid filter specification: %1%") ) % f.second ) ;
@@ -552,13 +536,6 @@ G::StringArray Main::Configuration::warnings() const
 	filterValue( "client-filter" , &warnings ) ;
 	verifierValue( "address-verifier" , &warnings ) ;
 	pollRunnerValue( "poll-run" , &warnings ) ;
-
-// TODO
-{
-auto x = filterValue( "filter" ) ;
-G_LOG_S( "++++ +++ [" << x.first << "] [" << x.second << "]" ) ;
-}
-
 	return warnings ;
 }
 
@@ -741,7 +718,7 @@ G::LogOutput::Config Main::Configuration::logOutputConfig( bool has_gui ) const
 			.set_verbose_count( m_map.count("verbose") )
 			.set_debug( debug() )
 			.set_with_level( true )
-			.set_filter( m_map.value("log-filter")=="-io"?1U:0U )
+			.set_filter( G::LogOutput::parseFilterSpec(m_map.value("log-filter")) )
 			.set_with_timestamp( contains("log-time") || logFormatContains("time") )
 			.set_with_context( contains("log-address") || contains("log-format") )
 			.set_strip( !debug() )

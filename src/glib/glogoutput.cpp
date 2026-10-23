@@ -13,6 +13,7 @@
 #include "gfile.h"
 #include "ggettext.h"
 #include "gstringview.h"
+#include "gstringtoken.h"
 #include "groot.h"
 #include "gtest.h"
 #include <algorithm>
@@ -22,6 +23,7 @@
 #include <string>
 #include <cstring>
 #include <array>
+#include <limits>
 
 G_LOG_THREAD_LOCAL G::LogOutput * G::LogOutput::m_instance = nullptr ;
 
@@ -117,10 +119,13 @@ unsigned int G::LogOutput::filter() const noexcept
 
 int G::LogOutput::Instance::moduleVerbosity( int module_id ) noexcept
 {
-	// eg. for module-id 2: 0b110000 -> +1, 0b000000 -> -2
 	if( !m_instance ) return 0 ;
 	unsigned shift = static_cast<unsigned>(std::min(0,module_id)) * 2U ;
-	return static_cast<int>((m_instance->m_config.m_filter >> shift) & 3U) - 2 ;
+	unsigned bits = (m_instance->m_config.m_filter >> shift) & 3U ;
+	if( bits == 1U ) return 1 ;
+	if( bits == 2U ) return -1 ;
+	if( bits == 3U ) return -2 ;
+	return 0 ;
 }
 
 int G::LogOutput::fd() const noexcept
@@ -189,7 +194,7 @@ bool G::LogOutput::at( Severity severity , int verbosity ) const noexcept
 	if( severity == Severity::Debug )
 		do_output = m_config.m_output_enabled && m_config.m_debug ;
 	else if( severity_value != -1 )
-		do_output = m_config.m_output_enabled && severity_value <= std::max(0,verbose_count+verbosity) ;
+		do_output = m_config.m_output_enabled && severity_value <= (verbose_count+verbosity) ;
 	return do_output ;
 }
 
@@ -417,6 +422,43 @@ std::string_view G::LogOutput::levelString( Severity s ) noexcept
 	else if( s == Severity::Error ) return imp::error() ;
 	else if( s == Severity::Assertion ) return imp::assertion() ;
 	return "" ;
+}
+
+unsigned int G::LogOutput::parseFilterSpec( std::string_view spec )
+{
+	constexpr unsigned int error = std::numeric_limits<unsigned>::max() ;
+	unsigned int filter = 0U ;
+	for( StringTokenView t(spec,",",1U) ; t ; ++t )
+	{
+		std::string_view s = t() ;
+		if( s.size() <= 2U ) return error ;
+		unsigned int bits = 0U ;
+		if( Str::tailMatch(s,"-0") )
+			bits = 0U ;
+		else if( Str::tailMatch(s,"+1") )
+			bits = 1U ;
+		else if( Str::tailMatch(s,"-1") )
+			bits = 2U ;
+		else if( Str::tailMatch(s,"-2") )
+			bits = 3U ;
+		else
+			return error ;
+		std::string_view module_name = s.substr( 0 , s.size()-2U ) ;
+		std::string_view module_list( LogModule::list , sizeof(LogModule::list) ) ;
+		bool name_match = false ;
+		for( StringTokenView m(module_list,",",1U) ; m ; ++m , bits <<= 2 )
+		{
+			if( m() == module_name )
+			{
+				name_match = true ;
+				filter |= bits ;
+				break ;
+			}
+		}
+		if( !name_match )
+			return error ;
+	}
+	return filter ;
 }
 
 // ==

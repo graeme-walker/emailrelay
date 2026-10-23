@@ -27,6 +27,11 @@ GVerifiers::ExecutableVerifier::ExecutableVerifier( GNet::EventState es , const 
 {
 }
 
+int GVerifiers::ExecutableVerifier::verbosity() const noexcept
+{
+	return m_config.verbosity ;
+}
+
 void GVerifiers::ExecutableVerifier::verify( const GSmtp::Verifier::Request & request )
 {
 	G_ASSERT( !m_config.domain.empty() ) ;
@@ -42,7 +47,7 @@ void GVerifiers::ExecutableVerifier::verify( const GSmtp::Verifier::Request & re
 	commandline.add( G::Str::lower(request.auth_mechanism) ) ;
 	commandline.add( request.auth_extra ) ;
 
-	G_LOG( "GVerifiers::ExecutableVerifier: address verifier: executing " << commandline.displayString() ) ;
+	G_LOG_V( verbosity() , "GVerifiers::ExecutableVerifier: address verifier: executing " << commandline.displayString() ) ;
 	m_to_address = request.address ;
 	m_task.start( commandline ) ;
 	if( m_config.timeout )
@@ -60,7 +65,7 @@ void GVerifiers::ExecutableVerifier::onTimeout()
 
 void GVerifiers::ExecutableVerifier::onTaskDone( int exit_code , const std::string & result_in )
 {
-	G_LOG_MORE( "GVerifiers::ExecutableVerifier::onTaskDone: address verifier [" << m_task.name() << "]: "
+	G_LOG_MORE_V( verbosity() , "GVerifiers::ExecutableVerifier::onTaskDone: address verifier [" << m_task.name() << "]: "
 		"exit=" << exit_code << " output=[" << G::Str::printable(result_in) << "]" ) ;
 
 	m_timer.cancelTimer() ;
@@ -83,7 +88,7 @@ void GVerifiers::ExecutableVerifier::onTaskDone( int exit_code , const std::stri
 		std::size_t parts = result_parts.size() ;
 		result_parts.resize( 2U ) ;
 
-		G_LOG( "GVerifiers::ExecutableVerifier: address verifier: exit=" << exit_code << " "
+		G_LOG_V( verbosity() , "GVerifiers::ExecutableVerifier: address verifier: exit=" << exit_code << " "
 			<< "[" << G::Str::printable(result_parts[0]) << "] [" << G::Str::printable(result_parts[1]) << "]" ) ;
 
 		if( exit_code == 0 && parts >= 2 )

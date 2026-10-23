@@ -326,7 +326,7 @@ bool GSmtp::ClientProtocol::applyEvent( const ClientReply & reply )
 	else if( m_protocol.state == State::Auth && !reply.positive() && m_sasl->next() )
 	{
 		// authentication failed -- try the next mechanism
-		G_LOG_MORE( "GSmtp::ClientProtocol::applyEvent: " << AuthError(*m_sasl,reply).str()
+		G_LOG_MORE_M(auth, "GSmtp::ClientProtocol::applyEvent: " << AuthError(*m_sasl,reply).str()
 			<< ": trying [" << G::Str::lower(m_sasl->mechanism()) << "]" ) ;
 		m_session.auth_mechanism = m_sasl->mechanism() ;
 		GAuth::SaslClient::Response rsp = initialResponse( *m_sasl , m_message_state.selector ) ;
@@ -872,7 +872,7 @@ void GSmtp::ClientProtocol::sendChunkImp( const char * p , std::size_t n )
 	if( m_config.response_timeout )
 		startTimer( m_config.response_timeout ) ; // response timer on every bdat block
 
-	if( G::LogOutput::Instance::atInfoMoreVerbose("io"_id) )
+	if( G_LOG_ACTIVE_M(io) )
 	{
 		std::size_t pos = sv.find( "\r\n"_sv ) ;
 		std::string_view cmd = G::Str::headView( sv , pos , {p,std::size_t(0U)} ) ;

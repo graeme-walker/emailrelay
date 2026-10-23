@@ -459,7 +459,7 @@ void GPop::ServerProtocol::doAuthData( const std::string & line , bool & ok )
 
 void GPop::ServerProtocol::doAuthComplete( const std::string & , bool & )
 {
-	G_LOG_S( "GPop::ServerProtocol: pop authentication of " << m_sasl->id() << " connected from " << m_peer_address.displayString() ) ;
+	G_LOG_S_M(pop, "GPop::ServerProtocol: pop authentication of " << m_sasl->id() << " connected from " << m_peer_address.displayString() ) ;
 	m_user = m_sasl->id() ;
 	m_store.prepare( m_user ) ;
 	readStore( m_user ) ;
@@ -610,7 +610,7 @@ void GPop::ServerProtocol::sendLines( std::ostringstream & ss )
 {
 	ss << "\r\n" ;
 	const std::string s = ss.str() ;
-	if( G::LogOutput::Instance::atInfoVerbose("io"_id) )
+	if( G_LOG_ACTIVE_M(io) )
 	{
 		std::size_t lines = std::count( s.begin() , s.end() , '\n' ) ;
 		const std::size_t npos = std::string::npos ;

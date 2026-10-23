@@ -115,7 +115,7 @@ void GSmtp::Forward::start( std::unique_ptr<GStore::StoredMessage> message )
 		m_message = std::move( message ) ;
 
 		m_routing_filter = m_ff.newFilter( m_es , Filter::Type::routing , m_config.filter_config , m_config.filter_spec ) ;
-		G_LOG_MORE( "GSmtp::Forward::start: routing-filter [" << m_routing_filter->id() << "]: [" << m_message->id().str() << "]" ) ;
+		G_LOG_MORE_V( m_routing_filter->verbosity() , "GSmtp::Forward::start: routing-filter [" << m_routing_filter->id() << "]: [" << m_message->id().str() << "]" ) ;
 		m_routing_filter->doneSignal().connect( G::Slot::slot(*this,&Forward::routingFilterDone) ) ;
 		m_routing_filter->start( m_message->id() ) ;
 	}

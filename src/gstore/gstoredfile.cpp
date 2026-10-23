@@ -221,7 +221,7 @@ void GStore::StoredFile::fail( const std::string & reason , int reason_code )
 		addReason( epath(m_state) , reason , reason_code ) ;
 
 		G::Path bad_path = epath( State::Bad ) ;
-		G_LOG_S( "GStore::StoredFile::fail: failing envelope [" << epath(m_state).basename() << "] "
+		G_LOG_S_M(store, "GStore::StoredFile::fail: failing envelope [" << epath(m_state).basename() << "] "
 			<< "-> [" << bad_path.basename() << "]" ) ;
 
 		FileOp::rename( epath(m_state) , bad_path ) ;
