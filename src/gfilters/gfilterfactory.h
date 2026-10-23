@@ -46,7 +46,7 @@ public:
 			///<
 			///< The specification string can be a comma-separated list with
 			///< the component parts checked separately and the returned Spec
-			///< is like ("chain","file:foo,net:bar,file:baz;verbose").
+			///< is like ("chain","file:foo,net:bar,file:baz;v+1").
 			///<
 			///< Any relative file paths are made absolute using the given
 			///< base directory, if given. (This is normally from

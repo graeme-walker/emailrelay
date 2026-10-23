@@ -78,7 +78,7 @@ std::unique_ptr<GSmtp::Verifier> GVerifiers::VerifierFactory::newVerifier( GNet:
 	}
 	else if( spec.first == "file" )
 	{
-		return std::make_unique<ExecutableVerifier>( es , config , G::Path(spec.second) ) ;
+		return std::make_unique<ExecutableVerifier>( es , config , spec.second ) ;
 	}
 
 	throw G::Exception( "invalid verifier" , spec.second ) ;

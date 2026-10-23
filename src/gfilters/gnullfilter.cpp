@@ -10,34 +10,38 @@
 #include "gnullfilter.h"
 #include "gassert.h"
 #include "gstr.h"
+#include "glog.h"
 
 GFilters::NullFilter::NullFilter( GNet::EventState es , GStore::FileStore & ,
 	Filter::Type filter_type , const Filter::Config & filter_config ) :
-		m_id("exit") ,
-		m_exit(0,filter_type) ,
 		m_filter_config(filter_config) ,
-		m_quiet(true) ,
-		m_timeout(0) ,
-		m_timer(*this,&NullFilter::onTimeout,es)
-{
-}
-
-GFilters::NullFilter::NullFilter( GNet::EventState es , GStore::FileStore & ,
-	Filter::Type filter_type , const Filter::Config & ,
-	unsigned int exit_code ) :
-		m_id("exit:"+G::Str::fromUInt(exit_code)) ,
-		m_exit(static_cast<int>(exit_code),filter_type) ,
-		m_quiet(exit_code==0U) ,
-		m_timeout(0) ,
-		m_timer(*this,&NullFilter::onTimeout,es)
-{
-}
-
-GFilters::NullFilter::NullFilter( GNet::EventState es , GStore::FileStore & ,
-	Filter::Type filter_type , const Filter::Config & , G::TimeInterval sleep_time ) :
-		m_id("sleep") ,
 		m_exit(0,filter_type) ,
-		m_quiet(false) ,
+		m_id("exit") ,
+		m_verbosity(-2) ,
+		m_timeout(0) ,
+		m_timer(*this,&NullFilter::onTimeout,es)
+{
+}
+
+GFilters::NullFilter::NullFilter( GNet::EventState es , GStore::FileStore & ,
+	Filter::Type filter_type , const Filter::Config & filter_config ,
+	const std::string & spec ) :
+		m_filter_config(filter_config) ,
+		m_exit(G::Str::toInt(G::LogOutput::noVerbosity(spec)),filter_type) ,
+		m_id("exit:"+G::LogOutput::noVerbosity(spec)) ,
+		m_verbosity(G::LogOutput::parseVerbosity(spec)) ,
+		m_timeout(0) ,
+		m_timer(*this,&NullFilter::onTimeout,es)
+{
+}
+
+GFilters::NullFilter::NullFilter( GNet::EventState es , GStore::FileStore & ,
+	Filter::Type filter_type , const Filter::Config & filter_config ,
+	G::TimeInterval sleep_time ) :
+		m_filter_config(filter_config) ,
+		m_exit(0,filter_type) ,
+		m_id("sleep") ,
+		m_verbosity(-2) ,
 		m_timeout(sleep_time) ,
 		m_timer(*this,&NullFilter::onTimeout,es)
 {
@@ -51,7 +55,7 @@ std::string GFilters::NullFilter::id() const
 
 int GFilters::NullFilter::verbosity() const noexcept
 {
-	return m_quiet ? -2 : m_filter_config.verbosity ;
+	return m_verbosity ;
 }
 
 bool GFilters::NullFilter::special() const

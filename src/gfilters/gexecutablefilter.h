@@ -68,6 +68,7 @@ private:
 	Filter::Type m_filter_type ;
 	Exit m_exit ;
 	G::Path m_path ;
+	int m_verbosity ;
 	Filter::Config m_filter_config ;
 	GNet::Timer<ExecutableFilter> m_timer ;
 	std::string m_response ;

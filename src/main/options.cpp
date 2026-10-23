@@ -76,10 +76,10 @@ G::Options Main::Options::spec()
 		tx("modifies what is logged") , "" ,
 		M::many , "spec" , 30 ,
 		t_logging ) ;
-			// Modifies what is logged. The value shoud be "-" followed by a
-			// module or category name in order to disable verbose informational
-			// logging of that type. Use a bogus value to see a list of possible
-			// module or category names in the error message.
+			//example: io-2,connection-1
+			// Modifies what is logged. The value should be a module name followed by
+			// "+1", "-1" or "-2", having the effect of adding or removing "--verbose"
+			// for that module.
 
 	#ifdef G_UNIX
 	G::Options::add( opt , 't' , "no-daemon" ,

@@ -82,6 +82,7 @@ private:
 	Filter::Type m_filter_type ;
 	Filter::Config m_filter_config ;
 	std::string m_spec ;
+	int m_verbosity ;
 	MxLookup::Config m_mxlookup_config ;
 	std::vector<GNet::Address> m_mxlookup_nameservers ;
 	std::string m_id ;

@@ -117,11 +117,11 @@ unsigned int G::LogOutput::moduleMask() const noexcept
 	return m_config.m_module_mask ;
 }
 
-int G::LogOutput::Instance::moduleVerbosity( int module_id ) noexcept
+int G::LogOutput::moduleVerbosity( int module_id ) const noexcept
 {
-	if( !m_instance ) return 0 ;
-	unsigned shift = static_cast<unsigned>(std::min(0,module_id)) * 2U ;
-	unsigned bits = (m_instance->m_config.m_module_mask >> shift) & 3U ;
+	if( module_id < 0 ) return 0 ;
+	unsigned shift = static_cast<unsigned>(module_id) * 2U ;
+	unsigned bits = (m_config.m_module_mask >> shift) & 3U ;
 	if( bits == 1U ) return 1 ;
 	if( bits == 2U ) return -1 ;
 	if( bits == 3U ) return -2 ;
@@ -182,20 +182,18 @@ bool G::LogOutput::at( Severity severity , int verbosity ) const noexcept
 {
 	bool do_output = m_config.m_output_enabled ;
 	int verbose_count = static_cast<int>( m_config.m_verbose_count ) ;
-
-	int severity_value = -1 ;
-	if( severity == Severity::InfoSummary )
-		severity_value = 0 ;
-	if( severity == Severity::InfoVerbose )
-		severity_value = 1 ;
-	if( severity == Severity::InfoMoreVerbose )
-		severity_value = 2 ;
-
-	if( severity == Severity::Debug )
-		do_output = m_config.m_output_enabled && m_config.m_debug ;
-	else if( severity_value != -1 )
-		do_output = m_config.m_output_enabled && severity_value <= (verbose_count+verbosity) ;
-	return do_output ;
+	if( severity == Severity::Error || severity == Severity::Warning )
+		return m_config.m_output_enabled ;
+	else if( severity == Severity::InfoSummary )
+		return m_config.m_output_enabled && m_config.m_summary_info && (verbose_count+verbosity) >= 0 ;
+	else if( severity == Severity::InfoVerbose )
+		return m_config.m_output_enabled && (verbose_count+verbosity) >= 1 ;
+	else if( severity == Severity::InfoMoreVerbose )
+		return m_config.m_output_enabled && (verbose_count+verbosity) >= 2 ;
+	else if( severity == Severity::Debug )
+		return m_config.m_output_enabled && m_config.m_debug ;
+	else // Severity::Assertion
+		return true ;
 }
 
 G::LogStream G::LogOutput::start( Severity severity , const char * , int ) noexcept
@@ -494,8 +492,9 @@ G::LogOutput::Config::Config() noexcept
 = default;
 
 G::LogOutput::Config::Config( bool enabled , bool verbose ) noexcept :
-	m_verbose_count(enabled?1:0),
 	m_output_enabled(enabled),
+	m_summary_info(true) ,
+	m_verbose_count(enabled?1:0),
 	m_debug(verbose)
 {
 }

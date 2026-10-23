@@ -24,7 +24,8 @@ GFilters::ExecutableFilter::ExecutableFilter( GNet::EventState es ,
 		m_file_store(file_store) ,
 		m_filter_type(filter_type) ,
 		m_exit(0,filter_type) ,
-		m_path(spec) , // maybe also "run:<path>"?
+		m_path(G::LogOutput::noVerbosity(spec)) , // maybe also "run:<path>"?
+		m_verbosity(G::LogOutput::parseVerbosity(spec)) ,
 		m_filter_config(filter_config) ,
 		m_timer(*this,&ExecutableFilter::onTimeout,es) ,
 		m_task(*this,es,GNet::Task::Config()
@@ -38,7 +39,7 @@ GFilters::ExecutableFilter::~ExecutableFilter()
 
 int GFilters::ExecutableFilter::verbosity() const noexcept
 {
-	return m_filter_config.verbosity ;
+	return m_verbosity ;
 }
 
 std::string GFilters::ExecutableFilter::id() const

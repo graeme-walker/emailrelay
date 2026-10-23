@@ -31,10 +31,10 @@ public:
 			///< Constructor for a do-nothing filter.
 
 	NullFilter( GNet::EventState , GStore::FileStore & ,
-		Filter::Type , const Filter::Config & , unsigned int exit_code ) ;
+		Filter::Type , const Filter::Config & , const std::string & spec ) ;
 			///< Constructor for a filter that behaves like an
-			///< executable that always exits with the given
-			///< exit code.
+			///< executable that always exits with the exit code
+			///< in the spec.
 
 	NullFilter( GNet::EventState , GStore::FileStore & ,
 		Filter::Type , const Filter::Config & , G::TimeInterval ) ;
@@ -62,12 +62,13 @@ public:
 
 private:
 	void onTimeout() ;
+	static int parseExitCode( std::string_view ) ;
 
 private:
-	std::string m_id ;
-	Filter::Exit m_exit ;
 	Filter::Config m_filter_config ;
-	bool m_quiet ;
+	Filter::Exit m_exit ;
+	std::string m_id ;
+	int m_verbosity ;
 	G::TimeInterval m_timeout ;
 	GNet::Timer<NullFilter> m_timer ;
 	G::Slot::Signal<int> m_done_signal ;

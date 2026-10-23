@@ -17,19 +17,21 @@
 #include "glocal.h"
 #include "glog.h"
 
-GVerifiers::ExecutableVerifier::ExecutableVerifier( GNet::EventState es , const GSmtp::Verifier::Config & config , const G::Path & path ) :
-	m_timer(*this,&ExecutableVerifier::onTimeout,es) ,
-	m_config(config) ,
-	m_path(path) ,
-	m_task(*this,es,GNet::Task::Config()
-		.set_exec_error_format("<<exec error: __strerror__>>")
-		.set_identity(G::Root::nobody()))
+GVerifiers::ExecutableVerifier::ExecutableVerifier( GNet::EventState es , const GSmtp::Verifier::Config & config ,
+	const std::string & spec ) :
+		m_timer(*this,&ExecutableVerifier::onTimeout,es) ,
+		m_config(config) ,
+		m_path(G::LogOutput::noVerbosity(spec)) ,
+		m_verbosity(G::LogOutput::parseVerbosity(spec)) ,
+		m_task(*this,es,GNet::Task::Config()
+			.set_exec_error_format("<<exec error: __strerror__>>")
+			.set_identity(G::Root::nobody()))
 {
 }
 
 int GVerifiers::ExecutableVerifier::verbosity() const noexcept
 {
-	return m_config.verbosity ;
+	return m_verbosity ;
 }
 
 void GVerifiers::ExecutableVerifier::verify( const GSmtp::Verifier::Request & request )

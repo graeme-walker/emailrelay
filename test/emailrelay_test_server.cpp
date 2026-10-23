@@ -396,7 +396,7 @@ int main( int argc , char * argv [] )
 				G::LogOutput::Config()
 					.set_output_enabled(!test_config.m_quiet)
 					.set_summary_info(!test_config.m_quiet)
-					.set_verbose_info(!test_config.m_quiet)
+					.set_verbose_count(test_config.m_quiet?0U:1U)
 					.set_debug(debug)
 					.set_with_level(true)
 					.set_strip(true) ,

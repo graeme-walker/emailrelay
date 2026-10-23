@@ -33,7 +33,7 @@ public:
 		Spec() ;
 		Spec( std::string_view , std::string_view ) ;
 		std::string first ; // "exit", "file", "net", empty on error
-		std::string second ; // reason on error, or eg. "/bin/a" or "/bin/b;verbose" if "file"
+		std::string second ; // reason on error, or eg. "/bin/a" or "/bin/b;v-2" if "file"
 	} ;
 
 	virtual std::unique_ptr<Verifier> newVerifier( GNet::EventState ,

@@ -111,9 +111,6 @@ std::unique_ptr<GSmtp::Filter> GFilters::FilterFactory::newFilter( GNet::EventSt
 	GSmtp::Filter::Type filter_type , GSmtp::Filter::Config filter_config ,
 	FilterFactory::Spec spec )
 {
-	filter_config.verbosity = G::LogOutput::parseVerbosity( spec.second ) ;
-	if( spec.first != "chain" )
-		spec.second = G::LogOutput::noVerbosity( spec.second ) ;
 	if( spec.first == "chain" )
 	{
 		// (one level of recursion -- FilterChain::ctor calls newFilter())
@@ -139,7 +136,7 @@ std::unique_ptr<GSmtp::Filter> GFilters::FilterFactory::newFilter( GNet::EventSt
 	}
 	else if( spec.first == "exit" )
 	{
-		return std::make_unique<NullFilter>( es , m_file_store , filter_type , filter_config , G::Str::toUInt(spec.second) ) ;
+		return std::make_unique<NullFilter>( es , m_file_store , filter_type , filter_config , spec.second ) ;
 	}
 	else if( spec.first == "sleep" )
 	{

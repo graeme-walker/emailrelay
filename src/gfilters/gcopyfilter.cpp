@@ -19,9 +19,10 @@ GFilters::CopyFilter::CopyFilter( GNet::EventState es , GStore::FileStore & stor
 		SimpleFilterBase(es,filter_type,"copy:") ,
 		m_store(store) ,
 		m_filter_config(filter_config) ,
-		m_spec(spec)
+		m_spec(G::LogOutput::noVerbosity(spec)) ,
+		m_verbosity(G::LogOutput::parseVerbosity(spec))
 {
-	std::string_view spec_sv = spec ;
+	std::string_view spec_sv = m_spec ;
 	for( G::StringTokenView t( spec_sv , ";" , 1U ) ; t ; ++t )
 	{
 		if( t() == "p" || t() == "pop" ) m_delivery_config.pop_by_name = true ;
@@ -33,7 +34,7 @@ GFilters::CopyFilter::CopyFilter( GNet::EventState es , GStore::FileStore & stor
 
 int GFilters::CopyFilter::verbosity() const noexcept
 {
-	return m_filter_config.verbosity ;
+	return m_verbosity ;
 }
 
 GSmtp::Filter::Result GFilters::CopyFilter::run( const GStore::MessageId & message_id ,

@@ -90,19 +90,19 @@ bool GSmtp::Forward::sendNext()
 		}
 		else
 		{
-			G_LOG_M(smtpclient, "GSmtp::Forward::sendNext: forwarding [" << message->id().str() << "]" << messageInfo(*message) ) ;
+			G_LOG_M(forwarding, "GSmtp::Forward::sendNext: forwarding [" << message->id().str() << "]" << messageInfo(*message) ) ;
 			start( std::move(message) ) ;
 			return true ;
 		}
 	}
 	if( m_message_count != 0U )
-		G_LOG_M(smtpclient, "GSmtp::Forward: forwarding: no more messages to send" ) ;
+		G_LOG_M(forwarding, "GSmtp::Forward: forwarding: no more messages to send" ) ;
 	return false ;
 }
 
 void GSmtp::Forward::sendMessage( std::unique_ptr<GStore::StoredMessage> message )
 {
-	G_LOG_M(smtpclient, "GSmtp::Forward::sendMessage: forwarding [" << message->id().str() << "]" << messageInfo(*message) ) ;
+	G_LOG_M(forwarding, "GSmtp::Forward::sendMessage: forwarding [" << message->id().str() << "]" << messageInfo(*message) ) ;
 	start( std::move(message) ) ;
 }
 
@@ -187,7 +187,7 @@ bool GSmtp::Forward::updateClient( const GStore::StoredMessage & message )
 	bool new_selector = m_selector != message.clientAccountSelector() ;
 	if( unconnectable( message.forwardToAddress() ) )
 	{
-		G_LOG_M(smtpclient, "GSmtp::Forward::updateClient: forwarding [" << message.id().str() << "]: "
+		G_LOG_M(forwarding, "GSmtp::Forward::updateClient: forwarding [" << message.id().str() << "]: "
 			"skipping message with unconnectable address [" << message.forwardToAddress() << "]" ) ;
 		return false ;
 	}
@@ -205,7 +205,7 @@ bool GSmtp::Forward::updateClient( const GStore::StoredMessage & message )
 		if( new_address ) ss << "[" << message.forwardToAddress() << "]" ;
 		if( new_address && new_selector ) ss << " and " ;
 		if( new_selector ) ss << "account selector [" << message.clientAccountSelector() << "]" ;
-		G_LOG_M(smtpclient, "GSmtpForward::updateClient: forwarding [" << message.id().str() << "]: new connection for " << ss.str() ) ;
+		G_LOG_M(forwarding, "GSmtpForward::updateClient: forwarding [" << message.id().str() << "]: new connection for " << ss.str() ) ;
 
 		newClient( message ) ;
 	}

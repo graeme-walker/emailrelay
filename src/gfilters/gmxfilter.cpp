@@ -25,7 +25,8 @@ GFilters::MxFilter::MxFilter( GNet::EventState es , GStore::FileStore & store ,
 		m_store(store) ,
 		m_filter_type(filter_type) ,
 		m_filter_config(filter_config) ,
-		m_spec(spec) ,
+		m_spec(G::LogOutput::noVerbosity(spec)) ,
+		m_verbosity(G::LogOutput::parseVerbosity(spec)) ,
 		m_id("mx:") ,
 		m_timer(*this,&MxFilter::onTimeout,es)
 {
@@ -85,7 +86,7 @@ std::string GFilters::MxFilter::id() const
 
 int GFilters::MxFilter::verbosity() const noexcept
 {
-	return m_filter_config.verbosity ;
+	return m_verbosity ;
 }
 
 bool GFilters::MxFilter::special() const

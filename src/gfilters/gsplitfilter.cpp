@@ -23,9 +23,11 @@ GFilters::SplitFilter::SplitFilter( GNet::EventState es , GStore::FileStore & st
 	Filter::Type filter_type , const Filter::Config & filter_config , const std::string & spec ) :
 		SimpleFilterBase(es,filter_type,"split:") ,
 		m_store(store) ,
-		m_filter_config(filter_config)
+		m_filter_config(filter_config) ,
+		m_spec(G::LogOutput::noVerbosity(spec)) ,
+		m_verbosity(G::LogOutput::parseVerbosity(spec))
 {
-	std::string_view spec_sv = spec ;
+	std::string_view spec_sv = m_spec ;
 	for( G::StringTokenView t(spec_sv,";",1U) ; t ; ++t )
 	{
 		if( t() == "raw" ) m_raw = true ; // case-sensitive domain names
@@ -35,7 +37,7 @@ GFilters::SplitFilter::SplitFilter( GNet::EventState es , GStore::FileStore & st
 
 int GFilters::SplitFilter::verbosity() const noexcept
 {
-	return m_filter_config.verbosity ;
+	return m_verbosity ;
 }
 
 GSmtp::Filter::Result GFilters::SplitFilter::run( const GStore::MessageId & message_id ,

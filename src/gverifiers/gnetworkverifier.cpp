@@ -14,14 +14,16 @@
 #include "glog.h"
 
 GVerifiers::NetworkVerifier::NetworkVerifier( GNet::EventState es , const GSmtp::Verifier::Config & config ,
-	const std::string & server ) :
+	const std::string & spec ) :
 		m_es(es) ,
 		m_config(config) ,
-		m_location(server) ,
+		m_spec(G::LogOutput::noVerbosity(spec)) ,
+		m_verbosity(G::LogOutput::parseVerbosity(spec)) ,
+		m_location(m_spec) ,
 		m_connection_timeout(config.timeout) ,
 		m_response_timeout(config.timeout)
 {
-	G_DEBUG( "GVerifiers::NetworkVerifier::ctor: " << server ) ;
+	G_DEBUG( "GVerifiers::NetworkVerifier::ctor: " << m_spec ) ;
 	m_client_ptr.eventSignal().connect( G::Slot::slot(*this,&GVerifiers::NetworkVerifier::clientEvent) ) ;
 }
 
@@ -33,7 +35,7 @@ GVerifiers::NetworkVerifier::~NetworkVerifier()
 
 int GVerifiers::NetworkVerifier::verbosity() const noexcept
 {
-	return m_config.verbosity ;
+	return m_verbosity ;
 }
 
 void GVerifiers::NetworkVerifier::verify( const GSmtp::Verifier::Request & request )

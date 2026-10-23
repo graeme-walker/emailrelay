@@ -12,13 +12,14 @@
 #include "glog.h"
 
 GFilters::SpamFilter::SpamFilter( GNet::EventState es , GStore::FileStore & file_store ,
-	Filter::Type , const Filter::Config & filter_config , const std::string & server ,
+	Filter::Type , const Filter::Config & filter_config , const std::string & spec ,
 	bool read_only , bool always_pass ) :
 		m_es(es) ,
 		m_done_timer(*this,&SpamFilter::onDoneTimeout,m_es) ,
 		m_done_signal(true) ,
 		m_file_store(file_store) ,
-		m_location(server) ,
+		m_location(G::LogOutput::noVerbosity(spec)) ,
+		m_verbosity(G::LogOutput::parseVerbosity(spec)) ,
 		m_read_only(read_only) ,
 		m_always_pass(always_pass) ,
 		m_filter_config(filter_config) ,
@@ -42,7 +43,7 @@ std::string GFilters::SpamFilter::id() const
 
 int GFilters::SpamFilter::verbosity() const noexcept
 {
-	return m_filter_config.verbosity ;
+	return m_verbosity ;
 }
 
 void GFilters::SpamFilter::start( const GStore::MessageId & message_id )

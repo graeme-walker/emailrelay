@@ -82,8 +82,9 @@ public:
 
 	struct Config /// A configuration structure for G::LogOutput.
 	{
-		unsigned int m_verbose_count {0U} ;
 		bool m_output_enabled {false} ;
+		bool m_summary_info {true} ;
+		unsigned int m_verbose_count {0U} ;
 		bool m_debug {false} ;
 		bool m_with_level {false} ;
 		bool m_with_timestamp {false} ;
@@ -99,6 +100,7 @@ public:
 		Config() noexcept ;
 		Config( bool enabled , bool verbose ) noexcept ;
 		Config & set_output_enabled( bool value = true ) noexcept ;
+		Config & set_summary_info( bool value = true ) noexcept ;
 		Config & set_verbose_count( unsigned int ) noexcept ;
 		Config & set_debug( bool value = true ) noexcept ;
 		Config & set_with_level( bool value = true ) noexcept ;
@@ -120,6 +122,7 @@ public:
 		static bool at( LogOutput::Severity , int verbosity , bool * once_p ) noexcept ;
 		static bool at( LogOutput::Severity , LogModuleId module_id , bool condition ) noexcept ;
 		static bool at( LogOutput::Severity , LogModuleId module_id , bool * once_p ) noexcept ;
+		static int moduleVerbosity( int module_id ) noexcept ;
 
 		static void context( std::string_view (*fn)(void*) = nullptr , void * fn_arg = nullptr ) noexcept ;
 		static void * contextarg() noexcept ;
@@ -127,7 +130,6 @@ public:
 		static void output( LogStream & ) noexcept ;
 		static int fd() noexcept ;
 		static unsigned int moduleMask() noexcept ;
-		static int moduleVerbosity( int module_id ) noexcept ;
 		static LogOutput::Config config() noexcept ;
 		Instance() = delete ;
 	} ;
@@ -217,6 +219,10 @@ public:
 		///< Parses a module logging specification into a
 		///< Config::module_mask value. Returns a max() value
 		///< on error.
+
+	int moduleVerbosity( int module_id ) const noexcept ;
+		///< Returns the verbosity of the module as configured
+		///< in the Config::module_mask. Returns zero on error.
 
 	static void assertion( LogOutput * , const char * file , int line , bool test , const char * test_string ) ;
 		///< Performs an assertion check.
@@ -312,6 +318,7 @@ inline void G::LogOutput::assertion( LogOutput * instance , const char * file , 
 }
 
 inline G::LogOutput::Config & G::LogOutput::Config::set_output_enabled( bool value ) noexcept { m_output_enabled = value ; return *this ; }
+inline G::LogOutput::Config & G::LogOutput::Config::set_summary_info( bool value ) noexcept { m_summary_info = value ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_verbose_count( unsigned n ) noexcept { m_verbose_count = n ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_debug( bool value ) noexcept { m_debug = value ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_with_level( bool value ) noexcept { m_with_level = value ; return *this ; }
@@ -330,6 +337,7 @@ inline bool G::LogOutput::Instance::at( LogOutput::Severity s , int verbosity , 
 inline bool G::LogOutput::Instance::at( LogOutput::Severity s , LogModuleId module_id , bool condition ) noexcept { return condition && module_id.value >= 0 && LogOutput::m_instance && LogOutput::m_instance->at( s , moduleVerbosity(module_id.value) ) ; }
 inline bool G::LogOutput::Instance::at( LogOutput::Severity s , int verbosity , bool * once_p ) noexcept { if( *once_p ) { *once_p = false ; return LogOutput::m_instance && LogOutput::m_instance->at( s , verbosity ) ; } else { return false ; } }
 inline bool G::LogOutput::Instance::at( LogOutput::Severity s , LogModuleId module_id , bool * once_p ) noexcept { if( *once_p && module_id.value >= 0 ) { *once_p = false ; return LogOutput::m_instance && LogOutput::m_instance->at( s , moduleVerbosity(module_id.value) ) ; } else { return false ; } }
+inline int G::LogOutput::Instance::moduleVerbosity( int module_id ) noexcept { return LogOutput::m_instance ? LogOutput::m_instance->moduleVerbosity(module_id) : 0 ; }
 
 inline void G::LogOutput::Instance::context( std::string_view (*fn)(void*) , void * fn_arg ) noexcept { if( LogOutput::m_instance ) LogOutput::m_instance->context( fn , fn_arg ) ; }
 inline void * G::LogOutput::Instance::contextarg() noexcept { if( LogOutput::m_instance ) return LogOutput::m_instance->contextarg() ; else return nullptr ; }
