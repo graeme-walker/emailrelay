@@ -785,14 +785,14 @@ void GNet::SocketProtocolImp::log( int level , const std::string & log_line )
 	if( level == 1 )
 		G_DEBUG( "GNet::SocketProtocolImp::log: tls: " << log_line ) ;
 	else if( level == 2 )
-		G_LOG_M(tls, "GNet::SocketProtocolImp::log: tls: " << log_line ) ;
+		G_LOG_M( tls , "GNet::SocketProtocolImp::log: tls: " << log_line ) ;
 	else
 		G_WARNING( "GNet::SocketProtocolImp::log: tls: " << log_line ) ;
 }
 
 void GNet::SocketProtocolImp::logSecure( const std::string & protocol , const std::string & cipher ) const
 {
-	G_LOG_M(tls, "GNet::SocketProtocolImp: tls protocol established with "
+	G_LOG_M( tls , "GNet::SocketProtocolImp: tls protocol established with "
 		<< m_socket.getPeerAddress().second.displayString()
 		<< (protocol.empty()?"":" protocol ") << protocol
 		<< (cipher.empty()?"":" cipher ") << G::Str::printable(cipher) ) ;

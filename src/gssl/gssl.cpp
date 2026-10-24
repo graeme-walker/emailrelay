@@ -109,7 +109,7 @@ void GSsl::Library::log( int level , const std::string & log_line )
 	if( level == 1 )
 		G_DEBUG( "GSsl::Library::log: tls: " << log_line ) ;
 	else if( level == 2 )
-		G_LOG_M(tls, "GSsl::Library::log: tls: " << log_line ) ;
+		G_LOG_M( tls , "GSsl::Library::log: tls: " << log_line ) ;
 	else
 		G_WARNING( "GSsl::Library::log: tls: " << log_line ) ;
 }

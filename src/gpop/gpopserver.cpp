@@ -20,13 +20,13 @@ GPop::ServerPeer::ServerPeer( GNet::EventStateUnbound esu , GNet::ServerPeerInfo
 		m_ptext(ptext.release()) ,
 		m_protocol(*this,*this,store,server_secrets,sasl_server_config,*m_ptext,peerAddress(),protocol_config)
 {
-	G_LOG_S_M(pop, "GPop::ServerPeer: pop connection from " << peerAddress().displayString() ) ;
+	G_LOG_S_M( pop , "GPop::ServerPeer: pop connection from " << peerAddress().displayString() ) ;
 	m_protocol.init() ;
 }
 
 void GPop::ServerPeer::onDelete( const std::string & reason )
 {
-	G_LOG_S_M(pop, "GPop::ServerPeer: pop connection closed: " << reason << (reason.empty()?"":": ")
+	G_LOG_S_M( pop , "GPop::ServerPeer: pop connection closed: " << reason << (reason.empty()?"":": ")
 		<< peerAddress().displayString() ) ;
 }
 
@@ -88,7 +88,7 @@ GPop::Server::~Server()
 void GPop::Server::report( const std::string & group ) const
 {
 	serverReport( group ) ; // base class implementation
-	G_LOG_S_M(pop, "GPop::Server: " << (group.empty()?"":"[") << group << (group.empty()?"":"] ")
+	G_LOG_S_M( pop , "GPop::Server: " << (group.empty()?"":"[") << group << (group.empty()?"":"] ")
 		<< "pop server authentication secrets from \"" << m_secrets.source() << "\"" ) ;
 }
 

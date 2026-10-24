@@ -282,7 +282,7 @@ bool GSmtp::ServerProtocol::apply( const ApplyArgsTuple & args )
 	}
 	else
 	{
-		G_LOG_M(io, "GSmtp::ServerProtocol: rx<<: \"" << G::Str::printable(str(event_data)) << "\"" ) ;
+		G_LOG_M( io , "GSmtp::ServerProtocol: rx<<: \"" << G::Str::printable(str(event_data)) << "\"" ) ;
 		event = commandEvent( event_data ) ;
 	}
 
@@ -317,8 +317,8 @@ void GSmtp::ServerProtocol::doDataContent( EventData , bool & )
 
 void GSmtp::ServerProtocol::doEot( EventData , bool & ok )
 {
-	G_LOG_M(io, "GSmtp::ServerProtocol: rx<<: [message content not logged]" ) ;
-	G_LOG_M(io, "GSmtp::ServerProtocol: rx<<: \".\"" ) ;
+	G_LOG_M( io , "GSmtp::ServerProtocol: rx<<: [message content not logged]" ) ;
+	G_LOG_M( io , "GSmtp::ServerProtocol: rx<<: \".\"" ) ;
 
 	if( messageAddContentFailed() )
 	{
@@ -767,7 +767,7 @@ void GSmtp::ServerProtocol::doAuth( EventData event_data , bool & predicate )
 
 void GSmtp::ServerProtocol::doAuthData( EventData event_data , bool & predicate )
 {
-	G_LOG_M(io, "GSmtp::ServerProtocol: rx<<: [authentication response not logged]" ) ;
+	G_LOG_M( io , "GSmtp::ServerProtocol: rx<<: [authentication response not logged]" ) ;
 	if( event_data.size() == 1U && event_data[0] == '*' )
 	{
 		predicate = false ; // => idle

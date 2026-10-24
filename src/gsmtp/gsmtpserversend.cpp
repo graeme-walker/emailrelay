@@ -270,7 +270,7 @@ void GSmtp::ServerSend::send( const char * line )
 
 void GSmtp::ServerSend::send( std::string line_in , bool go_secure )
 {
-	G_LOG_M(io, "GSmtp::ServerSend: tx>>: \"" << G::Str::printable(line_in) << "\"" ) ;
+	G_LOG_M( io , "GSmtp::ServerSend: tx>>: \"" << G::Str::printable(line_in) << "\"" ) ;
 	static const char * crlf = "\015\012" ;
 	m_sender->protocolSend( G::Str::printable(line_in).append(crlf,2U) , go_secure || sendFlush() ) ;
 	if( go_secure )
@@ -281,7 +281,7 @@ void GSmtp::ServerSend::send( const std::ostringstream & ss )
 {
 	std::string s = ss.str() ;
 	for( G::StringField f(s,"\r\n",2U) ; f ; ++f )
-		G_LOG_M(io, "GSmtp::ServerSend: tx>>: \"" << f() << "\"" ) ;
+		G_LOG_M( io , "GSmtp::ServerSend: tx>>: \"" << f() << "\"" ) ;
 	static const char * crlf = "\015\012" ;
 	m_sender->protocolSend( s.append(crlf,2U) , sendFlush() ) ;
 }

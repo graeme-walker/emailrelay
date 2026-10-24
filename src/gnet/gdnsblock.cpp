@@ -296,7 +296,7 @@ void GNet::DnsBlockResult::log() const
 	using namespace DnsBlockImp ;
 	if( m_type == Type::Local )
 	{
-		G_LOG_M(dnsbl, "GNet::DnsBlockResult::log: dnsbl: not checking local address [" << m_address.hostPartString() << "]" ) ;
+		G_LOG_M( dnsbl , "GNet::DnsBlockResult::log: dnsbl: not checking local address [" << m_address.hostPartString() << "]" ) ;
 	}
 	else if( m_type != Type::Inactive )
 	{
@@ -310,7 +310,7 @@ void GNet::DnsBlockResult::log() const
 				ss << "denied by [" << result.server() << "]: " << HostList{result.addresses()} ;
 			else
 				ss << "not checked by [" << result.server() << "]" ;
-			G_LOG_M(dnsbl, "GNet::DnsBlockResult::log: dnsbl: " << ss.str() ) ;
+			G_LOG_M( dnsbl , "GNet::DnsBlockResult::log: dnsbl: " << ss.str() ) ;
 		}
 	}
 }

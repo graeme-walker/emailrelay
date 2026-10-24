@@ -105,7 +105,7 @@ void GSmtp::ClientProtocol::sendComplete()
 		std::size_t n = sendContentLines() ;
 		n++ ; // since the socket protocol has now sent the line that was blocked
 
-		G_LOG_M(io, "GSmtp::ClientProtocol: tx>>: [" << n << " line(s) of content]" ) ;
+		G_LOG_M( io , "GSmtp::ClientProtocol: tx>>: [" << n << " line(s) of content]" ) ;
 		if( endOfContent() )
 		{
 			m_protocol.state = State::SentDot ;
@@ -126,7 +126,7 @@ G::Slot::Signal<> & GSmtp::ClientProtocol::filterSignal() noexcept
 
 bool GSmtp::ClientProtocol::apply( const std::string & rx )
 {
-	G_LOG_M(io, "GSmtp::ClientProtocol: rx<<: \"" << G::Str::printable(rx) << "\"" ) ;
+	G_LOG_M( io , "GSmtp::ClientProtocol: rx<<: \"" << G::Str::printable(rx) << "\"" ) ;
 
 	m_protocol.reply_lines.push_back( rx ) ;
 
@@ -326,7 +326,7 @@ bool GSmtp::ClientProtocol::applyEvent( const ClientReply & reply )
 	else if( m_protocol.state == State::Auth && !reply.positive() && m_sasl->next() )
 	{
 		// authentication failed -- try the next mechanism
-		G_LOG_MORE_M(auth, "GSmtp::ClientProtocol::applyEvent: " << AuthError(*m_sasl,reply).str()
+		G_LOG_MORE_M( auth , "GSmtp::ClientProtocol::applyEvent: " << AuthError(*m_sasl,reply).str()
 			<< ": trying [" << G::Str::lower(m_sasl->mechanism()) << "]" ) ;
 		m_session.auth_mechanism = m_sasl->mechanism() ;
 		GAuth::SaslClient::Response rsp = initialResponse( *m_sasl , m_message_state.selector ) ;
@@ -446,7 +446,7 @@ bool GSmtp::ClientProtocol::applyEvent( const ClientReply & reply )
 		// DATA command accepted -- send content until flow-control asserted or all sent
 		m_protocol.state = State::Data ;
 		std::size_t n = sendContentLines() ;
-		G_LOG_M(io, "GSmtp::ClientProtocol: tx>>: [" << n << " line(s) of content]" ) ;
+		G_LOG_M( io , "GSmtp::ClientProtocol: tx>>: [" << n << " line(s) of content]" ) ;
 		if( endOfContent() )
 		{
 			m_protocol.state = State::SentDot ;
@@ -879,7 +879,7 @@ void GSmtp::ClientProtocol::sendChunkImp( const char * p , std::size_t n )
 		G::StringTokenView t( cmd , " "_sv ) ;
 		std::string_view count = t.next()() ;
 		std::string_view end = count.size() == 1U && count[0] == '1' ? "]"_sv : "s]"_sv ;
-		G_LOG_M(io, "GSmtp::ClientProtocol: tx>>: \"" << cmd << "\" [" << count << " byte" << end ) ;
+		G_LOG_M( io , "GSmtp::ClientProtocol: tx>>: \"" << cmd << "\" [" << count << " byte" << end ) ;
 	}
 
 	m_sender.protocolSend( sv , 0U , false ) ;
@@ -906,12 +906,12 @@ bool GSmtp::ClientProtocol::sendImp( std::string_view line , std::size_t sensiti
 	for( G::StringFieldT<std::string_view> f(line,"\r\n",2U) ; f && !f.last() ; pos += (f.size()+2U) , ++f )
 	{
 		if( sensitive_from == std::string::npos || (pos+f.size()) < sensitive_from )
-			G_LOG_M(io, "GSmtp::ClientProtocol: tx>>: "
+			G_LOG_M( io , "GSmtp::ClientProtocol: tx>>: "
 				"\"" << G::Str::printable(f()) << "\"" ) ;
 		else if( pos >= sensitive_from )
-			G_LOG_M(io, "GSmtp::ClientProtocol: tx>>: [response not logged]" ) ;
+			G_LOG_M( io , "GSmtp::ClientProtocol: tx>>: [response not logged]" ) ;
 		else
-			G_LOG_M(io, "GSmtp::ClientProtocol: tx>>: "
+			G_LOG_M( io , "GSmtp::ClientProtocol: tx>>: "
 				"\"" << G::Str::printable(f().substr(0U,sensitive_from-pos)) << " [not logged]\"" ) ;
 	}
 

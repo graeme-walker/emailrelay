@@ -221,7 +221,7 @@ void GStore::StoredFile::fail( const std::string & reason , int reason_code )
 		addReason( epath(m_state) , reason , reason_code ) ;
 
 		G::Path bad_path = epath( State::Bad ) ;
-		G_LOG_S_M(store, "GStore::StoredFile::fail: failing envelope [" << epath(m_state).basename() << "] "
+		G_LOG_S_M( store , "GStore::StoredFile::fail: failing envelope [" << epath(m_state).basename() << "] "
 			<< "-> [" << bad_path.basename() << "]" ) ;
 
 		FileOp::rename( epath(m_state) , bad_path ) ;
@@ -248,12 +248,12 @@ void GStore::StoredFile::addReason( const G::Path & path , const std::string & r
 
 void GStore::StoredFile::destroy()
 {
-	G_LOG_M(store, "GStore::StoredFile::destroy: deleting envelope [" << epath(m_state).basename() << "]" ) ;
+	G_LOG_M( store , "GStore::StoredFile::destroy: deleting envelope [" << epath(m_state).basename() << "]" ) ;
 	if( !FileOp::remove( epath(m_state) ) )
 		G_WARNING( "GStore::StoredFile::destroy: failed to delete envelope file "
 			<< "[" << epath(m_state).basename() << "] (" << G::Process::strerror(FileOp::errno_()) << ")" ) ;
 
-	G_LOG_M(store, "GStore::StoredFile::destroy: deleting content [" << cpath().basename() << "]" ) ;
+	G_LOG_M( store , "GStore::StoredFile::destroy: deleting content [" << cpath().basename() << "]" ) ;
 	m_content.reset() ; // close it before deleting
 	if( !FileOp::remove( cpath() ) )
 		G_WARNING( "GStore::StoredFile::destroy: failed to delete content file "

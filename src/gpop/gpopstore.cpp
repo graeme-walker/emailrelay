@@ -90,7 +90,7 @@ void GPop::Store::prepare( const std::string & user )
 		}
 		if( created )
 		{
-			G_LOG_M(pop, "GPop::Store::prepare: created pop-by-name sub-directory [" << user << "]" ) ;
+			G_LOG_M( pop , "GPop::Store::prepare: created pop-by-name sub-directory [" << user << "]" ) ;
 		}
 		else if( e )
 		{
