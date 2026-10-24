@@ -29,7 +29,7 @@ GFilters::NullFilter::NullFilter( GNet::EventState es , GStore::FileStore & ,
 		m_filter_config(filter_config) ,
 		m_exit(G::Str::toInt(G::LogOutput::noVerbosity(spec)),filter_type) ,
 		m_id("exit:"+G::LogOutput::noVerbosity(spec)) ,
-		m_verbosity(G::LogOutput::parseVerbosity(spec)) ,
+		m_verbosity(-2) ,
 		m_timeout(0) ,
 		m_timer(*this,&NullFilter::onTimeout,es)
 {

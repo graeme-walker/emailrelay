@@ -100,7 +100,7 @@ GFilters::FilterFactory::Spec GFilters::FilterFactory::parse( std::string_view s
 	}
 	else
 	{
-		result = Spec( "file" , spec_in ) ;
+		result = Spec( "file" , tail ) ;
 		fixFile( result , base_dir , app_dir ) ;
 		checkFile( result , warnings_p ) ;
 	}
@@ -232,18 +232,19 @@ void GFilters::FilterFactory::fixFile( Spec & result ,
 
 void GFilters::FilterFactory::checkFile( Spec & result , G::StringArray * warnings_p )
 {
-	if( result.second.empty() )
+	std::string path = G::LogOutput::noVerbosity( result.second ) ;
+	if( path.empty() )
 	{
 		result.first.clear() ;
 		result.second = "empty file path" ;
 	}
-	else if( warnings_p && !G::File::exists(result.second) )
+	else if( warnings_p && !G::File::exists(path) )
 	{
-		warnings_p->push_back( std::string("filter program does not exist: ").append(result.second) ) ;
+		warnings_p->push_back( std::string("filter program does not exist: ").append(path) ) ;
 	}
-	else if( warnings_p && G::File::isDirectory(result.second,std::nothrow) )
+	else if( warnings_p && G::File::isDirectory(path,std::nothrow) )
 	{
-		warnings_p->push_back( std::string("invalid program: ").append(result.second) ) ;
+		warnings_p->push_back( std::string("invalid program: ").append(path) ) ;
 	}
 }
 

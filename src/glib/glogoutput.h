@@ -94,7 +94,7 @@ public:
 		bool m_use_syslog {false} ;
 		bool m_allow_bad_syslog {false} ;
 		bool m_stdout {false} ;
-		unsigned int m_module_mask {0U} ;
+		unsigned long m_module_mask {0UL} ;
 		SyslogFacility m_facility {SyslogFacility::User} ;
 		Process::Umask::Mode m_umask {Process::Umask::Mode::NoChange} ;
 		Config() noexcept ;
@@ -113,7 +113,7 @@ public:
 		Config & set_facility( SyslogFacility ) noexcept ;
 		Config & set_umask( Process::Umask::Mode ) noexcept ;
 		Config & set_stdout( bool value = true ) noexcept ;
-		Config & set_module_mask( unsigned int value ) noexcept ;
+		Config & set_module_mask( unsigned long value ) noexcept ;
 	} ;
 
 	struct Instance /// A set of convenience functions for calling LogOutput methods on LogOutput::instance().
@@ -177,7 +177,7 @@ public:
 	Config config() const noexcept ;
 		///< Returns the current configuration.
 
-	unsigned int moduleMask() const noexcept ;
+	unsigned long moduleMask() const noexcept ;
 		///< Returns the config() module_mask value.
 
 	int fd() const noexcept ;
@@ -207,15 +207,17 @@ public:
 		///< Emits the current log line (see start()). Does nothing if there
 		///< is no LogOutput instance.
 
-	static int parseVerbosity( std::string_view spec ) ;
+	static int parseVerbosity( std::string_view spec , int error_value = 0 ) ;
 		///< Parses a verbosity value out of a semi-colon separated
-		///< list of fields.
+		///< list of fields, ignoring the first field. Returns the
+		///< error value if out of range (eg. "v-99").
 
 	static std::string noVerbosity( std::string_view spec ) ;
-		///< Removes any verbosity specification from a semi-colon
-		///< separated list of fields.
+		///< Removes any verbosity specification that is compatible
+		///< with parseVerbosity()) from a semi-colon separated list
+		///< of fields.
 
-	static unsigned int parseModuleMask( std::string_view spec ) ;
+	static unsigned long parseModuleMask( std::string_view spec ) ;
 		///< Parses a module logging specification into a
 		///< Config::module_mask value. Returns a max() value
 		///< on error.
@@ -265,6 +267,8 @@ private:
 	void appendTimeTo( LogStream & ) ;
 	static std::string_view levelString( Severity ) noexcept ;
 	static const char * basename( const char * ) noexcept ;
+	static int parseVerbosityImp( std::string_view spec , bool skip_first ,
+		int error_value , std::size_t * = nullptr , std::size_t * = nullptr ) ;
 
 private:
 	struct Stream : public std::ostream
@@ -331,7 +335,7 @@ inline G::LogOutput::Config & G::LogOutput::Config::set_allow_bad_syslog( bool v
 inline G::LogOutput::Config & G::LogOutput::Config::set_facility( SyslogFacility facility ) noexcept { m_facility = facility ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_umask( Process::Umask::Mode umask ) noexcept { m_umask = umask ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_stdout( bool value ) noexcept { m_stdout = value ; return *this ; }
-inline G::LogOutput::Config & G::LogOutput::Config::set_module_mask( unsigned int value ) noexcept { m_module_mask = value ; return *this ; }
+inline G::LogOutput::Config & G::LogOutput::Config::set_module_mask( unsigned long value ) noexcept { m_module_mask = value ; return *this ; }
 
 inline bool G::LogOutput::Instance::at( LogOutput::Severity s , int verbosity , bool condition ) noexcept { return condition && LogOutput::m_instance && LogOutput::m_instance->at( s , verbosity ) ; }
 inline bool G::LogOutput::Instance::at( LogOutput::Severity s , LogModuleId module_id , bool condition ) noexcept { return condition && module_id.value >= 0 && LogOutput::m_instance && LogOutput::m_instance->at( s , moduleVerbosity(module_id.value) ) ; }

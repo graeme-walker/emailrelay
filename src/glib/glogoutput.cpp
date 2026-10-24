@@ -112,7 +112,7 @@ G::LogOutput::Config G::LogOutput::config() const noexcept
 	return m_config ;
 }
 
-unsigned int G::LogOutput::moduleMask() const noexcept
+unsigned long G::LogOutput::moduleMask() const noexcept
 {
 	return m_config.m_module_mask ;
 }
@@ -120,12 +120,13 @@ unsigned int G::LogOutput::moduleMask() const noexcept
 int G::LogOutput::moduleVerbosity( int module_id ) const noexcept
 {
 	if( module_id < 0 ) return 0 ;
-	unsigned shift = static_cast<unsigned>(module_id) * 2U ;
-	unsigned bits = (m_config.m_module_mask >> shift) & 3U ;
-	if( bits == 1U ) return 1 ;
-	if( bits == 2U ) return -1 ;
-	if( bits == 3U ) return -2 ;
-	return 0 ;
+	static_assert( (LogModule::list_size*3U) <= (sizeof(m_config.m_module_mask)*8U) , "too many module names" ) ;
+	unsigned shift = static_cast<unsigned>(module_id) * 3U ;
+	unsigned int bits = static_cast<unsigned>(m_config.m_module_mask >> shift) & 7U ;
+	if( bits & 0x04U )
+		return static_cast<int>(bits) - 8 ;
+	else
+		return static_cast<int>(bits) ;
 }
 
 int G::LogOutput::fd() const noexcept
@@ -422,15 +423,25 @@ std::string_view G::LogOutput::levelString( Severity s ) noexcept
 	return "" ;
 }
 
-int G::LogOutput::parseVerbosity( std::string_view spec )
+int G::LogOutput::parseVerbosity( std::string_view spec , int error_value )
 {
-	for( StringTokenView t(spec,";",1U) ; t ; ++t )
+	return parseVerbosityImp( spec , false , error_value ) ;
+}
+
+int G::LogOutput::parseVerbosityImp( std::string_view spec , bool skip_first ,
+	int error_value , std::size_t * pos_p , std::size_t * size_p )
+{
+	bool first = true ;
+	for( StringTokenView t(spec,";",1U) ; t ; ++t , first = false )
 	{
-		if( t() == "verbose" ) return 1 ;
-		if( t() == "v-0" ) return 0 ;
-		if( t() == "v+1" ) return 1 ;
-		if( t() == "v-1" ) return -1 ;
-		if( t() == "v-2" ) return -2 ;
+		if( skip_first && first ) continue ;
+		if( t().size() != 3U || t().at(0U) != 'v' ) continue ;
+		if( t().at(1U) != '+' && t().at(1U) != '-' ) continue ;
+		int v = G::Str::toInt( t().substr(2U) , "-1" ) ;
+		if( v < 0 || v > (t().at(1U)=='+'?3:4) ) return error_value ;
+		if( pos_p ) *pos_p = t.pos() ;
+		if( size_p ) *size_p = t.size() ;
+		return ( t().at(1U) == '+' || v == 0 ) ? v : -v ;
 	}
 	return 0 ;
 }
@@ -438,40 +449,35 @@ int G::LogOutput::parseVerbosity( std::string_view spec )
 std::string G::LogOutput::noVerbosity( std::string_view spec )
 {
 	std::string result = sv_to_string( spec ) ;
-	for( StringTokenView t(spec,";",1U) ; t ; ++t )
-	{
-		if( t() == "verbose" || t() == "v-0" || t() == "v+1" || t() == "v-1" || t() == "v-2" )
-		{
-			result.erase( t.pos()?(t.pos()-1U):0U , t.size()+1U ) ;
-			return result ;
-		}
-	}
+	std::size_t pos = 0U ;
+	std::size_t size = 0U ;
+	parseVerbosityImp( spec , false , 0 , &pos , &size ) ;
+	if( size )
+		result.erase( pos?(pos-1U):0U , size+1U ) ;
 	return result ;
 }
 
-unsigned int G::LogOutput::parseModuleMask( std::string_view spec )
+unsigned long G::LogOutput::parseModuleMask( std::string_view spec )
 {
-	constexpr unsigned int error = std::numeric_limits<unsigned>::max() ;
-	unsigned int module_mask = 0U ;
+	constexpr unsigned long error = std::numeric_limits<unsigned long>::max() ;
+	unsigned long module_mask = 0UL ;
 	for( StringTokenView t(spec,",",1U) ; t ; ++t )
 	{
 		std::string_view s = t() ;
 		if( s.size() <= 2U ) return error ;
 		unsigned int bits = 0U ;
-		if( Str::tailMatch(s,"-0") )
-			bits = 0U ;
-		else if( Str::tailMatch(s,"+1") )
-			bits = 1U ;
-		else if( Str::tailMatch(s,"-1") )
-			bits = 2U ;
-		else if( Str::tailMatch(s,"-2") )
-			bits = 3U ;
-		else
+		std::string_view v = s.substr( s.size()-1 , 1U ) ;
+		char sign = v == "0" ? '+' : s.at( s.size()-2U ) ;
+		if( sign == '+' )
+			bits = G::Str::toUInt( v , "99" ) ;
+		else if( sign == '-' )
+			bits = 8U - G::Str::toUInt( v , "99" ) ;
+		if( bits >= 8U || (bits & 4U) != (sign=='+'?0U:4U) )
 			return error ;
 		std::string_view module_name = s.substr( 0 , s.size()-2U ) ;
 		std::string_view module_list( LogModule::list , sizeof(LogModule::list) ) ;
 		bool name_match = false ;
-		for( StringTokenView m(module_list,",",1U) ; m ; ++m , bits <<= 2 )
+		for( StringTokenView m(module_list,",",1U) ; m ; ++m , bits <<= 3 )
 		{
 			if( m() == module_name )
 			{

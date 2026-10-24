@@ -47,7 +47,7 @@ namespace G
 			"tls,"
 			"dnsbl"
 		;
-		static_assert( (LogModuleImp::strcommas(list)+1U) <= (sizeof(unsigned)*4U) , "too many module names" ) ;
+		constexpr unsigned int list_size = (LogModuleImp::strcommas(list)+1U) ;
 	}
 	struct LogModuleId
 	{
