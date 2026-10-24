@@ -423,73 +423,70 @@ std::string_view G::LogOutput::levelString( Severity s ) noexcept
 	return "" ;
 }
 
-int G::LogOutput::parseVerbosity( std::string_view spec , int error_value )
+int G::LogOutput::parseVerbosity( std::string_view spec )
 {
-	return parseVerbosityImp( spec , false , error_value ) ;
-}
-
-int G::LogOutput::parseVerbosityImp( std::string_view spec , bool skip_first ,
-	int error_value , std::size_t * pos_p , std::size_t * size_p )
-{
-	bool first = true ;
-	for( StringTokenView t(spec,";",1U) ; t ; ++t , first = false )
-	{
-		if( skip_first && first ) continue ;
-		if( t().size() != 3U || t().at(0U) != 'v' ) continue ;
-		if( t().at(1U) != '+' && t().at(1U) != '-' ) continue ;
-		int v = G::Str::toInt( t().substr(2U) , "-1" ) ;
-		if( v < 0 || v > (t().at(1U)=='+'?3:4) ) return error_value ;
-		if( pos_p ) *pos_p = t.pos() ;
-		if( size_p ) *size_p = t.size() ;
-		return ( t().at(1U) == '+' || v == 0 ) ? v : -v ;
-	}
-	return 0 ;
+	return parseVerbosityImp( spec ) ;
 }
 
 std::string G::LogOutput::noVerbosity( std::string_view spec )
 {
-	std::string result = sv_to_string( spec ) ;
 	std::size_t pos = 0U ;
 	std::size_t size = 0U ;
-	parseVerbosityImp( spec , false , 0 , &pos , &size ) ;
-	if( size )
-		result.erase( pos?(pos-1U):0U , size+1U ) ;
-	return result ;
+	parseVerbosityImp( spec , 0 , &pos , &size ) ;
+	return sv_to_string(spec).erase(pos,size) ;
 }
 
-unsigned long G::LogOutput::parseModuleMask( std::string_view spec )
+int G::LogOutput::parseVerbosityImp( std::string_view spec , int no_value ,
+	std::size_t * pos_p , std::size_t * size_p )
 {
-	constexpr unsigned long error = std::numeric_limits<unsigned long>::max() ;
-	unsigned long module_mask = 0UL ;
-	for( StringTokenView t(spec,",",1U) ; t ; ++t )
+	// match ";v[+-][0-9]$" and return -4..3
+	std::size_t pos = spec.rfind( ';' ) ;
+	if( pos != std::string::npos && (pos+4U) == spec.size() &&
+		spec.at(pos+1U) == 'v' &&
+		( spec.at(pos+2U) == '+' || spec.at(pos+2U) == '-' ) &&
+		G::Str::isNumeric(spec.substr(pos+3U)) )
 	{
+		char sign = spec.at( pos + 2U ) ;
+		int value = G::Str::toInt( spec.substr(pos+3U,1U) , "-1" ) ;
+		if( value < 0 ) return no_value ;
+		if( pos_p ) *pos_p = pos ;
+		if( size_p ) *size_p = 4U ;
+		value = ( sign == '+' || value == 0 ) ? value : -value ;
+		return std::max( -4 , std::min(3,value) ) ;
+	}
+	return no_value ;
+}
+
+unsigned long G::LogOutput::parseModuleMask( std::string_view spec , bool * error_p )
+{
+	bool ok = true ;
+	unsigned long module_mask = 0UL ;
+	for( StringTokenView t(spec,",",1U) ; t && ok ; ++t )
+	{
+		ok = false ;
 		std::string_view s = t() ;
-		if( s.size() <= 2U ) return error ;
-		unsigned int bits = 0U ;
-		std::string_view v = s.substr( s.size()-1 , 1U ) ;
-		char sign = v == "0" ? '+' : s.at( s.size()-2U ) ;
-		if( sign == '+' )
-			bits = G::Str::toUInt( v , "99" ) ;
-		else if( sign == '-' )
-			bits = 8U - G::Str::toUInt( v , "99" ) ;
-		if( bits >= 8U || (bits & 4U) != (sign=='+'?0U:4U) )
-			return error ;
+		if( s.size() <= 2U ) break ;
+		char sign = s.at( s.size()-2U ) ;
+		if( sign != '-' && sign != '+' ) break ;
+		unsigned int v = G::Str::toUInt( s.substr(s.size()-1,1U) , "99" ) ;
+		if( v > 9U ) break ;
+		v = std::min( sign=='+'?3U:4U , v ) ;
+		unsigned int bits = ( sign == '+' || v == 0 ) ? v : (8U-v) ;
 		std::string_view module_name = s.substr( 0 , s.size()-2U ) ;
 		std::string_view module_list( LogModule::list , sizeof(LogModule::list) ) ;
-		bool name_match = false ;
 		for( StringTokenView m(module_list,",",1U) ; m ; ++m , bits <<= 3 )
 		{
 			if( m() == module_name )
 			{
-				name_match = true ;
+				ok = true ;
 				module_mask |= bits ;
 				break ;
 			}
 		}
-		if( !name_match )
-			return error ;
 	}
-	return module_mask ;
+	if( error_p != nullptr )
+		*error_p = !ok ;
+	return ok ? module_mask : 0UL ;
 }
 
 // ==

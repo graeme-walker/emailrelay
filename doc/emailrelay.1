@@ -466,16 +466,16 @@ Enables debug level logging, if built in. Debug messages are usually only useful
 .B \-\-log-address
 Adds the network address of remote clients to the logging output. Equivalent to \fI--log-format\fR=address\fR.
 .TP
+.PD
+.B \-\-log-config \fI<spec>\fR
+Modifies what is logged. The value should be a module name followed by \fI+2\fR, \fI+1\fR, \fI-1\fR, \fI-2\fR or \fI-3\fR having the effect of adding or removing \fI\fR\fI--verbose\fR\fI\fR that many times for that module.
+.TP
 .B \-N \fI<file>\fR
 .PD 0
 .TP
 .PD
 .B \-\-log-file \fI<file>\fR
 Redirects standard-error logging to the specified file. Logging to the log file is not affected by \fI--close-stderr\fR. The filename can include \fI%d\fR to get daily log files; the \fI%d\fR is replaced by the current date in the local timezone using a \fIYYYYMMDD\fR format.
-.TP
-.PD
-.B \-\-log-filter \fI<spec>\fR
-Modifies what is logged. The value shoud be \fI-\fR followed by a module name in order to disable logging from that module. Use a bogus value to see a list of possible modules in the error message.
 .TP
 .PD
 .B \-\-log-format

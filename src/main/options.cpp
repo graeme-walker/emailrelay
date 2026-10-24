@@ -72,7 +72,7 @@ G::Options Main::Options::spec()
 			// --as-client and --as-proxy imply --log, and --as-server and --as-proxy
 			// also imply --close-stderr.
 
-	G::Options::add( opt , '\0' , "log-filter" ,
+	G::Options::add( opt , '\0' , "log-config" ,
 		tx("modifies what is logged") , "" ,
 		M::many , "spec" , 30 ,
 		t_logging ) ;

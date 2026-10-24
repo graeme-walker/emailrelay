@@ -24,7 +24,7 @@ GFilters::ExecutableFilter::ExecutableFilter( GNet::EventState es ,
 		m_file_store(file_store) ,
 		m_filter_type(filter_type) ,
 		m_exit(0,filter_type) ,
-		m_path(G::LogOutput::noVerbosity(spec)) , // maybe also "run:<path>"?
+		m_path(G::LogOutput::noVerbosity(spec)) ,
 		m_verbosity(G::LogOutput::parseVerbosity(spec)) ,
 		m_filter_config(filter_config) ,
 		m_timer(*this,&ExecutableFilter::onTimeout,es) ,

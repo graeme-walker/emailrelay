@@ -808,7 +808,7 @@ void GSmtp::ServerProtocol::doMail( EventData event_data , bool & predicate )
 		!m_sasl->authenticated() &&
 		!m_sasl->trusted(m_peer_address.wildcards(),m_peer_address.hostPartString()) )
 	{
-		G_LOG_M(smtpserver, "GSmtp::ServerProtocol::doMail: server authentication enabled "
+		G_LOG_M( smtp , "GSmtp::ServerProtocol::doMail: server authentication enabled "
 			"but not a trusted address: " << m_peer_address.hostPartString() ) ;
 		predicate = false ;
 		sendAuthRequired( m_config.mail_requires_encryption && !m_secure && m_with_starttls ) ;

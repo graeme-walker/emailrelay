@@ -239,7 +239,7 @@ GSmtp::Server::Config GSmtp::Server::serverConfig() const
 
 void GSmtp::Server::nodnsbl( unsigned int s )
 {
-	G_LOG_M(smtpserver, "GSmtp::Server::nodnsbl: dnsbl " << (s?"disabled":"enabled") << (s?(" for "+G::Str::fromUInt(s).append(1U,'s')):"") ) ;
+	G_LOG_M( smtp , "GSmtp::Server::nodnsbl: dnsbl " << (s?"disabled":"enabled") << (s?(" for "+G::Str::fromUInt(s).append(1U,'s')):"") ) ;
 	m_dnsbl_suspend_time = G::TimerTime::now() + G::TimeInterval(s) ;
 }
 

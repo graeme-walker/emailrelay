@@ -40,7 +40,7 @@ public:
 	} ;
 
 	virtual std::unique_ptr<Filter> newFilter( GNet::EventState ,
-		Filter::Type , Filter::Config , Spec spec ) = 0 ;
+		Filter::Type , const Filter::Config & , const Spec & spec ) = 0 ;
 			///< Returns a Filter on the heap. Optionally throws if
 			///< an invalid or unsupported filter specification.
 

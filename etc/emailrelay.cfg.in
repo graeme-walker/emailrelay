@@ -624,6 +624,14 @@
 #
 #log-address
 
+# Name: log-config
+# Format: log-config <spec>
+# Description: Modifies what is logged. The value should be a module name
+# followed by "+2", "+1", "-1", "-2" or "-3" having the effect of adding or
+# removing ""--verbose"" that many times for that module.
+#
+#log-config io-2,connection-1
+
 # Name: log-file
 # Format: log-file <file>
 # Description: Redirects standard-error logging to the specified file.
@@ -632,14 +640,6 @@
 # current date in the local timezone using a "YYYYMMDD" format.
 #
 #log-file C:/ProgramData/E-MailRelay/log-%d.txt
-
-# Name: log-filter
-# Format: log-filter <spec>
-# Description: Modifies what is logged. The value shoud be "-" followed by a
-# module name in order to disable logging from that module. Use a bogus value
-# to see a list of possible modules in the error message.
-#
-#log-filter
 
 # Name: log-format
 # Format: log-format

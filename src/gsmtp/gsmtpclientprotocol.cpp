@@ -318,7 +318,7 @@ bool GSmtp::ClientProtocol::applyEvent( const ClientReply & reply )
 		// authenticated -- proceed to first message
 		m_session.authenticated = true ;
 		m_session.auth_selector = m_message_state.selector ;
-		G_LOG_M(smtpclient, "GSmtp::ClientProtocol::applyEvent: successful authentication with remote server "
+		G_LOG_M( auth , "GSmtp::ClientProtocol::applyEvent: successful authentication with remote server "
 			<< (m_session.secure?"over tls ":"") << m_sasl->info() ) ;
 		m_protocol.state = State::Filtering ;
 		startFiltering() ;

@@ -500,18 +500,18 @@ The `emailrelay` program supports the following command-line usage:
     Adds the network address of remote clients to the logging output. Equivalent
     to `--log-format=address`.
 
+*   --log-config <spec>
+
+    Modifies what is logged. The value should be a module name followed by `+2`,
+    `+1`, `-1`, `-2` or `-3` having the effect of adding or removing
+    ``--verbose`` that many times for that module.
+
 *   --log-file <file> (-N)
 
     Redirects standard-error logging to the specified file. Logging to the log
     file is not affected by `--close-stderr`. The filename can include `%d`
     to get daily log files; the `%d` is replaced by the current date in the
     local timezone using a `YYYYMMDD` format.
-
-*   --log-filter <spec>
-
-    Modifies what is logged. The value shoud be `-` followed by a module name in
-    order to disable logging from that module. Use a bogus value to see a
-    list of possible modules in the error message.
 
 *   --log-format
 

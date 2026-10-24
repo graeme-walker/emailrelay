@@ -68,8 +68,7 @@ public:
 		///< Used in logging.
 
 	virtual int verbosity() const noexcept = 0 ;
-		///< Returns a verbosity adjustment, typically from the Config
-		///< and originally derived from the filter specification string.
+		///< Returns a verbosity adjustment.
 
 	virtual void start( const GStore::MessageId & ) = 0 ;
 		///< Starts the filter for the given message. Any previous,

@@ -216,7 +216,7 @@ summary, verbose and more-verbose.
 Informational log output takes account of the message severity (InfoSummary,
 InfoVerbose, InfoMoreVerbose), the overall verbose count and the module or
 object verbosity. A `module` is identified with a compile-time constant (see
-gmodule.h) which yields the module verbosity via the LogOutput 'filter'
+gmodule.h) which yields the module verbosity via the LogOutput module_mask
 configuration. An object verbosity value typically comes from an object that
 has a verbosity() method.
 
@@ -227,8 +227,8 @@ count. However, the module/object verbosity can adjust the verbose count up or
 down, so a verbosity of minus one will reduce the number of log messages from
 that module.
 
-The verbosity values for the modules are configured from the `--log-filter`
-command-line option and this sets a `filter` bit mask stored in the LogOutput
+The verbosity values for the modules are configured from the `--log-config`
+command-line option and this sets module_mask bits mask stored in the LogOutput
 instance. Verbosity values for individual objects are configured using modifiers
 on the command-line options that created them, such as `--filter` or
 `--poll-run`.

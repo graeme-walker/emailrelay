@@ -128,17 +128,6 @@
 			#endif
 		#endif
 	#endif
-	#if !defined(GCONFIG_HAVE_CXX_2020)
-		#if defined(_MSC_VER) && defined(__cplusplus) && _MSVC_LANG >= 202000L
-			#define GCONFIG_HAVE_CXX_2020 1
-		#else
-			#if __cplusplus >= 202000L
-				#define GCONFIG_HAVE_CXX_2020 1
-			#else
-				#define GCONFIG_HAVE_CXX_2020 0
-			#endif
-		#endif
-	#endif
 	#if !defined(GCONFIG_HAVE_SYS_UTSNAME_H)
 		#ifdef G_UNIX
 			#define GCONFIG_HAVE_SYS_UTSNAME_H 1

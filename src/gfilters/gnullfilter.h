@@ -62,7 +62,6 @@ public:
 
 private:
 	void onTimeout() ;
-	static int parseExitCode( std::string_view ) ;
 
 private:
 	Filter::Config m_filter_config ;

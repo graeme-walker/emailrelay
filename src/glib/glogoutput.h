@@ -207,20 +207,18 @@ public:
 		///< Emits the current log line (see start()). Does nothing if there
 		///< is no LogOutput instance.
 
-	static int parseVerbosity( std::string_view spec , int error_value = 0 ) ;
+	static int parseVerbosity( std::string_view spec ) ;
 		///< Parses a verbosity value out of a semi-colon separated
-		///< list of fields, ignoring the first field. Returns the
-		///< error value if out of range (eg. "v-99").
+		///< list of fields, ignoring the first field. Returns zero
+		///< if none.
 
 	static std::string noVerbosity( std::string_view spec ) ;
-		///< Removes any verbosity specification that is compatible
-		///< with parseVerbosity()) from a semi-colon separated list
-		///< of fields.
+		///< Removes any parseVerbosity() substring.
 
-	static unsigned long parseModuleMask( std::string_view spec ) ;
+	static unsigned long parseModuleMask( std::string_view spec , bool * error_p = nullptr ) ;
 		///< Parses a module logging specification into a
-		///< Config::module_mask value. Returns a max() value
-		///< on error.
+		///< Config::module_mask value. Returns zero on
+		///< error and optionally an error flag by reference.
 
 	int moduleVerbosity( int module_id ) const noexcept ;
 		///< Returns the verbosity of the module as configured
@@ -267,8 +265,8 @@ private:
 	void appendTimeTo( LogStream & ) ;
 	static std::string_view levelString( Severity ) noexcept ;
 	static const char * basename( const char * ) noexcept ;
-	static int parseVerbosityImp( std::string_view spec , bool skip_first ,
-		int error_value , std::size_t * = nullptr , std::size_t * = nullptr ) ;
+	static int parseVerbosityImp( std::string_view spec , int no_value = 0 ,
+		std::size_t * = nullptr , std::size_t * = nullptr ) ;
 
 private:
 	struct Stream : public std::ostream

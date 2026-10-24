@@ -52,8 +52,7 @@ public:
 	} ;
 
 	virtual int verbosity() const noexcept = 0 ;
-		///< Returns a verbosity adjustment, typically from the Config
-		///< and originally derived from the verifier specification string.
+		///< Returns a verbosity adjustment.
 
 	virtual void verify( const Request & ) = 0 ;
 		///< Checks a recipient address and asynchronously returns a
