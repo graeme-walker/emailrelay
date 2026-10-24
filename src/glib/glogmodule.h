@@ -43,7 +43,6 @@ namespace G
 			"store,"
 			"smtp,"
 			"pop,"
-			"mx,"
 			"tls,"
 			"dnsbl"
 		;

@@ -31,9 +31,14 @@ GFilters::MxFilter::MxFilter( GNet::EventState es , GStore::FileStore & store ,
 		m_timer(*this,&MxFilter::onTimeout,es)
 {
 	if( MxLookup::enabled() )
+	{
 		m_mxlookup_config = parseSpec( m_spec , m_mxlookup_nameservers ) ;
+		m_mxlookup_config.verbosity = m_verbosity ;
+	}
 	else
+	{
 		throw G::Exception( "mx: not enabled at build time" ) ;
+	}
 }
 
 GFilters::MxFilter::~MxFilter()

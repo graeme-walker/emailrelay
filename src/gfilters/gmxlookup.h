@@ -42,6 +42,7 @@ public:
 		Config() ;
 		G::TimeInterval ns_timeout {1U,0} ;
 		G::TimeInterval restart_timeout {15U,0} ;
+		int verbosity {0} ;
 	} ;
 
 	static bool enabled() ;
