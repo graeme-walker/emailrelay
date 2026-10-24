@@ -174,20 +174,21 @@ std::unique_ptr<GSmtp::Filter> GFilters::FilterFactory::newFilter( GNet::EventSt
 
 void GFilters::FilterFactory::checkNumber( Spec & result )
 {
-	if( result.second.empty() )
+	std::string value = G::LogOutput::noVerbosity( result.second ) ;
+	if( value.empty() )
 	{
 		result.first.clear() ;
 		result.second = "numeric value missing" ;
 	}
-	else if( !G::Str::isUInt(result.second) )
+	else if( !G::Str::isUInt(value) )
 	{
 		result.first.clear() ;
-		result.second = "invalid numeric value: " + G::Str::printable(result.second) ;
+		result.second = "invalid numeric value: " + G::Str::printable(value) ;
 	}
-	else if( G::Str::toUInt(result.second) >= (std::numeric_limits<unsigned>::max()/1000U) )
+	else if( G::Str::toUInt(value) >= (std::numeric_limits<unsigned>::max()/1000U) )
 	{
 		result.first.clear() ;
-		result.second = "numeric value too big: " + G::Str::printable(result.second) ;
+		result.second = "numeric value too big: " + G::Str::printable(value) ;
 	}
 }
 
@@ -195,7 +196,7 @@ void GFilters::FilterFactory::checkNet( Spec & result )
 {
 	try
 	{
-		GNet::Location::nosocks( result.second ) ;
+		GNet::Location::nosocks( G::LogOutput::noVerbosity(result.second) ) ;
 	}
 	catch( std::exception & e )
 	{
@@ -208,7 +209,7 @@ void GFilters::FilterFactory::checkRange( Spec & result )
 {
 	try
 	{
-		G::Range::check( result.second ) ;
+		G::Range::check( G::LogOutput::noVerbosity(result.second) ) ;
 	}
 	catch( std::exception & e )
 	{
