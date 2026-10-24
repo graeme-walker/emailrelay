@@ -46,6 +46,7 @@ public:
 	{
 		G::TimeInterval timeout {60U} ;
 		std::string domain ;
+		int verbosity {0} ; // (set by factory)
 		Config & set_timeout( unsigned int ) noexcept ;
 		Config & set_timeout( G::TimeInterval ) noexcept ;
 		Config & set_domain( const std::string & ) ;

@@ -67,7 +67,6 @@ private:
 	Filter::Config m_filter_config ;
 	Filter::Exit m_exit ;
 	std::string m_id ;
-	int m_verbosity ;
 	G::TimeInterval m_timeout ;
 	GNet::Timer<NullFilter> m_timer ;
 	G::Slot::Signal<int> m_done_signal ;

@@ -12,9 +12,10 @@
 GSmtp::FilterFactoryBase::Spec::Spec()
 = default ;
 
-GSmtp::FilterFactoryBase::Spec::Spec( std::string_view first_ , std::string_view second_ ) :
+GSmtp::FilterFactoryBase::Spec::Spec( std::string_view first_ , std::string_view second_ , int verbosity_ ) :
 	first(G::sv_to_string(first_)) ,
-	second(G::sv_to_string(second_))
+	second(G::sv_to_string(second_)) ,
+	verbosity(verbosity_)
 {
 }
 
@@ -26,12 +27,13 @@ GSmtp::FilterFactoryBase::Spec & GSmtp::FilterFactoryBase::Spec::operator+=( con
 	}
 	else if( rhs.first.empty() )
 	{
-		first.clear() ; // error state
+		first.clear() ; // make error state
 		second = rhs.second ;
 	}
 	else
 	{
 		second.append(",",second.empty()?0U:1U).append(rhs.first).append(1U,':').append(rhs.second) ;
+		verbosity = 0 ; // not used
 	}
 	return *this ;
 }

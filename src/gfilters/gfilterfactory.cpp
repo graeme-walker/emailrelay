@@ -48,69 +48,77 @@ GFilters::FilterFactory::Spec GFilters::FilterFactory::parse( std::string_view s
 	}
 	else if( G::Str::headMatch( spec_in ,"exit:" ) )
 	{
-		result = Spec( "exit" , tail ) ;
+		result = makeSpec( "exit" , tail ) ;
 		checkNumber( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "sleepms:" ) )
 	{
-		result = Spec( "sleep" , tail ) ;
+		result = makeSpec( "sleep" , tail ) ;
 		checkNumber( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "net:" ) )
 	{
-		result = Spec( "net" , tail ) ;
+		result = makeSpec( "net" , tail ) ;
 		checkNet( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "spam:" ) )
 	{
-		result = Spec( "spam" , tail ) ;
+		result = makeSpec( "spam" , tail ) ;
 		checkNet( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "spam-edit:" ) )
 	{
-		result = Spec( "spam-edit" , tail ) ;
+		result = makeSpec( "spam-edit" , tail ) ;
 		checkNet( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "deliver:" ) )
 	{
-		result = Spec( "deliver" , tail ) ;
+		result = makeSpec( "deliver" , tail ) ;
 		checkRange( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "copy:" ) )
 	{
-		result = Spec( "copy" , tail ) ;
+		result = makeSpec( "copy" , tail ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "split:" ) )
 	{
-		result = Spec( "split" , tail ) ;
+		result = makeSpec( "split" , tail ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "mx:" ) )
 	{
-		result = Spec( "mx" , tail ) ;
+		result = makeSpec( "mx" , tail ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "msgid:" ) )
 	{
-		result = Spec( "msgid" , tail ) ;
+		result = makeSpec( "msgid" , tail ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "file:" ) )
 	{
-		result = Spec( "file" , tail ) ;
+		result = makeSpec( "file" , tail ) ;
 		fixFile( result , base_dir , app_dir ) ;
 		checkFile( result , warnings_p ) ;
 	}
 	else
 	{
-		result = Spec( "file" , tail ) ;
+		result = makeSpec( "file" , spec_in ) ;
 		fixFile( result , base_dir , app_dir ) ;
 		checkFile( result , warnings_p ) ;
 	}
 	return result ;
 }
 
+GFilters::FilterFactory::Spec GFilters::FilterFactory::makeSpec( std::string_view first , 
+	std::string_view second )
+{
+	std::string s = G::sv_to_string( second ) ;
+	return { first , G::LogOutput::noVerbosity(s) , G::LogOutput::parseVerbosity(s) } ;
+}
+
 std::unique_ptr<GSmtp::Filter> GFilters::FilterFactory::newFilter( GNet::EventState es ,
-	GSmtp::Filter::Type filter_type , const GSmtp::Filter::Config & filter_config ,
+	GSmtp::Filter::Type filter_type , GSmtp::Filter::Config filter_config ,
 	const FilterFactory::Spec & spec )
 {
+	filter_config.verbosity = spec.verbosity ;
 	if( spec.first == "chain" )
 	{
 		// (one level of recursion -- FilterChain::ctor calls newFilter())
@@ -118,14 +126,12 @@ std::unique_ptr<GSmtp::Filter> GFilters::FilterFactory::newFilter( GNet::EventSt
 	}
 	else if( spec.first == "spam" )
 	{
-		// "spam:" is read-only, not-always-pass
 		bool read_only = true ;
 		bool always_pass = false ;
 		return std::make_unique<SpamFilter>( es , m_file_store , filter_type , filter_config , spec.second , read_only , always_pass ) ;
 	}
 	else if( spec.first == "spam-edit" )
 	{
-		// "spam-edit:" is read-write, always-pass
 		bool read_only = false ;
 		bool always_pass = true ;
 		return std::make_unique<SpamFilter>( es , m_file_store , filter_type , filter_config , spec.second , read_only , always_pass ) ;

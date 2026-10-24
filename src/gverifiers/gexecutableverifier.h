@@ -49,9 +49,8 @@ private:
 private:
 	GNet::Timer<ExecutableVerifier> m_timer ;
 	GSmtp::Verifier::Command m_command {GSmtp::Verifier::Command::VRFY} ;
-	GSmtp::Verifier::Config m_config ;
+	GSmtp::Verifier::Config m_verifier_config ;
 	G::Path m_path ;
-	int m_verbosity ;
 	G::Slot::Signal<GSmtp::Verifier::Command,const GSmtp::VerifierStatus&> m_done_signal ;
 	std::string m_to_address ;
 	GNet::Task m_task ;

@@ -43,8 +43,6 @@ private:
 	using FileOp = GStore::FileStore::FileOp ;
 	GStore::FileStore & m_store ;
 	Filter::Config m_filter_config ;
-	std::string m_spec ;
-	int m_verbosity ;
 	GStore::FileDelivery::Config m_delivery_config ;
 } ;
 

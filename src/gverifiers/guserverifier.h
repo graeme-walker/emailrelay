@@ -65,7 +65,6 @@ private:
 	GSmtp::Verifier::Command m_command {GSmtp::Verifier::Command::RCPT} ;
 	GSmtp::Verifier::Config m_verifier_config ;
 	std::string m_spec ;
-	int m_verbosity ;
 	GNet::Timer<UserVerifier> m_timer ;
 	GSmtp::VerifierStatus m_result ;
 	Signal m_done_signal ;

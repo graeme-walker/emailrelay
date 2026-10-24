@@ -20,9 +20,8 @@
 GVerifiers::ExecutableVerifier::ExecutableVerifier( GNet::EventState es , const GSmtp::Verifier::Config & config ,
 	const std::string & spec ) :
 		m_timer(*this,&ExecutableVerifier::onTimeout,es) ,
-		m_config(config) ,
-		m_path(G::LogOutput::noVerbosity(spec)) ,
-		m_verbosity(G::LogOutput::parseVerbosity(spec)) ,
+		m_verifier_config(config) ,
+		m_path(spec) ,
 		m_task(*this,es,GNet::Task::Config()
 			.set_exec_error_format("<<exec error: __strerror__>>")
 			.set_identity(G::Root::nobody()))
@@ -31,12 +30,12 @@ GVerifiers::ExecutableVerifier::ExecutableVerifier( GNet::EventState es , const 
 
 int GVerifiers::ExecutableVerifier::verbosity() const noexcept
 {
-	return m_verbosity ;
+	return m_verifier_config.verbosity ;
 }
 
 void GVerifiers::ExecutableVerifier::verify( const GSmtp::Verifier::Request & request )
 {
-	G_ASSERT( !m_config.domain.empty() ) ;
+	G_ASSERT( !m_verifier_config.domain.empty() ) ;
 	G_ASSERT( !request.address.empty() ) ; // etc
 	G_DEBUG( "GVerifiers::ExecutableVerifier::verify: to=[" << request.address << "]" ) ;
 	m_command = request.command ;
@@ -45,15 +44,15 @@ void GVerifiers::ExecutableVerifier::verify( const GSmtp::Verifier::Request & re
 	commandline.add( request.address ) ;
 	commandline.add( request.from_address ) ;
 	commandline.add( request.client_ip.displayString() ) ;
-	commandline.add( m_config.domain ) ;
+	commandline.add( m_verifier_config.domain ) ;
 	commandline.add( G::Str::lower(request.auth_mechanism) ) ;
 	commandline.add( request.auth_extra ) ;
 
 	G_LOG_V( verbosity() , "GVerifiers::ExecutableVerifier: address verifier: executing " << commandline.displayString() ) ;
 	m_to_address = request.address ;
 	m_task.start( commandline ) ;
-	if( m_config.timeout )
-		m_timer.startTimer( m_config.timeout ) ;
+	if( m_verifier_config.timeout )
+		m_timer.startTimer( m_verifier_config.timeout ) ;
 }
 
 void GVerifiers::ExecutableVerifier::onTimeout()

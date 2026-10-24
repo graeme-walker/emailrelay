@@ -68,7 +68,6 @@ private:
 	G::Slot::Signal<int> m_done_signal ;
 	GStore::FileStore & m_file_store ;
 	GNet::Location m_location ;
-	int m_verbosity ;
 	bool m_read_only ;
 	bool m_always_pass ;
 	Filter::Config m_filter_config ;

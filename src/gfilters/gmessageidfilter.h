@@ -48,7 +48,6 @@ private:
 private:
 	GStore::FileStore & m_store ;
 	Filter::Config m_filter_config ;
-	int m_verbosity ;
 } ;
 
 #endif

@@ -19,8 +19,7 @@ GFilters::NetworkFilter::NetworkFilter( GNet::EventState es ,
 		m_file_store(file_store) ,
 		m_timer(*this,&NetworkFilter::onTimeout,m_es) ,
 		m_done_signal(true) ,
-		m_location(G::LogOutput::noVerbosity(spec)) ,
-		m_verbosity(G::LogOutput::parseVerbosity(spec)) ,
+		m_location(spec) ,
 		m_filter_config(filter_config) ,
 		m_connection_timeout(filter_config.timeout) ,
 		m_response_timeout(filter_config.timeout)
@@ -40,7 +39,7 @@ std::string GFilters::NetworkFilter::id() const
 
 int GFilters::NetworkFilter::verbosity() const noexcept
 {
-	return m_verbosity ;
+	return m_filter_config.verbosity ;
 }
 
 void GFilters::NetworkFilter::start( const GStore::MessageId & message_id )

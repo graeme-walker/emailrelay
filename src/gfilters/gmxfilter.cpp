@@ -25,15 +25,14 @@ GFilters::MxFilter::MxFilter( GNet::EventState es , GStore::FileStore & store ,
 		m_store(store) ,
 		m_filter_type(filter_type) ,
 		m_filter_config(filter_config) ,
-		m_spec(G::LogOutput::noVerbosity(spec)) ,
-		m_verbosity(G::LogOutput::parseVerbosity(spec)) ,
+		m_spec(spec) ,
 		m_id("mx:") ,
 		m_timer(*this,&MxFilter::onTimeout,es)
 {
 	if( MxLookup::enabled() )
 	{
 		m_mxlookup_config = parseSpec( m_spec , m_mxlookup_nameservers ) ;
-		m_mxlookup_config.verbosity = m_verbosity ;
+		m_mxlookup_config.verbosity = m_filter_config.verbosity ;
 	}
 	else
 	{
@@ -91,7 +90,7 @@ std::string GFilters::MxFilter::id() const
 
 int GFilters::MxFilter::verbosity() const noexcept
 {
-	return m_verbosity ;
+	return m_filter_config.verbosity ;
 }
 
 bool GFilters::MxFilter::special() const

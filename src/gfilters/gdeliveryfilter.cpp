@@ -18,14 +18,13 @@ GFilters::DeliveryFilter::DeliveryFilter( GNet::EventState es , GStore::FileStor
 		m_store(store) ,
 		m_filter_type(filter_type) ,
 		m_filter_config(filter_config) ,
-		m_spec(G::LogOutput::noVerbosity(spec)) ,
-		m_verbosity(G::LogOutput::parseVerbosity(spec))
+		m_spec(spec)
 {
 }
 
 int GFilters::DeliveryFilter::verbosity() const noexcept
 {
-	return m_verbosity ;
+	return m_filter_config.verbosity ;
 }
 
 GSmtp::Filter::Result GFilters::DeliveryFilter::run( const GStore::MessageId & message_id ,

@@ -31,13 +31,14 @@ public:
 	struct Spec /// Verifier specification tuple for GSmtp::VerifierFactoryBase::newVerifier().
 	{
 		Spec() ;
-		Spec( std::string_view , std::string_view ) ;
+		Spec( std::string_view , std::string_view , int verbosity ) ;
 		std::string first ; // "exit", "file", "net", empty on error
 		std::string second ; // reason on error, or eg. "/bin/a" or "/bin/b;v-2" if "file"
+		int verbosity {0} ;
 	} ;
 
 	virtual std::unique_ptr<Verifier> newVerifier( GNet::EventState ,
-		const Verifier::Config & config , const Spec & spec ) = 0 ;
+		Verifier::Config config , const Spec & spec ) = 0 ;
 			///< Returns a Verifier on the heap. Throws if an invalid
 			///< or unsupported specification.
 

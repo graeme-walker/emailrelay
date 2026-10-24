@@ -70,9 +70,10 @@ public:
 
 protected: // overrides
 	std::unique_ptr<GSmtp::Filter> newFilter( GNet::EventState ,
-		GSmtp::Filter::Type , const GSmtp::Filter::Config & , const Spec & ) override ; // GSmtp::FilterFactoryBase
+		GSmtp::Filter::Type , GSmtp::Filter::Config , const Spec & ) override ; // GSmtp::FilterFactoryBase
 
 private:
+	static Spec makeSpec( std::string_view first , std::string_view second ) ;
 	static void checkNumber( Spec & ) ;
 	static void checkNet( Spec & ) ;
 	static void checkRange( Spec & ) ;

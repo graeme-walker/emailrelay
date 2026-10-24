@@ -55,10 +55,10 @@ public:
 
 protected: // overrides
 	std::unique_ptr<GSmtp::Verifier> newVerifier( GNet::EventState ,
-		const GSmtp::Verifier::Config & config ,
-		const GSmtp::VerifierFactoryBase::Spec & spec ) override ;
+		GSmtp::Verifier::Config config , const GSmtp::VerifierFactoryBase::Spec & spec ) override ;
 
 private:
+	static Spec makeSpec( std::string_view first , std::string_view second ) ;
 	static void checkFile( Spec & result , G::StringArray * warnings_p ) ;
 	static void fixFile( Spec & result , const G::Path & base_dir , const G::Path & app_dir ) ;
 	static void checkNet( Spec & result ) ;

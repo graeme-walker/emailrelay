@@ -17,7 +17,6 @@ GFilters::NullFilter::NullFilter( GNet::EventState es , GStore::FileStore & ,
 		m_filter_config(filter_config) ,
 		m_exit(0,filter_type) ,
 		m_id("exit") ,
-		m_verbosity(-2) ,
 		m_timeout(0) ,
 		m_timer(*this,&NullFilter::onTimeout,es)
 {
@@ -27,9 +26,8 @@ GFilters::NullFilter::NullFilter( GNet::EventState es , GStore::FileStore & ,
 	Filter::Type filter_type , const Filter::Config & filter_config ,
 	const std::string & spec ) :
 		m_filter_config(filter_config) ,
-		m_exit(G::Str::toInt(G::LogOutput::noVerbosity(spec)),filter_type) ,
-		m_id("exit:"+G::LogOutput::noVerbosity(spec)) ,
-		m_verbosity(-2) ,
+		m_exit(G::Str::toInt(spec),filter_type) ,
+		m_id("exit:"+spec) ,
 		m_timeout(0) ,
 		m_timer(*this,&NullFilter::onTimeout,es)
 {
@@ -41,7 +39,6 @@ GFilters::NullFilter::NullFilter( GNet::EventState es , GStore::FileStore & ,
 		m_filter_config(filter_config) ,
 		m_exit(0,filter_type) ,
 		m_id("sleep") ,
-		m_verbosity(-2) ,
 		m_timeout(sleep_time) ,
 		m_timer(*this,&NullFilter::onTimeout,es)
 {
@@ -55,7 +52,7 @@ std::string GFilters::NullFilter::id() const
 
 int GFilters::NullFilter::verbosity() const noexcept
 {
-	return m_verbosity ;
+	return m_filter_config.verbosity ;
 }
 
 bool GFilters::NullFilter::special() const

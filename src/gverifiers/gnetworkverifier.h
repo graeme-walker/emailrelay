@@ -52,9 +52,7 @@ private:
 private:
 	GNet::EventState m_es ;
 	G::Slot::Signal<GSmtp::Verifier::Command,const GSmtp::VerifierStatus&> m_done_signal ;
-	GSmtp::Verifier::Config m_config ;
-	std::string m_spec ;
-	int m_verbosity ;
+	GSmtp::Verifier::Config m_verifier_config ;
 	GNet::Location m_location ;
 	G::TimeInterval m_connection_timeout ;
 	G::TimeInterval m_response_timeout ;

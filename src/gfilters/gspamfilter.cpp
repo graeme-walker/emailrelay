@@ -18,8 +18,7 @@ GFilters::SpamFilter::SpamFilter( GNet::EventState es , GStore::FileStore & file
 		m_done_timer(*this,&SpamFilter::onDoneTimeout,m_es) ,
 		m_done_signal(true) ,
 		m_file_store(file_store) ,
-		m_location(G::LogOutput::noVerbosity(spec)) ,
-		m_verbosity(G::LogOutput::parseVerbosity(spec)) ,
+		m_location(spec) ,
 		m_read_only(read_only) ,
 		m_always_pass(always_pass) ,
 		m_filter_config(filter_config) ,
@@ -43,7 +42,7 @@ std::string GFilters::SpamFilter::id() const
 
 int GFilters::SpamFilter::verbosity() const noexcept
 {
-	return m_verbosity ;
+	return m_filter_config.verbosity ;
 }
 
 void GFilters::SpamFilter::start( const GStore::MessageId & message_id )

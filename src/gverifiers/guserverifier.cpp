@@ -18,8 +18,7 @@
 GVerifiers::UserVerifier::UserVerifier( GNet::EventState es ,
 	const GSmtp::Verifier::Config & verifier_config , const std::string & spec ) :
 		m_verifier_config(verifier_config) ,
-		m_spec(G::LogOutput::noVerbosity(spec)) ,
-		m_verbosity(G::LogOutput::parseVerbosity(spec)) ,
+		m_spec(spec) ,
 		m_timer(*this,&UserVerifier::onTimeout,es) ,
 		m_result(GSmtp::VerifierStatus::invalid({})) ,
 		m_range(G::Range::range(1000,32767))
@@ -41,7 +40,7 @@ GVerifiers::UserVerifier::UserVerifier( GNet::EventState es ,
 
 int GVerifiers::UserVerifier::verbosity() const noexcept
 {
-	return m_verbosity ;
+	return m_verifier_config.verbosity ;
 }
 
 void GVerifiers::UserVerifier::verify( const GSmtp::Verifier::Request & request )

@@ -73,7 +73,6 @@ private:
 	GNet::Timer<NetworkFilter> m_timer ;
 	G::Slot::Signal<int> m_done_signal ;
 	GNet::Location m_location ;
-	int m_verbosity ;
 	Filter::Config m_filter_config ;
 	G::TimeInterval m_connection_timeout ;
 	G::TimeInterval m_response_timeout ;

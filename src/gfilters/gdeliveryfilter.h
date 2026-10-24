@@ -41,7 +41,6 @@ private:
 	Filter::Type m_filter_type ;
 	Filter::Config m_filter_config ;
 	std::string m_spec ;
-	int m_verbosity ;
 } ;
 
 #endif

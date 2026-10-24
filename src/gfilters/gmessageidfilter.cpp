@@ -21,14 +21,13 @@ GFilters::MessageIdFilter::MessageIdFilter( GNet::EventState es , GStore::FileSt
 	Filter::Type filter_type , const Filter::Config & filter_config , const std::string & spec ) :
 		SimpleFilterBase(es,filter_type,"msgid:") ,
 		m_store(store) ,
-		m_filter_config(filter_config) ,
-		m_verbosity(G::LogOutput::parseVerbosity(spec))
+		m_filter_config(filter_config)
 {
 }
 
 int GFilters::MessageIdFilter::verbosity() const noexcept
 {
-	return m_verbosity ;
+	return m_filter_config.verbosity ;
 }
 
 GSmtp::Filter::Result GFilters::MessageIdFilter::run( const GStore::MessageId & message_id ,
