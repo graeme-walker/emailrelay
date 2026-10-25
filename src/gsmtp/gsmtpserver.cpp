@@ -58,9 +58,16 @@ GSmtp::ServerPeer::~ServerPeer()
 
 void GSmtp::ServerPeer::onDelete( const std::string & reason )
 {
-	G_LOG_S_G( connection , "GSmtp::ServerPeer: smtp connection closed: " << reason << (reason.empty()?"":": ")
-		<< peerAddress().displayString() ) ;
-
+	if( reason == "smtp protocol done" ) // GSmtp::ServerProtocol::ProtocolDone
+	{
+		G_LOG_G( connection , "GSmtp::ServerPeer: smtp connection closed: "
+			<< peerAddress().displayString() ) ;
+	}
+	else
+	{
+		G_LOG_S_G( connection , "GSmtp::ServerPeer: smtp connection closed: " << reason << (reason.empty()?"":": ")
+			<< peerAddress().displayString() ) ;
+	}
 	m_server.eventSignal().emit( "done" , std::string(reason) ) ;
 }
 
