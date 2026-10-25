@@ -65,7 +65,7 @@ GSmtp::VerifierFactoryBase::Spec GVerifiers::VerifierFactory::makeSpec( std::str
 	std::string_view second )
 {
 	std::string s = G::sv_to_string( second ) ;
-	return Spec( first , G::LogOutput::noVerbosity(s) , G::LogOutput::parseVerbosity(s) ) ;
+	return { first , G::LogOutput::noVerbosity(s) , G::LogOutput::parseVerbosity(s) } ;
 }
 
 std::unique_ptr<GSmtp::Verifier> GVerifiers::VerifierFactory::newVerifier( GNet::EventState es ,

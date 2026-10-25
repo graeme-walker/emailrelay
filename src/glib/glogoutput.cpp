@@ -181,7 +181,6 @@ void * G::LogOutput::contextarg() noexcept
 
 bool G::LogOutput::at( Severity severity , int verbosity ) const noexcept
 {
-	bool do_output = m_config.m_output_enabled ;
 	int verbose_count = static_cast<int>( m_config.m_verbose_count ) ;
 	if( severity == Severity::Error || severity == Severity::Warning )
 		return m_config.m_output_enabled ;
@@ -496,7 +495,6 @@ G::LogOutput::Config::Config() noexcept
 
 G::LogOutput::Config::Config( bool enabled , bool verbose ) noexcept :
 	m_output_enabled(enabled),
-	m_summary_info(true) ,
 	m_verbose_count(enabled?1:0),
 	m_debug(verbose)
 {
