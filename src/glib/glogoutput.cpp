@@ -179,8 +179,15 @@ void * G::LogOutput::contextarg() noexcept
 	return p ? p->m_context_fn_arg : nullptr ;
 }
 
-bool G::LogOutput::at( Severity severity , int verbosity ) const noexcept
+bool G::LogOutput::at( Severity severity , int verbosity , bool * once_p ) const noexcept
 {
+	if( once_p != nullptr )
+	{
+		bool first = *once_p ;
+		*once_p = false ;
+		if( !first )
+			return false ;
+	}
 	int verbose_count = static_cast<int>( m_config.m_verbose_count ) ;
 	if( severity == Severity::Error || severity == Severity::Warning )
 		return m_config.m_output_enabled ;

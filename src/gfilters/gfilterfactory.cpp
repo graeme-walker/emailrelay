@@ -38,7 +38,7 @@ GFilters::FilterFactory::Spec GFilters::FilterFactory::parse( std::string_view s
 	Spec result ;
 	if( spec_in.empty() )
 	{
-		result = Spec{ "exit" , "0" , 0 } ;
+		result = Spec{ "exit" , "0" , -4 } ;
 	}
 	else if( spec_in.find(',') != std::string::npos )
 	{
@@ -66,7 +66,7 @@ GFilters::FilterFactory::Spec GFilters::FilterFactory::parse( std::string_view s
 	}
 	else if( G::Str::headMatch( spec_in , "sleepms:" ) )
 	{
-		result = makeSpec( "sleep" , tail ) ;
+		result = makeSpec( "sleepms" , tail ) ;
 		checkNumber( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "net:" ) )
@@ -120,7 +120,7 @@ GFilters::FilterFactory::Spec GFilters::FilterFactory::parse( std::string_view s
 	return result ;
 }
 
-GFilters::FilterFactory::Spec GFilters::FilterFactory::makeSpec( std::string_view first , 
+GFilters::FilterFactory::Spec GFilters::FilterFactory::makeSpec( std::string_view first ,
 	std::string_view second )
 {
 	std::string s = G::sv_to_string( second ) ;
@@ -157,9 +157,10 @@ std::unique_ptr<GSmtp::Filter> GFilters::FilterFactory::newFilter( GNet::EventSt
 	{
 		return std::make_unique<NullFilter>( es , m_file_store , filter_type , filter_config , spec.second ) ;
 	}
-	else if( spec.first == "sleep" )
+	else if( spec.first == "sleepms" )
 	{
-		return std::make_unique<NullFilter>( es , m_file_store , filter_type , filter_config , G::TimeInterval(0U,G::Str::toUInt(spec.second)) ) ;
+		return std::make_unique<NullFilter>( es , m_file_store , filter_type , filter_config ,
+			G::TimeInterval(0U,G::Str::toUInt(spec.second)) ) ;
 	}
 	else if( spec.first == "file" )
 	{

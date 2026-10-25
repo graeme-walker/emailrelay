@@ -96,7 +96,7 @@ bool GSmtp::Forward::sendNext()
 		}
 	}
 	if( m_message_count != 0U )
-		G_LOG_G( forwarding , "GSmtp::Forward: forwarding: no more messages to send" ) ;
+		G_LOG_MORE_G( forwarding , "GSmtp::Forward: forwarding: no more messages to send" ) ; // was G_LOG()
 	return false ;
 }
 

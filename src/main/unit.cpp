@@ -227,7 +227,7 @@ void Main::Unit::onClientDone( const std::string & reason )
 		m_forwarding_pending = false ;
 		using G::format ;
 		using G::txt ;
-		G_LOG( "Main::Unit::onClientDone: "
+		G_LOG_G( forwarding , "Main::Unit::onClientDone: "
 			<< format(txt("forwarding: queued request [%1%]")) % m_forwarding_reason ) ;
 		requestForwarding() ;
 	}
@@ -289,7 +289,7 @@ void Main::Unit::onRequestForwardingTimeout()
 
 	if( m_client_ptr.busy() )
 	{
-		G_LOG( "Main::Unit::onRequestForwardingTimeout: "
+		G_LOG_G( forwarding , "Main::Unit::onRequestForwardingTimeout: "
 			<< format(txt("forwarding: [%1%]: still busy from last time")) % m_forwarding_reason
 			<< (m_client_ptr->peerAddressString().empty() ? "" : ": connected to ")
 			<< m_client_ptr->peerAddressString() ) ;
