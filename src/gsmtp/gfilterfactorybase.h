@@ -33,14 +33,14 @@ public:
 	struct Spec /// Filter specification tuple for GSmtp::FilterFactoryBase::newFilter().
 	{
 		Spec() ;
-		Spec( std::string_view , std::string_view ) ;
-		Spec & operator+=( const Spec & ) ;
+		Spec( std::string_view , std::string_view , int ) ; // c++11
 		std::string first ; // "exit", "file", "net", "spam", "chain", empty on error
 		std::string second ; // reason on error, or eg. "/bin/a" if "file", eg. "file:/bin/a,file:/bin/b" if "chain"
+		int verbosity {0} ;
 	} ;
 
 	virtual std::unique_ptr<Filter> newFilter( GNet::EventState ,
-		Filter::Type , const Filter::Config & , const Spec & spec ) = 0 ;
+		Filter::Type , Filter::Config , const Spec & spec ) = 0 ;
 			///< Returns a Filter on the heap. Optionally throws if
 			///< an invalid or unsupported filter specification.
 

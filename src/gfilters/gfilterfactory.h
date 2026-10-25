@@ -41,11 +41,12 @@ public:
 		const G::Path & app_dir = {} , G::StringArray * warnings_p = nullptr ) ;
 			///< Parses and validates the filter specification string returning
 			///< the type and value in a Spec tuple, eg. ("file","/usr/bin/foo")
-			///< or ("net","127.0.0.1:99").
+			///< or ("net","127.0.0.1:99"). The value can have trailing
+			///< semi-colon-separated attributes.
 			///<
 			///< The specification string can be a comma-separated list with
 			///< the component parts checked separately and the returned Spec
-			///< is like ("chain","file:foo,net:bar").
+			///< is like ("chain","file:foo,net:bar,file:baz;v+1").
 			///<
 			///< Any relative file paths are made absolute using the given
 			///< base directory, if given. (This is normally from
@@ -69,13 +70,12 @@ public:
 
 protected: // overrides
 	std::unique_ptr<GSmtp::Filter> newFilter( GNet::EventState ,
-		GSmtp::Filter::Type , const GSmtp::Filter::Config & ,
-		const Spec & ) override ;
+		GSmtp::Filter::Type , GSmtp::Filter::Config , const Spec & ) override ; // GSmtp::FilterFactoryBase
 
 private:
+	static Spec makeSpec( std::string_view first , std::string_view second ) ;
 	static void checkNumber( Spec & ) ;
 	static void checkNet( Spec & ) ;
-	static void checkRange( Spec & ) ;
 	static void checkFile( Spec & , G::StringArray * ) ;
 	static void fixFile( Spec & , const G::Path & , const G::Path & ) ;
 

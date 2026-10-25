@@ -38,79 +38,99 @@ GFilters::FilterFactory::Spec GFilters::FilterFactory::parse( std::string_view s
 	Spec result ;
 	if( spec_in.empty() )
 	{
-		result = Spec( "exit" , "0" ) ;
+		result = Spec{ "exit" , "0" , -4 } ;
 	}
 	else if( spec_in.find(',') != std::string::npos )
 	{
-		result = Spec( "chain" , "" ) ;
+		result = Spec{ "chain" , "" , 0 } ;
 		for( G::StringTokenView t( spec_in , "," ) ; t ; ++t )
-			result += parse( t() , base_dir , app_dir , warnings_p ) ; // one level of recursion
+		{
+			Spec sub = parse( t() , base_dir , app_dir , warnings_p ) ; // one level of recursion
+			if( sub.first.empty() )
+			{
+				result.first.clear() ;
+				result.second = sub.second ;
+				break ;
+			}
+			result.second
+				.append(result.second.empty()?0U:1U,',')
+				.append(sub.first).append(1U,':').append(sub.second)
+				.append(";v").append(sub.verbosity>=0?1U:0U,'+')
+				.append( G::Str::fromInt(sub.verbosity) ) ;
+		}
 	}
 	else if( G::Str::headMatch( spec_in ,"exit:" ) )
 	{
-		result = Spec( "exit" , tail ) ;
+		result = makeSpec( "exit" , tail ) ;
 		checkNumber( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "sleepms:" ) )
 	{
-		result = Spec( "sleep" , tail ) ;
+		result = makeSpec( "sleepms" , tail ) ;
 		checkNumber( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "net:" ) )
 	{
-		result = Spec( "net" , tail ) ;
+		result = makeSpec( "net" , tail ) ;
 		checkNet( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "spam:" ) )
 	{
-		result = Spec( "spam" , tail ) ;
+		result = makeSpec( "spam" , tail ) ;
 		checkNet( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "spam-edit:" ) )
 	{
-		result = Spec( "spam-edit" , tail ) ;
+		result = makeSpec( "spam-edit" , tail ) ;
 		checkNet( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "deliver:" ) )
 	{
-		result = Spec( "deliver" , tail ) ;
-		checkRange( result ) ;
+		result = makeSpec( "deliver" , tail ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "copy:" ) )
 	{
-		result = Spec( "copy" , tail ) ;
+		result = makeSpec( "copy" , tail ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "split:" ) )
 	{
-		result = Spec( "split" , tail ) ;
+		result = makeSpec( "split" , tail ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "mx:" ) )
 	{
-		result = Spec( "mx" , tail ) ;
+		result = makeSpec( "mx" , tail ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "msgid:" ) )
 	{
-		result = Spec( "msgid" , tail ) ;
+		result = makeSpec( "msgid" , tail ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "file:" ) )
 	{
-		result = Spec( "file" , tail ) ;
+		result = makeSpec( "file" , tail ) ;
 		fixFile( result , base_dir , app_dir ) ;
 		checkFile( result , warnings_p ) ;
 	}
 	else
 	{
-		result = Spec( "file" , spec_in ) ;
+		result = makeSpec( "file" , spec_in ) ;
 		fixFile( result , base_dir , app_dir ) ;
 		checkFile( result , warnings_p ) ;
 	}
 	return result ;
 }
 
+GFilters::FilterFactory::Spec GFilters::FilterFactory::makeSpec( std::string_view first ,
+	std::string_view second )
+{
+	std::string s = G::sv_to_string( second ) ;
+	return { G::sv_to_string(first) , G::LogOutput::noVerbosity(s) , G::LogOutput::parseVerbosity(s) } ;
+}
+
 std::unique_ptr<GSmtp::Filter> GFilters::FilterFactory::newFilter( GNet::EventState es ,
-	GSmtp::Filter::Type filter_type , const GSmtp::Filter::Config & filter_config ,
+	GSmtp::Filter::Type filter_type , GSmtp::Filter::Config filter_config ,
 	const FilterFactory::Spec & spec )
 {
+	filter_config.verbosity = spec.verbosity ;
 	if( spec.first == "chain" )
 	{
 		// (one level of recursion -- FilterChain::ctor calls newFilter())
@@ -118,13 +138,15 @@ std::unique_ptr<GSmtp::Filter> GFilters::FilterFactory::newFilter( GNet::EventSt
 	}
 	else if( spec.first == "spam" )
 	{
-		// "spam:" is read-only, not-always-pass
-		return std::make_unique<SpamFilter>( es , m_file_store , filter_type , filter_config , spec.second , true , false ) ;
+		bool read_only = true ;
+		bool always_pass = false ;
+		return std::make_unique<SpamFilter>( es , m_file_store , filter_type , filter_config , spec.second , read_only , always_pass ) ;
 	}
 	else if( spec.first == "spam-edit" )
 	{
-		// "spam-edit:" is read-write, always-pass
-		return std::make_unique<SpamFilter>( es , m_file_store , filter_type , filter_config , spec.second , false , true ) ;
+		bool read_only = false ;
+		bool always_pass = true ;
+		return std::make_unique<SpamFilter>( es , m_file_store , filter_type , filter_config , spec.second , read_only , always_pass ) ;
 	}
 	else if( spec.first == "net" )
 	{
@@ -132,11 +154,12 @@ std::unique_ptr<GSmtp::Filter> GFilters::FilterFactory::newFilter( GNet::EventSt
 	}
 	else if( spec.first == "exit" )
 	{
-		return std::make_unique<NullFilter>( es , m_file_store , filter_type , filter_config , G::Str::toUInt(spec.second) ) ;
+		return std::make_unique<NullFilter>( es , m_file_store , filter_type , filter_config , spec.second ) ;
 	}
-	else if( spec.first == "sleep" )
+	else if( spec.first == "sleepms" )
 	{
-		return std::make_unique<NullFilter>( es , m_file_store , filter_type , filter_config , G::TimeInterval(0U,G::Str::toUInt(spec.second)) ) ;
+		return std::make_unique<NullFilter>( es , m_file_store , filter_type , filter_config ,
+			G::TimeInterval::ms(G::Str::toUInt(spec.second)) ) ; // (was us)
 	}
 	else if( spec.first == "file" )
 	{
@@ -170,20 +193,21 @@ std::unique_ptr<GSmtp::Filter> GFilters::FilterFactory::newFilter( GNet::EventSt
 
 void GFilters::FilterFactory::checkNumber( Spec & result )
 {
-	if( result.second.empty() )
+	const std::string & value = result.second ;
+	if( value.empty() )
 	{
 		result.first.clear() ;
 		result.second = "numeric value missing" ;
 	}
-	else if( !G::Str::isUInt(result.second) )
+	else if( !G::Str::isUInt(value) )
 	{
 		result.first.clear() ;
-		result.second = "invalid numeric value: " + G::Str::printable(result.second) ;
+		result.second = "invalid numeric value: " + G::Str::printable(value) ;
 	}
-	else if( G::Str::toUInt(result.second) >= (std::numeric_limits<unsigned>::max()/1000U) )
+	else if( G::Str::toUInt(value) >= (std::numeric_limits<unsigned>::max()/1000U) )
 	{
 		result.first.clear() ;
-		result.second = "numeric value too big: " + G::Str::printable(result.second) ;
+		result.second = "numeric value too big: " + G::Str::printable(value) ;
 	}
 }
 
@@ -200,46 +224,29 @@ void GFilters::FilterFactory::checkNet( Spec & result )
 	}
 }
 
-void GFilters::FilterFactory::checkRange( Spec & result )
+void GFilters::FilterFactory::fixFile( Spec & result , const G::Path & base_dir , const G::Path & app_dir )
 {
-	try
-	{
-		G::Range::check( result.second ) ;
-	}
-	catch( std::exception & e )
-	{
-		result.first.clear() ;
-		result.second = e.what() ;
-	}
-}
-
-void GFilters::FilterFactory::fixFile( Spec & result ,
-	const G::Path & base_dir , const G::Path & app_dir )
-{
-	if( result.second.find("@app") == 0U && !app_dir.empty() )
-	{
+	if( !app_dir.empty() && result.second.find("@app") == 0U )
 		G::Str::replace( result.second , "@app" , app_dir.str() ) ;
-	}
-	else if( G::Path(result.second).isRelative() && !base_dir.empty() )
-	{
+	else if( !base_dir.empty() && G::Path(result.second).isRelative() )
 		result.second = (base_dir/result.second).str() ;
-	}
 }
 
 void GFilters::FilterFactory::checkFile( Spec & result , G::StringArray * warnings_p )
 {
-	if( result.second.empty() )
+	const std::string & path = result.second ;
+	if( path.empty() )
 	{
 		result.first.clear() ;
 		result.second = "empty file path" ;
 	}
-	else if( warnings_p && !G::File::exists(result.second) )
+	else if( warnings_p && !G::File::exists(path) )
 	{
-		warnings_p->push_back( std::string("filter program does not exist: ").append(result.second) ) ;
+		warnings_p->push_back( std::string("filter program does not exist: ").append(path) ) ;
 	}
-	else if( warnings_p && G::File::isDirectory(result.second,std::nothrow) )
+	else if( warnings_p && G::File::isDirectory(path,std::nothrow) )
 	{
-		warnings_p->push_back( std::string("invalid program: ").append(result.second) ) ;
+		warnings_p->push_back( std::string("invalid program: ").append(path) ) ;
 	}
 }
 

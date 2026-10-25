@@ -243,7 +243,7 @@ int main( int argc , char * argv [] )
 			G::LogOutput::Config()
 				.set_output_enabled()
 				.set_summary_info(log||debug)
-				.set_verbose_info(log||debug)
+				.set_verbose_count((log||debug)?1U:0U)
 				.set_debug(debug)
 				.set_with_level(true) ,
 			log_file ) ;

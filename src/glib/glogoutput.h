@@ -11,6 +11,7 @@
 
 #include "gdef.h"
 #include "glogstream.h"
+#include "gloggroup.h"
 #include "gprocess.h"
 #include "gpath.h"
 #include "glimits.h"
@@ -82,9 +83,8 @@ public:
 	struct Config /// A configuration structure for G::LogOutput.
 	{
 		bool m_output_enabled {false} ;
-		bool m_summary_info {false} ;
-		bool m_verbose_info {false} ;
-		bool m_more_verbose_info {false} ;
+		bool m_summary_info {true} ;
+		unsigned int m_verbose_count {0U} ;
 		bool m_debug {false} ;
 		bool m_with_level {false} ;
 		bool m_with_timestamp {false} ;
@@ -94,14 +94,14 @@ public:
 		bool m_use_syslog {false} ;
 		bool m_allow_bad_syslog {false} ;
 		bool m_stdout {false} ;
+		unsigned long m_log_group_mask {0UL} ;
 		SyslogFacility m_facility {SyslogFacility::User} ;
 		Process::Umask::Mode m_umask {Process::Umask::Mode::NoChange} ;
 		Config() noexcept ;
 		Config( bool enabled , bool verbose ) noexcept ;
 		Config & set_output_enabled( bool value = true ) noexcept ;
 		Config & set_summary_info( bool value = true ) noexcept ;
-		Config & set_verbose_info( bool value = true ) noexcept ;
-		Config & set_more_verbose_info( bool value = true ) noexcept ;
+		Config & set_verbose_count( unsigned int ) noexcept ;
 		Config & set_debug( bool value = true ) noexcept ;
 		Config & set_with_level( bool value = true ) noexcept ;
 		Config & set_with_timestamp( bool value = true ) noexcept ;
@@ -113,19 +113,23 @@ public:
 		Config & set_facility( SyslogFacility ) noexcept ;
 		Config & set_umask( Process::Umask::Mode ) noexcept ;
 		Config & set_stdout( bool value = true ) noexcept ;
+		Config & set_log_group_mask( unsigned long value ) noexcept ;
 	} ;
 
 	struct Instance /// A set of convenience functions for calling LogOutput methods on LogOutput::instance().
 	{
-		static bool at( LogOutput::Severity ) noexcept ;
-		static bool atVerbose() noexcept ;
-		static bool atMoreVerbose() noexcept ;
-		static bool atDebug() noexcept ;
+		static bool at( Severity , int verbosity , bool condition ) noexcept ;
+		static bool at( Severity , int verbosity , bool * once_p ) noexcept ;
+		static bool at( Severity , LogGroupId log_group_id , bool condition ) noexcept ;
+		static bool at( Severity , LogGroupId log_group_id , bool * once_p ) noexcept ;
+		static int logGroupVerbosity( int log_group_id ) noexcept ;
+
 		static void context( std::string_view (*fn)(void*) = nullptr , void * fn_arg = nullptr ) noexcept ;
 		static void * contextarg() noexcept ;
-		static LogStream start( LogOutput::Severity , const char * file , int line ) noexcept ;
+		static LogStream start( Severity , const char * file , int line ) noexcept ;
 		static void output( LogStream & ) noexcept ;
 		static int fd() noexcept ;
+		static unsigned int logGroupMask() noexcept ;
 		static LogOutput::Config config() noexcept ;
 		Instance() = delete ;
 	} ;
@@ -173,14 +177,19 @@ public:
 	Config config() const noexcept ;
 		///< Returns the current configuration.
 
+	unsigned long logGroupMask() const noexcept ;
+		///< Returns the config() log_group_mask value.
+
 	int fd() const noexcept ;
 		///< Returns the output file descriptor.
 
 	void configure( const Config & ) ;
 		///< Updates the current configuration.
 
-	bool at( Severity ) const noexcept ;
-		///< Returns true if logging should occur for the given severity level.
+	bool at( Severity , int verbosity , bool * once_p = nullptr ) const noexcept ;
+		///< Returns true if logging should occur for the given severity
+		///< level and verbosity. Optionally tests and sets a 'once'
+		///< flag.
 
 	void context( std::string_view (*fn)(void*) = nullptr , void * fn_arg = nullptr ) noexcept ;
 		///< Sets a functor that is used to provide a context string for
@@ -199,6 +208,23 @@ public:
 	void output( LogStream & ) noexcept ;
 		///< Emits the current log line (see start()). Does nothing if there
 		///< is no LogOutput instance.
+
+	static int parseVerbosity( std::string_view spec ) ;
+		///< Parses a verbosity value out of a semi-colon separated
+		///< list of fields, ignoring the first field. Returns zero
+		///< if none.
+
+	static std::string noVerbosity( std::string_view spec ) ;
+		///< Removes any parseVerbosity() substring.
+
+	static unsigned long parseLogGroupMask( std::string_view spec , bool * error_p = nullptr ) ;
+		///< Parses a log group logging specification into a
+		///< Config::log_group_mask value. Returns zero on
+		///< error and optionally an error flag by reference.
+
+	int logGroupVerbosity( int log_group_id ) const noexcept ;
+		///< Returns the verbosity of the log-group as configured
+		///< in the Config::log_group_mask. Returns zero on error.
 
 	static void assertion( LogOutput * , const char * file , int line , bool test , const char * test_string ) ;
 		///< Performs an assertion check.
@@ -241,6 +267,8 @@ private:
 	void appendTimeTo( LogStream & ) ;
 	static std::string_view levelString( Severity ) noexcept ;
 	static const char * basename( const char * ) noexcept ;
+	static int parseVerbosityImp( std::string_view spec , int no_value = 0 ,
+		std::size_t * = nullptr , std::size_t * = nullptr ) ;
 
 private:
 	struct Stream : public std::ostream
@@ -293,10 +321,10 @@ inline void G::LogOutput::assertion( LogOutput * instance , const char * file , 
 	}
 }
 
+// clang-format off
 inline G::LogOutput::Config & G::LogOutput::Config::set_output_enabled( bool value ) noexcept { m_output_enabled = value ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_summary_info( bool value ) noexcept { m_summary_info = value ; return *this ; }
-inline G::LogOutput::Config & G::LogOutput::Config::set_verbose_info( bool value ) noexcept { m_verbose_info = value ; return *this ; }
-inline G::LogOutput::Config & G::LogOutput::Config::set_more_verbose_info( bool value ) noexcept { m_more_verbose_info = value ; return *this ; }
+inline G::LogOutput::Config & G::LogOutput::Config::set_verbose_count( unsigned n ) noexcept { m_verbose_count = n ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_debug( bool value ) noexcept { m_debug = value ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_with_level( bool value ) noexcept { m_with_level = value ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_with_timestamp( bool value ) noexcept { m_with_timestamp = value ; return *this ; }
@@ -308,16 +336,83 @@ inline G::LogOutput::Config & G::LogOutput::Config::set_allow_bad_syslog( bool v
 inline G::LogOutput::Config & G::LogOutput::Config::set_facility( SyslogFacility facility ) noexcept { m_facility = facility ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_umask( Process::Umask::Mode umask ) noexcept { m_umask = umask ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_stdout( bool value ) noexcept { m_stdout = value ; return *this ; }
+inline G::LogOutput::Config & G::LogOutput::Config::set_log_group_mask( unsigned long value ) noexcept { m_log_group_mask = value ; return *this ; }
+// clang-format off
 
-inline bool G::LogOutput::Instance::at( LogOutput::Severity s ) noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( s ) ; }
-inline bool G::LogOutput::Instance::atVerbose() noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( LogOutput::Severity::InfoVerbose ) ; }
-inline bool G::LogOutput::Instance::atMoreVerbose() noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( LogOutput::Severity::InfoMoreVerbose ) ; }
-inline bool G::LogOutput::Instance::atDebug() noexcept { return LogOutput::m_instance && LogOutput::m_instance->at( LogOutput::Severity::Debug ) ; }
-inline void G::LogOutput::Instance::context( std::string_view (*fn)(void*) , void * fn_arg ) noexcept { if( LogOutput::m_instance ) LogOutput::m_instance->context( fn , fn_arg ) ; }
-inline void * G::LogOutput::Instance::contextarg() noexcept { if( LogOutput::m_instance ) return LogOutput::m_instance->contextarg() ; else return nullptr ; }
-inline G::LogStream G::LogOutput::Instance::start( LogOutput::Severity s , const char * file , int line ) noexcept { if( LogOutput::m_instance ) return LogOutput::m_instance->start( s , file , line ) ; else return {} ; }
-inline void G::LogOutput::Instance::output( LogStream & stream ) noexcept { if( LogOutput::m_instance ) LogOutput::m_instance->output( stream ) ; }
-inline int G::LogOutput::Instance::fd() noexcept { return LogOutput::m_instance ? LogOutput::m_instance->fd() : -1 ; }
-inline G::LogOutput::Config G::LogOutput::Instance::config() noexcept { return LogOutput::m_instance ? LogOutput::m_instance->config() : LogOutput::Config() ; }
+inline
+bool G::LogOutput::Instance::at( Severity s , int verbosity , bool condition ) noexcept
+{
+	return condition && m_instance && m_instance->at( s , verbosity ) ;
+}
+
+inline
+bool G::LogOutput::Instance::at( Severity s , LogGroupId log_group_id , bool condition ) noexcept
+{
+	return condition && m_instance && m_instance->at( s , logGroupVerbosity(log_group_id.value) ) ;
+}
+
+inline
+bool G::LogOutput::Instance::at( Severity s , int verbosity , bool * once_p ) noexcept
+{
+	return m_instance && m_instance->at( s , verbosity , once_p ) ;
+}
+
+inline
+bool G::LogOutput::Instance::at( Severity s , LogGroupId log_group_id , bool * once_p ) noexcept
+{
+	return m_instance && m_instance->at( s , logGroupVerbosity(log_group_id.value) , once_p ) ;
+}
+
+inline
+int G::LogOutput::Instance::logGroupVerbosity( int log_group_id ) noexcept
+{
+	return m_instance ? m_instance->logGroupVerbosity(log_group_id) : 0 ;
+}
+
+inline
+void G::LogOutput::Instance::context( std::string_view (*fn)(void*) , void * fn_arg ) noexcept
+{
+	if( m_instance ) LogOutput::m_instance->context( fn , fn_arg ) ;
+}
+
+inline
+void * G::LogOutput::Instance::contextarg() noexcept
+{
+	return m_instance ? m_instance->contextarg() : nullptr ;
+}
+
+inline
+G::LogStream G::LogOutput::Instance::start( Severity s , const char * file , int line ) noexcept
+{
+	if( m_instance )
+		return m_instance->start( s , file , line ) ;
+	else
+		return {} ;
+}
+
+inline
+void G::LogOutput::Instance::output( LogStream & stream ) noexcept
+{
+	if( m_instance )
+		m_instance->output( stream ) ;
+}
+
+inline
+int G::LogOutput::Instance::fd() noexcept
+{
+	return m_instance ? m_instance->fd() : -1 ;
+}
+
+inline
+G::LogOutput::Config G::LogOutput::Instance::config() noexcept
+{
+	return m_instance ? m_instance->config() : Config() ;
+}
+
+inline
+unsigned int G::LogOutput::Instance::logGroupMask() noexcept
+{
+	return m_instance ? m_instance->logGroupMask() : 0U ;
+}
 
 #endif

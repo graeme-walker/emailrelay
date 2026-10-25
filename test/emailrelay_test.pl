@@ -1396,6 +1396,7 @@ sub testFilterRescan
 		Log => 1 ,
 		LogFile => 1 ,
 		Verbose => 1 ,
+		MoreVerbose => 1 ,
 		Domain => 1 ,
 		Port => 1 ,
 		SpoolDir => 1 ,

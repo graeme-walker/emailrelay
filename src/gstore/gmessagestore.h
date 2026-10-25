@@ -126,7 +126,7 @@ public:
 	virtual void unfailAll() = 0 ;
 		///< Unfails all failed messages.
 
-	virtual void retry( unsigned int limit , bool verbose ) = 0 ;
+	virtual void retry( unsigned int limit , int verbosity ) = 0 ;
 		///< Unfails failed messages, but not including messages that
 		///< have been retried 'limit' times already, and not including
 		///< messages that have a "permanent" failure status. A limit

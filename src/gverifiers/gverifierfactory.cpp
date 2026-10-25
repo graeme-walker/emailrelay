@@ -28,59 +28,66 @@ GVerifiers::VerifierFactory::Spec GVerifiers::VerifierFactory::parse( std::strin
 	Spec result ;
 	if( spec_in.empty() )
 	{
-		result = Spec( "exit" , "0" ) ;
+		result = makeSpec( "exit" , "0" ) ;
 		checkExit( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "exit:" ) )
 	{
-		result = Spec( "exit" , tail ) ;
+		result = makeSpec( "exit" , tail ) ;
 		checkExit( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "net:" ) )
 	{
-		result = Spec( "net" , tail ) ;
+		result = makeSpec( "net" , tail ) ;
 		checkNet( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "account:" ) )
 	{
-		result = Spec( "account" , tail ) ;
+		result = makeSpec( "account" , tail ) ;
 		checkRange( result ) ;
 	}
 	else if( G::Str::headMatch( spec_in , "file:" ) )
 	{
-		result = Spec( "file" , tail ) ;
+		result = makeSpec( "file" , tail ) ;
 		fixFile( result , base_dir , app_dir ) ;
 		checkFile( result , warnings_p ) ;
 	}
 	else
 	{
-		result = Spec( "file" , spec_in ) ;
+		result = makeSpec( "file" , spec_in ) ;
 		fixFile( result , base_dir , app_dir ) ;
 		checkFile( result , warnings_p ) ;
 	}
 	return result ;
 }
 
-std::unique_ptr<GSmtp::Verifier> GVerifiers::VerifierFactory::newVerifier( GNet::EventState es ,
-	const GSmtp::Verifier::Config & config , const Spec & spec )
+GSmtp::VerifierFactoryBase::Spec GVerifiers::VerifierFactory::makeSpec( std::string_view first ,
+	std::string_view second )
 {
+	std::string s = G::sv_to_string( second ) ;
+	return { first , G::LogOutput::noVerbosity(s) , G::LogOutput::parseVerbosity(s) } ;
+}
+
+std::unique_ptr<GSmtp::Verifier> GVerifiers::VerifierFactory::newVerifier( GNet::EventState es ,
+	GSmtp::Verifier::Config verifier_config , const Spec & spec )
+{
+	verifier_config.verbosity = spec.verbosity ;
 	if( spec.first == "exit" )
 	{
 		return std::make_unique<InternalVerifier>() ;
 	}
 	else if( spec.first == "net" )
 	{
-		return std::make_unique<NetworkVerifier>( es , config , spec.second ) ;
+		return std::make_unique<NetworkVerifier>( es , verifier_config , spec.second ) ;
 	}
 	else if( spec.first == "account" )
 	{
-		return std::make_unique<UserVerifier>( es , config , spec.second ) ;
+		return std::make_unique<UserVerifier>( es , verifier_config , spec.second ) ;
 	}
 	else if( spec.first == "file" )
 	{
-		return std::make_unique<ExecutableVerifier>( es , config , G::Path(spec.second) ) ;
+		return std::make_unique<ExecutableVerifier>( es , verifier_config , spec.second ) ;
 	}
-
 	throw G::Exception( "invalid verifier" , spec.second ) ;
 }
 
@@ -134,18 +141,19 @@ void GVerifiers::VerifierFactory::fixFile( Spec & result , const G::Path & base_
 
 void GVerifiers::VerifierFactory::checkFile( Spec & result , G::StringArray * warnings_p )
 {
-	if( result.second.empty() )
+	const std::string & path = result.second ;
+	if( path.empty() )
 	{
 		result.first.clear() ;
 		result.second = "empty file path" ;
 	}
-	else if( warnings_p && !G::File::exists(result.second) )
+	else if( warnings_p && !G::File::exists(path) )
 	{
-		warnings_p->push_back( std::string("verifier program does not exist: ").append(result.second) ) ;
+		warnings_p->push_back( std::string("verifier program does not exist: ").append(path) ) ;
 	}
-	else if( warnings_p && G::File::isDirectory(result.second,std::nothrow) )
+	else if( warnings_p && G::File::isDirectory(path,std::nothrow) )
 	{
-		warnings_p->push_back( std::string("invalid program: ").append(result.second) ) ;
+		warnings_p->push_back( std::string("invalid program: ").append(path) ) ;
 	}
 }
 

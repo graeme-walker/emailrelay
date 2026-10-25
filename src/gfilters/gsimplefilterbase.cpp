@@ -23,11 +23,6 @@ std::string GFilters::SimpleFilterBase::id() const
 	return m_id ;
 }
 
-bool GFilters::SimpleFilterBase::quiet() const
-{
-	return false ;
-}
-
 void GFilters::SimpleFilterBase::start( const GStore::MessageId & message_id )
 {
 	GStore::FileStore::State e_state =

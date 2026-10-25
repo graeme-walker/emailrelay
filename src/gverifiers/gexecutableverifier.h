@@ -26,10 +26,11 @@ namespace GVerifiers
 class GVerifiers::ExecutableVerifier : public GSmtp::Verifier, private GNet::TaskCallback
 {
 public:
-	ExecutableVerifier( GNet::EventState , const GSmtp::Verifier::Config & , const G::Path & ) ;
+	ExecutableVerifier( GNet::EventState , const GSmtp::Verifier::Config & , const std::string & spec ) ;
 		///< Constructor.
 
 private: // overrides
+	int verbosity() const noexcept override ; // GSmtp::Verifier
 	G::Slot::Signal<GSmtp::Verifier::Command,const GSmtp::VerifierStatus&> & doneSignal() override ; // GSmtp::Verifier
 	void cancel() override ; // GSmtp::Verifier
 	void onTaskDone( int , const std::string & ) override ; // GNet::TaskCallback
@@ -48,7 +49,7 @@ private:
 private:
 	GNet::Timer<ExecutableVerifier> m_timer ;
 	GSmtp::Verifier::Command m_command {GSmtp::Verifier::Command::VRFY} ;
-	GSmtp::Verifier::Config m_config ;
+	GSmtp::Verifier::Config m_verifier_config ;
 	G::Path m_path ;
 	G::Slot::Signal<GSmtp::Verifier::Command,const GSmtp::VerifierStatus&> m_done_signal ;
 	std::string m_to_address ;

@@ -50,6 +50,7 @@ public:
 			///< eg. "1000-1002;pm;lc".
 
 private: // overrides
+	int verbosity() const noexcept override ; // GSmtp::Verifier
 	void verify( const GSmtp::Verifier::Request & ) override ; // GSmtp::Verifier
 	G::Slot::Signal<GSmtp::Verifier::Command,const GSmtp::VerifierStatus&> & doneSignal() override ; // GSmtp::Verifier
 	void cancel() override ; // GSmtp::Verifier
@@ -62,7 +63,8 @@ private:
 private:
 	using Signal = G::Slot::Signal<GSmtp::Verifier::Command,const GSmtp::VerifierStatus&> ;
 	GSmtp::Verifier::Command m_command {GSmtp::Verifier::Command::RCPT} ;
-	GSmtp::Verifier::Config m_config ;
+	GSmtp::Verifier::Config m_verifier_config ;
+	std::string m_spec ;
 	GNet::Timer<UserVerifier> m_timer ;
 	GSmtp::VerifierStatus m_result ;
 	Signal m_done_signal ;

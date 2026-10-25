@@ -40,7 +40,7 @@ public:
 
 private: // overrides
 	std::string id() const override ; // GSmtp::Filter
-	bool quiet() const override ; // GSmtp::Filter
+	int verbosity() const noexcept override ; // GSmtp::Filter
 	G::Slot::Signal<int> & doneSignal() noexcept override ; // GSmtp::Filter
 	void start( const GStore::MessageId & ) override ; // GSmtp::Filter
 	void cancel() override ; // GSmtp::Filter
@@ -70,6 +70,7 @@ private:
 	GNet::Location m_location ;
 	bool m_read_only ;
 	bool m_always_pass ;
+	Filter::Config m_filter_config ;
 	G::TimeInterval m_connection_timeout ;
 	G::TimeInterval m_response_timeout ;
 	GNet::ClientPtr<GSmtp::SpamClient> m_client_ptr ;

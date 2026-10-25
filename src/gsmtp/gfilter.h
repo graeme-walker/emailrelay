@@ -55,6 +55,7 @@ public:
 	{
 		G::TimeInterval timeout {60U} ;
 		std::string domain ; // postcondition: !domain.empty()
+		int verbosity {0} ; // (set by factory)
 		Config & set_timeout( unsigned int ) noexcept ;
 		Config & set_timeout( G::TimeInterval ) noexcept ;
 		Config & set_domain( const std::string & ) ;
@@ -67,8 +68,8 @@ public:
 		///< Returns the id passed to the derived-class constructor.
 		///< Used in logging.
 
-	virtual bool quiet() const = 0 ;
-		///< Returns true if there is no need for logging.
+	virtual int verbosity() const noexcept = 0 ;
+		///< Returns a verbosity adjustment.
 
 	virtual void start( const GStore::MessageId & ) = 0 ;
 		///< Starts the filter for the given message. Any previous,

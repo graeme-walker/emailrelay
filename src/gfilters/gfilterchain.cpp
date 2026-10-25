@@ -26,11 +26,13 @@ GFilters::FilterChain::FilterChain( GNet::EventState es , GSmtp::FilterFactoryBa
 	{
 		std::string first = G::Str::head( t() , ":" , false ) ;
 		std::string second = G::Str::tail( t() , ":" ) ;
-		add( es , ff , filter_type , filter_config , Spec(first,second) ) ;
+		int v = G::LogOutput::parseVerbosity( second ) ;
+		second = G::LogOutput::noVerbosity( second ) ;
+		add( es , ff , filter_type , filter_config , Spec{first,second,v} ) ;
 	}
 
 	if( m_filters.empty() )
-		add( es , ff , filter_type , filter_config , {"exit","0"} ) ;
+		add( es , ff , filter_type , filter_config , {"exit","0",0} ) ;
 }
 
 void GFilters::FilterChain::add( GNet::EventState es , GSmtp::FilterFactoryBase & ff ,
@@ -52,10 +54,9 @@ std::string GFilters::FilterChain::id() const
 	return m_filter_id ;
 }
 
-bool GFilters::FilterChain::quiet() const
+int GFilters::FilterChain::verbosity() const noexcept
 {
-    return std::all_of( m_filters.begin() , m_filters.end() ,
-        [](const std::unique_ptr<Filter> & ptr){ return ptr->quiet() ; } ) ;
+	return 0 ;
 }
 
 G::Slot::Signal<int> & GFilters::FilterChain::doneSignal() noexcept

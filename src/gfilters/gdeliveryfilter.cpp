@@ -22,6 +22,11 @@ GFilters::DeliveryFilter::DeliveryFilter( GNet::EventState es , GStore::FileStor
 {
 }
 
+int GFilters::DeliveryFilter::verbosity() const noexcept
+{
+	return m_filter_config.verbosity ;
+}
+
 GSmtp::Filter::Result GFilters::DeliveryFilter::run( const GStore::MessageId & message_id ,
 	bool & , GStore::FileStore::State )
 {

@@ -46,10 +46,14 @@ public:
 	{
 		G::TimeInterval timeout {60U} ;
 		std::string domain ;
+		int verbosity {0} ; // (set by factory)
 		Config & set_timeout( unsigned int ) noexcept ;
 		Config & set_timeout( G::TimeInterval ) noexcept ;
 		Config & set_domain( const std::string & ) ;
 	} ;
+
+	virtual int verbosity() const noexcept = 0 ;
+		///< Returns a verbosity adjustment.
 
 	virtual void verify( const Request & ) = 0 ;
 		///< Checks a recipient address and asynchronously returns a

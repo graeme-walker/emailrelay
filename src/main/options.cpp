@@ -72,6 +72,16 @@ G::Options Main::Options::spec()
 			// --as-client and --as-proxy imply --log, and --as-server and --as-proxy
 			// also imply --close-stderr.
 
+	G::Options::add( opt , '\0' , "log-config" ,
+		tx("modifies what is logged") , "" ,
+		M::many , "spec" , 30 ,
+		t_logging ) ;
+			//example: io-2,connection-1
+			// Modifies what informational log messages are emitted. The value should
+			// be a log-group name followed by "+2", "+1", "-1", "-2" or "-3" having
+			// the effect of adding or removing --verbose that many times for log
+			// messages in that log-group. Warnings and errors are unaffected.
+
 	#ifdef G_UNIX
 	G::Options::add( opt , 't' , "no-daemon" ,
 		tx("does not detach from the terminal") , "" ,

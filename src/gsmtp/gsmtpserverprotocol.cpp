@@ -195,7 +195,7 @@ void GSmtp::ServerProtocol::applyEvent( Event event , EventData event_data )
 {
 	State new_state = m_fsm.apply( *this , event , event_data ) ;
 	if( new_state == State::s_Any )
-		throw Done( "protocol error" ) ;
+		throw ProtocolDone( "protocol error" ) ;
 }
 
 void GSmtp::ServerProtocol::secure( const std::string & certificate ,
@@ -282,7 +282,7 @@ bool GSmtp::ServerProtocol::apply( const ApplyArgsTuple & args )
 	}
 	else
 	{
-		G_LOG( "GSmtp::ServerProtocol: rx<<: \"" << G::Str::printable(str(event_data)) << "\"" ) ;
+		G_LOG_G( io , "GSmtp::ServerProtocol: rx<<: \"" << G::Str::printable(str(event_data)) << "\"" ) ;
 		event = commandEvent( event_data ) ;
 	}
 
@@ -301,7 +301,7 @@ bool GSmtp::ServerProtocol::apply( const ApplyArgsTuple & args )
 void GSmtp::ServerProtocol::doDataContent( EventData , bool & )
 {
 	G_ASSERT( m_apply_data != nullptr ) ;
-	if( m_apply_data == nullptr ) throw Done( "protocol error" ) ;
+	if( m_apply_data == nullptr ) throw ProtocolDone( "protocol error" ) ;
 
 	const char * ptr = std::get<0>( *m_apply_data ) ;
 	std::size_t size = std::get<1>( *m_apply_data ) ;
@@ -317,8 +317,8 @@ void GSmtp::ServerProtocol::doDataContent( EventData , bool & )
 
 void GSmtp::ServerProtocol::doEot( EventData , bool & ok )
 {
-	G_LOG( "GSmtp::ServerProtocol: rx<<: [message content not logged]" ) ;
-	G_LOG( "GSmtp::ServerProtocol: rx<<: \".\"" ) ;
+	G_LOG_G( io , "GSmtp::ServerProtocol: rx<<: [message content not logged]" ) ;
+	G_LOG_G( io , "GSmtp::ServerProtocol: rx<<: \".\"" ) ;
 
 	if( messageAddContentFailed() )
 	{
@@ -368,7 +368,7 @@ void GSmtp::ServerProtocol::doQuit( EventData , bool & )
 	clear() ;
 	sendQuitOk() ;
 	m_sender->protocolShutdown( m_config.shutdown_how_on_quit ) ;
-	throw Done() ;
+	throw ProtocolDone() ;
 }
 
 void GSmtp::ServerProtocol::doBadDataCommand( EventData , bool & )
@@ -466,7 +466,7 @@ void GSmtp::ServerProtocol::doBdatImp( std::string_view bdat_line , bool & ok , 
 void GSmtp::ServerProtocol::doBdatContent( EventData , bool & complete )
 {
 	G_ASSERT( m_apply_data != nullptr ) ;
-	if( m_apply_data == nullptr ) throw Done( "protocol error" ) ;
+	if( m_apply_data == nullptr ) throw ProtocolDone( "protocol error" ) ;
 
 	const char * ptr = std::get<0>( *m_apply_data ) ;
 	std::size_t size = std::get<1>( *m_apply_data ) ;
@@ -493,7 +493,7 @@ void GSmtp::ServerProtocol::doBdatContent( EventData , bool & complete )
 void GSmtp::ServerProtocol::doBdatContentLast( EventData , bool & complete )
 {
 	G_ASSERT( m_apply_data != nullptr ) ;
-	if( m_apply_data == nullptr ) throw Done( "protocol error" ) ;
+	if( m_apply_data == nullptr ) throw ProtocolDone( "protocol error" ) ;
 
 	const char * ptr = std::get<0>( *m_apply_data ) ;
 	std::size_t size = std::get<1>( *m_apply_data ) ;
@@ -628,7 +628,7 @@ void GSmtp::ServerProtocol::verifyDone( Verifier::Command command , const Verifi
 {
 	G_DEBUG( "GSmtp::ServerProtocol::verifyDone: verify done: [" << status.str() << "]" ) ;
 	if( status.abort )
-		throw Done( "address verifier abort" ) ;
+		throw ProtocolDone( "address verifier abort" ) ;
 
 	Event event = command == Verifier::Command::RCPT ? Event::RcptReply : Event::VrfyReply ;
 
@@ -636,7 +636,7 @@ void GSmtp::ServerProtocol::verifyDone( Verifier::Command command , const Verifi
 	std::string status_str = status.str() ;
 	State new_state = m_fsm.apply( *this , event , {status_str.data(),status_str.size()} ) ;
 	if( new_state == State::s_Any )
-		throw Done( "protocol error" ) ;
+		throw ProtocolDone( "protocol error" ) ;
 
 	m_change_signal.emit() ;
 }
@@ -767,7 +767,7 @@ void GSmtp::ServerProtocol::doAuth( EventData event_data , bool & predicate )
 
 void GSmtp::ServerProtocol::doAuthData( EventData event_data , bool & predicate )
 {
-	G_LOG( "GSmtp::ServerProtocol: rx<<: [authentication response not logged]" ) ;
+	G_LOG_G( io , "GSmtp::ServerProtocol: rx<<: [authentication response not logged]" ) ;
 	if( event_data.size() == 1U && event_data[0] == '*' )
 	{
 		predicate = false ; // => idle
@@ -808,7 +808,7 @@ void GSmtp::ServerProtocol::doMail( EventData event_data , bool & predicate )
 		!m_sasl->authenticated() &&
 		!m_sasl->trusted(m_peer_address.wildcards(),m_peer_address.hostPartString()) )
 	{
-		G_LOG( "GSmtp::ServerProtocol::doMail: server authentication enabled "
+		G_LOG_G( smtp , "GSmtp::ServerProtocol::doMail: server authentication enabled "
 			"but not a trusted address: " << m_peer_address.hostPartString() ) ;
 		predicate = false ;
 		sendAuthRequired( m_config.mail_requires_encryption && !m_secure && m_with_starttls ) ;
@@ -1008,7 +1008,7 @@ void GSmtp::ServerProtocol::badClientEvent()
 	{
 		std::string reason = "too many protocol errors from the client" ;
 		G_DEBUG( "GSmtp::ServerProtocol::badClientEvent: " << reason << ": dropping the connection" ) ;
-		throw Done( reason ) ;
+		throw ProtocolDone( reason ) ;
 	}
 }
 

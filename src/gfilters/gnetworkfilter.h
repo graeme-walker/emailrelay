@@ -40,7 +40,7 @@ public:
 
 private: // overrides
 	std::string id() const override ; // GSmtp::Filter
-	bool quiet() const override ; // GSmtp::Filter
+	int verbosity() const noexcept override ; // GSmtp::Filter
 	G::Slot::Signal<int> & doneSignal() noexcept override ; // GSmtp::Filter
 	void start( const GStore::MessageId & ) override ; // GSmtp::Filter
 	void cancel() override ; // GSmtp::Filter
@@ -73,6 +73,7 @@ private:
 	GNet::Timer<NetworkFilter> m_timer ;
 	G::Slot::Signal<int> m_done_signal ;
 	GNet::Location m_location ;
+	Filter::Config m_filter_config ;
 	G::TimeInterval m_connection_timeout ;
 	G::TimeInterval m_response_timeout ;
 	std::optional<std::string> m_text ;

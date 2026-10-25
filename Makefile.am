@@ -40,6 +40,7 @@
 #	$ make tidy TIDY=clang-tidy-10
 #	$ make format FORMAT=clang-format-10
 #	$ make distcheck DISTCHECK_CONFIGURE_FLAGS=--disable-testing
+#	$ make distcheck AM_MAKEFLAGS=-j
 #
 
 EXTRA_DIST = \

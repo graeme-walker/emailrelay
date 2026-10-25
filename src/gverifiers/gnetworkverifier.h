@@ -34,6 +34,7 @@ public:
 		///< Destructor.
 
 private: // overrides
+	int verbosity() const noexcept override ; // GSmtp::Verifier
 	void verify( const GSmtp::Verifier::Request & ) override ; // GSmtp::Verifier
 	G::Slot::Signal<GSmtp::Verifier::Command,const GSmtp::VerifierStatus&> & doneSignal() override ; // GSmtp::Verifier
 	void cancel() override ; // GSmtp::Verifier
@@ -51,7 +52,7 @@ private:
 private:
 	GNet::EventState m_es ;
 	G::Slot::Signal<GSmtp::Verifier::Command,const GSmtp::VerifierStatus&> m_done_signal ;
-	GSmtp::Verifier::Config m_config ;
+	GSmtp::Verifier::Config m_verifier_config ;
 	GNet::Location m_location ;
 	G::TimeInterval m_connection_timeout ;
 	G::TimeInterval m_response_timeout ;

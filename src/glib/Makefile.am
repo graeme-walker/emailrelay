@@ -83,6 +83,7 @@ COMMON_SOURCES = \
 	glimits.h \
 	glog.h \
 	glog.cpp \
+	gloggroup.h \
 	glogstream.h \
 	glogstream.cpp \
 	glogoutput.h \

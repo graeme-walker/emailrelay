@@ -457,6 +457,11 @@ std::string Main::Configuration::specificationError() const
 	using G::txt ;
 	using G::format ;
 
+	bool error = false ;
+	G::LogOutput::parseLogGroupMask(stringValue("log-config"),&error) ;
+	if( error )
+		return str( format( txt("invalid log config specification: use <m>[+-]<n> for n in 0..4 and m in %1%") ) % G::LogGroup::list ) ;
+
 	GSmtp::FilterFactoryBase::Spec f ;
 	if( (f=_filter()).first.empty() ) // NOLINT assignment
 		return str( format( txt("invalid filter specification: %1%") ) % f.second ) ;
@@ -532,8 +537,7 @@ G::StringArray Main::Configuration::warnings() const
 	filterValue( "filter" , &warnings ) ;
 	filterValue( "client-filter" , &warnings ) ;
 	verifierValue( "address-verifier" , &warnings ) ;
-	pollRunnerValue( "poll-run" , &warnings ) ;
-
+	pollRunnerConfig( &warnings ) ;
 	return warnings ;
 }
 
@@ -577,11 +581,9 @@ G::TimeInterval Main::Configuration::pollingTimeoutFirst() const
 	return list.at( 0U ) ;
 }
 
-Main::PollRunner::Spec Main::Configuration::pollRunnerValue( std::string_view option_name ,
-	G::StringArray * warnings_p ) const
+Main::PollRunner::Config Main::Configuration::pollRunnerConfig( G::StringArray * warnings_p ) const
 {
-	std::string value = stringValue( option_name ) ;
-	return PollRunner::parse( value , m_base_dir.str() , m_app_dir.str() , warnings_p ) ;
+	return PollRunner::parse( stringValue("poll-run") , m_base_dir.str() , m_app_dir.str() , warnings_p ) ;
 }
 
 G::Path Main::Configuration::pathValue( std::string_view option_name ) const
@@ -713,11 +715,11 @@ G::LogOutput::Config Main::Configuration::logOutputConfig( bool has_gui ) const
 	return
 		G::LogOutput::Config()
 			.set_output_enabled( log() )
-			.set_summary_info( log() )
-			.set_verbose_info( contains("verbose") )
-			.set_more_verbose_info( m_map.count("verbose") > 1U )
+			.set_summary_info( true )
+			.set_verbose_count( m_map.count("verbose") )
 			.set_debug( debug() )
 			.set_with_level( true )
+			.set_log_group_mask( G::LogOutput::parseLogGroupMask(m_map.value("log-config")) )
 			.set_with_timestamp( contains("log-time") || logFormatContains("time") )
 			.set_with_context( contains("log-address") || contains("log-format") )
 			.set_strip( !debug() )
@@ -1063,5 +1065,4 @@ G::Path Main::Configuration::serverTlsPrivateKey() const { return keyFile( "serv
 std::string Main::Configuration::tlsConfig() const { return stringValue( "tls-config" ) ; }
 bool Main::Configuration::usePidFile() const noexcept { return contains( "pid-file" ) ; }
 std::string Main::Configuration::user() const { return stringValue( "user" , "daemon" ) ; }
-Main::PollRunner::Spec Main::Configuration::pollRunner() const { return pollRunnerValue("poll-run") ; }
 

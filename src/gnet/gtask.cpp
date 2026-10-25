@@ -71,7 +71,6 @@ private:
 private:
 	Task * m_task ;
 	GNet::EventState m_es ;
-	std::string m_name ;
 	FutureEvent m_future_event ;
 	Timer<TaskImp> m_reaper_timer ;
 	bool m_logged {false} ;
@@ -91,7 +90,6 @@ GNet::TaskImp::TaskImp( Task & task , EventState es , bool sync ,
 	const G::Identity & id ) :
 		m_task(&task) ,
 		m_es(EventState::create().eh(this,es.esrc())) ,
-		m_name(commandline.exe().basename()) ,
 		m_future_event(*this,m_es) ,
 		m_reaper_timer(*this,&TaskImp::onReaperTimeout,m_es) ,
 		m_process( commandline.exe() , commandline.args() ,
@@ -336,8 +334,11 @@ bool GNet::Task::busy() const noexcept
 void GNet::Task::done( int exit_code , const std::string & output )
 {
 	m_busy = false ;
-	G_LOG_MORE( "GNet::Task::done: " << m_config.type << " [" << m_name << "]: "
-		"exit=" << exit_code << " output=[" << G::Str::printable(output) << "]" ) ;
 	m_callback.onTaskDone( exit_code , output ) ;
+}
+
+std::string GNet::Task::name() const
+{
+	return m_name ;
 }
 

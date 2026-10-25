@@ -38,7 +38,7 @@ GSmtp::ServerPeer::ServerPeer( GNet::EventStateUnbound esu ,
 			server_config.protocol_config,enabled) ,
 		m_input_buffer(esbind(esu,this),m_protocol,server_config.buffer_config)
 {
-	G_LOG_S( "GSmtp::ServerPeer: smtp connection from " << peerAddress().displayString() ) ;
+	G_LOG_S_G( connection , "GSmtp::ServerPeer: smtp connection from " << peerAddress().displayString() ) ;
 
 	if( !server_config.protocol_config.tls_connection )
 		m_check_timer.startTimer( 1U ) ;
@@ -58,9 +58,16 @@ GSmtp::ServerPeer::~ServerPeer()
 
 void GSmtp::ServerPeer::onDelete( const std::string & reason )
 {
-	G_LOG_S( "GSmtp::ServerPeer: smtp connection closed: " << reason << (reason.empty()?"":": ")
-		<< peerAddress().displayString() ) ;
-
+	if( reason == "smtp protocol done" ) // GSmtp::ServerProtocol::ProtocolDone
+	{
+		G_LOG_G( connection , "GSmtp::ServerPeer: smtp connection closed: "
+			<< peerAddress().displayString() ) ;
+	}
+	else
+	{
+		G_LOG_S_G( connection , "GSmtp::ServerPeer: smtp connection closed: " << reason << (reason.empty()?"":": ")
+			<< peerAddress().displayString() ) ;
+	}
 	m_server.eventSignal().emit( "done" , std::string(reason) ) ;
 }
 
@@ -239,7 +246,7 @@ GSmtp::Server::Config GSmtp::Server::serverConfig() const
 
 void GSmtp::Server::nodnsbl( unsigned int s )
 {
-	G_LOG( "GSmtp::Server::nodnsbl: dnsbl " << (s?"disabled":"enabled") << (s?(" for "+G::Str::fromUInt(s).append(1U,'s')):"") ) ;
+	G_LOG_G( smtp , "GSmtp::Server::nodnsbl: dnsbl " << (s?"disabled":"enabled") << (s?(" for "+G::Str::fromUInt(s).append(1U,'s')):"") ) ;
 	m_dnsbl_suspend_time = G::TimerTime::now() + G::TimeInterval(s) ;
 }
 

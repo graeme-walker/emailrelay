@@ -112,7 +112,7 @@ Main::Unit::Unit( Run & run , unsigned int unit_id , const std::string & version
 	// create the poll runner with a reference to the message store
 	//
 	m_poll_runner = std::make_unique<PollRunner>( m_es_log_only , *this , store() ,
-		m_configuration.pollRunner() , m_configuration.spoolDir().str() ,
+		m_configuration.pollRunnerConfig() , m_configuration.spoolDir().str() ,
 		m_configuration.deliveryDir().str() ) ;
 
 	// prepare authentication secrets
@@ -227,7 +227,7 @@ void Main::Unit::onClientDone( const std::string & reason )
 		m_forwarding_pending = false ;
 		using G::format ;
 		using G::txt ;
-		G_LOG( "Main::Unit::onClientDone: "
+		G_LOG_G( forwarding , "Main::Unit::onClientDone: "
 			<< format(txt("forwarding: queued request [%1%]")) % m_forwarding_reason ) ;
 		requestForwarding() ;
 	}
@@ -242,7 +242,7 @@ void Main::Unit::onPollTimeout()
 	m_poll_timer->startTimer( m_configuration.pollingTimeout() ) ;
 	if( m_poll_runner->busy() )
 	{
-		G_WARNING_IF( m_poll_runner , "Main::Unit::onPollTimeout: poll runner busy from last time" ) ;
+		G_WARNING_IF( !!m_poll_runner , "Main::Unit::onPollTimeout: poll runner busy from last time" ) ;
 		requestForwarding( "poll" ) ; // ignore the too-slow script and trigger forwarding anyways
 		m_poll_runner->disarm() ;
 	}
@@ -289,7 +289,7 @@ void Main::Unit::onRequestForwardingTimeout()
 
 	if( m_client_ptr.busy() )
 	{
-		G_LOG( "Main::Unit::onRequestForwardingTimeout: "
+		G_LOG_G( forwarding , "Main::Unit::onRequestForwardingTimeout: "
 			<< format(txt("forwarding: [%1%]: still busy from last time")) % m_forwarding_reason
 			<< (m_client_ptr->peerAddressString().empty() ? "" : ": connected to ")
 			<< m_client_ptr->peerAddressString() ) ;
@@ -297,10 +297,10 @@ void Main::Unit::onRequestForwardingTimeout()
 	}
 	else
 	{
-		G_LOG_IF( logForwarding() , "Main::Unit::onRequestForwardingTimeout: " << format(txt("forwarding: [%1%]")) % m_forwarding_reason ) ;
+		G_LOG_MORE_G( forwarding , "Main::Unit::onRequestForwardingTimeout: " << format(txt("forwarding: [%1%]")) % m_forwarding_reason ) ;
 		if( store().empty() )
 		{
-			G_LOG_IF( logForwarding() , "Main::Unit::startForwarding: " << txt("forwarding: no messages to send") ) ;
+			G_LOG_MORE_G( forwarding , "Main::Unit::startForwarding: " << txt("forwarding: no messages to send") ) ;
 			m_event_signal.emit( m_unit_id , "forward" , "end" , "no messages" ) ;
 		}
 		else
@@ -312,11 +312,6 @@ void Main::Unit::onRequestForwardingTimeout()
 				m_event_signal.emit( m_unit_id , "forward" , "end" , error ) ;
 		}
 	}
-}
-
-bool Main::Unit::logForwarding() const
-{
-	return m_forwarding_reason != "poll" || m_configuration.pollingLog() || G::LogOutput::Instance::atDebug() ;
 }
 
 std::string Main::Unit::startForwarding()

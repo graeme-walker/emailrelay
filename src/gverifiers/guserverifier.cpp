@@ -16,13 +16,14 @@
 #include <sstream>
 
 GVerifiers::UserVerifier::UserVerifier( GNet::EventState es ,
-	const GSmtp::Verifier::Config & config , const std::string & spec ) :
-		m_config(config) ,
+	const GSmtp::Verifier::Config & verifier_config , const std::string & spec ) :
+		m_verifier_config(verifier_config) ,
+		m_spec(spec) ,
 		m_timer(*this,&UserVerifier::onTimeout,es) ,
 		m_result(GSmtp::VerifierStatus::invalid({})) ,
 		m_range(G::Range::range(1000,32767))
 {
-	std::string_view spec_view( spec ) ;
+	std::string_view spec_view( m_spec ) ;
 	for( G::StringTokenView t( spec_view , ";" , 1U ) ; t ; ++t )
 	{
 		if( !t().empty() && G::Str::isNumeric(t().substr(0U,1U)) )
@@ -35,6 +36,11 @@ GVerifiers::UserVerifier::UserVerifier( GNet::EventState es ,
 			m_config_check = true ;
 	}
 	G_DEBUG( "GVerifiers::UserVerifier: uid range " << G::Range::str(m_range) ) ;
+}
+
+int GVerifiers::UserVerifier::verbosity() const noexcept
+{
+	return m_verifier_config.verbosity ;
 }
 
 void GVerifiers::UserVerifier::verify( const GSmtp::Verifier::Request & request )
@@ -69,9 +75,9 @@ bool GVerifiers::UserVerifier::lookup( std::string_view user , std::string_view 
 {
 	bool result = false ;
 	std::ostringstream ss ;
-	if( !G::Str::imatch( domain , m_config.domain ) )
+	if( !G::Str::imatch( domain , m_verifier_config.domain ) )
 	{
-		ss << "[" << domain << "] does not match [" << m_config.domain << "]" ;
+		ss << "[" << domain << "] does not match [" << m_verifier_config.domain << "]" ;
 	}
 	else
 	{

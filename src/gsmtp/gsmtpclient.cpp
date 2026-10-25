@@ -88,7 +88,7 @@ void GSmtp::Client::onSecure( const std::string & , const std::string & , const 
 
 void GSmtp::Client::start()
 {
-	G_LOG_S( "GSmtp::Client::start: smtp connection to " << peerAddress().displayString() ) ;
+	G_LOG_S_G( connection , "GSmtp::Client::start: smtp connection to " << peerAddress().displayString() ) ;
 
 	G::CallFrame this_( m_stack ) ;
 	eventSignal().emit( "sending" , std::string(message()->id().str()) , std::string() ) ;
@@ -122,7 +122,7 @@ void GSmtp::Client::filterStart()
 	}
 	else
 	{
-		G_LOG_MORE( "GSmtp::Client::filterStart: client-filter [" << m_filter->id() << "]: [" << message()->id().str() << "]" ) ;
+		G_LOG_MORE_V( m_filter->verbosity() , "GSmtp::Client::filterStart: client-filter [" << m_filter->id() << "]: [" << message()->id().str() << "]" ) ;
 		message()->close() ; // allow external editing
 		m_filter_special = false ;
 		m_filter->start( message()->id() ) ;
@@ -142,7 +142,7 @@ void GSmtp::Client::filterDone( int filter_result )
 	const bool abandon = filter_result == 1 ;
 	m_filter_special = m_filter->special() ;
 
-	G_LOG_IF( !m_filter->quiet() , "GSmtp::Client::filterDone: client-filter "
+	G_LOG_V( m_filter->verbosity() , "GSmtp::Client::filterDone: client-filter "
 		"[" << m_filter->id() << "]: [" << message()->id().str() << "]: "
 		<< m_filter->str(Filter::Type::client) ) ;
 

@@ -278,7 +278,7 @@ void GStore::FileStore::unfailAll()
 	}
 }
 
-void GStore::FileStore::retry( unsigned int limit , bool verbose )
+void GStore::FileStore::retry( unsigned int limit , int verbosity )
 {
 	G::DirectoryList list ;
 	getBadEnvelopes( list ) ;
@@ -301,14 +301,16 @@ void GStore::FileStore::retry( unsigned int limit , bool verbose )
 		if( !stream.fail() && (limit == 0U || count <= limit) && latest < 500U ) // 500 => smtp permanent error
 		{
 			stream.close() ;
-			G_LOG_S_IF( verbose , "GStore::FileStore::retry: retrying [" << list.fileName() << "] (" << count << "/" << limit << ")" ) ;
+			G_LOG_V( verbosity , "GStore::FileStore::retry: retrying [" << list.fileName() << "] (" << count << "/" << limit << ")" ) ;
 			FileWriter claim_writer ;
 			FileOp::rename( list.filePath() , list.filePath().withoutExtension() ) ; // ignore errors
 		}
 		else
 		{
-			G_DEBUG( "GStore::FileStore::retry: not retrying [" << list.fileName() << "] "
-				<< stream.fail() << " " << count << " " << latest ) ;
+			G_LOG_MORE_V( verbosity , "GStore::FileStore::retry: not retrying [" << list.fileName() << "] "
+				<< "(" << count << ") "
+				<< (count>0U?(G::Str::fromUInt(latest)+" "):"")
+				<< (stream.fail()?"failed":"") ) ;
 		}
 	}
 }

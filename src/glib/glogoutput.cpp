@@ -13,6 +13,7 @@
 #include "gfile.h"
 #include "ggettext.h"
 #include "gstringview.h"
+#include "gstringtoken.h"
 #include "groot.h"
 #include "gtest.h"
 #include <algorithm>
@@ -22,6 +23,7 @@
 #include <string>
 #include <cstring>
 #include <array>
+#include <limits>
 
 G_LOG_THREAD_LOCAL G::LogOutput * G::LogOutput::m_instance = nullptr ;
 
@@ -110,6 +112,23 @@ G::LogOutput::Config G::LogOutput::config() const noexcept
 	return m_config ;
 }
 
+unsigned long G::LogOutput::logGroupMask() const noexcept
+{
+	return m_config.m_log_group_mask ;
+}
+
+int G::LogOutput::logGroupVerbosity( int log_group_id ) const noexcept
+{
+	if( log_group_id < 0 ) return 0 ;
+	static_assert( (LogGroup::list_size*3U) <= (sizeof(m_config.m_log_group_mask)*8U) , "too many log-group names" ) ;
+	unsigned shift = static_cast<unsigned>(log_group_id) * 3U ;
+	unsigned int bits = static_cast<unsigned>(m_config.m_log_group_mask >> shift) & 7U ;
+	if( bits & 0x04U )
+		return static_cast<int>(bits) - 8 ;
+	else
+		return static_cast<int>(bits) ;
+}
+
 int G::LogOutput::fd() const noexcept
 {
 	return m_fd ;
@@ -160,18 +179,28 @@ void * G::LogOutput::contextarg() noexcept
 	return p ? p->m_context_fn_arg : nullptr ;
 }
 
-bool G::LogOutput::at( Severity severity ) const noexcept
+bool G::LogOutput::at( Severity severity , int verbosity , bool * once_p ) const noexcept
 {
-	bool do_output = m_config.m_output_enabled ;
-	if( severity == Severity::Debug )
-		do_output = m_config.m_output_enabled && m_config.m_debug ;
+	if( once_p != nullptr )
+	{
+		bool first = *once_p ;
+		*once_p = false ;
+		if( !first )
+			return false ;
+	}
+	int verbose_count = static_cast<int>( m_config.m_verbose_count ) ;
+	if( severity == Severity::Error || severity == Severity::Warning )
+		return m_config.m_output_enabled ;
 	else if( severity == Severity::InfoSummary )
-		do_output = m_config.m_output_enabled && m_config.m_summary_info ;
+		return m_config.m_output_enabled && m_config.m_summary_info && (verbose_count+verbosity) >= 0 ;
 	else if( severity == Severity::InfoVerbose )
-		do_output = m_config.m_output_enabled && m_config.m_verbose_info ;
+		return m_config.m_output_enabled && (verbose_count+verbosity) >= 1 ;
 	else if( severity == Severity::InfoMoreVerbose )
-		do_output = m_config.m_output_enabled && m_config.m_more_verbose_info ;
-	return do_output ;
+		return m_config.m_output_enabled && (verbose_count+verbosity) >= 2 ;
+	else if( severity == Severity::Debug )
+		return m_config.m_output_enabled && m_config.m_debug ;
+	else // Severity::Assertion
+		return true ;
 }
 
 G::LogStream G::LogOutput::start( Severity severity , const char * , int ) noexcept
@@ -400,6 +429,72 @@ std::string_view G::LogOutput::levelString( Severity s ) noexcept
 	return "" ;
 }
 
+int G::LogOutput::parseVerbosity( std::string_view spec )
+{
+	return parseVerbosityImp( spec ) ;
+}
+
+std::string G::LogOutput::noVerbosity( std::string_view spec )
+{
+	std::size_t pos = 0U ;
+	std::size_t size = 0U ;
+	parseVerbosityImp( spec , 0 , &pos , &size ) ;
+	return sv_to_string(spec).erase(pos,size) ;
+}
+
+int G::LogOutput::parseVerbosityImp( std::string_view spec , int no_value ,
+	std::size_t * pos_p , std::size_t * size_p )
+{
+	// match ";v[+-][0-9]$" and return -4..3
+	std::size_t pos = spec.rfind( ';' ) ;
+	if( pos != std::string::npos && (pos+4U) == spec.size() &&
+		spec.at(pos+1U) == 'v' &&
+		( spec.at(pos+2U) == '+' || spec.at(pos+2U) == '-' ) &&
+		G::Str::isNumeric(spec.substr(pos+3U)) )
+	{
+		char sign = spec.at( pos + 2U ) ;
+		int value = G::Str::toInt( spec.substr(pos+3U,1U) , "-1" ) ;
+		if( value < 0 ) return no_value ;
+		if( pos_p ) *pos_p = pos ;
+		if( size_p ) *size_p = 4U ;
+		value = ( sign == '+' || value == 0 ) ? value : -value ;
+		return std::max( -4 , std::min(3,value) ) ;
+	}
+	return no_value ;
+}
+
+unsigned long G::LogOutput::parseLogGroupMask( std::string_view spec , bool * error_p )
+{
+	bool ok = true ;
+	unsigned long log_group_mask = 0UL ;
+	for( StringTokenView t(spec,",",1U) ; t && ok ; ++t )
+	{
+		ok = false ;
+		std::string_view s = t() ;
+		if( s.size() <= 2U ) break ;
+		char sign = s.at( s.size()-2U ) ;
+		if( sign != '-' && sign != '+' ) break ;
+		unsigned int v = G::Str::toUInt( s.substr(s.size()-1,1U) , "99" ) ;
+		if( v > 9U ) break ;
+		v = std::min( sign=='+'?3U:4U , v ) ;
+		unsigned int bits = ( sign == '+' || v == 0 ) ? v : (8U-v) ;
+		std::string_view log_group_name = s.substr( 0 , s.size()-2U ) ;
+		std::string_view log_group_list( LogGroup::list , sizeof(LogGroup::list) ) ;
+		for( StringTokenView grp(log_group_list,",",1U) ; grp ; ++grp , bits <<= 3 )
+		{
+			if( grp() == log_group_name )
+			{
+				ok = true ;
+				log_group_mask |= bits ;
+				break ;
+			}
+		}
+	}
+	if( error_p != nullptr )
+		*error_p = !ok ;
+	return ok ? log_group_mask : 0UL ;
+}
+
 // ==
 
 G::LogOutput::Config::Config() noexcept
@@ -407,9 +502,7 @@ G::LogOutput::Config::Config() noexcept
 
 G::LogOutput::Config::Config( bool enabled , bool verbose ) noexcept :
 	m_output_enabled(enabled),
-	m_summary_info(enabled),
-	m_verbose_info(verbose),
-	m_more_verbose_info(verbose),
+	m_verbose_count(enabled?1:0),
 	m_debug(verbose)
 {
 }

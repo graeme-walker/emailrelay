@@ -138,7 +138,7 @@ private: // overrides
 	std::vector<MessageId> ids() override ;
 	std::vector<MessageId> failures() override ;
 	void unfailAll() override ;
-	void retry( unsigned int , bool ) override ;
+	void retry( unsigned int count , int verbosity ) override ;
 	void rescan() override ;
 
 public:

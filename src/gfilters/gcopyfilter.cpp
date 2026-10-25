@@ -18,8 +18,7 @@ GFilters::CopyFilter::CopyFilter( GNet::EventState es , GStore::FileStore & stor
 	Filter::Type filter_type , const Filter::Config & filter_config , const std::string & spec ) :
 		SimpleFilterBase(es,filter_type,"copy:") ,
 		m_store(store) ,
-		m_filter_config(filter_config) ,
-		m_spec(spec)
+		m_filter_config(filter_config)
 {
 	std::string_view spec_sv = spec ;
 	for( G::StringTokenView t( spec_sv , ";" , 1U ) ; t ; ++t )
@@ -29,6 +28,11 @@ GFilters::CopyFilter::CopyFilter( GNet::EventState es , GStore::FileStore & stor
 		if( t() == "n" || t() == "nodelete" || t() == "no_delete" ) m_delivery_config.no_delete = true ;
 		if( t() == "s" || t() == "simple" ) m_delivery_config.simple = true ;
 	}
+}
+
+int GFilters::CopyFilter::verbosity() const noexcept
+{
+	return m_filter_config.verbosity ;
 }
 
 GSmtp::Filter::Result GFilters::CopyFilter::run( const GStore::MessageId & message_id ,
@@ -71,7 +75,7 @@ GSmtp::Filter::Result GFilters::CopyFilter::run( const GStore::MessageId & messa
 	}
 	else
 	{
-		G_LOG( "GFilters::CopyFilter::start: " << prefix() << ": "
+		G_LOG_V( verbosity() , "GFilters::CopyFilter::start: " << prefix() << ": "
 			<< message_id.str() << " copied to [" << G::Str::join(",",copy_names) << "]"
 			<< (ignore_names.empty()?"":" not [") << G::Str::join(",",ignore_names)
 			<< (ignore_names.empty()?"":"]") ) ;

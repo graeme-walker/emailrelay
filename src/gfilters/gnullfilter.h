@@ -31,10 +31,10 @@ public:
 			///< Constructor for a do-nothing filter.
 
 	NullFilter( GNet::EventState , GStore::FileStore & ,
-		Filter::Type , const Filter::Config & , unsigned int exit_code ) ;
+		Filter::Type , const Filter::Config & , const std::string & spec ) ;
 			///< Constructor for a filter that behaves like an
-			///< executable that always exits with the given
-			///< exit code.
+			///< executable that always exits with the exit code
+			///< in the spec.
 
 	NullFilter( GNet::EventState , GStore::FileStore & ,
 		Filter::Type , const Filter::Config & , G::TimeInterval ) ;
@@ -43,7 +43,7 @@ public:
 
 private: // overrides
 	std::string id() const override ; // GSmtp::Filter
-	bool quiet() const override ; // GSmtp::Filter
+	int verbosity() const noexcept override ; // GSmtp::Filter
 	G::Slot::Signal<int> & doneSignal() noexcept override ; // GSmtp::Filter
 	void start( const GStore::MessageId & ) override ; // GSmtp::Filter
 	void cancel() override ; // GSmtp::Filter
@@ -64,9 +64,9 @@ private:
 	void onTimeout() ;
 
 private:
-	std::string m_id ;
+	Filter::Config m_filter_config ;
 	Filter::Exit m_exit ;
-	bool m_quiet ;
+	std::string m_id ;
 	G::TimeInterval m_timeout ;
 	GNet::Timer<NullFilter> m_timer ;
 	G::Slot::Signal<int> m_done_signal ;

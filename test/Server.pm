@@ -221,6 +221,7 @@ sub _switches
 		( exists($sw{AdminTerminate}) ? "--admin-terminate " : "" ) .
 		( exists($sw{Help}) ? "--help " : "" ) .
 		( exists($sw{Verbose}) ? "--verbose " : "" ) .
+		( exists($sw{MoreVerbose}) ? "--verbose " : "" ) .
 		( exists($sw{Forward}) ? "--forward " : "" ) .
 		( exists($sw{ForwardTo}) ? "--forward-to __FORWARD_TO__ " : "" ) .
 		( exists($sw{ForwardToSome}) ? "--forward-to-some " : "" ) .

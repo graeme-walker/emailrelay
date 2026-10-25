@@ -32,6 +32,7 @@ public:
 
 private: // overrides
 	Result run( const GStore::MessageId & , bool & , GStore::FileStore::State ) override ; // GFilters::SimpleFilterBase
+	int verbosity() const noexcept override ; // GSmtp::Filter
 
 private:
 	G::StringArray matching( const G::StringArray & , const std::string & ) const ;
@@ -43,6 +44,7 @@ private:
 	using FileOp = GStore::FileStore::FileOp ;
 	GStore::FileStore & m_store ;
 	Filter::Config m_filter_config ;
+	std::string m_spec ;
 	bool m_raw {false} ;
 	std::string m_port ;
 } ;

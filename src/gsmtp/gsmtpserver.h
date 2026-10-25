@@ -210,6 +210,7 @@ private:
 	bool m_output_blocked {false} ;
 } ;
 
+// clang-format off
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_allow_remote( bool b ) noexcept { allow_remote = b ; return *this ; }
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_interfaces( const G::StringArray & a ) { interfaces = a ; return *this ; }
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_ports( const std::vector<unsigned> & p ) { ports = p ; return *this ; }
@@ -227,5 +228,6 @@ inline GSmtp::Server::Config & GSmtp::Server::Config::set_protocol_config( const
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_dnsbl_config( const std::string & s ) { dnsbl_config = s ; return *this ; }
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_buffer_config( const ServerBufferIn::Config & c ) { buffer_config = c ; return *this ; }
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_domain( const std::string & s ) { domain = s ; return *this ; }
+// clang-format on
 
 #endif

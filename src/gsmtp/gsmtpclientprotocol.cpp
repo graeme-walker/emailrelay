@@ -105,7 +105,7 @@ void GSmtp::ClientProtocol::sendComplete()
 		std::size_t n = sendContentLines() ;
 		n++ ; // since the socket protocol has now sent the line that was blocked
 
-		G_LOG( "GSmtp::ClientProtocol: tx>>: [" << n << " line(s) of content]" ) ;
+		G_LOG_G( io , "GSmtp::ClientProtocol: tx>>: [" << n << " line(s) of content]" ) ;
 		if( endOfContent() )
 		{
 			m_protocol.state = State::SentDot ;
@@ -126,7 +126,7 @@ G::Slot::Signal<> & GSmtp::ClientProtocol::filterSignal() noexcept
 
 bool GSmtp::ClientProtocol::apply( const std::string & rx )
 {
-	G_LOG( "GSmtp::ClientProtocol: rx<<: \"" << G::Str::printable(rx) << "\"" ) ;
+	G_LOG_G( io , "GSmtp::ClientProtocol: rx<<: \"" << G::Str::printable(rx) << "\"" ) ;
 
 	m_protocol.reply_lines.push_back( rx ) ;
 
@@ -318,7 +318,7 @@ bool GSmtp::ClientProtocol::applyEvent( const ClientReply & reply )
 		// authenticated -- proceed to first message
 		m_session.authenticated = true ;
 		m_session.auth_selector = m_message_state.selector ;
-		G_LOG( "GSmtp::ClientProtocol::applyEvent: successful authentication with remote server "
+		G_LOG_G( auth , "GSmtp::ClientProtocol::applyEvent: successful authentication with remote server "
 			<< (m_session.secure?"over tls ":"") << m_sasl->info() ) ;
 		m_protocol.state = State::Filtering ;
 		startFiltering() ;
@@ -326,7 +326,7 @@ bool GSmtp::ClientProtocol::applyEvent( const ClientReply & reply )
 	else if( m_protocol.state == State::Auth && !reply.positive() && m_sasl->next() )
 	{
 		// authentication failed -- try the next mechanism
-		G_LOG( "GSmtp::ClientProtocol::applyEvent: " << AuthError(*m_sasl,reply).str()
+		G_LOG_MORE_G( auth , "GSmtp::ClientProtocol::applyEvent: " << AuthError(*m_sasl,reply).str()
 			<< ": trying [" << G::Str::lower(m_sasl->mechanism()) << "]" ) ;
 		m_session.auth_mechanism = m_sasl->mechanism() ;
 		GAuth::SaslClient::Response rsp = initialResponse( *m_sasl , m_message_state.selector ) ;
@@ -446,7 +446,7 @@ bool GSmtp::ClientProtocol::applyEvent( const ClientReply & reply )
 		// DATA command accepted -- send content until flow-control asserted or all sent
 		m_protocol.state = State::Data ;
 		std::size_t n = sendContentLines() ;
-		G_LOG( "GSmtp::ClientProtocol: tx>>: [" << n << " line(s) of content]" ) ;
+		G_LOG_G( io , "GSmtp::ClientProtocol: tx>>: [" << n << " line(s) of content]" ) ;
 		if( endOfContent() )
 		{
 			m_protocol.state = State::SentDot ;
@@ -872,14 +872,14 @@ void GSmtp::ClientProtocol::sendChunkImp( const char * p , std::size_t n )
 	if( m_config.response_timeout )
 		startTimer( m_config.response_timeout ) ; // response timer on every bdat block
 
-	if( G::LogOutput::Instance::atVerbose() )
+	if( G_LOG_ACTIVE_G(io) )
 	{
 		std::size_t pos = sv.find( "\r\n"_sv ) ;
 		std::string_view cmd = G::Str::headView( sv , pos , {p,std::size_t(0U)} ) ;
 		G::StringTokenView t( cmd , " "_sv ) ;
 		std::string_view count = t.next()() ;
 		std::string_view end = count.size() == 1U && count[0] == '1' ? "]"_sv : "s]"_sv ;
-		G_LOG( "GSmtp::ClientProtocol: tx>>: \"" << cmd << "\" [" << count << " byte" << end ) ;
+		G_LOG_G( io , "GSmtp::ClientProtocol: tx>>: \"" << cmd << "\" [" << count << " byte" << end ) ;
 	}
 
 	m_sender.protocolSend( sv , 0U , false ) ;
@@ -906,12 +906,12 @@ bool GSmtp::ClientProtocol::sendImp( std::string_view line , std::size_t sensiti
 	for( G::StringFieldT<std::string_view> f(line,"\r\n",2U) ; f && !f.last() ; pos += (f.size()+2U) , ++f )
 	{
 		if( sensitive_from == std::string::npos || (pos+f.size()) < sensitive_from )
-			G_LOG( "GSmtp::ClientProtocol: tx>>: "
+			G_LOG_G( io , "GSmtp::ClientProtocol: tx>>: "
 				"\"" << G::Str::printable(f()) << "\"" ) ;
 		else if( pos >= sensitive_from )
-			G_LOG( "GSmtp::ClientProtocol: tx>>: [response not logged]" ) ;
+			G_LOG_G( io , "GSmtp::ClientProtocol: tx>>: [response not logged]" ) ;
 		else
-			G_LOG( "GSmtp::ClientProtocol: tx>>: "
+			G_LOG_G( io , "GSmtp::ClientProtocol: tx>>: "
 				"\"" << G::Str::printable(f().substr(0U,sensitive_from-pos)) << " [not logged]\"" ) ;
 	}
 

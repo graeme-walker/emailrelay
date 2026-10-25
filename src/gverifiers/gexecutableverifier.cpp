@@ -17,20 +17,25 @@
 #include "glocal.h"
 #include "glog.h"
 
-GVerifiers::ExecutableVerifier::ExecutableVerifier( GNet::EventState es , const GSmtp::Verifier::Config & config , const G::Path & path ) :
-	m_timer(*this,&ExecutableVerifier::onTimeout,es) ,
-	m_config(config) ,
-	m_path(path) ,
-	m_task(*this,es,GNet::Task::Config()
-		.set_type("address verifier")
-		.set_exec_error_format("<<exec error: __strerror__>>")
-		.set_identity(G::Root::nobody()))
+GVerifiers::ExecutableVerifier::ExecutableVerifier( GNet::EventState es , const GSmtp::Verifier::Config & config ,
+	const std::string & spec ) :
+		m_timer(*this,&ExecutableVerifier::onTimeout,es) ,
+		m_verifier_config(config) ,
+		m_path(spec) ,
+		m_task(*this,es,GNet::Task::Config()
+			.set_exec_error_format("<<exec error: __strerror__>>")
+			.set_identity(G::Root::nobody()))
 {
+}
+
+int GVerifiers::ExecutableVerifier::verbosity() const noexcept
+{
+	return m_verifier_config.verbosity ;
 }
 
 void GVerifiers::ExecutableVerifier::verify( const GSmtp::Verifier::Request & request )
 {
-	G_ASSERT( !m_config.domain.empty() ) ;
+	G_ASSERT( !m_verifier_config.domain.empty() ) ;
 	G_ASSERT( !request.address.empty() ) ; // etc
 	G_DEBUG( "GVerifiers::ExecutableVerifier::verify: to=[" << request.address << "]" ) ;
 	m_command = request.command ;
@@ -39,15 +44,15 @@ void GVerifiers::ExecutableVerifier::verify( const GSmtp::Verifier::Request & re
 	commandline.add( request.address ) ;
 	commandline.add( request.from_address ) ;
 	commandline.add( request.client_ip.displayString() ) ;
-	commandline.add( m_config.domain ) ;
+	commandline.add( m_verifier_config.domain ) ;
 	commandline.add( G::Str::lower(request.auth_mechanism) ) ;
 	commandline.add( request.auth_extra ) ;
 
-	G_LOG( "GVerifiers::ExecutableVerifier: address verifier: executing " << commandline.displayString() ) ;
+	G_LOG_V( verbosity() , "GVerifiers::ExecutableVerifier: address verifier: executing " << commandline.displayString() ) ;
 	m_to_address = request.address ;
 	m_task.start( commandline ) ;
-	if( m_config.timeout )
-		m_timer.startTimer( m_config.timeout ) ;
+	if( m_verifier_config.timeout )
+		m_timer.startTimer( m_verifier_config.timeout ) ;
 }
 
 void GVerifiers::ExecutableVerifier::onTimeout()
@@ -61,6 +66,9 @@ void GVerifiers::ExecutableVerifier::onTimeout()
 
 void GVerifiers::ExecutableVerifier::onTaskDone( int exit_code , const std::string & result_in )
 {
+	G_LOG_MORE_V( verbosity() , "GVerifiers::ExecutableVerifier::onTaskDone: address verifier [" << m_task.name() << "]: "
+		"exit=" << exit_code << " output=[" << G::Str::printable(result_in) << "]" ) ;
+
 	m_timer.cancelTimer() ;
 	auto status = GSmtp::VerifierStatus::invalid( m_to_address ) ;
 	if( exit_code == 127 && G::Str::headMatch(result_in,"<<exec error:") ) // see ctor
@@ -81,7 +89,7 @@ void GVerifiers::ExecutableVerifier::onTaskDone( int exit_code , const std::stri
 		std::size_t parts = result_parts.size() ;
 		result_parts.resize( 2U ) ;
 
-		G_LOG( "GVerifiers::ExecutableVerifier: address verifier: exit=" << exit_code << " "
+		G_LOG_V( verbosity() , "GVerifiers::ExecutableVerifier: address verifier: exit=" << exit_code << " "
 			<< "[" << G::Str::printable(result_parts[0]) << "] [" << G::Str::printable(result_parts[1]) << "]" ) ;
 
 		if( exit_code == 0 && parts >= 2 )

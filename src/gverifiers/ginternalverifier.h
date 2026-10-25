@@ -30,6 +30,7 @@ public:
 		///< Constructor.
 
 private: // overrides
+	int verbosity() const noexcept override ; // GSmtp::Verifier
 	G::Slot::Signal<GSmtp::Verifier::Command,const GSmtp::VerifierStatus&> & doneSignal() override ; // GSmtp::Verifier
 	void cancel() override ; // Override from GSmtp::Verifier.
 	void verify( const GSmtp::Verifier::Request & ) override ; // GSmtp::Verifier

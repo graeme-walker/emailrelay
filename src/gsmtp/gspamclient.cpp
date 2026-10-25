@@ -28,7 +28,7 @@ GSmtp::SpamClient::SpamClient( GNet::EventState es , const GNet::Location & loca
 		m_request(*this) ,
 		m_response(read_only)
 {
-	G_LOG( "GSmtp::SpamClient::ctor: spam connection to [" << location << "]" ) ;
+	G_LOG_G( spam , "GSmtp::SpamClient::ctor: spam connection to [" << location << "]" ) ;
 	G_DEBUG( "GSmtp::SpamClient::ctor: spam read/only=" << read_only ) ;
 	G_DEBUG( "GSmtp::SpamClient::ctor: spam connection timeout " << connection_timeout ) ;
 	G_DEBUG( "GSmtp::SpamClient::ctor: spam response timeout " << response_timeout ) ;
@@ -106,7 +106,7 @@ GSmtp::SpamClient::Request::Request( Client & client ) :
 
 void GSmtp::SpamClient::Request::send( const std::string & path , const std::string & username )
 {
-	G_LOG( "GSmtp::SpamClient::Request::send: spam request for [" << path << "]" ) ;
+	G_LOG_G( spam , "GSmtp::SpamClient::Request::send: spam request for [" << path << "]" ) ;
 	G::File::open( m_stream , path ) ;
 	if( !m_stream.good() )
 		throw SpamClient::Error( "cannot read content file" , path ) ;
@@ -136,7 +136,7 @@ bool GSmtp::SpamClient::Request::sendMore()
 	std::streamsize n = m_stream.gcount() ;
 	if( n <= 0 )
 	{
-		G_LOG( "GSmtp::SpamClient::Request::sendMore: spam request done" ) ;
+		G_LOG_G( spam , "GSmtp::SpamClient::Request::sendMore: spam request done" ) ;
 		return false ;
 	}
 	else
@@ -190,7 +190,7 @@ void GSmtp::SpamClient::Response::add( const std::string & path , const std::str
 	}
 	if( m_state == 1 ) // spamc/spamd headers
 	{
-		G_LOG( "GSmtp::SpamClient::Response::add: spam response line: ["
+		G_LOG_G( spam , "GSmtp::SpamClient::Response::add: spam response line: ["
 			<< G::Str::printable(G::Str::trimmed(line,G::Str::ws())) << "]" ) ;
 		if( line.find("Spam:") == 0U )
 			m_result = G::Str::trimmed( line.substr(5U) , G::Str::ws() ) ;
@@ -212,7 +212,7 @@ void GSmtp::SpamClient::Response::add( const std::string & path , const std::str
 		{
 			if( m_size != m_content_length )
 				G_WARNING( "GSmtp::SpamClient::Response::add: incorrect content length in spam response" ) ;
-			G_LOG( "GSmtp::SpamClient::add: spam response size: " << m_content_length ) ;
+			G_LOG_G( spam , "GSmtp::SpamClient::add: spam response size: " << m_content_length ) ;
 
 			if( m_stream.is_open() )
 			{

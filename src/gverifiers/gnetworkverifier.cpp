@@ -14,14 +14,14 @@
 #include "glog.h"
 
 GVerifiers::NetworkVerifier::NetworkVerifier( GNet::EventState es , const GSmtp::Verifier::Config & config ,
-	const std::string & server ) :
+	const std::string & spec ) :
 		m_es(es) ,
-		m_config(config) ,
-		m_location(server) ,
+		m_verifier_config(config) ,
+		m_location(spec) ,
 		m_connection_timeout(config.timeout) ,
 		m_response_timeout(config.timeout)
 {
-	G_DEBUG( "GVerifiers::NetworkVerifier::ctor: " << server ) ;
+	G_DEBUG( "GVerifiers::NetworkVerifier::ctor: " << spec ) ;
 	m_client_ptr.eventSignal().connect( G::Slot::slot(*this,&GVerifiers::NetworkVerifier::clientEvent) ) ;
 }
 
@@ -29,6 +29,11 @@ GVerifiers::NetworkVerifier::~NetworkVerifier()
 {
 	m_client_ptr.eventSignal().disconnect() ;
 	m_client_ptr.deletedSignal().disconnect() ;
+}
+
+int GVerifiers::NetworkVerifier::verbosity() const noexcept
+{
+	return m_verifier_config.verbosity ;
 }
 
 void GVerifiers::NetworkVerifier::verify( const GSmtp::Verifier::Request & request )
@@ -44,14 +49,14 @@ void GVerifiers::NetworkVerifier::verify( const GSmtp::Verifier::Request & reque
 			idle_timeout ) ) ;
 	}
 
-	G_LOG( "GVerifiers::NetworkVerifier: verification request: ["
+	G_LOG_V( verbosity() , "GVerifiers::NetworkVerifier: verification request: ["
 		<< G::Str::printable(request.address) << "] (" << request.client_ip.displayString() << ")" ) ;
 
 	G::StringArray args ;
 	args.push_back( request.address ) ;
 	args.push_back( request.from_address ) ;
 	args.push_back( request.client_ip.displayString() ) ;
-	args.push_back( m_config.domain ) ;
+	args.push_back( m_verifier_config.domain ) ;
 	args.push_back( G::Str::lower(request.auth_mechanism) ) ;
 	args.push_back( request.auth_extra ) ;
 
@@ -80,7 +85,7 @@ void GVerifiers::NetworkVerifier::clientEvent( const std::string & s1 , const st
 	G_DEBUG( "GVerifiers::NetworkVerifier::clientEvent: [" << s1 << "] [" << s2 << "]" ) ;
 	if( s1 == "verify" )
 	{
-		G_LOG( "GVerifiers::NetworkVerifier: verification response: [" << G::Str::printable(s2) << "]" ) ;
+		G_LOG_V( verbosity() , "GVerifiers::NetworkVerifier: verification response: [" << G::Str::printable(s2) << "]" ) ;
 
 		// parse the output from the remote verifier using pipe-delimited
 		// fields based on the script-based verifier interface, but backwards

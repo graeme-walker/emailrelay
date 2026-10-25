@@ -351,7 +351,7 @@ int main( int argc , char * argv [] )
 			G::LogOutput::Config()
 				.set_output_enabled(log)
 				.set_summary_info(log)
-				.set_verbose_info(debug)
+				.set_verbose_count(debug?1U:0U)
 				.set_debug(debug) ,
 			log_file ) ;
 

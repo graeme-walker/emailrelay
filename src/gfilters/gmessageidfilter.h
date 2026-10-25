@@ -38,7 +38,8 @@ public:
 		///< Returns an error message on error.
 
 private: // overrides
-	Result run( const GStore::MessageId & , bool & , GStore::FileStore::State ) override ;
+	Result run( const GStore::MessageId & , bool & , GStore::FileStore::State ) override ; // GFilters::SimpleFilterBase
+	int verbosity() const noexcept override ; // GSmtp::Filter
 
 private:
 	static bool isId( std::string_view ) noexcept ;
@@ -46,7 +47,7 @@ private:
 
 private:
 	GStore::FileStore & m_store ;
-	std::string m_domain ;
+	Filter::Config m_filter_config ;
 } ;
 
 #endif

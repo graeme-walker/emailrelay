@@ -393,7 +393,8 @@ As an example of an advanced E-MailRelay setup consider the following
 command-line, split onto multiple lines for readability:
 
 	emailrelay
-	--log --verbose --log-time --log-format=unit,network
+	--log --log-time --log-format=unit,network
+	--verbose --log-config=io-2
 	--close-stderr --syslog
 	--pid-file @app/emailrelay.pid
 	--user root
@@ -431,7 +432,8 @@ command-line, split onto multiple lines for readability:
 	--other-client-tls
 	--other-client-auth plain:YWxpY2VAZ21haWwuY29t:UGFzc3cwcmQ
 	--other-forward-to smtp.gmail.com:587
-	--other-poll 3600
+	--other-poll 1h
+	--other-poll-run retry:;v+1
 
 This is a three-in-one configuration so there are effectively three E-MailRelay
 servers running in one process, named `in`, `out` and `other`.
@@ -453,7 +455,8 @@ their `in` mailboxes.
 The `other` server does store-and-forward to a gmail smarthost and acts as the
 default destination for the `out` server. In this example the gmail password is
 given directly on the command-line but it is normally more secure to use a
-separate secrets file.
+separate secrets file. It uses the built-in `retry:` poll-run script so that
+failed messages are retried up to five times.
 
 _____________________________________
 Copyright (C) 2026 Graeme Walker

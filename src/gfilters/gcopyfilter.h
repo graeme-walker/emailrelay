@@ -36,13 +36,13 @@ public:
 			///< Constructor.
 
 private: // overrides
-	Result run( const GStore::MessageId & , bool & , GStore::FileStore::State ) override ;
+	Result run( const GStore::MessageId & , bool & , GStore::FileStore::State ) override ; // GFilters::SimpleFilterBase
+	int verbosity() const noexcept override ; // GSmtp::Filter
 
 private:
 	using FileOp = GStore::FileStore::FileOp ;
 	GStore::FileStore & m_store ;
 	Filter::Config m_filter_config ;
-	std::string m_spec ;
 	GStore::FileDelivery::Config m_delivery_config ;
 } ;
 
