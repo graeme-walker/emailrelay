@@ -32,7 +32,7 @@ GFilters::FilterChain::FilterChain( GNet::EventState es , GSmtp::FilterFactoryBa
 	}
 
 	if( m_filters.empty() )
-		add( es , ff , filter_type , filter_config , {"exit","0"} ) ;
+		add( es , ff , filter_type , filter_config , {"exit","0",0} ) ;
 }
 
 void GFilters::FilterChain::add( GNet::EventState es , GSmtp::FilterFactoryBase & ff ,

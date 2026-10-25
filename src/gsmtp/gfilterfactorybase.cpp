@@ -9,5 +9,14 @@
 #include "gdef.h"
 #include "gfilterfactorybase.h"
 
-// empty
+GSmtp::FilterFactoryBase::Spec::Spec()
+= default ;
+
+GSmtp::FilterFactoryBase::Spec::Spec( std::string_view first_in ,
+	std::string_view second_in , int verbosity_in ) :
+		first(G::sv_to_string(first_in)) ,
+		second(G::sv_to_string(second_in)) ,
+		verbosity(verbosity_in)
+{
+}
 

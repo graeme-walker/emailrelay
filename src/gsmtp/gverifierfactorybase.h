@@ -31,7 +31,7 @@ public:
 	struct Spec /// Verifier specification tuple for GSmtp::VerifierFactoryBase::newVerifier().
 	{
 		Spec() ;
-		Spec( std::string_view , std::string_view , int verbosity ) ;
+		Spec( std::string_view , std::string_view , int ) ; // c++11
 		std::string first ; // "exit", "file", "net", empty on error
 		std::string second ; // reason on error, or eg. "/bin/a" or "/bin/b;v-2" if "file"
 		int verbosity {0} ;
