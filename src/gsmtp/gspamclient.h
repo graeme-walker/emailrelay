@@ -61,11 +61,11 @@ public:
 		///< Sets the username used in the network protocol.
 
 private: // overrides
-	void onConnect() override ; // Override from GNet::SimpleClient.
-	bool onReceive( const char * , std::size_t , std::size_t , std::size_t , char ) override ; // Override from GNet::Client.
-	void onSendComplete() override ; // Override from GNet::SimpleClient.
-	void onSecure( const std::string & , const std::string & , const std::string & ) override ; // Override from GNet::SocketProtocolSink.
-	void onDelete( const std::string & ) override ; // Override from GNet::HeapClient.
+	void onConnect() override ; // GNet::SimpleClient
+	bool onReceive( const char * , std::size_t , std::size_t , std::size_t , char ) override ; // GNet::Client
+	void onSendComplete() override ; // GNet::SimpleClient
+	void onSecure( const std::string & , const std::string & , const std::string & ) override ; // GNet::SocketProtocolSink
+	void onDelete( const std::string & ) override ; // GNet::HeapClient
 
 public:
 	~SpamClient() override = default ;

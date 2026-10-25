@@ -93,10 +93,12 @@ private:
 	static std::string encodeDomain( std::string_view ) ;
 } ;
 
+// clang-format off
 inline GSmtp::ServerParser::Config & GSmtp::ServerParser::Config::set_allow_spaces( bool b ) noexcept { allow_spaces = b ; return *this ; }
 inline GSmtp::ServerParser::Config & GSmtp::ServerParser::Config::set_allow_nobrackets( bool b ) noexcept { allow_nobrackets = b ; return *this ; }
 inline GSmtp::ServerParser::Config & GSmtp::ServerParser::Config::set_alabels( bool b ) noexcept { alabels = b ; return *this ; }
 inline GSmtp::ServerParser::Config & GSmtp::ServerParser::Config::set_allow_spaces_help( const std::string & s ) { allow_spaces_help = s ; return *this ; }
 inline GSmtp::ServerParser::Config & GSmtp::ServerParser::Config::set_allow_nobrackets_help( const std::string & s ) { allow_nobrackets_help = s ; return *this ; }
+// clang-format on
 
 #endif

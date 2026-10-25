@@ -492,17 +492,18 @@ public:
 inline GNet::Socket::SocketBindError::SocketBindError( const std::string & s ) : SocketBindErrorBase(s) , m_reason(s) {}
 inline GNet::Socket::SocketBindError::SocketBindError( const Address & a , const std::string & s , bool b ) : SocketBindErrorBase(s) , m_address(a) , m_reason(s) , m_einuse(b) {}
 
+// clang-format off
 inline GNet::Socket::Config & GNet::Socket::Config::set_listen_queue( int n ) noexcept { listen_queue = n ; return *this ; }
 inline GNet::Socket::Config & GNet::Socket::Config::set_bind_reuse( bool b ) noexcept { bind_reuse = b ; return *this ; }
 inline GNet::Socket::Config & GNet::Socket::Config::set_bind_exclusive( bool b ) noexcept { bind_exclusive = b ; return *this ; }
 inline GNet::Socket::Config & GNet::Socket::Config::set_free_bind( bool b ) noexcept { free_bind = b ; return *this ; }
 template <typename T> const T & GNet::Socket::Config::set_last() { return static_cast<const T&>(*this) ; }
-
 inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_create_linger( std::pair<int,int> p ) noexcept { create_linger_onoff = p.first ; create_linger_time = p.second ; return *this ; }
 inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_create_linger_onoff( int n ) noexcept { create_linger_onoff = n ; return *this ; }
 inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_create_linger_time( int n ) noexcept { create_linger_time = n ; return *this ; }
 inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_accept_linger( std::pair<int,int> p ) noexcept { accept_linger_onoff = p.first ; accept_linger_time = p.second ; return *this ; }
 inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_accept_linger_onoff( int n ) noexcept { accept_linger_onoff = n ; return *this ; }
 inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_accept_linger_time( int n ) noexcept { accept_linger_time = n ; return *this ; }
+// clang-format on
 
 #endif

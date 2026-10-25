@@ -122,7 +122,9 @@ private:
 	bool m_flow_on {true} ;
 } ;
 
+// clang-format off
 inline GSmtp::ServerBufferIn::Config & GSmtp::ServerBufferIn::Config::set_input_buffer_soft_limit( std::size_t n ) noexcept { input_buffer_soft_limit = n ; return *this ; }
 inline GSmtp::ServerBufferIn::Config & GSmtp::ServerBufferIn::Config::set_input_buffer_hard_limit( std::size_t n ) noexcept { input_buffer_hard_limit = n ; return *this ; }
+// clang-format on
 
 #endif

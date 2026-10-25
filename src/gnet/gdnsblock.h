@@ -171,7 +171,7 @@ public:
 	DnsBlock & operator=( DnsBlock && ) = delete ;
 
 private: // overrides
-	void readEvent() override ; // Override from GNet::EventHandler.
+	void readEvent() override ; // GNet::EventHandler
 
 private:
 	static void configureImp( std::string_view , DnsBlock * ) ;

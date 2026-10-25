@@ -220,13 +220,15 @@ public:
 	ServerProtocolText & operator=( ServerProtocolText && ) = delete ;
 
 private: // overrides
-	std::string greeting() const override ; // Override from GPop::ServerProtocol::Text.
-	std::string quit() const override ; // Override from GPop::ServerProtocol::Text.
-	std::string capa() const override ; // Override from GPop::ServerProtocol::Text.
-	std::string user( const std::string & id ) const override ; // Override from GPop::ServerProtocol::Text.
+	std::string greeting() const override ; // GPop::ServerProtocol::Text
+	std::string quit() const override ; // GPop::ServerProtocol::Text
+	std::string capa() const override ; // GPop::ServerProtocol::Text
+	std::string user( const std::string & id ) const override ; // GPop::ServerProtocol::Text
 } ;
 
+// clang-format off
 inline GPop::ServerProtocol::Config & GPop::ServerProtocol::Config::set_crlf_only( bool b ) { crlf_only = b ; return *this ; }
 inline GPop::ServerProtocol::Config & GPop::ServerProtocol::Config::set_sasl_server_challenge_domain( const std::string & s ) { sasl_server_challenge_domain = s ; return *this ; }
+// clang-format on
 
 #endif

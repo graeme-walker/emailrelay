@@ -264,6 +264,7 @@ private:
 	bool m_test_mode {false} ;
 } ;
 
+// clang-format off
 inline G::NewProcess::Config & G::NewProcess::Config::set_env( const Environment & e ) { env = e ; return *this ; }
 inline G::NewProcess::Config & G::NewProcess::Config::set_stdin( Fd fd ) noexcept { stdin = fd ; return *this ; }
 inline G::NewProcess::Config & G::NewProcess::Config::set_stdout( Fd fd ) noexcept { stdout = fd ; return *this ; }
@@ -277,5 +278,6 @@ inline G::NewProcess::Config & G::NewProcess::Config::set_close_other_fds( bool 
 inline G::NewProcess::Config & G::NewProcess::Config::set_exec_error_exit( int n ) noexcept { exec_error_exit = n ; return *this ; }
 inline G::NewProcess::Config & G::NewProcess::Config::set_exec_error_format( const std::string & s ) { exec_error_format = s ; return *this ; }
 inline G::NewProcess::Config & G::NewProcess::Config::set_exec_error_format_fn( FormatFn f ) { exec_error_format_fn = f ; return *this ; }
+// clang-format on
 
 #endif

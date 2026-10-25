@@ -41,9 +41,9 @@ public:
 	ServerText & operator=( ServerText && ) = default ;
 
 private: // overrides:
-	std::string greeting() const override ; // Override from GSmtp::ServerProtocol::Text.
-	std::string hello( const std::string & smtp_peer_name_from_helo ) const override ; // Override from GSmtp::ServerProtocol::Text.
-	std::string received( const std::string & , bool , bool , const std::string & , const std::string & ) const override ; // Override from GSmtp::ServerProtocol::Text.
+	std::string greeting() const override ; // GSmtp::ServerProtocol::Text
+	std::string hello( const std::string & smtp_peer_name_from_helo ) const override ; // GSmtp::ServerProtocol::Text
+	std::string received( const std::string & , bool , bool , const std::string & , const std::string & ) const override ; // GSmtp::ServerProtocol::Text
 
 private:
 	std::string m_code_ident ;

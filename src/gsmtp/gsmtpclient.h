@@ -156,6 +156,7 @@ private:
 	std::string m_event_logging_string ;
 } ;
 
+// clang-format off
 inline GSmtp::Client::Config & GSmtp::Client::Config::set_client_protocol_config( const ClientProtocol::Config & c ) { client_protocol_config = c ; return *this ; }
 inline GSmtp::Client::Config & GSmtp::Client::Config::set_net_client_config( const GNet::Client::Config & c ) { net_client_config = c ; return *this ; }
 inline GSmtp::Client::Config & GSmtp::Client::Config::set_filter_spec( const FilterFactoryBase::Spec & r ) { filter_spec = r ; return *this ; }
@@ -164,5 +165,6 @@ inline GSmtp::Client::Config & GSmtp::Client::Config::set_secure_tunnel( bool b 
 inline GSmtp::Client::Config & GSmtp::Client::Config::set_sasl_client_config( const std::string & s ) { sasl_client_config = s ; return *this ; }
 inline GSmtp::Client::Config & GSmtp::Client::Config::set_fail_if_no_remote_recipients( bool b ) noexcept { fail_if_no_remote_recipients = b ; return *this ; }
 inline GSmtp::Client::Config & GSmtp::Client::Config::set_log_msgid( bool b ) noexcept { log_msgid = b ; return *this ; }
+// clang-format on
 
 #endif

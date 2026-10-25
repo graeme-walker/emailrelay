@@ -57,7 +57,7 @@ public:
 	bool run() ;
 
 private: // overrides
-	bool onInit() override ; // Override from GGui::Dialog.
+	bool onInit() override ; // GGui::Dialog
 
 private:
 	GGui::EditBox m_edit ;

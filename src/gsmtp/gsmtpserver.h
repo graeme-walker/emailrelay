@@ -124,7 +124,7 @@ public:
 
 private: // overrides
 	std::unique_ptr<GNet::ServerPeer> newPeer( GNet::EventStateUnbound ,
-		GNet::ServerPeerInfo && , GNet::MultiServer::ServerInfo ) override ; // Override from GNet::MultiServer.
+		GNet::ServerPeerInfo && , GNet::MultiServer::ServerInfo ) override ; // GNet::MultiServer
 
 public:
 	Server( const Server & ) = delete ;

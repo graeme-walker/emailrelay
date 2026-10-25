@@ -150,6 +150,7 @@ private:
 	char m_space_syntax {' '} ;
 } ;
 
+// clang-format off
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_separator( const std::string & s ) { separator = s ; return *this ; }
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_column( std::size_t n ) noexcept { column  = n ; return *this ; }
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_width( std::size_t n ) noexcept { width = n ; return *this ; }
@@ -161,5 +162,6 @@ inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_level_max( unsigne
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_level_min( unsigned int n ) noexcept { level_min = n ; return *this ; }
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_main_tag( unsigned int n ) noexcept { main_tag = n ; return *this ; }
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_tag_bits( unsigned int n ) noexcept { tag_bits = n ; return *this ; }
+// clang-format on
 
 #endif

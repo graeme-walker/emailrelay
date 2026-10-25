@@ -44,7 +44,7 @@ public:
 	FutureEventImp & operator=( FutureEventImp && ) = delete ;
 
 private: // overrides
-	void readEvent() override ; // Override from GNet::EventHandler.
+	void readEvent() override ; // GNet::EventHandler
 
 private:
 	static int init( int ) ;

@@ -66,11 +66,11 @@ public:
 		///< event signal.
 
 private: // overrides
-	bool onReceive( const char * , std::size_t , std::size_t , std::size_t , char ) override ; // Override from GNet::Client.
-	void onSendComplete() override ; // Override from GNet::BufferedClient.
-	void onDelete( const std::string & ) override ; // Override from GNet::Client.
-	void onSecure( const std::string & , const std::string & , const std::string & ) override ; // Override from GNet::SocketProtocolSink.
-	void onConnect() override ; // Override from GNet::SimpleClient.
+	bool onReceive( const char * , std::size_t , std::size_t , std::size_t , char ) override ; // GNet::Client
+	void onSendComplete() override ; // GNet::BufferedClient
+	void onDelete( const std::string & ) override ; // GNet::Client
+	void onSecure( const std::string & , const std::string & , const std::string & ) override ; // GNet::SocketProtocolSink
+	void onConnect() override ; // GNet::SimpleClient
 
 public:
 	~RequestClient() override = default ;

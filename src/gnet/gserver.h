@@ -99,9 +99,9 @@ protected:
 		///< most-derived Server.
 
 private: // overrides
-	void readEvent() override ; // Override from GNet::EventHandler.
-	void writeEvent() override ; // Override from GNet::EventHandler.
-	void onException( ExceptionSource * , std::exception & , bool ) override ; // Override from GNet::ExceptionHandler.
+	void readEvent() override ; // GNet::EventHandler
+	void writeEvent() override ; // GNet::EventHandler
+	void onException( ExceptionSource * , std::exception & , bool ) override ; // GNet::ExceptionHandler
 
 public:
 	Server( const Server & ) = delete ;
@@ -136,7 +136,9 @@ public:
 	ServerPeerInfo( Server * , ServerPeer::Config ) ;
 } ;
 
+// clang-format off
 inline GNet::Server::Config & GNet::Server::Config::set_stream_socket_config( const StreamSocket::Config & c ) { stream_socket_config = c ; return *this ; }
 inline GNet::Server::Config & GNet::Server::Config::set_uds_open_permissions( bool b ) noexcept { uds_open_permissions = b ; return *this ; }
+// clang-format on
 
 #endif

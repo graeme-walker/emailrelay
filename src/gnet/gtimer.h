@@ -155,7 +155,7 @@ public:
 	Timer<T> & operator=( Timer<T> && ) = delete ;
 
 private: // overrides
-	void onTimeout() override ; // Override from GNet::TimerBase.
+	void onTimeout() override ; // GNet::TimerBase
 
 private:
 	T & m_t ; // callback target object

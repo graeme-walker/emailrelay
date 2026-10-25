@@ -367,6 +367,7 @@ private:
 	bool m_enabled ;
 } ;
 
+// clang-format off
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_with_vrfy( bool b ) noexcept { with_vrfy = b ; return *this ; }
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_with_chunking( bool b ) noexcept { with_chunking = b ; return *this ; }
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_max_size( std::size_t n ) noexcept { max_size = n ; return *this ; }
@@ -382,5 +383,6 @@ inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_client
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_smtputf8_strict( bool b ) noexcept { smtputf8_strict = b ; return *this ; }
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_sasl_server_config( const std::string & s ) { sasl_server_config = s ; return *this ; }
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_sasl_server_challenge_hostname( const std::string & s ) { sasl_server_challenge_hostname = s ; return *this ; }
+// clang-format on
 
 #endif

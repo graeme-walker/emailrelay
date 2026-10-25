@@ -67,8 +67,8 @@ public:
 		///< constructor has 'with_system_menu_quit'.
 
 private: // overrides
-	void onInit( HWND , int ) override ; // Override from StackPageCallback.
-	bool onApply() override ; // Override from StackPageCallback.
+	void onInit( HWND , int ) override ; // StackPageCallback
+	bool onApply() override ; // StackPageCallback
 
 public:
 	~WinForm() override = default ;

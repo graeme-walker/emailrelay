@@ -46,17 +46,17 @@ public:
 	SaslServerBasic & operator=( SaslServerBasic && ) = delete ;
 
 private: // overrides
-	void reset() override ; // Override from GAuth::SaslServer.
-	G::StringArray mechanisms( bool ) const override ; // Override from GAuth::SaslServer.
-	bool init( bool , const std::string & mechanism ) override ; // Override from GAuth::SaslServer.
-	std::string mechanism() const override ; // Override from GAuth::SaslServer.
-	std::string preferredMechanism( bool ) const override ; // Override from GAuth::SaslServer.
-	bool mustChallenge() const override ; // Override from GAuth::SaslServer.
-	std::string initialChallenge() const override ; // Override from GAuth::SaslServer.
-	std::string apply( const std::string & response , bool & done ) override ; // Override from GAuth::SaslServer.
-	bool authenticated() const override ; // Override from GAuth::SaslServer.
-	std::string id() const override ; // Override from GAuth::SaslServer.
-	bool trusted( const G::StringArray & , const std::string & ) const override ; // Override from GAuth::SaslServer.
+	void reset() override ; // GAuth::SaslServer
+	G::StringArray mechanisms( bool ) const override ; // GAuth::SaslServer
+	bool init( bool , const std::string & mechanism ) override ; // GAuth::SaslServer
+	std::string mechanism() const override ; // GAuth::SaslServer
+	std::string preferredMechanism( bool ) const override ; // GAuth::SaslServer
+	bool mustChallenge() const override ; // GAuth::SaslServer
+	std::string initialChallenge() const override ; // GAuth::SaslServer
+	std::string apply( const std::string & response , bool & done ) override ; // GAuth::SaslServer
+	bool authenticated() const override ; // GAuth::SaslServer
+	std::string id() const override ; // GAuth::SaslServer
+	bool trusted( const G::StringArray & , const std::string & ) const override ; // GAuth::SaslServer
 
 private:
 	std::unique_ptr<SaslServerBasicImp> m_imp ;

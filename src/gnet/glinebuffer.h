@@ -482,6 +482,7 @@ void GNet::LineBuffer::apply( const std::string & data , T sink , bool with_frag
 
 // ==
 
+// clang-format off
 inline const std::string & GNet::LineBuffer::Config::eol() const noexcept { return m_eol ; }
 inline std::size_t GNet::LineBuffer::Config::warn() const noexcept { return m_warn ; }
 inline std::size_t GNet::LineBuffer::Config::fmin() const noexcept { return m_fmin ; }
@@ -490,6 +491,8 @@ inline GNet::LineBuffer::Config & GNet::LineBuffer::Config::set_eol( const std::
 inline GNet::LineBuffer::Config & GNet::LineBuffer::Config::set_warn( std::size_t n ) noexcept { m_warn = n ; return *this ; }
 inline GNet::LineBuffer::Config & GNet::LineBuffer::Config::set_fmin( std::size_t n ) noexcept { m_fmin = n ; return *this ; }
 inline GNet::LineBuffer::Config & GNet::LineBuffer::Config::set_expect( std::size_t n ) noexcept { m_expect = n ; return *this ; }
+// clang-format on
+
 namespace GNet
 {
 	inline bool operator==( const LineBuffer::Config & a , const LineBuffer::Config & b ) noexcept

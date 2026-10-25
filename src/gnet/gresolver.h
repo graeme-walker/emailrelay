@@ -113,9 +113,11 @@ private:
 	std::unique_ptr<ResolverImp> m_imp ;
 } ;
 
+// clang-format off
 inline GNet::Resolver::Config & GNet::Resolver::Config::set_with_canonical_name( bool b ) noexcept { with_canonical_name = b ; return *this ; }
 inline GNet::Resolver::Config & GNet::Resolver::Config::set_raw( bool b ) noexcept { raw = b ; return *this ; }
 inline GNet::Resolver::Config & GNet::Resolver::Config::set_datagram( bool b ) noexcept { datagram = b ; return *this ; }
 inline GNet::Resolver::Config & GNet::Resolver::Config::set_idn_flag( bool b ) noexcept { idn_flag = b ; return *this ; }
+// clang-format on
 
 #endif

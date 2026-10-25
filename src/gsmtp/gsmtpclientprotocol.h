@@ -167,7 +167,7 @@ public:
 	ClientProtocol & operator=( ClientProtocol && ) = delete ;
 
 private: // overrides
-	void onTimeout() override ; // Override from GNet::TimerBase.
+	void onTimeout() override ; // GNet::TimerBase
 
 private:
 	enum class State
@@ -281,6 +281,7 @@ private:
 	SessionState m_session ;
 } ;
 
+// clang-format off
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_ehlo( const std::string & s ) { ehlo = s ; return *this ; }
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_response_timeout( G::TimeInterval t ) noexcept { response_timeout = t ; return *this ; }
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_ready_timeout( G::TimeInterval t ) noexcept { ready_timeout = t ; return *this ; }
@@ -296,5 +297,6 @@ inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_pipeli
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_reply_size_limit( std::size_t n ) noexcept { reply_size_limit = n ; return *this ; }
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_crlf_only( bool b ) noexcept { crlf_only = b ; return *this ; }
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_try_reauthentication( bool b ) noexcept { try_reauthentication = b ; return *this ; }
+// clang-format on
 
 #endif

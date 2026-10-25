@@ -337,7 +337,7 @@ inline G::LogOutput::Config & G::LogOutput::Config::set_facility( SyslogFacility
 inline G::LogOutput::Config & G::LogOutput::Config::set_umask( Process::Umask::Mode umask ) noexcept { m_umask = umask ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_stdout( bool value ) noexcept { m_stdout = value ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_log_group_mask( unsigned long value ) noexcept { m_log_group_mask = value ; return *this ; }
-// clang-format off
+// clang-format on
 
 inline
 bool G::LogOutput::Instance::at( Severity s , int verbosity , bool condition ) noexcept

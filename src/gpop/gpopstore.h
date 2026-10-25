@@ -201,8 +201,10 @@ private:
 	std::vector<StoreMessage> m_list ;
 } ;
 
+// clang-format off
 inline GPop::Store::Config & GPop::Store::Config::set_allow_delete( bool b ) noexcept { allow_delete = b ; return *this ; }
 inline GPop::Store::Config & GPop::Store::Config::set_by_name( bool b ) noexcept { by_name = b ; return *this ; }
 inline GPop::Store::Config & GPop::Store::Config::set_by_name_mkdir( bool b ) noexcept { by_name_mkdir = b ; return *this ; }
+// clang-format on
 
 #endif
