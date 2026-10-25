@@ -26,7 +26,9 @@ GFilters::FilterChain::FilterChain( GNet::EventState es , GSmtp::FilterFactoryBa
 	{
 		std::string first = G::Str::head( t() , ":" , false ) ;
 		std::string second = G::Str::tail( t() , ":" ) ;
-		add( es , ff , filter_type , filter_config , Spec(first,second) ) ;
+		int v = G::LogOutput::parseVerbosity( second ) ;
+		second = G::LogOutput::noVerbosity( second ) ;
+		add( es , ff , filter_type , filter_config , Spec{first,second,v} ) ;
 	}
 
 	if( m_filters.empty() )

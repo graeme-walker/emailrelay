@@ -79,7 +79,8 @@ G::Options Main::Options::spec()
 			//example: io-2,connection-1
 			// Modifies what is logged. The value should be a module name followed by
 			// "+2", "+1", "-1", "-2" or "-3" having the effect of adding or removing
-			// "--verbose" that many times for that module.
+			// "--verbose" that many times for that module. Warnings and errors
+			// are unaffected.
 
 	#ifdef G_UNIX
 	G::Options::add( opt , 't' , "no-daemon" ,

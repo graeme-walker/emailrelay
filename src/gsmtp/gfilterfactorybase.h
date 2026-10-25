@@ -32,9 +32,6 @@ class GSmtp::FilterFactoryBase
 public:
 	struct Spec /// Filter specification tuple for GSmtp::FilterFactoryBase::newFilter().
 	{
-		Spec() ;
-		Spec( std::string_view , std::string_view , int = 0 ) ;
-		Spec & operator+=( const Spec & ) ; // append to "chain"
 		std::string first ; // "exit", "file", "net", "spam", "chain", empty on error
 		std::string second ; // reason on error, or eg. "/bin/a" if "file", eg. "file:/bin/a,file:/bin/b" if "chain"
 		int verbosity {0} ;

@@ -38,13 +38,26 @@ GFilters::FilterFactory::Spec GFilters::FilterFactory::parse( std::string_view s
 	Spec result ;
 	if( spec_in.empty() )
 	{
-		result = Spec( "exit" , "0" ) ;
+		result = Spec{ "exit" , "0" , 0 } ;
 	}
 	else if( spec_in.find(',') != std::string::npos )
 	{
-		result = Spec( "chain" , "" ) ;
+		result = Spec{ "chain" , "" , 0 } ;
 		for( G::StringTokenView t( spec_in , "," ) ; t ; ++t )
-			result += parse( t() , base_dir , app_dir , warnings_p ) ; // one level of recursion
+		{
+			Spec sub = parse( t() , base_dir , app_dir , warnings_p ) ; // one level of recursion
+			if( sub.first.empty() )
+			{
+				result.first.clear() ;
+				result.second = sub.second ;
+				break ;
+			}
+			result.second
+				.append(result.second.empty()?0U:1U,',')
+				.append(sub.first).append(1U,':').append(sub.second)
+				.append(";v").append(sub.verbosity>=0?1U:0U,'+')
+				.append( G::Str::fromInt(sub.verbosity) ) ;
+		}
 	}
 	else if( G::Str::headMatch( spec_in ,"exit:" ) )
 	{
@@ -111,7 +124,7 @@ GFilters::FilterFactory::Spec GFilters::FilterFactory::makeSpec( std::string_vie
 	std::string_view second )
 {
 	std::string s = G::sv_to_string( second ) ;
-	return { first , G::LogOutput::noVerbosity(s) , G::LogOutput::parseVerbosity(s) } ;
+	return { G::sv_to_string(first) , G::LogOutput::noVerbosity(s) , G::LogOutput::parseVerbosity(s) } ;
 }
 
 std::unique_ptr<GSmtp::Filter> GFilters::FilterFactory::newFilter( GNet::EventState es ,
