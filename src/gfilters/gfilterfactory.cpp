@@ -160,7 +160,7 @@ std::unique_ptr<GSmtp::Filter> GFilters::FilterFactory::newFilter( GNet::EventSt
 	else if( spec.first == "sleepms" )
 	{
 		return std::make_unique<NullFilter>( es , m_file_store , filter_type , filter_config ,
-			G::TimeInterval(0U,G::Str::toUInt(spec.second)) ) ;
+			G::TimeInterval(0U,G::Str::toUInt(spec.second)*1000U) ) ; // (was us)
 	}
 	else if( spec.first == "file" )
 	{
