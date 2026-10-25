@@ -1,15 +1,15 @@
 //
-// glogmodule.h
+// gloggroup.h
 //
 
-#ifndef G_LOG_MODULE_H
-#define G_LOG_MODULE_H
+#ifndef G_LOG_GROUP_H
+#define G_LOG_GROUP_H
 
 #include "gdef.h"
 
 namespace G
 {
-	namespace LogModuleImp
+	namespace LogGroupImp
 	{
 		inline constexpr bool end( char c ) noexcept
 		{
@@ -28,7 +28,7 @@ namespace G
 			return *p ? strcommas(p+1,n+(*p==','?1U:0U)) : n ;
 		}
 	}
-	namespace LogModule
+	namespace LogGroup
 	{
 		#if __cplusplus >= 201700L
 		inline constexpr const char list[] =
@@ -46,31 +46,31 @@ namespace G
 			"tls,"
 			"dnsbl"
 		;
-		constexpr unsigned int list_size = (LogModuleImp::strcommas(list)+1U) ;
+		constexpr unsigned int list_size = (LogGroupImp::strcommas(list)+1U) ;
 	}
-	struct LogModuleId
+	struct LogGroupId
 	{
 		int value ;
 	} ;
-	namespace LogModuleLiterals
+	namespace LogGroupLiterals
 	{
 		// compile-time mapping from string to id with c++20 compile-time validation: "foo"_id.value
 		#if __cplusplus >= 202000L
-		inline consteval LogModuleId operator"" _id( const char * name , std::size_t )
+		inline consteval LogGroupId operator"" _id( const char * name , std::size_t )
 		{
-			using namespace LogModuleImp ;
-			if( strfind( name , LogModule::list ) == -1 ) throw "invalid module name" ;
-			return { strfind( name , LogModule::list ) } ;
+			using namespace LogGroupImp ;
+			if( strfind( name , LogGroup::list ) == -1 ) throw "invalid log-group name" ;
+			return { strfind( name , LogGroup::list ) } ;
 		}
 		#else
-		inline constexpr LogModuleId operator"" _id( const char * name , std::size_t )
+		inline constexpr LogGroupId operator"" _id( const char * name , std::size_t )
 		{
-			using namespace LogModuleImp ;
-			return { strfind( name , LogModule::list ) } ;
+			using namespace LogGroupImp ;
+			return { strfind( name , LogGroup::list ) } ;
 		}
 		#endif
 	}
 }
-using namespace G::LogModuleLiterals ;
+using namespace G::LogGroupLiterals ;
 
 #endif

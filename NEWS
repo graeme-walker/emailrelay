@@ -6,16 +6,17 @@ exit-100 bug, allow the "--port" option to be used more than once, add a new
 "--poll-run" option, and set better file permissions when delivering to a
 maildir mailbox.
 
-Also, it is now possible to raise or lower the logging verbosity of modules,
-filters, address verifiers and poll runners. A positive verbosity has the effect
-of adding one or more "--verbose" flags and a negative verbosity removes them.
-Module verbosities are set with the new "--log-config" option. For filters,
-address verifiers and poll runners the verbosity is set by appending modifiers
-such as ";v+1" or ";v-2" to the relevant option value. Module names include "io"
-for the "tx>>" and "rx<<" log messages, so using "--log-config=io-2" will
-suppress these message even if also using "--verbose" twice. The set of module
-names and the mapping of individual log messages to modules are likely to change
-across releases.
+Also, it is now possible to raise or lower the logging verbosity of log messages
+in a named log-group or log messages from individual filters, address verifiers
+and poll runners. A positive verbosity has the effect of adding one or more
+"--verbose" flags and a negative verbosity removes them. Log-group verbosities
+are set with the new "--log-config" option. For filters, address verifiers and
+poll runners the verbosity is set by appending modifiers such as ";v+1" or
+";v-2" to the relevant option value. Log-group names include "io" for the "tx>>"
+and "rx<<" log messages, so using "--log-config=io-2" will suppress these
+messages even if also using "--verbose" twice. The set of log-group names and
+the mapping of individual log messages to log-groups are likely to change across
+releases.
 
 Scripts run by E-MailRelay on Windows now have their unused standard i/o handles
 explicitly opened to the null device. As a result filter scripts might behave

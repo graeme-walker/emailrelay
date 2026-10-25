@@ -458,9 +458,9 @@ std::string Main::Configuration::specificationError() const
 	using G::format ;
 
 	bool error = false ;
-	G::LogOutput::parseModuleMask(stringValue("log-config"),&error) ;
+	G::LogOutput::parseLogGroupMask(stringValue("log-config"),&error) ;
 	if( error )
-		return str( format( txt("invalid log config specification: use <m>[+-]<n> for n in 0..4 and m in %1%") ) % G::LogModule::list ) ;
+		return str( format( txt("invalid log config specification: use <m>[+-]<n> for n in 0..4 and m in %1%") ) % G::LogGroup::list ) ;
 
 	GSmtp::FilterFactoryBase::Spec f ;
 	if( (f=_filter()).first.empty() ) // NOLINT assignment
@@ -719,7 +719,7 @@ G::LogOutput::Config Main::Configuration::logOutputConfig( bool has_gui ) const
 			.set_verbose_count( m_map.count("verbose") )
 			.set_debug( debug() )
 			.set_with_level( true )
-			.set_module_mask( G::LogOutput::parseModuleMask(m_map.value("log-config")) )
+			.set_log_group_mask( G::LogOutput::parseLogGroupMask(m_map.value("log-config")) )
 			.set_with_timestamp( contains("log-time") || logFormatContains("time") )
 			.set_with_context( contains("log-address") || contains("log-format") )
 			.set_strip( !debug() )

@@ -112,17 +112,17 @@ G::LogOutput::Config G::LogOutput::config() const noexcept
 	return m_config ;
 }
 
-unsigned long G::LogOutput::moduleMask() const noexcept
+unsigned long G::LogOutput::logGroupMask() const noexcept
 {
-	return m_config.m_module_mask ;
+	return m_config.m_log_group_mask ;
 }
 
-int G::LogOutput::moduleVerbosity( int module_id ) const noexcept
+int G::LogOutput::logGroupVerbosity( int log_group_id ) const noexcept
 {
-	if( module_id < 0 ) return 0 ;
-	static_assert( (LogModule::list_size*3U) <= (sizeof(m_config.m_module_mask)*8U) , "too many module names" ) ;
-	unsigned shift = static_cast<unsigned>(module_id) * 3U ;
-	unsigned int bits = static_cast<unsigned>(m_config.m_module_mask >> shift) & 7U ;
+	if( log_group_id < 0 ) return 0 ;
+	static_assert( (LogGroup::list_size*3U) <= (sizeof(m_config.m_log_group_mask)*8U) , "too many log-group names" ) ;
+	unsigned shift = static_cast<unsigned>(log_group_id) * 3U ;
+	unsigned int bits = static_cast<unsigned>(m_config.m_log_group_mask >> shift) & 7U ;
 	if( bits & 0x04U )
 		return static_cast<int>(bits) - 8 ;
 	else
@@ -457,10 +457,10 @@ int G::LogOutput::parseVerbosityImp( std::string_view spec , int no_value ,
 	return no_value ;
 }
 
-unsigned long G::LogOutput::parseModuleMask( std::string_view spec , bool * error_p )
+unsigned long G::LogOutput::parseLogGroupMask( std::string_view spec , bool * error_p )
 {
 	bool ok = true ;
-	unsigned long module_mask = 0UL ;
+	unsigned long log_group_mask = 0UL ;
 	for( StringTokenView t(spec,",",1U) ; t && ok ; ++t )
 	{
 		ok = false ;
@@ -472,21 +472,21 @@ unsigned long G::LogOutput::parseModuleMask( std::string_view spec , bool * erro
 		if( v > 9U ) break ;
 		v = std::min( sign=='+'?3U:4U , v ) ;
 		unsigned int bits = ( sign == '+' || v == 0 ) ? v : (8U-v) ;
-		std::string_view module_name = s.substr( 0 , s.size()-2U ) ;
-		std::string_view module_list( LogModule::list , sizeof(LogModule::list) ) ;
-		for( StringTokenView m(module_list,",",1U) ; m ; ++m , bits <<= 3 )
+		std::string_view log_group_name = s.substr( 0 , s.size()-2U ) ;
+		std::string_view log_group_list( LogGroup::list , sizeof(LogGroup::list) ) ;
+		for( StringTokenView grp(log_group_list,",",1U) ; grp ; ++grp , bits <<= 3 )
 		{
-			if( m() == module_name )
+			if( grp() == log_group_name )
 			{
 				ok = true ;
-				module_mask |= bits ;
+				log_group_mask |= bits ;
 				break ;
 			}
 		}
 	}
 	if( error_p != nullptr )
 		*error_p = !ok ;
-	return ok ? module_mask : 0UL ;
+	return ok ? log_group_mask : 0UL ;
 }
 
 // ==

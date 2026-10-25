@@ -297,10 +297,10 @@ void Main::Unit::onRequestForwardingTimeout()
 	}
 	else
 	{
-		G_LOG_M( forwarding , "Main::Unit::onRequestForwardingTimeout: " << format(txt("forwarding: [%1%]")) % m_forwarding_reason ) ;
+		G_LOG_G( forwarding , "Main::Unit::onRequestForwardingTimeout: " << format(txt("forwarding: [%1%]")) % m_forwarding_reason ) ;
 		if( store().empty() )
 		{
-			G_LOG_M( forwarding , "Main::Unit::startForwarding: " << txt("forwarding: no messages to send") ) ;
+			G_LOG_G( forwarding , "Main::Unit::startForwarding: " << txt("forwarding: no messages to send") ) ;
 			m_event_signal.emit( m_unit_id , "forward" , "end" , "no messages" ) ;
 		}
 		else

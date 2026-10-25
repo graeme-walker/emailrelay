@@ -37,7 +37,7 @@ bool GStore::FileDelivery::deliver( const MessageId & message_id , bool is_new )
 	{
 		if( m_store.directory() != m_store.deliveryDir() )
 		{
-			G_LOG_M( store , "GStore::FileDelivery::deliver: delivery: delivering " << message_id.str() << " to "
+			G_LOG_G( store , "GStore::FileDelivery::deliver: delivery: delivering " << message_id.str() << " to "
 				"[" << m_store.deliveryDir() << "/<mbox>]" ) ;
 		}
 
@@ -65,7 +65,7 @@ bool GStore::FileDelivery::deliverToMailboxes( const G::Path & delivery_dir , co
 		G::Path mbox_dir = delivery_dir/mailbox ;
 		if( !FileOp::isdir(mbox_dir) )
 		{
-			G_LOG_M( store , "GStore::FileDelivery::deliverToMailboxes: delivery: creating mailbox [" << mailbox << "]" ) ;
+			G_LOG_G( store , "GStore::FileDelivery::deliverToMailboxes: delivery: creating mailbox [" << mailbox << "]" ) ;
 			if( !FileOp::mkdir( mbox_dir ) )
 				throw MkdirError( mbox_dir.str() , G::Process::strerror(FileOp::errno_()) ) ;
 		}
@@ -161,7 +161,7 @@ std::string GStore::FileDelivery::mailbox( const Config & , const std::string & 
 	//
 	const std::string & mailbox = recipient ;
 
-	G_LOG_M( store , "GStore::FileDelivery::mailbox: delivery: recipient [" << recipient << "]: delivery to mailbox [" << mailbox << "]" ) ;
+	G_LOG_G( store , "GStore::FileDelivery::mailbox: delivery: recipient [" << recipient << "]: delivery to mailbox [" << mailbox << "]" ) ;
 	return mailbox ;
 }
 

@@ -11,7 +11,7 @@
 
 #include "gdef.h"
 #include "glogstream.h"
-#include "glogmodule.h"
+#include "gloggroup.h"
 #include "gprocess.h"
 #include "gpath.h"
 #include "glimits.h"
@@ -94,7 +94,7 @@ public:
 		bool m_use_syslog {false} ;
 		bool m_allow_bad_syslog {false} ;
 		bool m_stdout {false} ;
-		unsigned long m_module_mask {0UL} ;
+		unsigned long m_log_group_mask {0UL} ;
 		SyslogFacility m_facility {SyslogFacility::User} ;
 		Process::Umask::Mode m_umask {Process::Umask::Mode::NoChange} ;
 		Config() noexcept ;
@@ -113,23 +113,23 @@ public:
 		Config & set_facility( SyslogFacility ) noexcept ;
 		Config & set_umask( Process::Umask::Mode ) noexcept ;
 		Config & set_stdout( bool value = true ) noexcept ;
-		Config & set_module_mask( unsigned long value ) noexcept ;
+		Config & set_log_group_mask( unsigned long value ) noexcept ;
 	} ;
 
 	struct Instance /// A set of convenience functions for calling LogOutput methods on LogOutput::instance().
 	{
 		static bool at( LogOutput::Severity , int verbosity , bool condition ) noexcept ;
 		static bool at( LogOutput::Severity , int verbosity , bool * once_p ) noexcept ;
-		static bool at( LogOutput::Severity , LogModuleId module_id , bool condition ) noexcept ;
-		static bool at( LogOutput::Severity , LogModuleId module_id , bool * once_p ) noexcept ;
-		static int moduleVerbosity( int module_id ) noexcept ;
+		static bool at( LogOutput::Severity , LogGroupId log_group_id , bool condition ) noexcept ;
+		static bool at( LogOutput::Severity , LogGroupId log_group_id , bool * once_p ) noexcept ;
+		static int logGroupVerbosity( int log_group_id ) noexcept ;
 
 		static void context( std::string_view (*fn)(void*) = nullptr , void * fn_arg = nullptr ) noexcept ;
 		static void * contextarg() noexcept ;
 		static LogStream start( LogOutput::Severity , const char * file , int line ) noexcept ;
 		static void output( LogStream & ) noexcept ;
 		static int fd() noexcept ;
-		static unsigned int moduleMask() noexcept ;
+		static unsigned int logGroupMask() noexcept ;
 		static LogOutput::Config config() noexcept ;
 		Instance() = delete ;
 	} ;
@@ -177,8 +177,8 @@ public:
 	Config config() const noexcept ;
 		///< Returns the current configuration.
 
-	unsigned long moduleMask() const noexcept ;
-		///< Returns the config() module_mask value.
+	unsigned long logGroupMask() const noexcept ;
+		///< Returns the config() log_group_mask value.
 
 	int fd() const noexcept ;
 		///< Returns the output file descriptor.
@@ -215,14 +215,14 @@ public:
 	static std::string noVerbosity( std::string_view spec ) ;
 		///< Removes any parseVerbosity() substring.
 
-	static unsigned long parseModuleMask( std::string_view spec , bool * error_p = nullptr ) ;
-		///< Parses a module logging specification into a
-		///< Config::module_mask value. Returns zero on
+	static unsigned long parseLogGroupMask( std::string_view spec , bool * error_p = nullptr ) ;
+		///< Parses a log group logging specification into a
+		///< Config::log_group_mask value. Returns zero on
 		///< error and optionally an error flag by reference.
 
-	int moduleVerbosity( int module_id ) const noexcept ;
-		///< Returns the verbosity of the module as configured
-		///< in the Config::module_mask. Returns zero on error.
+	int logGroupVerbosity( int log_group_id ) const noexcept ;
+		///< Returns the verbosity of the log-group as configured
+		///< in the Config::log_group_mask. Returns zero on error.
 
 	static void assertion( LogOutput * , const char * file , int line , bool test , const char * test_string ) ;
 		///< Performs an assertion check.
@@ -333,13 +333,13 @@ inline G::LogOutput::Config & G::LogOutput::Config::set_allow_bad_syslog( bool v
 inline G::LogOutput::Config & G::LogOutput::Config::set_facility( SyslogFacility facility ) noexcept { m_facility = facility ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_umask( Process::Umask::Mode umask ) noexcept { m_umask = umask ; return *this ; }
 inline G::LogOutput::Config & G::LogOutput::Config::set_stdout( bool value ) noexcept { m_stdout = value ; return *this ; }
-inline G::LogOutput::Config & G::LogOutput::Config::set_module_mask( unsigned long value ) noexcept { m_module_mask = value ; return *this ; }
+inline G::LogOutput::Config & G::LogOutput::Config::set_log_group_mask( unsigned long value ) noexcept { m_log_group_mask = value ; return *this ; }
 
 inline bool G::LogOutput::Instance::at( LogOutput::Severity s , int verbosity , bool condition ) noexcept { return condition && LogOutput::m_instance && LogOutput::m_instance->at( s , verbosity ) ; }
-inline bool G::LogOutput::Instance::at( LogOutput::Severity s , LogModuleId module_id , bool condition ) noexcept { return condition && module_id.value >= 0 && LogOutput::m_instance && LogOutput::m_instance->at( s , moduleVerbosity(module_id.value) ) ; }
+inline bool G::LogOutput::Instance::at( LogOutput::Severity s , LogGroupId log_group_id , bool condition ) noexcept { return condition && log_group_id.value >= 0 && LogOutput::m_instance && LogOutput::m_instance->at( s , logGroupVerbosity(log_group_id.value) ) ; }
 inline bool G::LogOutput::Instance::at( LogOutput::Severity s , int verbosity , bool * once_p ) noexcept { if( *once_p ) { *once_p = false ; return LogOutput::m_instance && LogOutput::m_instance->at( s , verbosity ) ; } else { return false ; } }
-inline bool G::LogOutput::Instance::at( LogOutput::Severity s , LogModuleId module_id , bool * once_p ) noexcept { if( *once_p && module_id.value >= 0 ) { *once_p = false ; return LogOutput::m_instance && LogOutput::m_instance->at( s , moduleVerbosity(module_id.value) ) ; } else { return false ; } }
-inline int G::LogOutput::Instance::moduleVerbosity( int module_id ) noexcept { return LogOutput::m_instance ? LogOutput::m_instance->moduleVerbosity(module_id) : 0 ; }
+inline bool G::LogOutput::Instance::at( LogOutput::Severity s , LogGroupId log_group_id , bool * once_p ) noexcept { if( *once_p && log_group_id.value >= 0 ) { *once_p = false ; return LogOutput::m_instance && LogOutput::m_instance->at( s , logGroupVerbosity(log_group_id.value) ) ; } else { return false ; } }
+inline int G::LogOutput::Instance::logGroupVerbosity( int log_group_id ) noexcept { return LogOutput::m_instance ? LogOutput::m_instance->logGroupVerbosity(log_group_id) : 0 ; }
 
 inline void G::LogOutput::Instance::context( std::string_view (*fn)(void*) , void * fn_arg ) noexcept { if( LogOutput::m_instance ) LogOutput::m_instance->context( fn , fn_arg ) ; }
 inline void * G::LogOutput::Instance::contextarg() noexcept { if( LogOutput::m_instance ) return LogOutput::m_instance->contextarg() ; else return nullptr ; }
@@ -347,6 +347,6 @@ inline G::LogStream G::LogOutput::Instance::start( LogOutput::Severity s , const
 inline void G::LogOutput::Instance::output( LogStream & stream ) noexcept { if( LogOutput::m_instance ) LogOutput::m_instance->output( stream ) ; }
 inline int G::LogOutput::Instance::fd() noexcept { return LogOutput::m_instance ? LogOutput::m_instance->fd() : -1 ; }
 inline G::LogOutput::Config G::LogOutput::Instance::config() noexcept { return LogOutput::m_instance ? LogOutput::m_instance->config() : LogOutput::Config() ; }
-inline unsigned int G::LogOutput::Instance::moduleMask() noexcept { return LogOutput::m_instance ? LogOutput::m_instance->moduleMask() : 0U ; }
+inline unsigned int G::LogOutput::Instance::logGroupMask() noexcept { return LogOutput::m_instance ? LogOutput::m_instance->logGroupMask() : 0U ; }
 
 #endif

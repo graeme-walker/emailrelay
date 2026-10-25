@@ -12,7 +12,7 @@
 #include "gdef.h"
 #include "glogstream.h"
 #include "glogoutput.h"
-#include "glogmodule.h"
+#include "gloggroup.h"
 #include "gstrmacros.h"
 
 // NOLINTBEGIN(*-macro-perentheses)
@@ -34,31 +34,31 @@
 #define G_LOG_IF( cond , expr ) G_LOG_IMP( expr , G::LogOutput::Severity::InfoVerbose , 0 , cond )
 #define G_LOG_ONCE( expr ) G_LOG_IMP_ONCE( expr , G::LogOutput::Severity::InfoVerbose , 0 )
 #define G_LOG_V( verbosity , expr ) G_LOG_IMP( expr , G::LogOutput::Severity::InfoVerbose , verbosity , true )
-#define G_LOG_M( module_name , expr ) G_LOG_IMP( expr , G::LogOutput::Severity::InfoVerbose , G_STR_PASTE(#module_name,_id) , true )
+#define G_LOG_G( log_group_name , expr ) G_LOG_IMP( expr , G::LogOutput::Severity::InfoVerbose , G_STR_PASTE(#log_group_name,_id) , true )
 
 #define G_LOG_ACTIVE() G::LogOutput::Instance::at( G::LogOutput::Severity::InfoVerbose , 0 , true )
 #define G_LOG_ACTIVE_V( verbosity ) G::LogOutput::Instance::at( G::LogOutput::Severity::InfoVerbose , verbosity , true )
-#define G_LOG_ACTIVE_M( module_name ) G::LogOutput::Instance::at( G::LogOutput::Severity::InfoVerbose , G_STR_PASTE(#module_name,_id) , true )
+#define G_LOG_ACTIVE_G( log_group_name ) G::LogOutput::Instance::at( G::LogOutput::Severity::InfoVerbose , G_STR_PASTE(#log_group_name,_id) , true )
 
 #define G_LOG_MORE( expr ) G_LOG_IMP( expr , G::LogOutput::Severity::InfoMoreVerbose , 0 , true )
 #define G_LOG_MORE_IF( cond , expr ) G_LOG_IMP( expr , G::LogOutput::Severity::InfoMoreVerbose , 0 , cond )
 #define G_LOG_MORE_ONCE( expr ) G_LOG_IMP_ONCE( expr , G::LogOutput::Severity::InfoMoreVerbose , 0 )
 #define G_LOG_MORE_V( verbosity , expr ) G_LOG_IMP( expr , G::LogOutput::Severity::InfoMoreVerbose , verbosity , true )
-#define G_LOG_MORE_M( module_name , expr ) G_LOG_IMP( expr , G::LogOutput::Severity::InfoMoreVerbose , G_STR_PASTE(#module_name,_id) , true )
+#define G_LOG_MORE_G( log_group_name , expr ) G_LOG_IMP( expr , G::LogOutput::Severity::InfoMoreVerbose , G_STR_PASTE(#log_group_name,_id) , true )
 
 #define G_LOG_MORE_ACTIVE() G::LogOutput::Instance::at( G::LogOutput::Severity::InfoMoreVerbose , 0 , true )
 #define G_LOG_MORE_ACTIVE_V( verbosity ) G::LogOutput::Instance::at( G::LogOutput::Severity::InfoMoreVerbose , verbosity , true )
-#define G_LOG_MORE_ACTIVE_M( module_name ) G::LogOutput::Instance::at( G::LogOutput::Severity::InfoMoreVerbose , G_STR_PASTE(#module_name,_id) , true )
+#define G_LOG_MORE_ACTIVE_G( log_group_name ) G::LogOutput::Instance::at( G::LogOutput::Severity::InfoMoreVerbose , G_STR_PASTE(#log_group_name,_id) , true )
 
 #define G_LOG_S( expr ) G_LOG_IMP( expr , G::LogOutput::Severity::InfoSummary , 0 , true )
 #define G_LOG_S_IF( cond , expr ) G_LOG_IMP( expr , G::LogOutput::Severity::InfoSummary , 0 , cond )
 #define G_LOG_S_ONCE( expr ) G_LOG_IMP_ONCE( expr , G::LogOutput::Severity::InfoSummary , 0 )
 #define G_LOG_S_V( verbosity , expr ) G_LOG_IMP( expr , G::LogOutput::Severity::InfoSummary , verbosity , true )
-#define G_LOG_S_M( module_name , expr ) G_LOG_IMP( expr , G::LogOutput::Severity::InfoSummary , G_STR_PASTE(#module_name,_id) , true )
+#define G_LOG_S_G( log_group_name , expr ) G_LOG_IMP( expr , G::LogOutput::Severity::InfoSummary , G_STR_PASTE(#log_group_name,_id) , true )
 
 #define G_LOG_S_ACTIVE() G::LogOutput::Instance::at( G::LogOutput::Severity::InfoSummary , 0 , true )
 #define G_LOG_S_ACTIVE_V( verbosity ) G::LogOutput::Instance::at( G::LogOutput::Severity::InfoSummary , verbosity , true )
-#define G_LOG_S_ACTIVE_M( module_name ) G::LogOutput::Instance::at( G::LogOutput::Severity::InfoSummary , G_STR_PASTE(#module_name,_id) , true )
+#define G_LOG_S_ACTIVE_G( log_group_name ) G::LogOutput::Instance::at( G::LogOutput::Severity::InfoSummary , G_STR_PASTE(#log_group_name,_id) , true )
 
 #else
 
@@ -66,19 +66,19 @@
 #define G_LOG_IF( cond , expr )
 #define G_LOG_ONCE( expr )
 #define G_LOG_V( verbosity , expr )
-#define G_LOG_M( module_name , expr )
+#define G_LOG_G( log_group_name , expr )
 
 #define G_LOG_MORE( expr )
 #define G_LOG_MORE_IF( cond , expr )
 #define G_LOG_MORE_ONCE( expr )
 #define G_LOG_MORE_V( verbosity , expr )
-#define G_LOG_MORE_M( module_name )
+#define G_LOG_MORE_G( log_group_name )
 
 #define G_LOG_S( expr )
 #define G_LOG_S_IF( cond , expr )
 #define G_LOG_S_ONCE( expr )
 #define G_LOG_S_V( verbosity , expr )
-#define G_LOG_S_M( module_name , expr )
+#define G_LOG_S_G( log_group_name , expr )
 
 #endif
 

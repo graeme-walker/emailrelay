@@ -88,7 +88,7 @@ void GSmtp::Client::onSecure( const std::string & , const std::string & , const 
 
 void GSmtp::Client::start()
 {
-	G_LOG_S_M( connection , "GSmtp::Client::start: smtp connection to " << peerAddress().displayString() ) ;
+	G_LOG_S_G( connection , "GSmtp::Client::start: smtp connection to " << peerAddress().displayString() ) ;
 
 	G::CallFrame this_( m_stack ) ;
 	eventSignal().emit( "sending" , std::string(message()->id().str()) , std::string() ) ;

@@ -502,9 +502,10 @@ The `emailrelay` program supports the following command-line usage:
 
 *   --log-config <spec>
 
-    Modifies what is logged. The value should be a module name followed by `+2`,
-    `+1`, `-1`, `-2` or `-3` having the effect of adding or removing
-    ``--verbose`` that many times for that module.
+    Modifies what infomational log messages are emitted. The value should be a
+    log-group name followed by `+2`, `+1`, `-1`, `-2` or `-3` having the
+    effect of adding or removing ``--verbose`` that many times for log
+    messages in that log-group. Warnings and errors are unaffected.
 
 *   --log-file <file> (-N)
 

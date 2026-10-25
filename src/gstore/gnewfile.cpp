@@ -38,7 +38,7 @@ GStore::NewFile::NewFile( FileStore & store , const std::string & from ,
 		smtp_info.address_style == MessageStore::AddressStyle::Utf8Both ;
 
 	// ask the store for a content stream
-	G_LOG_M( store , "GStore::NewFile: new content file [" << cpath().basename() << "]" ) ;
+	G_LOG_G( store , "GStore::NewFile: new content file [" << cpath().basename() << "]" ) ;
 	m_content = FileStore::stream( cpath() ) ;
 }
 
@@ -148,7 +148,7 @@ std::size_t GStore::NewFile::contentSize() const
 
 void GStore::NewFile::saveEnvelope( Envelope & env , const G::Path & path )
 {
-	G_LOG_M( store , "GStore::NewFile: new envelope file [" << path.basename() << "]" ) ;
+	G_LOG_G( store , "GStore::NewFile: new envelope file [" << path.basename() << "]" ) ;
 	std::unique_ptr<std::ofstream> envelope_stream = FileStore::stream( path ) ;
 	env.endpos = GStore::Envelope::write( *envelope_stream , env ) ;
 	env.crlf = true ;
