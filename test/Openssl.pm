@@ -32,7 +32,7 @@
 #
 
 use strict ;
-use FileHandle ;
+use IO::File ;
 use File::Basename ;
 use Carp ;
 
@@ -49,7 +49,7 @@ sub available
 sub _available
 {
 	my ( $tool ) = @_ ;
-	my $fh = new FileHandle( "$tool errstr 0 2>&1 |" ) ;
+	my $fh = new IO::File( "$tool errstr 0 2>&1 |" ) ;
 	my $result = 0 ;
 	while(<$fh>)
 	{
@@ -124,7 +124,7 @@ sub sign
 	if( $user_is_ca )
 	{
 		$extfile = $this->{m_fs}->tmpfile( "$user_basename.ext" ) ;
-		my $fh = new FileHandle( $extfile , "w" ) or die ;
+		my $fh = new IO::File( $extfile , "w" ) or die ;
 		print $fh "basicConstraints=CA:TRUE\n" ;
 		$fh->close() or die ;
 	}
@@ -188,7 +188,7 @@ sub _check
 	for my $file ( @files )
 	{
 		-f $file or die "failed to create [$file]" ;
-		my $fh = new FileHandle( $file , "r" ) or die "failed to open [$file]" ;
+		my $fh = new IO::File( $file , "r" ) or die "failed to open [$file]" ;
 		my $line = <$fh> ;
 		$line or die "failed to read line from [$file]" ;
 		$fh->close() ;

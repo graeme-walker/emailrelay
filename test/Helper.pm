@@ -21,7 +21,7 @@
 #
 
 use strict ;
-use FileHandle ;
+use IO::File ;
 use System ;
 
 package Helper ;

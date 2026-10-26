@@ -26,7 +26,7 @@
 #
 
 use strict ;
-use FileHandle ;
+use IO::File ;
 use System ;
 
 package Filter ;
@@ -50,7 +50,7 @@ sub create
 	}
 
 	System::log_( "creating [$path]" ) ;
-	my $fh = new FileHandle( $path , "w" ) or die ;
+	my $fh = new IO::File( $path , "w" ) or die ;
 	if( ($opt->{os} eq "unix") ? 1 : ( ($opt->{os} =~ m/^win/) ? 0 : System::unix() ) )
 	{
 		print $fh "#!/bin/sh\n" ;

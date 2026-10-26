@@ -17,7 +17,7 @@
 #
 
 use strict ;
-use FileHandle ;
+use IO::File ;
 use NetClient ;
 use System ;
 

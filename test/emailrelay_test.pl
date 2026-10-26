@@ -10,7 +10,8 @@
 # in sequence.
 #
 # usage:
-#   emailrelay_test.pl { list | fixup ... }
+#   emailrelay_test.pl list
+#   emailrelay_test.pl fixup <makefile-in> [<makefile-out> [<variable-name>]]
 #   emailrelay_test.pl [-d <bin-dir>] [-x <testbin-dir>] [-o <openssltool-dir>] [-c <certs-dir>] [-k] [-v] [-t] [-T <config>] [<test-name> ...]
 #      -d  - directory containing emailrelay binary
 #      -x  - directory containing test program binaries
@@ -42,8 +43,8 @@
 use strict ;
 die "emailrelay-test.pl: dont use msys perl" if $^O eq "msys" ;
 use Carp ;
-use FileHandle ;
-use Getopt::Std ;
+use IO::File ;
+use Getopt::Long qw(:config no_ignore_case) ;
 use File::Basename ;
 use File::Copy ;
 use lib File::Basename::dirname($0) ;
@@ -68,26 +69,26 @@ use Filter ;
 $| = 1 ;
 
 # parse the command line
-my %opts = () ;
-getopts( 'd:o:x:c:CkvqstT:VO:u:' , \%opts ) or die ;
-my $opt_bin_dir = $opts{d} || "../src/main" ;
-my $opt_test_bin_dir = $opts{x} || "." ;
-my $opt_certs_dir = $opts{c} || "certificates" ;
-my $opt_keep_going = exists $opts{k} ;
-my $opt_quiet = exists $opts{q} ;
-my $opt_test_account = $opts{u} ;
-$Openssl::openssl = Openssl::search( $opts{o} , System::windows() ) ;
+my %opt = () ;
+GetOptions( \%opt , qw(d=s o=s x=s c=s C k v+ q s t T=s V O=s u=s) ) or die ;
+my $opt_bin_dir = $opt{d} || "../src/main" ;
+my $opt_test_bin_dir = $opt{x} || "." ;
+my $opt_certs_dir = $opt{c} || "certificates" ;
+my $opt_keep_going = exists $opt{k} ;
+my $opt_quiet = exists $opt{q} ;
+my $opt_test_account = $opt{u} ;
+$Openssl::openssl = Openssl::search( $opt{o} , System::windows() ) ;
 $OpensslRun::openssl = $Openssl::openssl ;
-$OpensslRun::client_options = exists $opts{O} ? $opts{O} : undef ;
-$OpensslRun::server_options = exists $opts{O} ? $opts{O} : undef ;
+$OpensslRun::client_options = exists $opt{O} ? $opt{O} : undef ;
+$OpensslRun::server_options = exists $opt{O} ? $opt{O} : undef ;
 $OpensslRun::log_run_fn = sub { System::log_("running [$_[0]] ($_[1])") } ;
 $System::bin_dir = $opt_bin_dir ;
 $System::localhost = "127.0.0.1" ; # in case localhost resolves to ipv6 first
-$System::verbose = 1 if exists $opts{v} ;
-$System::keep = 1 if exists $opts{t} ;
-$Server::keep_spool = 1 if exists $opts{s} ;
-$Server::tls_config = exists $opts{T} ? $opts{T} : "" ;
-$Server::with_valgrind = $opts{V} if exists $opts{V} ;
+$System::verbose = 1 if exists $opt{v} ;
+$System::keep = 1 if exists $opt{t} ;
+$Server::keep_spool = 1 if exists $opt{s} ;
+$Server::tls_config = exists $opt{T} ? $opt{T} : "" ;
+$Server::with_valgrind = $opt{V} if exists $opt{V} ;
 $Server::bin_dir = $opt_bin_dir ;
 $Helper::bin_dir = $opt_test_bin_dir ;
 $TestServer::bin_dir = $opt_test_bin_dir ;
@@ -97,7 +98,7 @@ $OpensslFileStore::log_cat_fn = sub { System::log_("creating [$_[0]]") } ;
 $OpensslFileStore::unlink_fn = sub { System::unlink($_[0]) } ;
 $OpensslFileStore::outpath_fn = sub { System::tempfile($_[1]) } ;
 $OpensslFileStore::inpath_fn = sub { $opt_certs_dir?"$opt_certs_dir/$_[1]":$_[1] } ;
-createCerts() if exists($opts{C}) ;
+createCerts() if exists($opt{C}) ;
 
 my $run_all_ok = 1 ;
 
@@ -246,7 +247,7 @@ sub _testServerStartsAndStops
 	my $sudo_prefix = $as_root ? System::sudoPrefix() : "" ;
 
 	# test that the server starts up
-	(new FileHandle($server->log(),"w"))->close() if $as_root ; # (log file permissions)
+	(new IO::File($server->log(),"w"))->close() if $as_root ; # (log file permissions)
 	Check::ok( $server->run(\%args,$sudo_prefix) , "failed to run" , $server->message() ) ;
 	Check::that( $server->rc() == 0 , "immediate error" ) ;
 	Check::fileExists( $server->stdout() ) ;
@@ -332,7 +333,7 @@ sub testPasswd
 {
 	# test that the password utility works
 	my $exe = System::sanepath( System::exe( $opt_bin_dir , "emailrelay-passwd" ) ) ;
-	my $fh = new FileHandle( "echo foobar | $exe |" ) ;
+	my $fh = new IO::File( "echo foobar | $exe |" ) ;
 	my $result = <$fh> ;
 	chomp $result ;
 	my $base64 = "3pIN0aPbd5aN0S4ogKA3w2P3P9XH0hXchLP1W+adpQE=" ;
@@ -344,7 +345,7 @@ sub testPasswdDotted
 {
 	# test that the password utility works in backwards-compatibility mode
 	my $exe = System::sanepath( System::exe( $opt_bin_dir , "emailrelay-passwd" ) ) ;
-	my $fh = new FileHandle( "echo foobar | $exe --dotted |" ) ;
+	my $fh = new IO::File( "echo foobar | $exe --dotted |" ) ;
 	my $result = <$fh> ;
 	chomp $result ;
 	my $dotted = "3507327710.2524437411.674156941.3275202688.3577739107.3692417735.1542828932.27631078" ;
@@ -1816,6 +1817,7 @@ sub testPollRun
 	System::unlink( $outputfile ) ;
 	$server->kill() ;
 	$server->cleanup() ;
+	System::unlink( $server->pollRun() ) ;
 }
 
 sub testPollRunRetry
@@ -1833,7 +1835,7 @@ sub testPollRunRetry
 		PollRun => 1 ,
 	) ;
 	my $server = new Server() ;
-	$server->set_pollRun( "retry:x;1;verbose" ) ; # retry if failed only once
+	$server->set_pollRun( "retry:x;1;v+1" ) ; # retry if failed only once
 	$server->set_pollTimeout( "10ms,100s" ) ;
 	System::submitMessageSequence( $server->spoolDir() , 3 , 10 , "alice\@example.com" ) ;
 	my $epath1 = $server->spoolDir() . "/emailrelay.001.envelope" ;
@@ -2084,6 +2086,8 @@ sub testDelivery
 	# tear down
 	$smtp_client->close() ;
 	$server->kill() ;
+	System::deleteSpoolDir( $server->spoolDir()."/alice" ) ;
+	System::deleteSpoolDir( $server->spoolDir()."/bob" ) ;
 	$verifier->kill() ;
 	$verifier->cleanup() ;
 	$server->cleanup() ;
@@ -2882,7 +2886,7 @@ sub _testTlsServer
 	# test -- run openssl s_client
 	my $client_log = System::tempfile( "sclient" ) ;
 	OpensslRun::runClient( $System::localhost.":".$emailrelay->smtpPort() , $client_log , $client_cert , $client_ca ,
-		sub { System::sleep_cs(200) ; $admin_client->doTerminate() } ) ;
+		sub { System::sleep_cs(20) ; $admin_client->doTerminate() } ) ;
 	if( $expect_failure )
 	{
 		System::waitForFileLine( $server_log , "tls error" ) ;
@@ -2999,7 +3003,7 @@ sub _testTlsClient
 		AdminTerminate => 1 ,
 		ForwardTo => 1 ,
 		NoSmtp => 1 ,
-		Poll => 1 , # because the emailrelay client has to start before the s_server
+		Poll => 1 , # allow s_server time to start
 		TlsConfig => 1 ,
 	) ;
 	requireAdmin() ;
@@ -3016,6 +3020,7 @@ sub _testTlsClient
 		tls_certificates => $client_cert ,
 		tls_verify => $client_ca ,
 		tls_verify_name => $client_verify_name } ) ;
+	$emailrelay->set_pollTimeout( "500ms" ) ; # (new)
 	$emailrelay->set_forwardToPort( $server_port ) ;
 	my $admin_client = new AdminClient( $emailrelay->adminPort() ) ;
 	Check::ok( $emailrelay->run( \%args ) , "failed to start" , $emailrelay->message() ) ;
@@ -3025,7 +3030,7 @@ sub _testTlsClient
 	# test -- run openssl s_server
 	my $server_log = System::tempfile( "sserver" ) ;
 	OpensslRun::runServer( $server_port , $server_log , $server_cert , $server_ca ,
-		sub { my ($pid) = @_ ; System::sleep_cs(200) ; $admin_client->doTerminate() ; System::sleep_cs(50) ; System::killOnce($pid) } ,
+		sub { my ($pid) = @_ ; System::sleep_cs(20) ; $admin_client->doTerminate() ; System::sleep_cs(50) ; System::killOnce($pid) } ,
 		System::windows() ) ;
 	if( $expect_failure )
 	{
@@ -3312,7 +3317,7 @@ sub run
 
 # introspection
 my @tests = () ;
-my $f = new FileHandle( $0 ) ;
+my $f = new IO::File( $0 ) ;
 while( <$f> )
 {
 	my $line = $_ ; chomp $line ;
@@ -3330,21 +3335,37 @@ if( scalar(@ARGV) == 1 && $ARGV[0] eq "list" )
 	print join("\n",(@tests,"")) ;
 	exit 0 ;
 }
-if( scalar(@ARGV) == 4 && $ARGV[0] eq "fixup" )
+if( $ARGV[0] eq "fixup" )
 {
 	# "fixup" to edit the makefile
 	# eg: emailrelay_test.pl fixup Makefile.am.in Makefile.am TESTING_TESTS
-	my ( $fixup , $makefile_in , $makefile_out , $marker ) = @ARGV ;
-	my $value = join(".test \\\n\t",@tests) . ".test" ;
-	my $fh_in = new FileHandle( $makefile_in , "r" ) or die "error: cannot open [$makefile_in]\n" ;
-	my $fh_out = new FileHandle( $makefile_out , "w" ) or die "error: cannot create [$makefile_out]\n" ;
+	my ( $fixup , $makefile_in , $makefile_out , $variable ) = @ARGV ;
+	$makefile_out ||= $makefile_in ;
+	$variable ||= "test_names" ;
+	my $fh_in = new IO::File( $makefile_in , "r" ) or die "error: cannot open [$makefile_in]\n" ;
+	my $fh_out = new IO::File( "$makefile_out.tmp" , "w" ) or die "error: cannot create [$makefile_out.tmp]\n" ;
+	my $discard = 0 ;
 	while(<$fh_in>)
 	{
 		chomp( my $line = $_ ) ;
-		$line =~ s/$marker/$value/ ;
-		print $fh_out $line , "\n" or die ;
+		if( $line =~ m/^$variable[ =]/ )
+		{
+			$discard = 1 ;
+			my $new_lines = join(".test \\\n\t",@tests) . ".test" ;
+			print $fh_out "$variable = \\\n\t" , $new_lines , "\n" ;
+		}
+		if( $discard )
+		{
+			$discard = 0 if $line !~ m/\\$/
+		}
+		else
+		{
+			print $fh_out $line , "\n" or die ;
+		}
 	}
+	$fh_in->close() ;
 	$fh_out->close() or die ;
+	rename( "$makefile_out.tmp" , $makefile_out ) or die "error: cannot create [$makefile_out]\n" ;
 	exit 0 ;
 }
 
@@ -3369,6 +3390,7 @@ for my $arg ( @ARGV )
 
 # run the tests
 my $run_all_skipped = 1 ;
+System::snapshot() ;
 for my $test ( @tests )
 {
 	if( ( $run_tests && !exists $run_tests{$test} ) || $skip_tests{$test} )
@@ -3382,6 +3404,7 @@ for my $test ( @tests )
 		last if $result == 1 ;
 	}
 }
+System::dump("\nTemporary files ...\n") if $opt{v} ;
 
 # analyse the results and clean up
 if( $run_all_skipped )

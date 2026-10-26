@@ -32,7 +32,7 @@
 #
 
 use strict ;
-use FileHandle ;
+use IO::File ;
 use File::Basename ;
 use Carp ;
 
@@ -150,10 +150,10 @@ sub _joinpath
 sub _cat
 {
 	my ( $path_out , @paths_in ) = @_ ;
-	my $fh_out = new FileHandle( "$path_out" , "w" ) or die ;
+	my $fh_out = new IO::File( "$path_out" , "w" ) or die ;
 	for my $path_in ( @paths_in )
 	{
-		my $fh_in = new FileHandle( $path_in , "r" ) or die ;
+		my $fh_in = new IO::File( $path_in , "r" ) or die ;
 		while(<$fh_in>)
 		{
 			my $line = $_ ;

@@ -10,7 +10,7 @@
 
 use strict ;
 use Carp ;
-use FileHandle ;
+use IO::File ;
 
 package Check ;
 
@@ -152,7 +152,7 @@ sub processEffectiveGroup
 sub _fileLineCount
 {
 	my ( $path , $string ) = @_ ;
-	my $fh = new FileHandle( $path ) ;
+	my $fh = new IO::File( $path ) ;
 	my $n = 0 ;
 	while(<$fh>)
 	{
@@ -200,7 +200,7 @@ sub noFileContains
 sub fileContains
 {
 	my ( $path , $re , $more , $count ) = @_ ;
-	my $fh = new FileHandle( $path ) ;
+	my $fh = new IO::File( $path ) ;
 	my $n = 0 ;
 	while(<$fh>)
 	{
@@ -215,7 +215,7 @@ sub fileContains
 sub fileContainsEither
 {
 	my ( $path , $re1 , $re2 , $more ) = @_ ;
-	my $fh = new FileHandle( $path ) ;
+	my $fh = new IO::File( $path ) ;
 	my $n = 0 ;
 	while(<$fh>)
 	{
@@ -232,7 +232,7 @@ sub fileDoesNotContain
 	my ( $path , $re_or_list , $more ) = @_ ;
 	die if !defined($re_or_list) ;
 	my @re_list = ref($re_or_list) eq "ARRAY" ? @$re_or_list : ($re_or_list) ;
-	my $fh = new FileHandle( $path ) ;
+	my $fh = new IO::File( $path ) ;
 	my $n = 0 ;
 	while(<$fh>)
 	{

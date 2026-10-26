@@ -98,6 +98,7 @@ test_names = \
 	testNetworkVerifierPass.test \
 	testNetworkVerifierFail.test \
 	testPollRun.test \
+	testPollRunRetry.test \
 	testProxyConnectsOnce.test \
 	testProxyServerRejection.test \
 	testProxyClientFilterFails.test \
@@ -268,4 +269,8 @@ endif
 $(test_names):
 	-@chmod +x $(top_srcdir)/test/emailrelay_test.sh || true
 	@touch $(test_names)
+
+.PHONY: run_tests
+run_tests: programs
+	perl -I $(top_srcdir)/test $(top_srcdir)/test/emailrelay_test.pl -c $(top_srcdir)/test/certificates -v -v
 

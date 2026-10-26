@@ -27,7 +27,7 @@ then
 fi
 
 # test for perl
-perl -e "use Carp; use FileHandle; use Getopt::Std; use IO::Socket; use IO::Select; use lib \".\" ; exit(99);" 2>/dev/null
+perl -e "use Carp; use IO::File; use Getopt::Long; use IO::Socket; use IO::Socket::INET; use IO::Select; use lib \".\" ; exit(99);" 2>/dev/null
 rc=$?
 if test $rc -ne 99
 then
@@ -57,13 +57,7 @@ then
 fi
 
 # run the emailrelay_test.pl tests
-if sh -c "true </dev/tty" 2>/dev/null
-then
-	# redirect stdin because "make -j" and "openssl s_server"
-	perl -I"${srcdir}" "$perl_script" "$@" </dev/tty
-else
-	perl -I"${srcdir}" "$perl_script" "$@"
-fi
+perl -I"${srcdir}" "$perl_script" "$@"
 rc=$?
 
 if test "$quiet" -eq 1 -o "$rc" -eq 77 ; then : ; else
