@@ -23,7 +23,7 @@ jobs:
         run: |
           ./autogen.sh
           ./configure
-          make distcheck
+          make dist
           for f in *.tar.gz; do
             mv "$f" "${f%.tar.gz}-src.tar.gz"
           done
@@ -45,7 +45,7 @@ jobs:
         run: |
           ./autogen.sh
           ./configure
-      - name: check
+      - name: run_tests
         run: |
           make -j
           make -C test run_tests

@@ -176,7 +176,7 @@ sub _run
 	else
 	{
 		pipe( $read , $write ) ;
-		my $pid = open( $fh , "-|" ) ;
+		$pid = open( $fh , "-|" ) ;
 		die if !defined $pid ;
 		if( $pid == 0 )
 		{
@@ -221,7 +221,7 @@ sub _run
 		}
 	}
 	$fh_log->close() ;
-	&$on_completion($pid) if defined($on_completion) ;
+	&$on_completion($pid,$fh) if defined($on_completion) ;
 	$read->close() if $read ;
 	$write->close() if $write ;
 	close($fh) ; # may block until the peer goes away

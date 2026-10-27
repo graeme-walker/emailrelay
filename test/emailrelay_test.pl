@@ -77,6 +77,7 @@ my $opt_certs_dir = $opt{c} || "certificates" ;
 my $opt_keep_going = exists $opt{k} ;
 my $opt_quiet = exists $opt{q} ;
 my $opt_test_account = $opt{u} ;
+my $opt_debug_this = $opt{v} >= 2 ;
 $Openssl::openssl = Openssl::search( $opt{o} , System::windows() ) ;
 $OpensslRun::openssl = $Openssl::openssl ;
 $OpensslRun::client_options = exists $opt{O} ? $opt{O} : undef ;
@@ -3030,8 +3031,15 @@ sub _testTlsClient
 	# test -- run openssl s_server
 	my $server_log = System::tempfile( "sserver" ) ;
 	OpensslRun::runServer( $server_port , $server_log , $server_cert , $server_ca ,
-		sub { my ($pid) = @_ ; System::sleep_cs(20) ; $admin_client->doTerminate() ; System::sleep_cs(50) ; System::killOnce($pid) } ,
-		System::windows() ) ;
+		sub {
+			my ($pid,$fh) = @_ ;
+			System::sleep_cs(20) ;
+			$admin_client->doTerminate() ;
+			System::sleep_cs(50) ;
+			System::killOnce( $pid ) ;
+			close( $fh ) ;
+		} ,
+		System::windows() , $opt_debug_this ) ;
 	if( $expect_failure )
 	{
 		Check::fileDoesNotContain( $client_log , "tls.*established" ) ;
