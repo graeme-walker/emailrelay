@@ -174,11 +174,17 @@ jobs:
 
   winxp:
     runs-on: ubuntu-latest
+    container:
+      image: debian:trixie-slim
     steps:
       - name: checkout
         uses: actions/checkout@v7
       - name: install-tools
-        run: "sudo apt-get install -y autoconf automake libtool g++-mingw-w64-i686-posix zip"
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential cmake autoconf automake g++-mingw-w64-i686-posix \
+            curl ca-certificates bzip2 zip python3
       - name: configure
         run: |
           ./autogen.sh
@@ -202,7 +208,7 @@ jobs:
       - name: upload
         uses: actions/upload-artifact@v4
         with:
-          name: source-tarball
+          name: winxp32
           path: "emailrelay-*-winxp32.zip"
           if-no-files-found: error
 
