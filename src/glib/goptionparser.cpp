@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file goptionparser.cpp
 ///
@@ -29,14 +17,12 @@
 #include <stdexcept>
 #include <utility>
 
-#ifndef G_LIB_SMALL
 G::OptionParser::OptionParser( const Options & spec , OptionMap & values_out , StringArray & errors_out ) :
 	m_spec(spec) ,
 	m_map(values_out) ,
 	m_errors(&errors_out)
 {
 }
-#endif
 
 G::OptionParser::OptionParser( const Options & spec , OptionMap & values_out , StringArray * errors_out ) :
 	m_spec(spec) ,
@@ -260,12 +246,10 @@ void G::OptionParser::errorDuplicate( const std::string & name )
 	error( str( format(txt("duplicate use of %1%")) % ("\"--"+name+"\"") ) ) ;
 }
 
-#ifndef G_LIB_SMALL
 void G::OptionParser::errorExtraValue( char c , const std::string & )
 {
 	error( str( format(txt("cannot give a value with %1%")) % ("\"-"+std::string(1U,c)+"\"") ) ) ;
 }
-#endif
 
 void G::OptionParser::errorExtraValue( const std::string & name , const std::string & value )
 {

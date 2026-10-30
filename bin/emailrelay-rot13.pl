@@ -1,12 +1,6 @@
-#!/usr/bin/env perl
 #
-# Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-# 
-# Copying and distribution of this file, with or without modification,
-# are permitted in any medium without royalty provided the copyright
-# notice and this notice are preserved.  This file is offered as-is,
-# without any warranty.
-# ===
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: FSFAP
 #
 # emailrelay-rot13.pl
 #

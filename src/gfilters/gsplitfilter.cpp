@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsplitfilter.cpp
 ///
@@ -35,14 +23,20 @@ GFilters::SplitFilter::SplitFilter( GNet::EventState es , GStore::FileStore & st
 	Filter::Type filter_type , const Filter::Config & filter_config , const std::string & spec ) :
 		SimpleFilterBase(es,filter_type,"split:") ,
 		m_store(store) ,
-		m_filter_config(filter_config)
+		m_filter_config(filter_config) ,
+		m_spec(spec)
 {
-	std::string_view spec_sv = spec ;
+	std::string_view spec_sv = m_spec ;
 	for( G::StringTokenView t(spec_sv,";",1U) ; t ; ++t )
 	{
 		if( t() == "raw" ) m_raw = true ; // case-sensitive domain names
 		if( G::Str::isNumeric(t()) ) m_port = G::sv_to_string(t()) ;
 	}
+}
+
+int GFilters::SplitFilter::verbosity() const noexcept
+{
+	return m_filter_config.verbosity ;
 }
 
 GSmtp::Filter::Result GFilters::SplitFilter::run( const GStore::MessageId & message_id ,
@@ -63,7 +57,7 @@ GSmtp::Filter::Result GFilters::SplitFilter::run( const GStore::MessageId & mess
 	domains.erase( std::unique(domains.begin(),domains.end()) , domains.end() ) ;
 	if( domains.empty() )
 	{
-		G_LOG( "GFilters::SplitFilter::start: " << prefix() << ": no remote domains: nothing to do" ) ;
+		G_LOG_MORE_V( verbosity() , "GFilters::SplitFilter::start: " << prefix() << ": no remote domains: nothing to do" ) ;
 		return Result::ok ;
 	}
 
@@ -94,7 +88,7 @@ GSmtp::Filter::Result GFilters::SplitFilter::run( const GStore::MessageId & mess
 		G::Path new_content_path = m_store.contentPath( new_id ) ;
 		G::Path new_envelope_path = m_store.envelopePath( new_id ) ;
 
-		G_LOG( "GFilters::SplitFilter::start: " << prefix() << " creating "
+		G_LOG_V( verbosity() , "GFilters::SplitFilter::start: " << prefix() << " creating "
 			<< "[" << new_id.str() << "]: forward-to=[" << domain << "]" ) ;
 
 		GStore::Envelope new_envelope = envelope ;
@@ -123,7 +117,7 @@ GSmtp::Filter::Result GFilters::SplitFilter::run( const GStore::MessageId & mess
 	}
 
 	// update the original message
-	G_LOG( "GFilters::SplitFilter::start: " << prefix() << " updating "
+	G_LOG_V( verbosity() , "GFilters::SplitFilter::start: " << prefix() << " updating "
 		<< "[" << message_id.str() << "]: forward-to=[" << domains[0] << "]" ) ;
 	G_ASSERT( !domains.empty() ) ;
 	G::StringArray recipients = matching( envelope.to_remote , domains.at(0) ) ;

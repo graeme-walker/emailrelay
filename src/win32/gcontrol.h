@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gcontrol.h
 ///
@@ -71,6 +59,9 @@ public:
 		public: NoRedraw( const NoRedraw & ) = delete ;
 		public: NoRedraw( NoRedraw && ) = delete ;
 	} ;
+
+	static void init() ;
+		///< Sets the DPI awareness at the top of WinMain().
 
 	Control( const Dialog & dialog , int id ) ;
 		///< Constructor. The lifetime of the Control object should not
@@ -176,7 +167,7 @@ public:
 	ListBox( Dialog & dialog , int id ) ;
 		///< Constructor.
 
-	virtual ~ListBox() ;
+	~ListBox() override ;
 		///< Destructor.
 
 	void set( const G::StringArray & list ) ;
@@ -217,7 +208,7 @@ public:
 	ListView( HWND hdialog , int id , HWND hcontrol = HNULL ) ;
 		///< Constructor overload for property sheets.
 
-	virtual ~ListView() ;
+	~ListView() override ;
 		///< Destructor.
 
 	void set( const G::StringArray & list , unsigned int columns = 1U , unsigned int width_px = 0U ) ;
@@ -248,7 +239,7 @@ public:
 	EditBox( Dialog & dialog , int id ) ;
 		///< Constructor.
 
-	virtual ~EditBox() ;
+	~EditBox() override ;
 		///< Destructor.
 
 	void set( const G::StringArray & list ) ;
@@ -306,7 +297,7 @@ private:
 	unsigned characterHeight() ; // not const
 
 private:
-	unsigned m_character_height ;
+	unsigned int m_character_height {0U} ;
 } ;
 
 //| \class GGui::CheckBox
@@ -318,7 +309,7 @@ public:
 	CheckBox( Dialog & dialog , int id ) ;
 		///< Constructor.
 
-	virtual ~CheckBox() ;
+	~CheckBox() override ;
 		///< Destructor.
 
 	bool get() const ;
@@ -343,7 +334,7 @@ public:
 	Button( Dialog & dialog , int id ) ;
 		///< Constructor.
 
-	virtual ~Button() ;
+	~Button() override ;
 		///< Destructor.
 
 	bool enabled() const ;

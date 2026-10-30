@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gfiledelivery.cpp
 ///
@@ -49,7 +37,7 @@ bool GStore::FileDelivery::deliver( const MessageId & message_id , bool is_new )
 	{
 		if( m_store.directory() != m_store.deliveryDir() )
 		{
-			G_LOG( "GStore::FileDelivery::deliver: delivery: delivering " << message_id.str() << " to "
+			G_LOG_G( store , "GStore::FileDelivery::deliver: delivery: delivering " << message_id.str() << " to "
 				"[" << m_store.deliveryDir() << "/<mbox>]" ) ;
 		}
 
@@ -77,13 +65,13 @@ bool GStore::FileDelivery::deliverToMailboxes( const G::Path & delivery_dir , co
 		G::Path mbox_dir = delivery_dir/mailbox ;
 		if( !FileOp::isdir(mbox_dir) )
 		{
-			G_LOG( "GStore::FileDelivery::deliverToMailboxes: delivery: creating mailbox [" << mailbox << "]" ) ;
+			G_LOG_G( store , "GStore::FileDelivery::deliverToMailboxes: delivery: creating mailbox [" << mailbox << "]" ) ;
 			if( !FileOp::mkdir( mbox_dir ) )
 				throw MkdirError( mbox_dir.str() , G::Process::strerror(FileOp::errno_()) ) ;
 		}
 
 		// copy files
-		deliverTo( m_store , "deliver" , mbox_dir , envelope_path , content_path , m_config.hardlink ) ;
+		deliverTo( m_store , "deliver" , mbox_dir , envelope_path , content_path , m_config ) ;
 	}
 
 	// delete the original files if no remote recipients
@@ -101,23 +89,29 @@ bool GStore::FileDelivery::deliverToMailboxes( const G::Path & delivery_dir , co
 
 void GStore::FileDelivery::deliverTo( FileStore & /*store*/ , std::string_view prefix ,
 	const G::Path & dst_dir , const G::Path & envelope_path , const G::Path & content_path ,
-	bool hardlink , bool pop_by_name )
+	const Config & config )
 {
 	if( FileOp::isdir( dst_dir/"tmp" , dst_dir/"cur" , dst_dir/"new" ) )
 	{
-		// copy content to maildir's "new" sub-directory via "tmp"
 		static int seq {} ;
 		std::ostringstream ss ;
 		ss << G::SystemTime::now() << "." << G::Process::Id().str() << "." << hostname() << "." << seq++ ;
-		G::Path tmp_content_path = dst_dir/"tmp"/ss.str() ;
-		G::Path new_content_path = dst_dir/"new"/ss.str() ;
-		if( !FileOp::copy( content_path , tmp_content_path , hardlink ) )
+		std::string filename = ss.str() ;
+
+		G::Path tmp_content_path = dst_dir/"tmp"/filename ;
+		if( !FileOp::copy( content_path , tmp_content_path ) )
 			throw MaildirCopyError( prefix , tmp_content_path.str() , G::Process::strerror(FileOp::errno_()) ) ;
+
+		if( !config.simple )
+			FileOp::chown( tmp_content_path ) ; // match file ownership to the directory
+
+		G::Path new_content_path = dst_dir/"new"/filename ;
 		if( !FileOp::rename( tmp_content_path , new_content_path ) )
 			throw MaildirMoveError( prefix , new_content_path.str() , G::Process::strerror(FileOp::errno_()) ) ;
+
 		G_DEBUG( "GStore::FileDelivery::deliverTo: delivery: delivered " << id(envelope_path) << " as maildir " << ss.str() ) ;
 	}
-	else if( pop_by_name )
+	else if( config.pop_by_name )
 	{
 		// envelope only
 		std::string new_filename = content_path.withoutExtension().basename() ;
@@ -133,7 +127,7 @@ void GStore::FileDelivery::deliverTo( FileStore & /*store*/ , std::string_view p
 		G::ScopeExit clean_up_content( [new_content_path](){FileOp::remove(new_content_path);} ) ;
 
 		// copy or link the content -- maybe edit to add "Delivered-To" etc?
-		bool ok = FileOp::copy( content_path , new_content_path , hardlink ) ;
+		bool ok = FileOp::copy( content_path , new_content_path , config.hardlink ) ;
 		if( !ok )
 			throw ContentWriteError( prefix , new_content_path.str() , G::Process::strerror(FileOp::errno_()) ) ;
 
@@ -167,7 +161,7 @@ std::string GStore::FileDelivery::mailbox( const Config & , const std::string & 
 	//
 	const std::string & mailbox = recipient ;
 
-	G_LOG( "GStore::FileDelivery::mailbox: delivery: recipient [" << recipient << "]: delivery to mailbox [" << mailbox << "]" ) ;
+	G_LOG_G( store , "GStore::FileDelivery::mailbox: delivery: recipient [" << recipient << "]: delivery to mailbox [" << mailbox << "]" ) ;
 	return mailbox ;
 }
 

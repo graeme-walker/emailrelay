@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gserverpeer.h
 ///
@@ -27,6 +15,7 @@
 #include "gexception.h"
 #include "gaddress.h"
 #include "glinebuffer.h"
+#include "gdatetime.h"
 #include "gtimer.h"
 #include "gconnection.h"
 #include "geventlogging.h"
@@ -63,13 +52,14 @@ public:
 	struct Config /// A configuration structure for GNet::ServerPeer.
 	{
 		SocketProtocol::Config socket_protocol_config ;
-		unsigned int idle_timeout {0U} ;
+		G::TimeInterval idle_timeout {0U} ;
 		bool kick_idle_timer_on_send {false} ; // idle timeout when nothing received (false) or sent-or-received (true)
 		bool no_throw_on_peer_disconnect {false} ; // see SocketProtocolSink::onPeerDisconnect()
 		bool log_address {false} ;
 		bool log_port {false} ;
 		Config & set_socket_protocol_config( const SocketProtocol::Config & ) ;
 		Config & set_idle_timeout( unsigned int ) noexcept ;
+		Config & set_idle_timeout( G::TimeInterval ) noexcept ;
 		Config & set_kick_idle_timer_on_send( bool = true ) noexcept ;
 		Config & set_no_throw_on_peer_disconnect( bool = true ) noexcept ;
 		Config & set_all_timeouts( unsigned int ) noexcept ;
@@ -120,7 +110,7 @@ public:
 		///< Returns information about the state of the internal
 		///< line-buffer.
 
-	void setIdleTimeout( unsigned int seconds ) ;
+	void setIdleTimeout( unsigned int s ) ;
 		///< Sets the idle timeout.
 
 	void doOnDelete( const std::string & reason , bool done ) ;
@@ -212,12 +202,15 @@ private:
 	std::string m_event_logging_string ;
 } ;
 
-inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_idle_timeout( unsigned int t ) noexcept { idle_timeout = t ; return *this ; }
+// clang-format off
+inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_idle_timeout( unsigned int t ) noexcept { idle_timeout = G::TimeInterval(t) ; return *this ; }
+inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_idle_timeout( G::TimeInterval i ) noexcept { idle_timeout = i ; return *this ; }
 inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_kick_idle_timer_on_send( bool b ) noexcept { kick_idle_timer_on_send = b ; return *this ; }
-inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_all_timeouts( unsigned int t ) noexcept { idle_timeout = t ; socket_protocol_config.secure_connection_timeout = t ; return *this ; }
+inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_all_timeouts( unsigned int t ) noexcept { idle_timeout = G::TimeInterval(t) ; socket_protocol_config.secure_connection_timeout = G::TimeInterval(t) ; return *this ; }
 inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_socket_protocol_config( const SocketProtocol::Config & config ) { socket_protocol_config = config ; return *this ; }
 inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_no_throw_on_peer_disconnect( bool b ) noexcept { no_throw_on_peer_disconnect = b ; return *this ; }
 inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_log_address( bool b ) noexcept { log_address = b ; return *this ; }
 inline GNet::ServerPeer::Config & GNet::ServerPeer::Config::set_log_port( bool b ) noexcept { log_port = b ; return *this ; }
+// clang-format on
 
 #endif

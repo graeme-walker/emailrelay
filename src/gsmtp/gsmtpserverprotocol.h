@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsmtpserverprotocol.h
 ///
@@ -79,7 +67,7 @@ namespace GSmtp
 class GSmtp::ServerProtocol : private GSmtp::ServerParser , private GSmtp::ServerSend
 {
 public:
-	G_EXCEPTION_CLASS( Done , tx("smtp protocol done") )
+	G_EXCEPTION_CLASS( ProtocolDone , tx("smtp protocol done") )
 	G_EXCEPTION( Busy , tx("smtp protocol busy") )
 	using ApplyArgsTuple = std::tuple<const char *,std::size_t,std::size_t,std::size_t,char,bool> ; // see GNet::LineBuffer
 
@@ -193,7 +181,7 @@ public:
 		///< caller should stop apply()ing any more data until the
 		///< next ServerSender::protocolSend() callback.
 		///<
-		///< Throws Done at the end of the protocol.
+		///< Throws ProtocolDone at the end of the protocol.
 		///<
 		///< To allow for RFC-2920 PIPELINING the 'more' field
 		///< should be set if there is another line that is ready to
@@ -379,6 +367,7 @@ private:
 	bool m_enabled ;
 } ;
 
+// clang-format off
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_with_vrfy( bool b ) noexcept { with_vrfy = b ; return *this ; }
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_with_chunking( bool b ) noexcept { with_chunking = b ; return *this ; }
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_max_size( std::size_t n ) noexcept { max_size = n ; return *this ; }
@@ -394,5 +383,6 @@ inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_client
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_smtputf8_strict( bool b ) noexcept { smtputf8_strict = b ; return *this ; }
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_sasl_server_config( const std::string & s ) { sasl_server_config = s ; return *this ; }
 inline GSmtp::ServerProtocol::Config & GSmtp::ServerProtocol::Config::set_sasl_server_challenge_hostname( const std::string & s ) { sasl_server_challenge_hostname = s ; return *this ; }
+// clang-format on
 
 #endif

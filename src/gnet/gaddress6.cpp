@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gaddress6.cpp
 ///
@@ -56,7 +44,7 @@ int GNet::Address6::domain() noexcept
 GNet::Address6::Address6( std::nullptr_t ) :
 	m_inet{}
 {
-	m_inet.sin6_family = af() ;
+	m_inet.sin6_family = af() ; // NOLINT(*-narrowing-conversions)
 	m_inet.sin6_port = 0 ;
 	m_inet.sin6_flowinfo = 0 ;
 	gdef_address6_init( m_inet ) ; // gdef.h
@@ -118,6 +106,9 @@ GNet::Address6::Address6( std::string_view display_string ) :
 
 const char * GNet::Address6::setAddress( sockaddr_type & inet , std::string_view display_string )
 {
+	if( display_string.empty() )
+		return "empty string" ;
+
 	const std::string::size_type pos = display_string.find_last_of( Address6Imp::port_separators ) ;
 	if( pos == std::string::npos )
 		return "no port separator" ;
@@ -133,6 +124,9 @@ const char * GNet::Address6::setAddress( sockaddr_type & inet , std::string_view
 
 const char * GNet::Address6::setHostAddress( sockaddr_type & inet , std::string_view host_part )
 {
+	if( host_part.empty() )
+		return "empty string" ;
+
 	// wikipedia: "because all link-local addresses in a host have a common prefix, normal routing
 	// procedures cannot be used to choose the outgoing interface when sending packets
 	// to a link-local destination -- a special identifier, known as a zone index, is needed
@@ -266,14 +260,12 @@ bool GNet::Address6::validStrings( std::string_view host_part , std::string_view
 	return reason == nullptr ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::Address6::validPort( unsigned int port )
 {
 	sockaddr_type inet {} ;
 	const char * reason = setPort( inet , port ) ;
 	return reason == nullptr ;
 }
-#endif
 
 bool GNet::Address6::same( const Address6 & other , bool with_scope ) const
 {
@@ -314,14 +306,12 @@ unsigned long GNet::Address6::scopeId( unsigned long /*default*/ ) const
 	return m_inet.sin6_scope_id ;
 }
 
-#ifndef G_LIB_SMALL
 const sockaddr * GNet::Address6::address() const
 {
 	// core guidelines: C.183
 	// type-punning allowed by "common initial sequence" rule
 	return reinterpret_cast<const sockaddr*>( &m_inet ) ;
 }
-#endif
 
 sockaddr * GNet::Address6::address()
 {

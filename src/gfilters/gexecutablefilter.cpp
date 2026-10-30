@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gexecutablefilter.cpp
 ///
@@ -32,23 +20,25 @@
 GFilters::ExecutableFilter::ExecutableFilter( GNet::EventState es ,
 	GStore::FileStore & file_store , Filter::Type filter_type ,
 	const Filter::Config & filter_config ,
-	const std::string & path ) :
+	const std::string & spec ) :
 		m_file_store(file_store) ,
 		m_filter_type(filter_type) ,
 		m_exit(0,filter_type) ,
-		m_path(path) ,
-		m_timeout(filter_config.timeout) ,
+		m_path(spec) ,
+		m_filter_config(filter_config) ,
 		m_timer(*this,&ExecutableFilter::onTimeout,es) ,
-		m_task(*this,es,"<<filter exec error: __strerror__>>",G::Root::nobody())
+		m_task(*this,es,GNet::Task::Config()
+			.set_exec_error_format("<<exec error: __strerror__>>")
+			.set_identity(G::Root::nobody()))
 {
 }
 
 GFilters::ExecutableFilter::~ExecutableFilter()
 = default;
 
-bool GFilters::ExecutableFilter::quiet() const
+int GFilters::ExecutableFilter::verbosity() const noexcept
 {
-	return false ;
+	return m_filter_config.verbosity ;
 }
 
 std::string GFilters::ExecutableFilter::id() const
@@ -100,16 +90,16 @@ void GFilters::ExecutableFilter::start( const GStore::MessageId & message_id )
 	args.push_back( cpath.str() ) ;
 	args.push_back( epath.str() ) ;
 	G::ExecutableCommand commandline( m_path.str() , args ) ;
-	G_LOG( "GFilters::ExecutableFilter::start: " << prefix() << ": [" << message_id.str() << "]: running " << m_path ) ;
+	G_LOG_V( verbosity() , "GFilters::ExecutableFilter::start: " << prefix() << ": [" << message_id.str() << "]: running " << m_path ) ;
 	m_task.start( commandline ) ;
 
-	if( m_timeout )
-		m_timer.startTimer( m_timeout ) ;
+	if( m_filter_config.timeout )
+		m_timer.startTimer( m_filter_config.timeout ) ;
 }
 
 void GFilters::ExecutableFilter::onTimeout()
 {
-	G_WARNING( "GFilters::ExecutableFilter::onTimeout: " << prefix() << " timed out after " << m_timeout << "s" ) ;
+	G_WARNING( "GFilters::ExecutableFilter::onTimeout: " << prefix() << " timed out after " << m_filter_config.timeout.s() << "s" ) ;
 	m_task.stop() ;
 	m_exit = Exit( 1 , m_filter_type ) ;
 	G_ASSERT( m_exit.fail() ) ;
@@ -121,11 +111,14 @@ void GFilters::ExecutableFilter::onTimeout()
 
 void GFilters::ExecutableFilter::onTaskDone( int exit_code , const std::string & output )
 {
+	G_LOG_MORE_V( verbosity() , "GFilters::ExecutableFilter::onTaskDone: filter [" << m_task.name() << "]: "
+		"exit=" << exit_code << " output=[" << G::Str::printable(output) << "]" ) ;
+
 	m_timer.cancelTimer() ;
 
 	// search the output for diagnostics
 	std::tie(m_response,m_response_code,m_reason) = parseOutput( output , "rejected" ) ;
-	if( m_response.find("filter exec error:") == 0U ) // see ctor
+	if( exit_code == 127 && G::Str::headMatch(output,"<<exec error:") ) // see ctor
 	{
 		m_reason = m_response ; // first
 		m_response = "rejected" ; // second
@@ -135,8 +128,8 @@ void GFilters::ExecutableFilter::onTaskDone( int exit_code , const std::string &
 	m_exit = Exit( exit_code , m_filter_type ) ;
 	if( !m_exit.ok() )
 	{
-		G_WARNING( "GFilters::ExecutableFilter::onTaskDone: " << prefix() << " failed: "
-			<< "exit code " << exit_code << ": [" << m_response << "]"
+		G_WARNING( "GFilters::ExecutableFilter::onTaskDone: " << prefix() << ": failed: "
+			<< "exit=" << exit_code << ": [" << m_response << "]"
 			<< (m_response_code?("("+G::Str::fromInt(m_response_code)+")"):"") ) ;
 	}
 

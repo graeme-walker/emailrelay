@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gnewprocess.h
 ///
@@ -265,8 +253,8 @@ public:
 private:
 	std::vector<char> m_buffer ;
 	std::size_t m_data_size {0U} ;
-	HANDLE m_hprocess {0} ;
-	HANDLE m_hpipe {0} ;
+	HANDLE m_hprocess {HNULL} ;
+	HANDLE m_hpipe {HNULL} ;
 	pid_t m_pid {0} ;
 	int m_fd {-1} ;
 	int m_rc {0} ;
@@ -276,6 +264,7 @@ private:
 	bool m_test_mode {false} ;
 } ;
 
+// clang-format off
 inline G::NewProcess::Config & G::NewProcess::Config::set_env( const Environment & e ) { env = e ; return *this ; }
 inline G::NewProcess::Config & G::NewProcess::Config::set_stdin( Fd fd ) noexcept { stdin = fd ; return *this ; }
 inline G::NewProcess::Config & G::NewProcess::Config::set_stdout( Fd fd ) noexcept { stdout = fd ; return *this ; }
@@ -289,5 +278,6 @@ inline G::NewProcess::Config & G::NewProcess::Config::set_close_other_fds( bool 
 inline G::NewProcess::Config & G::NewProcess::Config::set_exec_error_exit( int n ) noexcept { exec_error_exit = n ; return *this ; }
 inline G::NewProcess::Config & G::NewProcess::Config::set_exec_error_format( const std::string & s ) { exec_error_format = s ; return *this ; }
 inline G::NewProcess::Config & G::NewProcess::Config::set_exec_error_format_fn( FormatFn f ) { exec_error_format_fn = f ; return *this ; }
+// clang-format on
 
 #endif

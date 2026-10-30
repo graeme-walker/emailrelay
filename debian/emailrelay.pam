@@ -1,2 +1,0 @@
-# emailrelay pam configuration
-auth requisite pam_unix.so nullok_secure

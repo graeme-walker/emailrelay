@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file unit.cpp
 ///
@@ -120,6 +108,12 @@ Main::Unit::Unit( Run & run , unsigned int unit_id , const std::string & version
 	{
 		m_pop_store = GPop::newStore( m_configuration.spoolDir() , m_configuration.popStoreConfig() ) ;
 	}
+
+	// create the poll runner with a reference to the message store
+	//
+	m_poll_runner = std::make_unique<PollRunner>( m_es_log_only , *this , store() ,
+		m_configuration.pollRunnerConfig() , m_configuration.spoolDir().str() ,
+		m_configuration.deliveryDir().str() ) ;
 
 	// prepare authentication secrets
 	//
@@ -233,7 +227,7 @@ void Main::Unit::onClientDone( const std::string & reason )
 		m_forwarding_pending = false ;
 		using G::format ;
 		using G::txt ;
-		G_LOG( "Main::Unit::onClientDone: "
+		G_LOG_G( forwarding , "Main::Unit::onClientDone: "
 			<< format(txt("forwarding: queued request [%1%]")) % m_forwarding_reason ) ;
 		requestForwarding() ;
 	}
@@ -246,7 +240,17 @@ void Main::Unit::onPollTimeout()
 {
 	G_DEBUG( "Main::Unit::onPollTimeout" ) ;
 	m_poll_timer->startTimer( m_configuration.pollingTimeout() ) ;
-	requestForwarding( "poll" ) ;
+	if( m_poll_runner->busy() )
+	{
+		G_WARNING_IF( !!m_poll_runner , "Main::Unit::onPollTimeout: poll runner busy from last time" ) ;
+		requestForwarding( "poll" ) ; // ignore the too-slow script and trigger forwarding anyways
+		m_poll_runner->disarm() ;
+	}
+	else
+	{
+		requestForwarding( "poll" ) ; // cancelled if asynchronous poll runner
+		m_poll_runner->start() ;
+	}
 }
 
 void Main::Unit::onAdminCommand( GSmtp::AdminServer::Command command , unsigned int arg )
@@ -270,6 +274,12 @@ void Main::Unit::requestForwarding( const std::string & reason )
 	}
 }
 
+void Main::Unit::cancelForwarding() noexcept
+{
+	static_assert( noexcept(m_forwarding_timer->cancelTimer()) , "" ) ;
+	m_forwarding_timer->cancelTimer() ;
+}
+
 void Main::Unit::onRequestForwardingTimeout()
 {
 	G_ASSERT( m_file_store.get() != nullptr ) ;
@@ -279,7 +289,7 @@ void Main::Unit::onRequestForwardingTimeout()
 
 	if( m_client_ptr.busy() )
 	{
-		G_LOG( "Main::Unit::onRequestForwardingTimeout: "
+		G_LOG_G( forwarding , "Main::Unit::onRequestForwardingTimeout: "
 			<< format(txt("forwarding: [%1%]: still busy from last time")) % m_forwarding_reason
 			<< (m_client_ptr->peerAddressString().empty() ? "" : ": connected to ")
 			<< m_client_ptr->peerAddressString() ) ;
@@ -287,10 +297,10 @@ void Main::Unit::onRequestForwardingTimeout()
 	}
 	else
 	{
-		G_LOG_IF( logForwarding() , "Main::Unit::onRequestForwardingTimeout: " << format(txt("forwarding: [%1%]")) % m_forwarding_reason ) ;
+		G_LOG_MORE_G( forwarding , "Main::Unit::onRequestForwardingTimeout: " << format(txt("forwarding: [%1%]")) % m_forwarding_reason ) ;
 		if( store().empty() )
 		{
-			G_LOG_IF( logForwarding() , "Main::Unit::startForwarding: " << txt("forwarding: no messages to send") ) ;
+			G_LOG_MORE_G( forwarding , "Main::Unit::startForwarding: " << txt("forwarding: no messages to send") ) ;
 			m_event_signal.emit( m_unit_id , "forward" , "end" , "no messages" ) ;
 		}
 		else
@@ -302,11 +312,6 @@ void Main::Unit::onRequestForwardingTimeout()
 				m_event_signal.emit( m_unit_id , "forward" , "end" , error ) ;
 		}
 	}
-}
-
-bool Main::Unit::logForwarding() const
-{
-	return m_forwarding_reason != "poll" || m_configuration.pollingLog() || G::LogOutput::Instance::atDebug() ;
 }
 
 std::string Main::Unit::startForwarding()
@@ -371,7 +376,7 @@ void Main::Unit::start()
 	// kick off the polling cycle
 	//
 	if( m_configuration.doPolling() )
-		m_poll_timer->startTimer( m_configuration.pollingTimeout() ) ;
+		m_poll_timer->startTimer( m_configuration.pollingTimeoutFirst() ) ;
 }
 
 void Main::Unit::report()

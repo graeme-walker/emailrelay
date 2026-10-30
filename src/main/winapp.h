@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file winapp.h
 ///
@@ -69,7 +57,7 @@ public:
 	WinApp( HINSTANCE h , HINSTANCE p , const std::string & name ) ;
 		///< Constructor. Initialise with init().
 
-	virtual ~WinApp() ;
+	~WinApp() override ;
 		///< Destructor.
 
 	void init( const Main::Configuration & cfg , const G::Options & options_spec ) ;
@@ -144,12 +132,12 @@ private:
 	std::unique_ptr<GGui::Tray> m_tray ;
 	std::unique_ptr<Main::WinForm> m_form ;
 	std::unique_ptr<Main::WinMenu> m_menu ;
-	bool m_disable_output ;
+	bool m_disable_output {false} ;
 	Config m_cfg ;
-	bool m_quitting ;
-	int m_exit_code ;
-	bool m_in_do_open ;
-	bool m_in_do_close ;
+	bool m_quitting {false} ;
+	int m_exit_code {0} ;
+	bool m_in_do_open {false} ;
+	bool m_in_do_close {false} ;
 } ;
 
 #endif

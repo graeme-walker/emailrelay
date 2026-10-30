@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsmtpserver.h
 ///
@@ -60,7 +48,7 @@ public:
 	{
 		bool allow_remote {false} ;
 		G::StringArray interfaces ;
-		unsigned int port {0U} ;
+		std::vector<unsigned> ports {0U} ;
 		std::string ident ;
 		bool anonymous_smtp {false} ;
 		bool anonymous_content {false} ;
@@ -77,7 +65,7 @@ public:
 
 		Config & set_allow_remote( bool = true ) noexcept ;
 		Config & set_interfaces( const G::StringArray & ) ;
-		Config & set_port( unsigned int ) noexcept ;
+		Config & set_ports( const std::vector<unsigned> & ) ;
 		Config & set_ident( const std::string & ) ;
 		Config & set_anonymous( bool = true ) noexcept ;
 		Config & set_anonymous_smtp( bool = true ) noexcept ;
@@ -136,7 +124,7 @@ public:
 
 private: // overrides
 	std::unique_ptr<GNet::ServerPeer> newPeer( GNet::EventStateUnbound ,
-		GNet::ServerPeerInfo && , GNet::MultiServer::ServerInfo ) override ; // Override from GNet::MultiServer.
+		GNet::ServerPeerInfo && , GNet::MultiServer::ServerInfo ) override ; // GNet::MultiServer
 
 public:
 	Server( const Server & ) = delete ;
@@ -222,9 +210,10 @@ private:
 	bool m_output_blocked {false} ;
 } ;
 
+// clang-format off
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_allow_remote( bool b ) noexcept { allow_remote = b ; return *this ; }
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_interfaces( const G::StringArray & a ) { interfaces = a ; return *this ; }
-inline GSmtp::Server::Config & GSmtp::Server::Config::set_port( unsigned int n ) noexcept { port = n ; return *this ; }
+inline GSmtp::Server::Config & GSmtp::Server::Config::set_ports( const std::vector<unsigned> & p ) { ports = p ; return *this ; }
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_ident( const std::string & s ) { ident = s ; return *this ; }
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_anonymous( bool b ) noexcept { anonymous_smtp = anonymous_content = b ; return *this ; }
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_anonymous_smtp( bool b ) noexcept { anonymous_smtp = b ; return *this ; }
@@ -239,5 +228,6 @@ inline GSmtp::Server::Config & GSmtp::Server::Config::set_protocol_config( const
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_dnsbl_config( const std::string & s ) { dnsbl_config = s ; return *this ; }
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_buffer_config( const ServerBufferIn::Config & c ) { buffer_config = c ; return *this ; }
 inline GSmtp::Server::Config & GSmtp::Server::Config::set_domain( const std::string & s ) { domain = s ; return *this ; }
+// clang-format on
 
 #endif

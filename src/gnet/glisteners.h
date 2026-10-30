@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file glisteners.h
 ///
@@ -43,12 +31,13 @@ class GNet::Listeners
 public:
 	G_EXCEPTION( InvalidFd , tx("invalid listening file descriptor number") )
 
-	Listeners( const Interfaces & , const G::StringArray & listener_spec_list , unsigned int port ) ;
-		///< Constructor. The specification strings can be like "fd#3"
-		///< for a file descriptor, "127.0.0.1" for a fixed address,
-		///< or "ppp0-ipv4" for an interface. If the specification
-		///< list is empty then the two fixed wildcard addresses
-		///< are added.
+	Listeners( const Interfaces & , const G::StringArray & listener_spec_list ,
+		const std::vector<unsigned> & ports ) ;
+			///< Constructor. The specification strings can be like "fd#3"
+			///< for a file descriptor, "127.0.0.1" for a fixed address,
+			///< or "ppp0-ipv4" for an interface. If the specification
+			///< list is empty then the two fixed wildcard addresses
+			///< are added.
 
 	bool defunct() const ;
 		///< Returns true if no inputs and static.
@@ -56,17 +45,14 @@ public:
 	bool idle() const ;
 		///< Returns true if no inputs but some interfaces might come up.
 
-	bool hasBad() const ;
-		///< Returns true if one or more inputs are invalid.
+	G::StringArray interfaceNames() const ;
+		///< Returns names that were parsed as interfaces and that have addresses.
 
-	std::string badName() const ;
-		///< Returns the first invalid input.
+	G::StringArray emptyNames() const ;
+		///< Returns names that were parsed as interfaces but have no addresses.
 
-	bool hasEmpties() const ;
-		///< Returns true if some named interfaces have no addresses.
-
-	std::string logEmpties() const ;
-		///< Returns a log-line snippet for hasEmpties().
+	G::StringArray invalidNames() const ;
+		///< Returns names that were not parsed.
 
 	bool noUpdates() const ;
 		///< Returns true if some inputs are interfaces but
@@ -75,28 +61,34 @@ public:
 	const std::vector<int> & fds() const ;
 		///< Exposes the list of fd inputs.
 
-	const std::vector<Address> & fixed() const ;
-		///< Exposes the list of address inputs.
+	const std::vector<Address> & fixedAddresses() const ;
+		///< Exposes the list of fixed address inputs.
 
-	const std::vector<Address> & dynamic() const ;
+	const std::vector<Address> & interfaceAddresses() const ;
 		///< Exposes the list of interface addresses.
+
+	static std::string logString( const G::StringArray & names ) ;
+		///< A convenience function for logging and diagnostics.
 
 private:
 	bool empty() const ;
-	void addWildcards( unsigned int ) ;
+	void addWildcards( const std::vector<unsigned> & ) ;
 	static int parseFd( const std::string & ) ;
-	static bool isAddress( const std::string & , unsigned int ) ;
+	static bool isLocalAddress( const std::string & ) ;
+	static bool isAddress( const std::string & ) ;
+	static bool isSpecialInterface( const std::string & name ) ;
+	static bool isValidInterface( const std::string & name ) ;
 	static Address address( const std::string & , unsigned int ) ;
 	static int af( const std::string & ) ;
 	static std::string basename( const std::string & ) ;
-	static bool isBad( const std::string & ) ;
 
 private:
 	std::string m_bad ;
-	G::StringArray m_empties ;
-	G::StringArray m_used ;
-	std::vector<Address> m_fixed ;
-	std::vector<Address> m_dynamic ;
+	G::StringArray m_invalid_names ;
+	G::StringArray m_empty_names ;
+	G::StringArray m_interface_names ;
+	std::vector<Address> m_fixed_addresses ;
+	std::vector<Address> m_interface_addresses ;
 	std::vector<int> m_fds ;
 } ;
 

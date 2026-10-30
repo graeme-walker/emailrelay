@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gserver.h
 ///
@@ -111,9 +99,9 @@ protected:
 		///< most-derived Server.
 
 private: // overrides
-	void readEvent() override ; // Override from GNet::EventHandler.
-	void writeEvent() override ; // Override from GNet::EventHandler.
-	void onException( ExceptionSource * , std::exception & , bool ) override ; // Override from GNet::ExceptionHandler.
+	void readEvent() override ; // GNet::EventHandler
+	void writeEvent() override ; // GNet::EventHandler
+	void onException( ExceptionSource * , std::exception & , bool ) override ; // GNet::ExceptionHandler
 
 public:
 	Server( const Server & ) = delete ;
@@ -148,7 +136,9 @@ public:
 	ServerPeerInfo( Server * , ServerPeer::Config ) ;
 } ;
 
+// clang-format off
 inline GNet::Server::Config & GNet::Server::Config::set_stream_socket_config( const StreamSocket::Config & c ) { stream_socket_config = c ; return *this ; }
 inline GNet::Server::Config & GNet::Server::Config::set_uds_open_permissions( bool b ) noexcept { uds_open_permissions = b ; return *this ; }
+// clang-format on
 
 #endif

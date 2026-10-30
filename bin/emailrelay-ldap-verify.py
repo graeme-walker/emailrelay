@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 #
-# Copyright (C) 2020-2024 <richardwvm@users.sourceforge.net>
-# 
-# Copying and distribution of this file, with or without modification,
-# are permitted in any medium without royalty provided the copyright
-# notice and this notice are preserved.  This file is offered as-is,
-# without any warranty.
-# ===
+# SPDX-FileCopyrightText: Copyright (C) 2020-2024 <richardwvm@users.sourceforge.net>
+# SPDX-FileCopyrightText: Copyright (C) 2026 <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: FSFAP
 #
 # emailrelay-ldap-verify.py
 #
@@ -59,14 +55,14 @@ try:
 	connect.set_option(ldap.OPT_X_TLS_NEWCTX, 0)
 	connect.simple_bind_s(LDAPSUsername, LDAPSPassword)
 	result = connect.search_s(UserSearchPath,
-														ldap.SCOPE_SUBTREE,
-														"(&(objectCategory=person)(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(proxyAddresses=SMTP:%s))" % (sys.argv[1]),
-														["mail"])
+		ldap.SCOPE_SUBTREE,
+		"(&(objectCategory=person)(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(proxyAddresses=SMTP:%s))" % (sys.argv[1]),
+		["mail"])
 	if len(result) != 1:
 		result = connect.search_s(PublicFolderSearchPath,
-															ldap.SCOPE_SUBTREE,
-															"(&(objectclass=publicFolder)(proxyAddresses=SMTP:%s))" % (sys.argv[1]),
-															["mail"])
+			ldap.SCOPE_SUBTREE,
+			"(&(objectclass=publicFolder)(proxyAddresses=SMTP:%s))" % (sys.argv[1]),
+			["mail"])
 		if len(result) != 1:
 			print("invalid mailbox")
 			print("invalid mailbox: %s" % (sys.argv[1]))

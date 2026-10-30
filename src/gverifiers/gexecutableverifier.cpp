@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gexecutableverifier.cpp
 ///
@@ -29,17 +17,25 @@
 #include "glocal.h"
 #include "glog.h"
 
-GVerifiers::ExecutableVerifier::ExecutableVerifier( GNet::EventState es , const GSmtp::Verifier::Config & config , const G::Path & path ) :
-	m_timer(*this,&ExecutableVerifier::onTimeout,es) ,
-	m_config(config) ,
-	m_path(path) ,
-	m_task(*this,es,"<<verifier exec error: __strerror__>>",G::Root::nobody())
+GVerifiers::ExecutableVerifier::ExecutableVerifier( GNet::EventState es , const GSmtp::Verifier::Config & config ,
+	const std::string & spec ) :
+		m_timer(*this,&ExecutableVerifier::onTimeout,es) ,
+		m_verifier_config(config) ,
+		m_path(spec) ,
+		m_task(*this,es,GNet::Task::Config()
+			.set_exec_error_format("<<exec error: __strerror__>>")
+			.set_identity(G::Root::nobody()))
 {
+}
+
+int GVerifiers::ExecutableVerifier::verbosity() const noexcept
+{
+	return m_verifier_config.verbosity ;
 }
 
 void GVerifiers::ExecutableVerifier::verify( const GSmtp::Verifier::Request & request )
 {
-	G_ASSERT( !m_config.domain.empty() ) ;
+	G_ASSERT( !m_verifier_config.domain.empty() ) ;
 	G_ASSERT( !request.address.empty() ) ; // etc
 	G_DEBUG( "GVerifiers::ExecutableVerifier::verify: to=[" << request.address << "]" ) ;
 	m_command = request.command ;
@@ -48,15 +44,15 @@ void GVerifiers::ExecutableVerifier::verify( const GSmtp::Verifier::Request & re
 	commandline.add( request.address ) ;
 	commandline.add( request.from_address ) ;
 	commandline.add( request.client_ip.displayString() ) ;
-	commandline.add( m_config.domain ) ;
+	commandline.add( m_verifier_config.domain ) ;
 	commandline.add( G::Str::lower(request.auth_mechanism) ) ;
 	commandline.add( request.auth_extra ) ;
 
-	G_LOG( "GVerifiers::ExecutableVerifier: address verifier: executing " << commandline.displayString() ) ;
+	G_LOG_V( verbosity() , "GVerifiers::ExecutableVerifier: address verifier: executing " << commandline.displayString() ) ;
 	m_to_address = request.address ;
 	m_task.start( commandline ) ;
-	if( m_config.timeout )
-		m_timer.startTimer( m_config.timeout ) ;
+	if( m_verifier_config.timeout )
+		m_timer.startTimer( m_verifier_config.timeout ) ;
 }
 
 void GVerifiers::ExecutableVerifier::onTimeout()
@@ -70,11 +66,14 @@ void GVerifiers::ExecutableVerifier::onTimeout()
 
 void GVerifiers::ExecutableVerifier::onTaskDone( int exit_code , const std::string & result_in )
 {
+	G_LOG_MORE_V( verbosity() , "GVerifiers::ExecutableVerifier::onTaskDone: address verifier [" << m_task.name() << "]: "
+		"exit=" << exit_code << " output=[" << G::Str::printable(result_in) << "]" ) ;
+
 	m_timer.cancelTimer() ;
 	auto status = GSmtp::VerifierStatus::invalid( m_to_address ) ;
-	if( exit_code == 127 && G::Str::headMatch(result_in,"<<verifier exec error") )
+	if( exit_code == 127 && G::Str::headMatch(result_in,"<<exec error:") ) // see ctor
 	{
-		G_WARNING( "GVerifiers::ExecutableVerifier: address verifier: exec error" ) ;
+		G_WARNING( "GVerifiers::ExecutableVerifier: address verifier: " << G::Str::trimmed(result_in,"<>") ) ;
 		status = GSmtp::VerifierStatus::invalid( m_to_address , false , "error" , "exec error" ) ;
 	}
 	else
@@ -90,7 +89,7 @@ void GVerifiers::ExecutableVerifier::onTaskDone( int exit_code , const std::stri
 		std::size_t parts = result_parts.size() ;
 		result_parts.resize( 2U ) ;
 
-		G_LOG( "GVerifiers::ExecutableVerifier: address verifier: exit code " << exit_code << ": "
+		G_LOG_V( verbosity() , "GVerifiers::ExecutableVerifier: address verifier: exit=" << exit_code << " "
 			<< "[" << G::Str::printable(result_parts[0]) << "] [" << G::Str::printable(result_parts[1]) << "]" ) ;
 
 		if( exit_code == 0 && parts >= 2 )

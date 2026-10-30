@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gnetworkfilter.cpp
 ///
@@ -25,15 +13,16 @@
 #include "glog.h"
 
 GFilters::NetworkFilter::NetworkFilter( GNet::EventState es ,
-	GStore::FileStore & file_store , Filter::Type , const Filter::Config & config ,
-	const std::string & server ) :
+	GStore::FileStore & file_store , Filter::Type , const Filter::Config & filter_config ,
+	const std::string & spec ) :
 		m_es(es) ,
 		m_file_store(file_store) ,
 		m_timer(*this,&NetworkFilter::onTimeout,m_es) ,
 		m_done_signal(true) ,
-		m_location(server) ,
-		m_connection_timeout(config.timeout) ,
-		m_response_timeout(config.timeout)
+		m_location(spec) ,
+		m_filter_config(filter_config) ,
+		m_connection_timeout(filter_config.timeout) ,
+		m_response_timeout(filter_config.timeout)
 {
 	m_client_ptr.eventSignal().connect( G::Slot::slot(*this,&GFilters::NetworkFilter::clientEvent) ) ;
 }
@@ -48,9 +37,9 @@ std::string GFilters::NetworkFilter::id() const
 	return m_location.displayString() ;
 }
 
-bool GFilters::NetworkFilter::quiet() const
+int GFilters::NetworkFilter::verbosity() const noexcept
 {
-	return false ;
+	return m_filter_config.verbosity ;
 }
 
 void GFilters::NetworkFilter::start( const GStore::MessageId & message_id )
@@ -60,7 +49,7 @@ void GFilters::NetworkFilter::start( const GStore::MessageId & message_id )
 	m_done_signal.reset() ;
 	if( m_client_ptr.get() == nullptr || m_client_ptr->busy() )
 	{
-		unsigned int idle_timeout = 0U ;
+		auto idle_timeout = G::TimeInterval::zero() ;
 		m_client_ptr.reset( std::make_unique<GSmtp::RequestClient>(
 			m_es.eh(this) ,
 			"scanner" , "ok" ,

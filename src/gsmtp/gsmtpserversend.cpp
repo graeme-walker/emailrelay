@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsmtpserversend.cpp
 ///
@@ -270,12 +258,10 @@ void GSmtp::ServerSend::sendOk( const std::string & text )
 	send( std::string("250 ").append(text) ) ;
 }
 
-#ifndef G_LIB_SMALL
 void GSmtp::ServerSend::sendOk()
 {
 	send( "250 OK" ) ;
 }
-#endif
 
 void GSmtp::ServerSend::send( const char * line )
 {
@@ -284,7 +270,7 @@ void GSmtp::ServerSend::send( const char * line )
 
 void GSmtp::ServerSend::send( std::string line_in , bool go_secure )
 {
-	G_LOG( "GSmtp::ServerSend: tx>>: \"" << G::Str::printable(line_in) << "\"" ) ;
+	G_LOG_G( io , "GSmtp::ServerSend: tx>>: \"" << G::Str::printable(line_in) << "\"" ) ;
 	static const char * crlf = "\015\012" ;
 	m_sender->protocolSend( G::Str::printable(line_in).append(crlf,2U) , go_secure || sendFlush() ) ;
 	if( go_secure )
@@ -295,7 +281,7 @@ void GSmtp::ServerSend::send( const std::ostringstream & ss )
 {
 	std::string s = ss.str() ;
 	for( G::StringField f(s,"\r\n",2U) ; f ; ++f )
-		G_LOG( "GSmtp::ServerSend: tx>>: \"" << f() << "\"" ) ;
+		G_LOG_G( io , "GSmtp::ServerSend: tx>>: \"" << f() << "\"" ) ;
 	static const char * crlf = "\015\012" ;
 	m_sender->protocolSend( s.append(crlf,2U) , sendFlush() ) ;
 }

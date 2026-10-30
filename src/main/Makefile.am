@@ -1,24 +1,11 @@
 #
-## Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-## 
-## This program is free software: you can redistribute it and/or modify
-## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or
-## (at your option) any later version.
-## 
-## This program is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-## GNU General Public License for more details.
-## 
-## You should have received a copy of the GNU General Public License
-## along with this program.  If not, see <http://www.gnu.org/licenses/>.
+## SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+## SPDX-License-Identifier: GPL-3.0-or-later
 #
 
 SUBDIRS = icon
 
 sbin_PROGRAMS = emailrelay emailrelay-submit emailrelay-passwd $(MAC_PROGS) $(WINDOWS_PROGS)
-e_spool_DATA =
 noinst_LIBRARIES = libmain.a
 
 if GCONFIG_TLS_USE_MBEDTLS
@@ -57,7 +44,6 @@ AM_CPPFLAGS = \
  -I$(top_srcdir)/src/gfilters \
  -I$(top_srcdir)/src/gverifiers \
  -I$(top_srcdir)/src/main/icon \
- -D "G_SPOOLDIR=$(e_spooldir)" \
  -D "G_LOCALEDIR=$(localedir)"
 
 WINDOWS_MAIN_SOURCES = \
@@ -98,6 +84,8 @@ OTHER_SOURCES = \
  legal.h \
  output.cpp \
  output.h \
+ pollrunner.cpp \
+ pollrunner.h \
  run.cpp \
  run.h \
  unit.cpp \
@@ -133,7 +121,6 @@ MISC_EXTRA_DIST = \
  emailrelay.rc \
  emailrelay.exe.manifest \
  emailrelay-service.exe.manifest \
- fakemc.c \
  messages.mc \
  resource.h
 
@@ -264,7 +251,8 @@ if GCONFIG_WINDOWS
  emailrelay_keygen_LDFLAGS = -static
 endif
 emailrelay_keygen_LDADD = \
- $(top_builddir)/src/gssl/libgsslkeygen.a \
+ $(top_builddir)/src/gssl/libgssl.a \
+ $(top_builddir)/src/glib/libglib.a \
  $(GCONFIG_TLS_LIBS) \
  $(OS_LIBS)
 else
@@ -274,7 +262,8 @@ if GCONFIG_WINDOWS
 emailrelay_keygen_LDFLAGS = -static
 endif
 emailrelay_keygen_LDADD = \
-  $(top_builddir)/src/gssl/libgsslkeygen.a \
+  $(top_builddir)/src/gssl/libgssl.a \
+  $(top_builddir)/src/glib/libglib.a \
   $(GCONFIG_TLS_LIBS) \
   $(OS_LIBS)
 endif
@@ -304,7 +293,7 @@ $(RESOURCES): emailrelay.rc MSG00001.bin messages.rc
 	$(GCONFIG_WINDRES) --preprocessor "$(CC)" --preprocessor-arg -E --preprocessor-arg -xc-header --preprocessor-arg -DRC_INVOKED -D_WIN32=1 --include-dir . --include-dir icon --include-dir $(top_srcdir)/src/main/icon -i $(top_srcdir)/src/main/emailrelay.rc -o $(RESOURCES)
 endif
 
-install-data-local: install-sbinPROGRAMS install-e_spoolDATA
+install-data-local: install-sbinPROGRAMS
 	-mkdir -p "$(DESTDIR)$(e_spooldir)"
 	-chgrp daemon "$(DESTDIR)$(e_spooldir)"
 	-chmod 775 "$(DESTDIR)$(e_spooldir)"
@@ -318,11 +307,8 @@ install-exec-local:
 uninstall-local:
 	-rmdir "$(DESTDIR)$(e_spooldir)" 2>/dev/null
 
-MSG00001.bin messages.rc: fakemc.exe messages.mc
+MSG00001.bin messages.rc: messages.mc
 	$(GCONFIG_WINDMC) $(top_srcdir)/src/main/messages.mc
-
-fakemc.exe: $(top_srcdir)/src/main/fakemc.c
-	$(CC) -o fakemc.exe $(top_srcdir)/src/main/fakemc.c
 
 .PHONY: strip
 strip:
@@ -331,4 +317,7 @@ strip:
 .PHONY: map
 map:
 	$(CXXLD) -Xlinker -Map=emailrelay.map $(AM_CXXFLAGS) $(CXXFLAGS) $(emailrelay_LDFLAGS) $(LDFLAGS) -o /tmp/emailrelay.tmp $(emailrelay_OBJECTS) $(emailrelay_LDADD) $(LIBS)
+if GCONFIG_WINDOWS
+	$(CXXLD) -Xlinker -Map=emailrelay-textmode.map $(AM_CXXFLAGS) $(CXXFLAGS) $(emailrelay_textmode_LDFLAGS) $(LDFLAGS) -o /tmp/emailrelay-textmode.tmp $(emailrelay_textmode_OBJECTS) $(emailrelay_textmode_LDADD) $(LIBS)
+endif
 

@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gfilterchain.cpp
 ///
@@ -38,11 +26,13 @@ GFilters::FilterChain::FilterChain( GNet::EventState es , GSmtp::FilterFactoryBa
 	{
 		std::string first = G::Str::head( t() , ":" , false ) ;
 		std::string second = G::Str::tail( t() , ":" ) ;
-		add( es , ff , filter_type , filter_config , Spec(first,second) ) ;
+		int v = G::LogOutput::parseVerbosity( second ) ;
+		second = G::LogOutput::noVerbosity( second ) ;
+		add( es , ff , filter_type , filter_config , Spec{first,second,v} ) ;
 	}
 
 	if( m_filters.empty() )
-		add( es , ff , filter_type , filter_config , {"exit","0"} ) ;
+		add( es , ff , filter_type , filter_config , {"exit","0",0} ) ;
 }
 
 void GFilters::FilterChain::add( GNet::EventState es , GSmtp::FilterFactoryBase & ff ,
@@ -64,10 +54,9 @@ std::string GFilters::FilterChain::id() const
 	return m_filter_id ;
 }
 
-bool GFilters::FilterChain::quiet() const
+int GFilters::FilterChain::verbosity() const noexcept
 {
-    return std::all_of( m_filters.begin() , m_filters.end() ,
-        [](const std::unique_ptr<Filter> & ptr){ return ptr->quiet() ; } ) ;
+	return 0 ;
 }
 
 G::Slot::Signal<int> & GFilters::FilterChain::doneSignal() noexcept

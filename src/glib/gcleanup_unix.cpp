@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gcleanup_unix.cpp
 ///
@@ -96,12 +84,10 @@ void G::Cleanup::add( Fn fn , Arg arg )
 	CleanupImp::add( fn , arg ) ;
 }
 
-#ifndef G_LIB_SMALL
 void G::Cleanup::atexit( bool active )
 {
 	CleanupImp::atexit( active ) ;
 }
-#endif
 
 void G::Cleanup::block() noexcept
 {
@@ -113,19 +99,15 @@ void G::Cleanup::release() noexcept
 	CleanupImp::release() ;
 }
 
-#ifndef G_LIB_SMALL
 G::Cleanup::Arg G::Cleanup::arg( const char * p )
 {
 	return CleanupImp::duplicate( p?p:"" , p?std::strlen(p):0U ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 G::Cleanup::Arg G::Cleanup::arg( const std::string & s )
 {
 	return CleanupImp::duplicate( s.data() , s.size() ) ;
 }
-#endif
 
 G::Cleanup::Arg G::Cleanup::arg( const Path & p )
 {
@@ -133,21 +115,17 @@ G::Cleanup::Arg G::Cleanup::arg( const Path & p )
 	return CleanupImp::duplicate( s.data() , s.size() , true ) ;
 }
 
-#ifndef G_LIB_SMALL
 G::Cleanup::Arg G::Cleanup::arg( std::nullptr_t )
 {
 	return CleanupImp::duplicate( nullptr , 0U ) ;
 }
-#endif
 
 // ==
 
-#ifndef G_LIB_SMALL
 bool G::Cleanup::Arg::isPath() const noexcept
 {
 	return m_is_path ;
 }
-#endif
 
 const char * G::Cleanup::Arg::str() const noexcept
 {
@@ -225,19 +203,15 @@ bool G::CleanupImp::ignored( int signum )
 	return action.sa_handler == SIG_IGN ; // NOLINT macro shenanigans
 }
 
-#ifndef G_LIB_SMALL
 void G::CleanupImp::installDefault( int signum )
 {
 	install( signum , SIG_DFL ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 void G::CleanupImp::installDefault( const G::SignalSafe & , int signum ) noexcept
 {
 	install( signum , SIG_DFL , std::nothrow ) ;
 }
-#endif
 
 void G::CleanupImp::installIgnore( int signum )
 {

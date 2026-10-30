@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gstoredfile.cpp
 ///
@@ -233,7 +221,7 @@ void GStore::StoredFile::fail( const std::string & reason , int reason_code )
 		addReason( epath(m_state) , reason , reason_code ) ;
 
 		G::Path bad_path = epath( State::Bad ) ;
-		G_LOG_S( "GStore::StoredFile::fail: failing envelope [" << epath(m_state).basename() << "] "
+		G_LOG_S_G( store , "GStore::StoredFile::fail: failing envelope [" << epath(m_state).basename() << "] "
 			<< "-> [" << bad_path.basename() << "]" ) ;
 
 		FileOp::rename( epath(m_state) , bad_path ) ;
@@ -260,12 +248,12 @@ void GStore::StoredFile::addReason( const G::Path & path , const std::string & r
 
 void GStore::StoredFile::destroy()
 {
-	G_LOG( "GStore::StoredFile::destroy: deleting envelope [" << epath(m_state).basename() << "]" ) ;
+	G_LOG_G( store , "GStore::StoredFile::destroy: deleting envelope [" << epath(m_state).basename() << "]" ) ;
 	if( !FileOp::remove( epath(m_state) ) )
 		G_WARNING( "GStore::StoredFile::destroy: failed to delete envelope file "
 			<< "[" << epath(m_state).basename() << "] (" << G::Process::strerror(FileOp::errno_()) << ")" ) ;
 
-	G_LOG( "GStore::StoredFile::destroy: deleting content [" << cpath().basename() << "]" ) ;
+	G_LOG_G( store , "GStore::StoredFile::destroy: deleting content [" << cpath().basename() << "]" ) ;
 	m_content.reset() ; // close it before deleting
 	if( !FileOp::remove( cpath() ) )
 		G_WARNING( "GStore::StoredFile::destroy: failed to delete content file "

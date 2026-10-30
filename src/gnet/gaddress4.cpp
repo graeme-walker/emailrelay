@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gaddress4.cpp
 ///
@@ -55,7 +43,7 @@ int GNet::Address4::domain() noexcept
 GNet::Address4::Address4( std::nullptr_t ) :
 	m_inet{}
 {
-	m_inet.sin_family =  af() ;
+	m_inet.sin_family =  af() ; // NOLINT(*-narrowing-conversions)
 	m_inet.sin_port =  0 ;
 }
 
@@ -106,6 +94,9 @@ GNet::Address4::Address4( std::string_view display_string ) :
 
 const char * GNet::Address4::setAddress( sockaddr_type & inet , std::string_view display_string )
 {
+	if( display_string.empty() )
+		return "empty string" ;
+
 	const std::string::size_type pos = display_string.find_last_of( Address4Imp::port_separators ) ;
 	if( pos == std::string::npos )
 		return "no port separator" ;
@@ -121,6 +112,9 @@ const char * GNet::Address4::setAddress( sockaddr_type & inet , std::string_view
 
 const char * GNet::Address4::setHostAddress( sockaddr_type & inet , std::string_view host_part )
 {
+	if( host_part.empty() )
+		return "empty string" ;
+
 	// start with a stricter check than inet_pton(), inet_addr() etc. since they allow eg. "123.123"
 	if( !Address4::format(host_part) )
 		return "invalid network address" ;
@@ -251,12 +245,10 @@ unsigned long GNet::Address4::scopeId( unsigned long default_ ) const
 	return default_ ;
 }
 
-#ifndef G_LIB_SMALL
 const sockaddr * GNet::Address4::address() const
 {
 	return reinterpret_cast<const sockaddr*>(&m_inet) ;
 }
-#endif
 
 sockaddr * GNet::Address4::address()
 {

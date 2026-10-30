@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gspamclient.h
 ///
@@ -49,7 +37,8 @@ public:
 	G_EXCEPTION( Error , tx("spam client error") )
 
 	SpamClient( GNet::EventState , const GNet::Location & host_and_service ,
-		bool read_only , unsigned int connection_timeout , unsigned int response_timeout ) ;
+		bool read_only , G::TimeInterval connection_timeout ,
+		G::TimeInterval response_timeout ) ;
 			///< Constructor.
 
 	void request( const std::string & file_path ) ;
@@ -72,11 +61,11 @@ public:
 		///< Sets the username used in the network protocol.
 
 private: // overrides
-	void onConnect() override ; // Override from GNet::SimpleClient.
-	bool onReceive( const char * , std::size_t , std::size_t , std::size_t , char ) override ; // Override from GNet::Client.
-	void onSendComplete() override ; // Override from GNet::SimpleClient.
-	void onSecure( const std::string & , const std::string & , const std::string & ) override ; // Override from GNet::SocketProtocolSink.
-	void onDelete( const std::string & ) override ; // Override from GNet::HeapClient.
+	void onConnect() override ; // GNet::SimpleClient
+	bool onReceive( const char * , std::size_t , std::size_t , std::size_t , char ) override ; // GNet::Client
+	void onSendComplete() override ; // GNet::SimpleClient
+	void onSecure( const std::string & , const std::string & , const std::string & ) override ; // GNet::SocketProtocolSink
+	void onDelete( const std::string & ) override ; // GNet::HeapClient
 
 public:
 	~SpamClient() override = default ;

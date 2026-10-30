@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsmtpserver.cpp
 ///
@@ -50,7 +38,7 @@ GSmtp::ServerPeer::ServerPeer( GNet::EventStateUnbound esu ,
 			server_config.protocol_config,enabled) ,
 		m_input_buffer(esbind(esu,this),m_protocol,server_config.buffer_config)
 {
-	G_LOG_S( "GSmtp::ServerPeer: smtp connection from " << peerAddress().displayString() ) ;
+	G_LOG_S_G( connection , "GSmtp::ServerPeer: smtp connection from " << peerAddress().displayString() ) ;
 
 	if( !server_config.protocol_config.tls_connection )
 		m_check_timer.startTimer( 1U ) ;
@@ -70,9 +58,16 @@ GSmtp::ServerPeer::~ServerPeer()
 
 void GSmtp::ServerPeer::onDelete( const std::string & reason )
 {
-	G_LOG_S( "GSmtp::ServerPeer: smtp connection closed: " << reason << (reason.empty()?"":": ")
-		<< peerAddress().displayString() ) ;
-
+	if( reason == "smtp protocol done" ) // GSmtp::ServerProtocol::ProtocolDone
+	{
+		G_LOG_G( connection , "GSmtp::ServerPeer: smtp connection closed: "
+			<< peerAddress().displayString() ) ;
+	}
+	else
+	{
+		G_LOG_S_G( connection , "GSmtp::ServerPeer: smtp connection closed: " << reason << (reason.empty()?"":": ")
+			<< peerAddress().displayString() ) ;
+	}
 	m_server.eventSignal().emit( "done" , std::string(reason) ) ;
 }
 
@@ -177,7 +172,7 @@ GSmtp::Server::Server( GNet::EventState es , GStore::MessageStore & store , Filt
 	const GAuth::SaslServerSecrets & server_secrets , const Config & server_config ,
 	const std::string & forward_to , int forward_to_family ,
 	const GSmtp::Client::Config & client_config ) :
-		GNet::MultiServer(es,server_config.interfaces,server_config.port,"smtp",
+		GNet::MultiServer(es,server_config.interfaces,server_config.ports,"smtp",
 			server_config.net_server_peer_config,
 			server_config.net_server_config) ,
 		m_store(store) ,
@@ -198,12 +193,10 @@ GSmtp::Server::~Server()
 	serverCleanup() ; // base class early cleanup
 }
 
-#ifndef G_LIB_SMALL
 GSmtp::Server::Config & GSmtp::Server::config()
 {
 	return m_server_config ;
 }
-#endif
 
 G::Slot::Signal<const std::string&,const std::string&> & GSmtp::Server::eventSignal() noexcept
 {
@@ -253,7 +246,7 @@ GSmtp::Server::Config GSmtp::Server::serverConfig() const
 
 void GSmtp::Server::nodnsbl( unsigned int s )
 {
-	G_LOG( "GSmtp::Server::nodnsbl: dnsbl " << (s?"disabled":"enabled") << (s?(" for "+G::Str::fromUInt(s).append(1U,'s')):"") ) ;
+	G_LOG_G( smtp , "GSmtp::Server::nodnsbl: dnsbl " << (s?"disabled":"enabled") << (s?(" for "+G::Str::fromUInt(s).append(1U,'s')):"") ) ;
 	m_dnsbl_suspend_time = G::TimerTime::now() + G::TimeInterval(s) ;
 }
 

@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file geventloggingcontext.cpp
 ///
@@ -31,7 +19,6 @@ GNet::EventLoggingContext * GNet::EventLoggingContext::m_inner = nullptr ;
 // and any inner object are both destroyed in quick succession
 std::string GNet::EventLoggingContext::m_s ;
 
-#ifndef G_LIB_SMALL
 GNet::EventLoggingContext::EventLoggingContext( std::string_view s ) :
 	m_outer(m_inner)
 {
@@ -40,7 +27,6 @@ GNet::EventLoggingContext::EventLoggingContext( std::string_view s ) :
 	G::LogOutput::Instance::context( EventLoggingContext::fn , this ) ;
 	m_inner = this ;
 }
-#endif
 
 GNet::EventLoggingContext::EventLoggingContext( EventState es , const std::string & s ) :
 	m_outer(m_inner)

@@ -1,20 +1,6 @@
-#!/usr/bin/perl
 #
-# Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ===
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Server.pm
 #
@@ -35,7 +21,7 @@
 #
 
 use strict ;
-use FileHandle ;
+use IO::File ;
 use File::Basename ;
 use System ;
 
@@ -107,6 +93,9 @@ sub new
 	my $client_filter = System::tempfile("client-filter") ;
 	$client_filter .= ".js" if System::windows() ;
 
+	my $poll_run = System::tempfile("poll-run") ;
+	$poll_run .= ".js" if System::windows() ;
+
 	return bless {
 		m_exe => _exe() ,
 		m_interface => "127.0.0.1" ,
@@ -129,6 +118,7 @@ sub new
 		m_tls_verify_name => $tls_verify_name ,
 		m_tls_config => $tls_config ,
 		m_poll_timeout => 1 ,
+		m_poll_run => $poll_run ,
 		m_forward_to => "dummy3450930958349:25" ,
 		m_spool_dir => $spool_dir ,
 		m_user => "nobody" ,
@@ -164,6 +154,8 @@ sub tlsVerify { return shift->{m_tls_verify} }
 sub tlsVerifyName { return shift->{m_tls_verify_name} }
 sub tlsConfig { return shift->{m_tls_config} }
 sub pollTimeout { return shift->{m_poll_timeout} }
+sub pollRun { return shift->{m_poll_run} }
+sub set_pollRun { $_[0]->{m_poll_run} = System::unix() ? ('"'.$_[1].'"') : $_[1] }
 sub set_pollTimeout { $_[0]->{m_poll_timeout} = $_[1] }
 sub stdout { return shift->{m_stdout} }
 sub stderr { return shift->{m_stderr} }
@@ -191,7 +183,7 @@ sub domain { return shift->{m_domain} }
 sub _pid
 {
 	my ( $this ) = @_ ;
-	my $fh = new FileHandle( $this->pidFile() , "r" ) ;
+	my $fh = new IO::File( $this->pidFile() , "r" ) ;
 	return undef if !$fh ;
 	my $line = <$fh> ;
 	chomp $line ;
@@ -229,6 +221,7 @@ sub _switches
 		( exists($sw{AdminTerminate}) ? "--admin-terminate " : "" ) .
 		( exists($sw{Help}) ? "--help " : "" ) .
 		( exists($sw{Verbose}) ? "--verbose " : "" ) .
+		( exists($sw{MoreVerbose}) ? "--verbose " : "" ) .
 		( exists($sw{Forward}) ? "--forward " : "" ) .
 		( exists($sw{ForwardTo}) ? "--forward-to __FORWARD_TO__ " : "" ) .
 		( exists($sw{ForwardToSome}) ? "--forward-to-some " : "" ) .
@@ -238,6 +231,7 @@ sub _switches
 		( exists($sw{Hidden}) && !System::unix() ? "--hidden " : "" ) .
 		( exists($sw{NoSmtp}) ? "--no-smtp " : "" ) .
 		( exists($sw{Poll}) ? "--poll __POLL_TIMEOUT__ " : "" ) .
+		( exists($sw{PollRun}) ? "--poll-run __POLL_RUN__ " : "" ) .
 		( exists($sw{Filter}) ? "--filter=exit:0 --filter __FILTER__ " : "" ) .
 		( exists($sw{FilterTimeout}) ? "--filter-timeout 1 " : "" ) .
 		( exists($sw{ConnectionTimeout}) ? "--connection-timeout 1 " : "" ) .
@@ -283,6 +277,7 @@ sub _set_all
 	_set( \$command_tail , "__SPOOL_DIR__" , $this->spoolDir() ) ;
 	_set( \$command_tail , "__USER__" , $this->user() ) ;
 	_set( \$command_tail , "__POLL_TIMEOUT__" , $this->pollTimeout() ) ;
+	_set( \$command_tail , "__POLL_RUN__" , $this->pollRun() ) ;
 	_set( \$command_tail , "__FILTER__" , $this->filter() ) ;
 	_set( \$command_tail , "__CLIENT_FILTER__" , $this->clientFilter() ) ;
 	_set( \$command_tail , "__SCANNER__" , "net:" . $this->scannerAddress() ) ;
@@ -372,7 +367,7 @@ sub error
 	# Returns the first error from the server's log file. As a
 	# required feature this only returns errors with a timestamp.
 	my ( $this ) = @_ ;
-	my $fh = new FileHandle( $this->stderr() ) or return undef ;
+	my $fh = new IO::File( $this->stderr() ) or return undef ;
 	while(<$fh>)
 	{
 		chomp( my $line = $_ ) ;
@@ -386,7 +381,7 @@ sub message
 {
 	# Returns the first warning or error from the server's log file.
 	my ( $this ) = @_ ;
-	my $fh = new FileHandle( $this->stderr() ) or return undef ;
+	my $fh = new IO::File( $this->stderr() ) or return undef ;
 	while(<$fh>)
 	{
 		chomp( my $line = $_ ) ;
@@ -419,6 +414,7 @@ sub cleanup
 {
 	# Cleans up some files.
 	my ( $this ) = @_ ;
+	System::unlink( $this->log() ) ;
 	System::unlink( $this->stdout() ) ;
 	System::unlink( $this->stderr() ) ;
 	System::unlink( $this->popSecrets() ) ;
@@ -474,7 +470,7 @@ sub hasUnixDomainSockets
 {
 	return undef if !System::unix() ;
 	my $exe = _textmode() ;
-	my $fh = new FileHandle( "$exe --version --verbose |" ) ;
+	my $fh = new IO::File( "$exe --version --verbose |" ) ;
 	while(<$fh>)
 	{
 		chomp( my $line = $_ ) ;
@@ -486,7 +482,7 @@ sub hasUnixDomainSockets
 sub hasPop
 {
 	my $exe = _textmode() ;
-	my $fh = new FileHandle( "$exe --version --verbose |" ) ;
+	my $fh = new IO::File( "$exe --version --verbose |" ) ;
 	while(<$fh>)
 	{
 		chomp( my $line = $_ ) ;
@@ -498,7 +494,7 @@ sub hasPop
 sub hasAdmin
 {
 	my $exe = _textmode() ;
-	my $fh = new FileHandle( "$exe --version --verbose |" ) ;
+	my $fh = new IO::File( "$exe --version --verbose |" ) ;
 	while(<$fh>)
 	{
 		chomp( my $line = $_ ) ;
@@ -512,7 +508,7 @@ sub hasTls
 	# Returns true if the executable has tls support.
 
 	my $exe = _textmode() ;
-	my $fh = new FileHandle( "$exe --version --verbose |" ) ;
+	my $fh = new IO::File( "$exe --version --verbose |" ) ;
 	while(<$fh>)
 	{
 		chomp( my $line = $_ ) ;

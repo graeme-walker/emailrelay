@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gadminserver.h
 ///
@@ -92,8 +80,7 @@ private:
 	void help() ;
 	void status() ;
 	void sendMessageIds( const std::vector<GStore::MessageId> & ) ;
-	void sendLine( std::string && ) ;
-	void sendLineCopy( std::string ) ;
+	void sendLine( std::string_view ) ;
 	void warranty() ;
 	void version() ;
 	void copyright() ;
@@ -201,6 +188,7 @@ private:
 	std::unique_ptr<AdminServerImp> m_imp ;
 } ;
 
+// clang-format off
 inline GSmtp::AdminServer::Config & GSmtp::AdminServer::Config::set_port( unsigned int n ) noexcept { port = n ; return *this ; }
 inline GSmtp::AdminServer::Config & GSmtp::AdminServer::Config::set_with_terminate( bool b ) noexcept { with_terminate = b ; return *this ; }
 inline GSmtp::AdminServer::Config & GSmtp::AdminServer::Config::set_allow_remote( bool b ) noexcept { allow_remote = b ; return *this ; }
@@ -209,5 +197,6 @@ inline GSmtp::AdminServer::Config & GSmtp::AdminServer::Config::set_info_command
 inline GSmtp::AdminServer::Config & GSmtp::AdminServer::Config::set_smtp_client_config( const Client::Config & c ) { smtp_client_config = c ; return *this ; }
 inline GSmtp::AdminServer::Config & GSmtp::AdminServer::Config::set_net_server_config( const GNet::Server::Config & c ) { net_server_config = c ; return *this ; }
 inline GSmtp::AdminServer::Config & GSmtp::AdminServer::Config::set_net_server_peer_config( const GNet::ServerPeer::Config & c ) { net_server_peer_config = c ; return *this ; }
+// clang-format on
 
 #endif

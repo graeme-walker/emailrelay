@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file submit.cpp
 ///
@@ -82,7 +70,7 @@ static bool isatty_( int ) { return false ; }
 
 std::string versionNumber()
 {
-	return "2.6.1" ;
+	return "2.7" ;
 }
 
 enum class Parts
@@ -394,7 +382,7 @@ void submit( const G::GetOpt & opt )
 		auto now = G::SystemTime::now() ;
 		auto tm = now.local() ;
 		G::Date date( tm ) ;
-		std::string zone = G::DateTime::offsetString( G::DateTime::offset(now) ) ;
+		std::string zone = G::Zone::offsetString( G::Zone::offset(now) ) ;
 		std::string date_str = date.dd() + " " + date.monthName(true) + " " + date.yyyy() ;
 		std::string time_str = G::Time(tm).hhmmss(":") ;
 		message.m_content.insert( message.m_content.begin() , G::Str::join(" ","Date:",date_str,time_str,zone) ) ;

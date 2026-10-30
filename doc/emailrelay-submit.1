@@ -1,17 +1,6 @@
-.\" Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-.\" 
-.\" This program is free software: you can redistribute it and/or modify
-.\" it under the terms of the GNU General Public License as published by
-.\" the Free Software Foundation, either version 3 of the License, or
-.\" (at your option) any later version.
-.\" 
-.\" This program is distributed in the hope that it will be useful,
-.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
-.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-.\" GNU General Public License for more details.
-.\" 
-.\" You should have received a copy of the GNU General Public License
-.\" along with this program.  If not, see <http://www.gnu.org/licenses/>.
+.\" SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+.\" SPDX-License-Identifier: GPL-3.0-or-later
+.\"
 .TH EMAILRELAY-SUBMIT 1 local
 .SH NAME
 emailrelay-submit \- a submission utility for emailrelay
@@ -33,64 +22,144 @@ The verbose option causes the path of the new content file
 to be printed.
 .SH OPTIONS
 .TP
-.B \-f, --from \fI<envelope-from-address>\fR
+.B \-f \fI<envelope-from-address>\fR
+.PD 0
+.TP
+.PD
+.B \-\-from \fI<envelope-from-address>\fR
 Sets the envelope 'from' address. If not supplied the envelope 'from' address is derived from the originator headers in the message content, or \fIanonymous\fR if none.
 .TP
-.B \-h, --help
+.B \-h
+.PD 0
+.TP
+.PD
+.B \-\-help
 Shows help text and exits.
 .TP
-.B \-x, --input-file \fI<file>\fR
+.B \-x \fI<file>\fR
+.PD 0
+.TP
+.PD
+.B \-\-input-file \fI<file>\fR
 Reads the specified input file, ignoring the standard input stream.
 .TP
-.B \-s, --spool-dir \fI<dir>\fR
+.B \-s \fI<dir>\fR
+.PD 0
+.TP
+.PD
+.B \-\-spool-dir \fI<dir>\fR
 Specifies the spool directory.
 .TP
-.B \-v, --verbose
+.B \-v
+.PD 0
+.TP
+.PD
+.B \-\-verbose
 Prints the full path of the content file.
 .TP
-.B \-b, --bcc-split
+.B \-b
+.PD 0
+.TP
+.PD
+.B \-\-bcc-split
 Submits messages separately for each \fIBcc:\fR recipient.
 .TP
-.B \-d, --content-date
+.B \-d
+.PD 0
+.TP
+.PD
+.B \-\-content-date
 Adds a \fIDate:\fR content header if there is none.
 .TP
-.B \-F, --content-from
+.B \-F
+.PD 0
+.TP
+.PD
+.B \-\-content-from
 Adds a \fIFrom:\fR content header using the envelope-from address given by \fI\fR\fI--from\fR\fI\fR, replacing any existing \fIFrom:/Sender:\fR headers.
 .TP
-.B \-I, --content-message-id, --content-message-id=\fI<domain-part>\fR
+.B \-I
+.PD 0
+.TP
+.PD 0
+.B \-\-content-message-id
+.TP
+.PD
+.B \-\-content-message-id=\fI<domain-part>\fR
 Adds a \fIMessage-ID:\fR content header if there is none.
 .TP
-.B \-t, --content-to
+.B \-t
+.PD 0
+.TP
+.PD
+.B \-\-content-to
 Adds a \fITo:\fR content header using the envelope-to addresses given by \fI\fR\fI--to\fR\fI\fR and/or trailing command-line arguments, replacing any existing \fITo:/cc:/bcc:\fR headers.
 .TP
-.B \-c, --copy
+.B \-c
+.PD 0
+.TP
+.PD
+.B \-\-copy
 Copies the envelope file into all sub-directories of the main spool directory.
 .TP
-.B \-n, --filename
+.B \-n
+.PD 0
+.TP
+.PD
+.B \-\-filename
 Prints the name of the content file.
 .TP
-.B --to \fI<envelope-to-address>\fR
+.PD
+.B \-\-to \fI<envelope-to-address>\fR
 Adds an envelope 'to' address. Trailing command-line arguments can also be used for envelope 'to' addresses.
 .TP
-.B \-V, --version
+.B \-V
+.PD 0
+.TP
+.PD
+.B \-\-version
 Prints the version number and exits.
 .TP
-.B \-a, --auth \fI<name>\fR
+.B \-a \fI<name>\fR
+.PD 0
+.TP
+.PD
+.B \-\-auth \fI<name>\fR
 Sets the authentication value in the envelope file.
 .TP
-.B \-B, --body
+.B \-B
+.PD 0
+.TP
+.PD
+.B \-\-body
 Treats the standard input or \fI--input-file\fR as body text with no headers.
 .TP
-.B \-C, --content \fI<base64>\fR
+.B \-C \fI<base64>\fR
+.PD 0
+.TP
+.PD
+.B \-\-content \fI<base64>\fR
 Adds a line of content. This can be a header line, a blank line or a line of the body text. The first blank line separates headers from the body. The option value should be base64 encoded.
 .TP
-.B \-i, --from-auth-in \fI<name>\fR
+.B \-i \fI<name>\fR
+.PD 0
+.TP
+.PD
+.B \-\-from-auth-in \fI<name>\fR
 Sets the 'from-auth-in' value in the envelope file.
 .TP
-.B \-o, --from-auth-out \fI<name>\fR
+.B \-o \fI<name>\fR
+.PD 0
+.TP
+.PD
+.B \-\-from-auth-out \fI<name>\fR
 Sets the 'from-auth-out' value in the envelope file.
 .TP
-.B \-N, --no-stdin
+.B \-N
+.PD 0
+.TP
+.PD
+.B \-\-no-stdin
 Ignores the standard-input. Typically used with \fI\fR\fI--content\fR\fI\fR. Not needed with \fI\fR\fI--input-file\fR\fI\fR.
 .SH SEE ALSO
 .BR emailrelay (1),

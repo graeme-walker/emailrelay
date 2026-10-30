@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gaddresslocal_unix.cpp
 ///
@@ -149,15 +137,8 @@ GNet::AddressLocal::AddressLocal( std::string_view host_part ) :
 	AddressLocal(nullptr)
 {
 	namespace imp = AddressLocalImp ;
-
-	if( host_part.empty() || host_part.at(0) != '/' )
+	if( !validString( host_part ) )
 		throw Address::BadString() ;
-
-	if( host_part == "/"_sv || !G::Str::isPrintable(host_part) )
-		throw Address::BadString() ;
-
-	if( host_part.size() >= imp::psize() )
-		throw Address::BadString( "unix domain address too long" ) ;
 
 	std::memcpy( &m_local.sun_path[0] , host_part.data() , host_part.size() ) ;
 	imp::setsize( m_local ) ;
@@ -224,6 +205,8 @@ bool GNet::AddressLocal::validString( std::string_view path , std::string * reas
 		reason = "empty string" ;
 	if( path[0] != '/' )
 		reason = "not an absolute filesystem path" ;
+	if( path.at(path.size()-1U) == '/' )
+		reason = "invalid filesystem path" ;
 	if( !G::Str::isPrintable(path) )
 		reason = "invalid characters" ;
 	if( reason && reason_p )
@@ -237,12 +220,10 @@ bool GNet::AddressLocal::validStrings( std::string_view host_part , std::string_
 	return validString( host_part , reason_p ) ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::AddressLocal::validPort( unsigned int /*port*/ )
 {
 	return true ;
 }
-#endif
 
 bool GNet::AddressLocal::same( const AddressLocal & other , bool /*ipv6_compare_with_scope*/ ) const
 {
@@ -268,12 +249,10 @@ unsigned long GNet::AddressLocal::scopeId( unsigned long default_ ) const
 	return default_ ;
 }
 
-#ifndef G_LIB_SMALL
 const sockaddr * GNet::AddressLocal::address() const
 {
 	return reinterpret_cast<const sockaddr*>(&m_local) ;
 }
-#endif
 
 sockaddr * GNet::AddressLocal::address()
 {
@@ -290,12 +269,10 @@ G::StringArray GNet::AddressLocal::wildcards() const
 	return { displayString() } ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::AddressLocal::format( const std::string & )
 {
 	return true ;
 }
-#endif
 
 bool GNet::AddressLocal::isLocal( std::string & ) const
 {

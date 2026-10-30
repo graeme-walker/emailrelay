@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file grequestclient.cpp
 ///
@@ -24,8 +12,8 @@
 #include "glog.h"
 
 GSmtp::RequestClient::RequestClient( GNet::EventState es , const std::string & key , const std::string & ok ,
-	const GNet::Location & location , unsigned int connection_timeout , unsigned int response_timeout ,
-	unsigned int idle_timeout ) :
+	const GNet::Location & location , G::TimeInterval connection_timeout ,
+	G::TimeInterval response_timeout , G::TimeInterval idle_timeout ) :
 		GNet::Client(es,location,
 			GNet::Client::Config()
 				.set_line_buffer_config(GNet::LineBuffer::Config::newline())
@@ -38,7 +26,7 @@ GSmtp::RequestClient::RequestClient( GNet::EventState es , const std::string & k
 		m_timer(*this,&RequestClient::onTimeout,es)
 {
 	G_DEBUG( "GSmtp::RequestClient::ctor: " << location.displayString() << ": "
-		<< connection_timeout << " " << response_timeout ) ;
+		<< connection_timeout.s() << " " << response_timeout.s() ) ;
 }
 
 void GSmtp::RequestClient::onConnect()

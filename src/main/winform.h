@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file winform.h
 ///
@@ -79,11 +67,11 @@ public:
 		///< constructor has 'with_system_menu_quit'.
 
 private: // overrides
-	virtual void onInit( HWND , int ) override ; // Override from StackPageCallback.
-	virtual bool onApply() override ; // Override from StackPageCallback.
+	void onInit( HWND , int ) override ; // StackPageCallback
+	bool onApply() override ; // StackPageCallback
 
 public:
-	~WinForm() = default ;
+	~WinForm() override = default ;
 	WinForm( const WinForm & ) = delete ;
 	WinForm( WinForm && ) = delete ;
 	WinForm & operator=( const WinForm & ) = delete ;
@@ -104,7 +92,7 @@ private:
 	using StatusMap = std::map<std::string,std::pair<std::string,std::string>> ;
 	HWND m_hnotify ;
 	bool m_allow_apply ;
-	bool m_closed ;
+	bool m_closed {false} ;
 	std::unique_ptr<GGui::ListView> m_cfg_view ;
 	std::unique_ptr<GGui::ListView> m_status_view ;
 	std::unique_ptr<GGui::ListView> m_version_view ;

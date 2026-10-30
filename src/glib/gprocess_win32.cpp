@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gprocess_win32.cpp
 ///
@@ -37,9 +25,9 @@
 #include <fcntl.h>
 #include <direct.h> // _getcwd()
 
-G::Process::Id::Id() noexcept
+G::Process::Id::Id() noexcept :
+	m_pid(static_cast<unsigned>(::_getpid())) // or ::GetCurrentProcessId()
 {
-	m_pid = static_cast<unsigned int>(::_getpid()) ; // or ::GetCurrentProcessId()
 }
 
 std::string G::Process::Id::str() const
@@ -87,7 +75,7 @@ void G::Process::cd( const Path & dir )
 
 bool G::Process::cd( const Path & dir , std::nothrow_t )
 {
-	return 0 == ::_chdir( dir.cstr() ) ;
+	return 0 == nowide::chdir( dir ) ;
 }
 
 int G::Process::errno_( const SignalSafe & ) noexcept

@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file glinebuffer.h
 ///
@@ -494,6 +482,7 @@ void GNet::LineBuffer::apply( const std::string & data , T sink , bool with_frag
 
 // ==
 
+// clang-format off
 inline const std::string & GNet::LineBuffer::Config::eol() const noexcept { return m_eol ; }
 inline std::size_t GNet::LineBuffer::Config::warn() const noexcept { return m_warn ; }
 inline std::size_t GNet::LineBuffer::Config::fmin() const noexcept { return m_fmin ; }
@@ -502,6 +491,8 @@ inline GNet::LineBuffer::Config & GNet::LineBuffer::Config::set_eol( const std::
 inline GNet::LineBuffer::Config & GNet::LineBuffer::Config::set_warn( std::size_t n ) noexcept { m_warn = n ; return *this ; }
 inline GNet::LineBuffer::Config & GNet::LineBuffer::Config::set_fmin( std::size_t n ) noexcept { m_fmin = n ; return *this ; }
 inline GNet::LineBuffer::Config & GNet::LineBuffer::Config::set_expect( std::size_t n ) noexcept { m_expect = n ; return *this ; }
+// clang-format on
+
 namespace GNet
 {
 	inline bool operator==( const LineBuffer::Config & a , const LineBuffer::Config & b ) noexcept

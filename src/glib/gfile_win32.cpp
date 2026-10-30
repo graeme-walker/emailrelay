@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gfile_win32.cpp
 ///
@@ -57,7 +45,7 @@ namespace G
 		}
 		HANDLE handle( int fd )
 		{
-			return fd >= 0 ? reinterpret_cast<HANDLE>( _get_osfhandle(fd) ) : HNULL ;
+			return fd >= 0 ? reinterpret_cast<HANDLE>( _get_osfhandle(fd) ) : HNULL ; // NOLINT(*-no-int-to-ptr)
 		}
 		int fd( std::FILE * fp )
 		{
@@ -287,6 +275,8 @@ G::File::Stat G::File::statImp( const char * path , bool /*symlink_nofollow*/ ) 
 			s.mode = static_cast<unsigned long>( statbuf.st_mode & 07777 ) ;
 			s.size = static_cast<unsigned long long>( statbuf.st_size ) ;
 			s.blocks = static_cast<unsigned long long>( statbuf.st_size >> 24 ) ;
+			s.ownership = Identity::invalid() ; // could do better
+			s.inherit = false ;
 		}
 		else
 		{
@@ -334,6 +324,11 @@ void G::File::chmod( const Path & , const std::string & )
 {
 }
 
+bool G::File::chown( const Path & , Identity , std::nothrow_t )
+{
+	return true ; // no-op
+}
+
 void G::File::chgrp( const Path & , const std::string & )
 {
 }
@@ -355,7 +350,7 @@ bool G::File::hardlink( const Path & , const Path & , std::nothrow_t )
 
 G::Path G::File::readlink( const Path & )
 {
-	return Path() ;
+	return {} ;
 }
 
 void G::File::link( const Path & , const Path & new_link )

@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gfiledelivery.h
 ///
@@ -59,6 +47,7 @@ public:
 		bool hardlink {false} ; // copy the content by hard-linking
 		bool no_delete {false} ; // don't delete the original message
 		bool pop_by_name {false} ; // copy only the envelope file
+		bool simple {false} ; // simplify wrt. maildir permissions
 	} ;
 
 	FileDelivery( FileStore & , const Config & ) ;
@@ -67,23 +56,28 @@ public:
 
 	static void deliverTo( FileStore & , std::string_view prefix ,
 		const G::Path & dst_dir , const G::Path & envelope_path , const G::Path & content_path ,
-		bool hardlink = false , bool pop_by_name = false ) ;
+		const Config & config ) ;
 			///< Low-level function to copy a single message into a mailbox
 			///< sub-directory or a pop-by-name sub-directory. Throws
 			///< on error (incorporating the given prefix).
 			///<
-			///< If pop-by-name then only the envelope is copied and the
-			///< given destination directory is expected to be an immediate
+			///< If "config.pop_by_name" then only the envelope is copied and
+			///< the given destination directory is expected to be an immediate
 			///< sub-directory of the content file's directory.
 			///<
-			///< Does "maildir" delivery if the mailbox directory contains
-			///< tmp/new/cur sub-directories (if not pop-by-name).
-			///<
-			///< The content file is optionally hard-linked.
+			///< The content file is hard-linked if "config.hardlink".
 			///<
 			///< The process umask is modified when creating files so that
 			///< the new files have full group access. The destination
 			///< directory should normally have sticky group ownership.
+			///<
+			///< If the mailbox directory contains tmp/new/cur sub-directories
+			///< then the delivery is a "maildir" delivery. In that case the
+			///< content file (only) is copied to "tmp", then its ownership
+			///< is changed to match the directory (if possible), and then
+			///< it is moved to "new". Note that "config.hardlink" and
+			///< "config.pop_by_name" are ignored. If "config.simple" then
+			///< there is no attempt to change the file ownership.
 
 public:
 	~FileDelivery() override = default ;

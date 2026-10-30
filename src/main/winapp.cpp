@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file winapp.cpp
 ///
@@ -35,7 +23,6 @@
 namespace Main
 {
 	class Box ;
-	class Config ;
 	struct PixelLayout
 	{
 		explicit PixelLayout( bool verbose ) ;
@@ -50,11 +37,11 @@ namespace Main
 	} ;
 }
 
-Main::PixelLayout::PixelLayout( bool verbose )
+Main::PixelLayout::PixelLayout( bool verbose ) :
+	m_tabstop(verbose?122:90) ,
+	m_width(verbose?60U:80U) ,
+	m_width2(verbose?48U:80U)
 {
-	m_tabstop = verbose ? 122 : 90 ;
-	m_width = verbose ? 60U : 80U ;
-	m_width2 = verbose ? 48U : 80U ;
 }
 
 bool Main::PixelLayout::isWine()
@@ -70,7 +57,7 @@ public:
 	bool run() ;
 
 private: // overrides
-	bool onInit() override ; // Override from GGui::Dialog.
+	bool onInit() override ; // GGui::Dialog
 
 private:
 	GGui::EditBox m_edit ;
@@ -81,18 +68,12 @@ private:
 // ==
 
 Main::WinApp::WinApp( HINSTANCE h , HINSTANCE p , const std::string & name ) :
-	GGui::ApplicationBase(h,p,name) ,
-	m_disable_output(false) ,
-	m_quitting(false) ,
-	m_exit_code(0) ,
-	m_in_do_open(false) ,
-	m_in_do_close(false)
+	GGui::ApplicationBase(h,p,name)
 {
 }
 
 Main::WinApp::~WinApp()
-{
-}
+= default ;
 
 void Main::WinApp::disableOutput()
 {
@@ -170,7 +151,7 @@ void Main::WinApp::onTrayRightMouseButtonDown()
 	ScopeExitReset _( m_menu ) ;
 	m_menu = std::make_unique<WinMenu>( IDR_MENU1 ) ;
 
-	bool form_is_visible = m_form.get() != nullptr && m_form.get()->visible() ;
+	bool form_is_visible = m_form && m_form->visible() ;
 	bool with_open = !form_is_visible ;
 	bool with_close = form_is_visible ;
 	int id = m_menu->popup( *this , false , with_open , with_close ) ;
@@ -224,18 +205,20 @@ void Main::WinApp::doOpen()
 	if( m_cfg.never_open )
 		return ;
 
-	if( m_form.get() == nullptr || m_form.get()->closed() )
+	if( !m_form || m_form->closed() )
 	{
 		G_DEBUG( "Main::WinApp::doOpen: do-open: form reset" ) ;
 
 		std::pair<DWORD,DWORD> form_style( WS_OVERLAPPEDWINDOW , 0 ) ;
 		if( m_cfg.form_minimisable )
 		{
+			form_style.first &= ~WS_THICKFRAME ;
 			form_style.first &= ~WS_MAXIMIZEBOX ;
 			form_style.second = WS_EX_APPWINDOW ;
 		}
 		else
 		{
+			form_style.first &= ~WS_THICKFRAME ;
 			form_style.first &= ~WS_MAXIMIZEBOX ;
 			form_style.first &= ~WS_MINIMIZEBOX ;
 			form_style.first &= ~WS_SYSMENU ;
@@ -243,7 +226,7 @@ void Main::WinApp::doOpen()
 
 		HWND form_hparent = handle() ;
 		if( m_cfg.form_parentless )
-			form_hparent = 0 ;
+			form_hparent = HNULL ;
 
 		bool form_allow_apply = m_cfg.allow_apply ;
 		bool form_with_icon = true ;
@@ -259,7 +242,7 @@ void Main::WinApp::doOpen()
 
 	if( m_cfg.restore_on_open )
 	{
-		if( m_form.get() != nullptr )
+		if( m_form )
 			m_form->restore() ;
 	}
 }
@@ -270,7 +253,7 @@ void Main::WinApp::doClose()
 	if( m_in_do_open || m_in_do_close ) return ;
 	G::ScopeExitSetFalse _( m_in_do_close ) ;
 
-	if( m_form.get() != nullptr )
+	if( m_form )
 	{
 		if( m_cfg.minimise_on_close )
 			m_form->minimise() ;
@@ -294,7 +277,7 @@ bool Main::WinApp::onClose()
 	{
 		return true ; // continue to WM_DESTROY etc
 	}
-	else if( m_tray.get() != nullptr )
+	else if( m_tray )
 	{
 		doClose() ;
 		return false ; // dont continue with the WM_CLOSE
@@ -307,7 +290,7 @@ bool Main::WinApp::onClose()
 
 void Main::WinApp::onRunEvent( std::string s0 , std::string s1 , std::string s2 , std::string s3 )
 {
-	if( m_form.get() )
+	if( m_form )
 		m_form->setStatus( s0 , s1 , s2 , s3 ) ;
 }
 
@@ -338,7 +321,7 @@ void Main::WinApp::output( const std::string & text , bool is_error , bool verbo
 		if( text_lines.size() > 10U ) // eg. "--help"
 		{
 			Box box( *this , text_lines , PixelLayout(verbose).tabstop() ) ;
-			if( ! box.run() )
+			if( !box.run() )
 				messageBox( text ) ;
 		}
 		else

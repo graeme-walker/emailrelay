@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gfilter.h
 ///
@@ -25,6 +13,7 @@
 #include "gslot.h"
 #include "gmessagestore.h"
 #include "gstringview.h"
+#include "gdatetime.h"
 
 namespace GSmtp
 {
@@ -64,9 +53,11 @@ public:
 	} ;
 	struct Config /// Configuration passed to filter constructors.
 	{
-		unsigned int timeout {60U} ;
+		G::TimeInterval timeout {60U} ;
 		std::string domain ; // postcondition: !domain.empty()
+		int verbosity {0} ; // (set by factory)
 		Config & set_timeout( unsigned int ) noexcept ;
+		Config & set_timeout( G::TimeInterval ) noexcept ;
 		Config & set_domain( const std::string & ) ;
 	} ;
 
@@ -77,8 +68,8 @@ public:
 		///< Returns the id passed to the derived-class constructor.
 		///< Used in logging.
 
-	virtual bool quiet() const = 0 ;
-		///< Returns true if there is no need for logging.
+	virtual int verbosity() const noexcept = 0 ;
+		///< Returns a verbosity adjustment.
 
 	virtual void start( const GStore::MessageId & ) = 0 ;
 		///< Starts the filter for the given message. Any previous,
@@ -133,7 +124,10 @@ protected:
 	} ;
 } ;
 
-inline GSmtp::Filter::Config & GSmtp::Filter::Config::set_timeout( unsigned int n ) noexcept { timeout = n ; return *this ; }
+// clang-format off
+inline GSmtp::Filter::Config & GSmtp::Filter::Config::set_timeout( unsigned int s ) noexcept { timeout = G::TimeInterval(s) ; return *this ; }
+inline GSmtp::Filter::Config & GSmtp::Filter::Config::set_timeout( G::TimeInterval t ) noexcept { timeout = t ; return *this ; }
 inline GSmtp::Filter::Config & GSmtp::Filter::Config::set_domain( const std::string & s ) { domain = s ; return *this ; }
+// clang-format on
 
 #endif

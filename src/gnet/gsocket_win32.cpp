@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsocket_win32.cpp
 ///
@@ -36,7 +24,7 @@ bool GNet::SocketBase::supports( Address::Family af , int type , int protocol )
 
 bool GNet::SocketBase::create( int domain , int type , int protocol )
 {
-	m_fd = Descriptor( ::socket( domain , type , protocol ) , 0 ) ;
+	m_fd = Descriptor( ::socket( domain , type , protocol ) , HNULL ) ;
 	if( !m_fd.validfd() )
 	{
 		saveReason() ;
@@ -182,7 +170,7 @@ std::string GNet::SocketBase::reasonString( int e )
 	//if( e == WSAESTALE ) p = "" ;
 	//if( e == WSAEREMOTE ) p = "" ;
 	if( p )
-		return std::string( p ) ;
+		return { p } ;
 
 	std::string s = G::Process::strerror( e ) ;
 	if( G::Str::imatch(s,"unknown error") )
@@ -195,7 +183,7 @@ std::string GNet::SocketBase::reasonString( int e )
 
 std::string GNet::Socket::canBindHint( const Address & , bool , const Config & )
 {
-	return std::string() ; // not implemented
+	return {} ; // not implemented
 }
 
 void GNet::Socket::setOptionReuse()

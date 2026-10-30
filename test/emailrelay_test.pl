@@ -1,20 +1,7 @@
 #!/usr/bin/env perl
 #
-# Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ===
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # emailrelay_test.pl
 #
@@ -23,7 +10,8 @@
 # in sequence.
 #
 # usage:
-#   emailrelay_test.pl { list | fixup ... }
+#   emailrelay_test.pl list
+#   emailrelay_test.pl fixup <makefile-in> [<makefile-out> [<variable-name>]]
 #   emailrelay_test.pl [-d <bin-dir>] [-x <testbin-dir>] [-o <openssltool-dir>] [-c <certs-dir>] [-k] [-v] [-t] [-T <config>] [<test-name> ...]
 #      -d  - directory containing emailrelay binary
 #      -x  - directory containing test program binaries
@@ -55,8 +43,8 @@
 use strict ;
 die "emailrelay-test.pl: dont use msys perl" if $^O eq "msys" ;
 use Carp ;
-use FileHandle ;
-use Getopt::Std ;
+use IO::File ;
+use Getopt::Long qw(:config no_ignore_case) ;
 use File::Basename ;
 use File::Copy ;
 use lib File::Basename::dirname($0) ;
@@ -81,26 +69,27 @@ use Filter ;
 $| = 1 ;
 
 # parse the command line
-my %opts = () ;
-getopts( 'd:o:x:c:CkvqstT:VO:u:' , \%opts ) or die ;
-my $opt_bin_dir = $opts{d} || "../src/main" ;
-my $opt_test_bin_dir = $opts{x} || "." ;
-my $opt_certs_dir = $opts{c} || "certificates" ;
-my $opt_keep_going = exists $opts{k} ;
-my $opt_quiet = exists $opts{q} ;
-my $opt_test_account = $opts{u} ;
-$Openssl::openssl = Openssl::search( $opts{o} , System::windows() ) ;
+my %opt = () ;
+GetOptions( \%opt , qw(d=s o=s x=s c=s C k v+ q s t T=s V O=s u=s) ) or die ;
+my $opt_bin_dir = $opt{d} || "../src/main" ;
+my $opt_test_bin_dir = $opt{x} || "." ;
+my $opt_certs_dir = $opt{c} || "certificates" ;
+my $opt_keep_going = exists $opt{k} ;
+my $opt_quiet = exists $opt{q} ;
+my $opt_test_account = $opt{u} ;
+my $opt_debug_this = $opt{v} >= 2 ;
+$Openssl::openssl = Openssl::search( $opt{o} , System::windows() ) ;
 $OpensslRun::openssl = $Openssl::openssl ;
-$OpensslRun::client_options = exists $opts{O} ? $opts{O} : undef ;
-$OpensslRun::server_options = exists $opts{O} ? $opts{O} : undef ;
+$OpensslRun::client_options = exists $opt{O} ? $opt{O} : undef ;
+$OpensslRun::server_options = exists $opt{O} ? $opt{O} : undef ;
 $OpensslRun::log_run_fn = sub { System::log_("running [$_[0]] ($_[1])") } ;
 $System::bin_dir = $opt_bin_dir ;
 $System::localhost = "127.0.0.1" ; # in case localhost resolves to ipv6 first
-$System::verbose = 1 if exists $opts{v} ;
-$System::keep = 1 if exists $opts{t} ;
-$Server::keep_spool = 1 if exists $opts{s} ;
-$Server::tls_config = exists $opts{T} ? $opts{T} : "" ; # was "-tlsv1.2"
-$Server::with_valgrind = $opts{V} if exists $opts{V} ;
+$System::verbose = 1 if exists $opt{v} ;
+$System::keep = 1 if exists $opt{t} ;
+$Server::keep_spool = 1 if exists $opt{s} ;
+$Server::tls_config = exists $opt{T} ? $opt{T} : "" ;
+$Server::with_valgrind = $opt{V} if exists $opt{V} ;
 $Server::bin_dir = $opt_bin_dir ;
 $Helper::bin_dir = $opt_test_bin_dir ;
 $TestServer::bin_dir = $opt_test_bin_dir ;
@@ -110,7 +99,7 @@ $OpensslFileStore::log_cat_fn = sub { System::log_("creating [$_[0]]") } ;
 $OpensslFileStore::unlink_fn = sub { System::unlink($_[0]) } ;
 $OpensslFileStore::outpath_fn = sub { System::tempfile($_[1]) } ;
 $OpensslFileStore::inpath_fn = sub { $opt_certs_dir?"$opt_certs_dir/$_[1]":$_[1] } ;
-createCerts() if exists($opts{C}) ;
+createCerts() if exists($opt{C}) ;
 
 my $run_all_ok = 1 ;
 
@@ -259,7 +248,7 @@ sub _testServerStartsAndStops
 	my $sudo_prefix = $as_root ? System::sudoPrefix() : "" ;
 
 	# test that the server starts up
-	(new FileHandle($server->log(),"w"))->close() if $as_root ; # (log file permissions)
+	(new IO::File($server->log(),"w"))->close() if $as_root ; # (log file permissions)
 	Check::ok( $server->run(\%args,$sudo_prefix) , "failed to run" , $server->message() ) ;
 	Check::that( $server->rc() == 0 , "immediate error" ) ;
 	Check::fileExists( $server->stdout() ) ;
@@ -273,7 +262,7 @@ sub _testServerStartsAndStops
 	Check::ok( $smtp_client->open({wait=>0}) , "cannot connect for smtp" , $server->smtpPort() ) ;
 	$server->kill() ;
 	Check::notRunning( $server->pid() ) ;
-	Check::fileDeleted( $server->pidFile() , "pid file" ) ; # was if System::unix()
+	Check::fileDeleted( $server->pidFile() , "pid file" ) ;
 	Check::fileEmpty( $server->stdout() ) ;
 	Check::fileEmpty( $server->stderr() ) if System::unix() ;
 	Check::fileContains( $server->log() , "smtp server on" , "log" ) ;
@@ -345,7 +334,7 @@ sub testPasswd
 {
 	# test that the password utility works
 	my $exe = System::sanepath( System::exe( $opt_bin_dir , "emailrelay-passwd" ) ) ;
-	my $fh = new FileHandle( "echo foobar | $exe |" ) ;
+	my $fh = new IO::File( "echo foobar | $exe |" ) ;
 	my $result = <$fh> ;
 	chomp $result ;
 	my $base64 = "3pIN0aPbd5aN0S4ogKA3w2P3P9XH0hXchLP1W+adpQE=" ;
@@ -357,7 +346,7 @@ sub testPasswdDotted
 {
 	# test that the password utility works in backwards-compatibility mode
 	my $exe = System::sanepath( System::exe( $opt_bin_dir , "emailrelay-passwd" ) ) ;
-	my $fh = new FileHandle( "echo foobar | $exe --dotted |" ) ;
+	my $fh = new IO::File( "echo foobar | $exe --dotted |" ) ;
 	my $result = <$fh> ;
 	chomp $result ;
 	my $dotted = "3507327710.2524437411.674156941.3275202688.3577739107.3692417735.1542828932.27631078" ;
@@ -1172,6 +1161,7 @@ sub testFilter
 				"exit 0" ,
 			] ,
 			win32 => [
+				"WScript.Stderr.WriteLine( \"stderr ignored\" ) ;" ,
 				"var fs = WScript.CreateObject(\"Scripting.FileSystemObject\");" ,
 				"var out_ = fs.OpenTextFile( \"$outputfile\" , 8 , true ) ;" ,
 				"out_.WriteLine( \"arg: \" + WScript.Arguments(0) ) ;" ,
@@ -1408,6 +1398,7 @@ sub testFilterRescan
 		Log => 1 ,
 		LogFile => 1 ,
 		Verbose => 1 ,
+		MoreVerbose => 1 ,
 		Domain => 1 ,
 		Port => 1 ,
 		SpoolDir => 1 ,
@@ -1674,6 +1665,40 @@ sub testVerifierPass
 	$server->cleanup() ;
 }
 
+sub testVerifierAbort
+{
+	# setup
+	my %args = (
+		Log => 1 ,
+		LogFile => 1 ,
+		Verbose => 1 ,
+		Domain => 1 ,
+		Port => 1 ,
+		SpoolDir => 1 ,
+		PidFile => 1 ,
+		Verifier => 1 ,
+	) ;
+	my $server = new Server() ;
+	$server->set_verifier( System::exe( $opt_test_bin_dir , "emailrelay_test_verifier" ) ) ;
+	Check::ok( $server->run(\%args) , "failed to run" , $server->message() ) ;
+	Check::running( $server->pid() , $server->message() ) ;
+	my $smtp_client = new SmtpClient( $server->smtpPort() ) ;
+	Check::ok( $smtp_client->open() ) ;
+
+	# test that the verifier is executed and exits with 100 and the connection aborts
+	$smtp_client->netclient()->cmd( "ehlo here" ) ;
+	$smtp_client->netclient()->cmd( 'mail from:<me@here>' ) ;
+	$smtp_client->netclient()->cmd( 'rcpt to:<abort!@there>' ) ;
+	System::waitForFileLine( $server->log() , "verifier: exit=100" ) ;
+	my $disconnected = ( $smtp_client->doBadCommand() =~ m/receive error:.*not connected/ ) ;
+	Check::that( $disconnected , "did not disconnect" ) ;
+	Check::ok( (new SmtpClient($server->smtpPort()))->open() , "cannot reconnect" ) ;
+
+	# tear down
+	$server->kill() ;
+	$server->cleanup() ;
+}
+
 sub testNetworkVerifierPass
 {
 	# setup
@@ -1742,6 +1767,96 @@ sub testNetworkVerifierFail
 	$server->kill() ;
 	$verifier->kill() ;
 	$verifier->cleanup() ;
+	$server->cleanup() ;
+}
+
+sub testPollRun
+{
+	# setup
+	my %args = (
+		Log => 1 ,
+		LogFile => 1 ,
+		Verbose => 1 ,
+		Domain => 1 ,
+		Port => 1 ,
+		SpoolDir => 1 ,
+		PidFile => 1 ,
+		Poll => 1 ,
+		PollRun => 1 ,
+	) ;
+	my $server = new Server() ;
+	$server->set_pollTimeout( "10ms,100s" ) ;
+	my $outputfile = System::tempfile( "output" ) ;
+	Filter::create( $server->pollRun() , undef , {
+			unix => [
+				"echo STDOUT" ,
+				'echo STDERR >&2' ,
+				"echo DONE > $outputfile" ,
+				"exit 1" ,
+			] ,
+			win32 => [
+				"WScript.StdOut.WriteLine( \"STDOUT\" ) ;" ,
+				"WScript.StdErr.WriteLine( \"STDERR\" ) ;" ,
+				"var fs = WScript.CreateObject(\"Scripting.FileSystemObject\");" ,
+				"var out_ = fs.OpenTextFile( \"$outputfile\" , 8 , true ) ;" ,
+				"out_.WriteLine( \"DONE\" ) ;" ,
+				"out_.Close() ;" ,
+				"WScript.Quit(1);" ,
+			] ,
+		} ) ;
+	Check::fileExists( $server->pollRun() ) ;
+	Check::ok( $server->run(\%args) , "failed to run" , $server->message() ) ;
+	Check::running( $server->pid() , $server->message() ) ;
+
+	# test that the --poll-run script runs and stdout and stderr are logged
+	System::waitForFileLine( $server->log() , "poll runner.*exit=1" , "poll-run script did not exit" , 2 ) ;
+	Check::fileContains( $outputfile , "DONE" , "poll-run script did not write its output file" ) ;
+	Check::fileContains( $server->log() , "STDERR" , "stderr not captured from poll-run script" ) ;
+	Check::fileContains( $server->log() , "STDOUT" , "stdout not captured from poll-run script" ) ;
+
+	# tear down
+	System::unlink( $outputfile ) ;
+	$server->kill() ;
+	$server->cleanup() ;
+	System::unlink( $server->pollRun() ) ;
+}
+
+sub testPollRunRetry
+{
+	# setup
+	my %args = (
+		Log => 1 ,
+		LogFile => 1 ,
+		Verbose => 1 ,
+		Domain => 1 ,
+		Port => 1 ,
+		SpoolDir => 1 ,
+		PidFile => 1 ,
+		Poll => 1 ,
+		PollRun => 1 ,
+	) ;
+	my $server = new Server() ;
+	$server->set_pollRun( "retry:x;1;v+1" ) ; # retry if failed only once
+	$server->set_pollTimeout( "10ms,100s" ) ;
+	System::submitMessageSequence( $server->spoolDir() , 3 , 10 , "alice\@example.com" ) ;
+	my $epath1 = $server->spoolDir() . "/emailrelay.001.envelope" ;
+	my $epath2 = $server->spoolDir() . "/emailrelay.002.envelope" ;
+	my $epath3 = $server->spoolDir() . "/emailrelay.003.envelope" ;
+	System::failEnvelope( $epath1 , 201 , "failed" , 2 ) ; # not unfailed - too many failures
+	System::failEnvelope( $epath2 , 501 , "rejected" ) ; # not unfailed - rejected
+	System::failEnvelope( $epath3 , 201 , "failed" ) ; # gets unfailed
+	Check::ok( $server->run(\%args) , "failed to run" , $server->message() ) ;
+	Check::running( $server->pid() , $server->message() ) ;
+
+	# test that "retry:1" unfails one message having only one previous failure
+	System::waitForFileLine( $server->log() , "poll runner.*retrying" ) ;
+	Check::fileContains( $server->log() , "retrying.*003.*1/1" ) ;
+	Check::fileExists( "$epath1.bad" , "unexpected unfail of message 1" ) ;
+	Check::fileExists( "$epath2.bad" , "unexpected unfail of message 2" ) ;
+	Check::fileExists( "$epath3" , "message 3 not unfailed" ) ;
+
+	# tear down
+	$server->kill() ;
 	$server->cleanup() ;
 }
 
@@ -1972,6 +2087,8 @@ sub testDelivery
 	# tear down
 	$smtp_client->close() ;
 	$server->kill() ;
+	System::deleteSpoolDir( $server->spoolDir()."/alice" ) ;
+	System::deleteSpoolDir( $server->spoolDir()."/bob" ) ;
 	$verifier->kill() ;
 	$verifier->cleanup() ;
 	$server->cleanup() ;
@@ -2770,7 +2887,7 @@ sub _testTlsServer
 	# test -- run openssl s_client
 	my $client_log = System::tempfile( "sclient" ) ;
 	OpensslRun::runClient( $System::localhost.":".$emailrelay->smtpPort() , $client_log , $client_cert , $client_ca ,
-		sub { System::sleep_cs(200) ; $admin_client->doTerminate() } ) ;
+		sub { System::sleep_cs(20) ; $admin_client->doTerminate() } ) ;
 	if( $expect_failure )
 	{
 		System::waitForFileLine( $server_log , "tls error" ) ;
@@ -2887,7 +3004,7 @@ sub _testTlsClient
 		AdminTerminate => 1 ,
 		ForwardTo => 1 ,
 		NoSmtp => 1 ,
-		Poll => 1 , # because the emailrelay client has to start before the s_server
+		Poll => 1 , # allow s_server time to start
 		TlsConfig => 1 ,
 	) ;
 	requireAdmin() ;
@@ -2904,6 +3021,7 @@ sub _testTlsClient
 		tls_certificates => $client_cert ,
 		tls_verify => $client_ca ,
 		tls_verify_name => $client_verify_name } ) ;
+	$emailrelay->set_pollTimeout( "500ms" ) ; # (new)
 	$emailrelay->set_forwardToPort( $server_port ) ;
 	my $admin_client = new AdminClient( $emailrelay->adminPort() ) ;
 	Check::ok( $emailrelay->run( \%args ) , "failed to start" , $emailrelay->message() ) ;
@@ -2913,8 +3031,15 @@ sub _testTlsClient
 	# test -- run openssl s_server
 	my $server_log = System::tempfile( "sserver" ) ;
 	OpensslRun::runServer( $server_port , $server_log , $server_cert , $server_ca ,
-		sub { my ($pid) = @_ ; System::sleep_cs(200) ; $admin_client->doTerminate() ; System::sleep_cs(50) ; System::killOnce($pid) } ,
-		System::windows() ) ;
+		sub {
+			my ($pid,$fh) = @_ ;
+			System::sleep_cs(20) ;
+			$admin_client->doTerminate() ;
+			System::sleep_cs(50) ;
+			System::killOnce( $pid ) ;
+			close( $fh ) ;
+		} ,
+		System::windows() , $opt_debug_this ) ;
 	if( $expect_failure )
 	{
 		Check::fileDoesNotContain( $client_log , "tls.*established" ) ;
@@ -3200,7 +3325,7 @@ sub run
 
 # introspection
 my @tests = () ;
-my $f = new FileHandle( $0 ) ;
+my $f = new IO::File( $0 ) ;
 while( <$f> )
 {
 	my $line = $_ ; chomp $line ;
@@ -3218,21 +3343,37 @@ if( scalar(@ARGV) == 1 && $ARGV[0] eq "list" )
 	print join("\n",(@tests,"")) ;
 	exit 0 ;
 }
-if( scalar(@ARGV) == 4 && $ARGV[0] eq "fixup" )
+if( $ARGV[0] eq "fixup" )
 {
 	# "fixup" to edit the makefile
 	# eg: emailrelay_test.pl fixup Makefile.am.in Makefile.am TESTING_TESTS
-	my ( $fixup , $makefile_in , $makefile_out , $marker ) = @ARGV ;
-	my $value = join(".test \\\n\t",@tests) . ".test" ;
-	my $fh_in = new FileHandle( $makefile_in , "r" ) or die "error: cannot open [$makefile_in]\n" ;
-	my $fh_out = new FileHandle( $makefile_out , "w" ) or die "error: cannot create [$makefile_out]\n" ;
+	my ( $fixup , $makefile_in , $makefile_out , $variable ) = @ARGV ;
+	$makefile_out ||= $makefile_in ;
+	$variable ||= "test_names" ;
+	my $fh_in = new IO::File( $makefile_in , "r" ) or die "error: cannot open [$makefile_in]\n" ;
+	my $fh_out = new IO::File( "$makefile_out.tmp" , "w" ) or die "error: cannot create [$makefile_out.tmp]\n" ;
+	my $discard = 0 ;
 	while(<$fh_in>)
 	{
 		chomp( my $line = $_ ) ;
-		$line =~ s/$marker/$value/ ;
-		print $fh_out $line , "\n" or die ;
+		if( $line =~ m/^$variable[ =]/ )
+		{
+			$discard = 1 ;
+			my $new_lines = join(".test \\\n\t",@tests) . ".test" ;
+			print $fh_out "$variable = \\\n\t" , $new_lines , "\n" ;
+		}
+		if( $discard )
+		{
+			$discard = 0 if $line !~ m/\\$/
+		}
+		else
+		{
+			print $fh_out $line , "\n" or die ;
+		}
 	}
+	$fh_in->close() ;
 	$fh_out->close() or die ;
+	rename( "$makefile_out.tmp" , $makefile_out ) or die "error: cannot create [$makefile_out]\n" ;
 	exit 0 ;
 }
 
@@ -3257,6 +3398,7 @@ for my $arg ( @ARGV )
 
 # run the tests
 my $run_all_skipped = 1 ;
+System::snapshot() ;
 for my $test ( @tests )
 {
 	if( ( $run_tests && !exists $run_tests{$test} ) || $skip_tests{$test} )
@@ -3270,6 +3412,7 @@ for my $test ( @tests )
 		last if $result == 1 ;
 	}
 }
+System::dump("\nTemporary files ...\n") if $opt{v} ;
 
 # analyse the results and clean up
 if( $run_all_skipped )

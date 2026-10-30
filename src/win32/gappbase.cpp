@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gappbase.cpp
 ///
@@ -43,7 +31,7 @@ void GGui::ApplicationBase::createWindow( int show_style , bool do_show , int dx
 	G_DEBUG( "GGui::ApplicationBase::createWindow: name=" << m_name << " first=" << (m_previous==0) ) ;
 
 	// first => register a window class
-	if( m_previous == 0 )
+	if( m_previous == HNULL )
 	{
 		initFirst() ;
 	}
@@ -70,7 +58,7 @@ void GGui::ApplicationBase::createWindow( int show_style , bool do_show , int dx
 
 bool GGui::ApplicationBase::firstInstance() const
 {
-	return m_previous == 0 ;
+	return m_previous == HNULL ;
 }
 
 void GGui::ApplicationBase::initFirst()
@@ -78,8 +66,8 @@ void GGui::ApplicationBase::initFirst()
 	G_DEBUG( "GGui::ApplicationBase::initFirst" ) ;
 
 	UINT icon_id = resource() ;
-	HICON icon = icon_id ? G::nowide::loadIcon(hinstance(),icon_id) : 0 ;
-	if( icon == 0 )
+	HICON icon = icon_id ? G::nowide::loadIcon(hinstance(),icon_id) : HNULL ;
+	if( icon == HNULL )
 		icon = classIcon() ;
 
 	UINT menu_id = resource() ;
@@ -181,7 +169,7 @@ unsigned int GGui::ApplicationBase::messageBoxType( HWND hwnd , unsigned int bas
 {
 	unsigned int type = base_type ;
 	if( hwnd == HNULL )
-		base_type |= ( MB_TASKMODAL | MB_SETFOREGROUND ) ;
+		type |= ( MB_TASKMODAL | MB_SETFOREGROUND ) ;
 	return type ;
 }
 

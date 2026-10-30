@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsmtpclient.h
 ///
@@ -168,6 +156,7 @@ private:
 	std::string m_event_logging_string ;
 } ;
 
+// clang-format off
 inline GSmtp::Client::Config & GSmtp::Client::Config::set_client_protocol_config( const ClientProtocol::Config & c ) { client_protocol_config = c ; return *this ; }
 inline GSmtp::Client::Config & GSmtp::Client::Config::set_net_client_config( const GNet::Client::Config & c ) { net_client_config = c ; return *this ; }
 inline GSmtp::Client::Config & GSmtp::Client::Config::set_filter_spec( const FilterFactoryBase::Spec & r ) { filter_spec = r ; return *this ; }
@@ -176,5 +165,6 @@ inline GSmtp::Client::Config & GSmtp::Client::Config::set_secure_tunnel( bool b 
 inline GSmtp::Client::Config & GSmtp::Client::Config::set_sasl_client_config( const std::string & s ) { sasl_client_config = s ; return *this ; }
 inline GSmtp::Client::Config & GSmtp::Client::Config::set_fail_if_no_remote_recipients( bool b ) noexcept { fail_if_no_remote_recipients = b ; return *this ; }
 inline GSmtp::Client::Config & GSmtp::Client::Config::set_log_msgid( bool b ) noexcept { log_msgid = b ; return *this ; }
+// clang-format on
 
 #endif

@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file guilegal.cpp
 ///
@@ -44,6 +32,7 @@ std::vector<std::string> Gui::Legal::credits()
 	return {
 	#if GCONFIG_HAVE_OPENSSL
 		"<p>OpenSSL: "
+		"Copyright (c) 2016-2018 The OpenSSL Project.\n"
 		"This product includes software developed by the OpenSSL Project\n"
         "for use in the OpenSSL Toolkit (http://www.openssl.org/)</p>"
 		,
@@ -51,12 +40,12 @@ std::vector<std::string> Gui::Legal::credits()
 	#if GCONFIG_HAVE_MBEDTLS
 		"<p>MbedTLS: "
 		"Copyright The Mbed TLS Contributors\n"
-		"SPDX-License-Identifier: Apache-2.0</p>"
+		"SPDX" "-" "License-Identifier: Apache-2.0</p>"
 		,
 	#endif
 		"<p>Qt: "
-		"The Qt Toolkit is Copyright (C) 2018 The Qt Company Ltd.\n"
-		"and other contributors (https://www.qt.io/licensing/)</p>"
+		"The Qt Toolkit is Copyright (C) 2020 The Qt Company Ltd.\n"
+		"https://www.qt.io/licensing/</p>"
 	} ;
 }
 

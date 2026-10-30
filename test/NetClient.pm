@@ -1,20 +1,6 @@
-#!/usr/bin/perl
 #
-# Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ===
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # NetClient.pm
 #
@@ -105,8 +91,11 @@ sub read
 		{
 			my $length = 1 ; # one at a time so we dont read beyond the match
 			my $data ;
-			$this->{m_s}->recv( $data , $length ) ;
-			return undef if !(defined($data) && $length) ; # disconnected
+			my $x = $this->{m_s}->recv( $data , $length ) ;
+			if( !defined($x) || !defined($data) )
+			{
+				die "recv: socket receive error: $$this{m_server} $$this{m_port}: not connected" ;
+			}
 			$buffer .= $data ;
 			_log( $buffer , $prompt ) if $verbose ;
 			if( $buffer =~ m/$prompt/ )

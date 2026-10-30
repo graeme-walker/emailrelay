@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gpopserverprotocol.cpp
 ///
@@ -120,7 +108,7 @@ void GPop::ServerProtocol::apply( const std::string & line )
 		log_text = "[authentication response not logged]" ;
 	if( event == Event::eAuth && !commandPart(line,1U).empty() )
 		log_text = commandPart(line,0U) + " " + commandPart(line,1U) ;
-	G_LOG( "GPop::ServerProtocol: rx<<: \"" << log_text << "\"" ) ;
+	G_LOG_G( io , "GPop::ServerProtocol: rx<<: \"" << log_text << "\"" ) ;
 
 	// apply the event to the state machine
 	State new_state = m_fsm.apply( *this , event , line ) ;
@@ -145,10 +133,10 @@ void GPop::ServerProtocol::sendContent()
 	while( sendContentLine(line,eot) && !eot )
 		n++ ;
 
-	G_LOG( "GPop::ServerProtocol: tx>>: [" << n << " line(s) of content]" ) ;
+	G_LOG_G( io , "GPop::ServerProtocol: tx>>: [" << n << " line(s) of content]" ) ;
 	if( eot )
 	{
-		G_LOG( "GPop::ServerProtocol: tx>>: \".\"" ) ;
+		G_LOG_G( io , "GPop::ServerProtocol: tx>>: \".\"" ) ;
 		m_content.reset() ; // free up resources
 		m_fsm.apply( *this , Event::eSent , "" ) ; // State::sData -> State::sActive
 	}
@@ -471,7 +459,7 @@ void GPop::ServerProtocol::doAuthData( const std::string & line , bool & ok )
 
 void GPop::ServerProtocol::doAuthComplete( const std::string & , bool & )
 {
-	G_LOG_S( "GPop::ServerProtocol: pop authentication of " << m_sasl->id() << " connected from " << m_peer_address.displayString() ) ;
+	G_LOG_S_G( pop , "GPop::ServerProtocol: pop authentication of " << m_sasl->id() << " connected from " << m_peer_address.displayString() ) ;
 	m_user = m_sasl->id() ;
 	m_store.prepare( m_user ) ;
 	readStore( m_user ) ;
@@ -602,19 +590,19 @@ void GPop::ServerProtocol::sendLine( std::string_view line , bool has_crlf )
 {
 	if( has_crlf )
 	{
-		G_LOG( "GPop::ServerProtocol: tx>>: \"" << G::Str::printable(G::Str::trimmedView(line,"\r\n"_sv)) << "\"" ) ;
+		G_LOG_G( io , "GPop::ServerProtocol: tx>>: \"" << G::Str::printable(G::Str::trimmedView(line,"\r\n"_sv)) << "\"" ) ;
 		m_sender.protocolSend( line , 0U ) ;
 	}
 	else
 	{
-		G_LOG( "GPop::ServerProtocol: tx>>: \"" << G::Str::printable(line) << "\"" ) ;
+		G_LOG_G( io , "GPop::ServerProtocol: tx>>: \"" << G::Str::printable(line) << "\"" ) ;
 		m_sender.protocolSend( std::string(line.data(),line.size()).append("\r\n",2U) , 0U ) ;
 	}
 }
 
 void GPop::ServerProtocol::sendLine( std::string && line ) // NOLINT cppcoreguidelines-rvalue-reference-param-not-moved
 {
-	G_LOG( "GPop::ServerProtocol: tx>>: \"" << G::Str::printable(line) << "\"" ) ;
+	G_LOG_G( io , "GPop::ServerProtocol: tx>>: \"" << G::Str::printable(line) << "\"" ) ;
 	m_sender.protocolSend( line.append("\r\n",2U) , 0U ) ;
 }
 
@@ -622,7 +610,7 @@ void GPop::ServerProtocol::sendLines( std::ostringstream & ss )
 {
 	ss << "\r\n" ;
 	const std::string s = ss.str() ;
-	if( G::LogOutput::Instance::atVerbose() )
+	if( G_LOG_ACTIVE_G(io) )
 	{
 		std::size_t lines = std::count( s.begin() , s.end() , '\n' ) ;
 		const std::size_t npos = std::string::npos ;
@@ -634,9 +622,9 @@ void GPop::ServerProtocol::sendLines( std::ostringstream & ss )
 			std::size_t n = p1 == npos ? (s.size()-p0) : (p1-p0) ;
 			if( n && p1 && p1 != npos && s.at(p1-1U) == '\r' ) --n ;
 			if( lines <= 7U || i < 4U || i > (lines-3U) )
-				G_LOG( "GPop::ServerProtocol: tx>>: \"" << G::Str::printable(s.substr(p0,n)) << "\"" ) ;
+				G_LOG_G( io , "GPop::ServerProtocol: tx>>: \"" << G::Str::printable(s.substr(p0,n)) << "\"" ) ;
 			else if( i == 4U )
-				G_LOG( "GPop::ServerProtocol: tx>>: [" << (lines-6U) << " lines]" ) ;
+				G_LOG_G( io , "GPop::ServerProtocol: tx>>: [" << (lines-6U) << " lines]" ) ;
 			if( p1 == npos || (p1+1U) == s.size() )
 				break ;
 		}

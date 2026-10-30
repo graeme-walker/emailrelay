@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file run.cpp
 ///
@@ -56,7 +44,7 @@ namespace Main { std::string localedir() { return {} ; } }
 
 std::string Main::Run::versionNumber()
 {
-	return "2.6.1" ;
+	return "2.7" ;
 }
 
 Main::Run::Run( Main::Output & output , const G::Arg & arg , bool has_gui ) :
@@ -152,9 +140,9 @@ bool Main::Run::runnable()
 
 	for( std::size_t i = 0U ; i < configurations() ; i++ )
 	{
-		if( !configuration(i).semanticError().empty() )
+		if( !configuration(i).error().empty() )
 		{
-			commandline().showSemanticError( configuration(i).semanticError() ) ;
+			commandline().showError( configuration(i).error() ) ;
 			return false ;
 		}
 	}
@@ -163,9 +151,9 @@ bool Main::Run::runnable()
 	{
 		for( std::size_t i = 0U ; i < configurations() ; i++ )
 		{
-			if( !configuration(i).semanticWarnings().empty() )
+			if( !configuration(i).warnings().empty() )
 			{
-				commandline().showSemanticWarnings( configuration(i).semanticWarnings() ) ;
+				commandline().showWarnings( configuration(i).warnings() ) ;
 			}
 		}
 	}
@@ -221,9 +209,9 @@ void Main::Run::run()
 	{
 		for( std::size_t i = 0U ; i < configurations() ; i++ )
 		{
-			if( !configuration(i).semanticWarnings().empty() )
+			if( !configuration(i).warnings().empty() )
 			{
-				commandline().logSemanticWarnings( configuration(i).semanticWarnings() ) ;
+				commandline().logWarnings( configuration(i).warnings() ) ;
 			}
 		}
 	}

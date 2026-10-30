@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gspamfilter.h
 ///
@@ -52,7 +40,7 @@ public:
 
 private: // overrides
 	std::string id() const override ; // GSmtp::Filter
-	bool quiet() const override ; // GSmtp::Filter
+	int verbosity() const noexcept override ; // GSmtp::Filter
 	G::Slot::Signal<int> & doneSignal() noexcept override ; // GSmtp::Filter
 	void start( const GStore::MessageId & ) override ; // GSmtp::Filter
 	void cancel() override ; // GSmtp::Filter
@@ -82,8 +70,9 @@ private:
 	GNet::Location m_location ;
 	bool m_read_only ;
 	bool m_always_pass ;
-	unsigned int m_connection_timeout ;
-	unsigned int m_response_timeout ;
+	Filter::Config m_filter_config ;
+	G::TimeInterval m_connection_timeout ;
+	G::TimeInterval m_response_timeout ;
 	GNet::ClientPtr<GSmtp::SpamClient> m_client_ptr ;
 	std::string m_text ;
 	Result m_result {Result::fail} ;

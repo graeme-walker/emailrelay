@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file commandline.h
 ///
@@ -102,14 +90,14 @@ public:
 	void showCopyright( bool error_stream = false , const std::string & = {} ) const ;
 		///< Writes a copyright message.
 
-	void showSemanticError( const std::string & semantic_error ) const ;
-		///< Displays the given semantic error. See Configuration::semanticError().
+	void showError( const std::string & semantic_error ) const ;
+		///< Displays the given error. See Configuration::error().
 
-	void showSemanticWarnings( const G::StringArray & semantic_warnings ) const ;
-		///< Displays the given semantic warnings. See Configuration::semanticWarnings().
+	void showWarnings( const G::StringArray & semantic_warnings ) const ;
+		///< Displays the given warnings. See Configuration::warnings().
 
-	void logSemanticWarnings( const G::StringArray & semantic_warnings ) const ;
-		///< Logs the given semantic warnings. See Configuration::semanticWarnings().
+	void logWarnings( const G::StringArray & semantic_warnings ) const ;
+		///< Logs the given warnings. See Configuration::warnings().
 
 public:
 	CommandLine( const CommandLine & ) = delete ;

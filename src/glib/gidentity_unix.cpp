@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gidentity_unix.cpp
 ///
@@ -40,6 +28,12 @@ namespace G
 }
 
 G::Identity::Identity( uid_t uid , gid_t gid ) :
+	m_uid(uid) ,
+	m_gid(gid)
+{
+}
+
+G::Identity::Identity( FromFile , uid_t uid , gid_t gid ) :
 	m_uid(uid) ,
 	m_gid(gid)
 {
@@ -82,26 +76,22 @@ G::Identity G::Identity::invalid() noexcept
 	return {} ;
 }
 
-#ifndef G_LIB_SMALL
 G::Identity G::Identity::invalid( SignalSafe safe ) noexcept
 {
 	return Identity( safe ) ;
 }
-#endif
 
 G::Identity G::Identity::root() noexcept
 {
 	return { 0 , 0 } ;
 }
 
-#ifndef G_LIB_SMALL
 std::string G::Identity::str() const
 {
 	std::ostringstream ss ;
 	ss << static_cast<int>(m_uid) << "/" << static_cast<int>(m_gid) ;
 	return ss.str() ;
 }
-#endif
 
 uid_t G::Identity::userid() const noexcept
 {
@@ -128,7 +118,6 @@ bool G::Identity::operator!=( const Identity & other ) const noexcept
 	return !operator==( other ) ;
 }
 
-#ifndef G_LIB_SMALL
 std::pair<G::Identity,std::string> G::Identity::lookup( std::string_view name_in )
 {
 	Identity result ;
@@ -137,7 +126,6 @@ std::pair<G::Identity,std::string> G::Identity::lookup( std::string_view name_in
 		throw NoSuchUser( name_in ) ;
 	return std::make_pair( result , name ) ;
 }
-#endif
 
 std::pair<G::Identity,std::string> G::Identity::lookup( std::string_view name_in , std::nothrow_t )
 {

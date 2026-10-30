@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file goptionsusage.h
 ///
@@ -162,6 +150,7 @@ private:
 	char m_space_syntax {' '} ;
 } ;
 
+// clang-format off
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_separator( const std::string & s ) { separator = s ; return *this ; }
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_column( std::size_t n ) noexcept { column  = n ; return *this ; }
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_width( std::size_t n ) noexcept { width = n ; return *this ; }
@@ -173,5 +162,6 @@ inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_level_max( unsigne
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_level_min( unsigned int n ) noexcept { level_min = n ; return *this ; }
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_main_tag( unsigned int n ) noexcept { main_tag = n ; return *this ; }
 inline G::OptionsUsage::Config & G::OptionsUsage::Config::set_tag_bits( unsigned int n ) noexcept { tag_bits = n ; return *this ; }
+// clang-format on
 
 #endif

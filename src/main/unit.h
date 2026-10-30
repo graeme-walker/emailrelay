@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file unit.h
 ///
@@ -101,6 +89,13 @@ public:
 		///< these events to other Main::Unit objects and the GUI -- see
 		///< Main::WinForm.)
 
+	void requestForwarding( const std::string & reason = {} ) ;
+		///< Initiates forwarding asynchronously. Does nothing if there
+		///< is no forwarding address.
+
+	void cancelForwarding() noexcept ;
+		///< Cancels a requestForwarding().
+
 private: //overrides
 	std::string_view eventLoggingString() const noexcept override ;
 
@@ -115,9 +110,7 @@ private:
 	G::Path spoolDir() const ;
 	void onPollTimeout() ;
 	void onRequestForwardingTimeout() ;
-	bool logForwarding() const ;
 	std::string startForwarding() ;
-	void requestForwarding( const std::string & reason = {} ) ;
 	void onAdminCommand( GSmtp::AdminServer::Command , unsigned int ) ;
 	void onServerEvent( const std::string & s1 , const std::string & ) ;
 	void onStoreRescanEvent() ;
@@ -163,6 +156,7 @@ private:
 	std::unique_ptr<GPop::Server> m_pop_server ;
 	std::unique_ptr<GSmtp::AdminServer> m_admin_server ;
 	GNet::ClientPtr<GSmtp::Forward> m_client_ptr ;
+	std::unique_ptr<Main::PollRunner> m_poll_runner ;
 } ;
 
 #endif

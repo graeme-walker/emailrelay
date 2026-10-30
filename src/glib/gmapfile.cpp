@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gmapfile.cpp
 ///
@@ -387,7 +375,7 @@ namespace G
 			std::size_t pos = start_pos ;
 			for(;;)
 			{
-				pos = s.find( &cc[0] , pos ) ;
+				pos = s.find( cc.data() , pos ) ;
 				if( pos == std::string::npos )
 				{
 					break ; // not found
@@ -510,17 +498,17 @@ std::string G::MapFile::strpath( const Path & path_in )
 G::MapFile::Error G::MapFile::readError( const Path & path , std::string_view kind )
 {
 	std::string description = "cannot read " + strkind(kind) + " file" + strpath(path) ;
-	return Error( description ) ;
+	return { description } ;
 }
 
 G::MapFile::Error G::MapFile::writeError( const Path & path , std::string_view kind )
 {
-	return Error( std::string("cannot create ").append(strkind(kind)).append(" file ").append(strpath(path)) ) ;
+	return { std::string("cannot create ").append(strkind(kind)).append(" file ").append(strpath(path)) } ;
 }
 
 G::MapFile::Error G::MapFile::missingValueError( const Path & path , const std::string & kind ,
 	const std::string & key )
 {
-	return Error( std::string("no item [").append(key).append("] in ").append(strkind(kind)).append(" file ").append(strpath(path)) ) ;
+	return { std::string("no item [").append(key).append("] in ").append(strkind(kind)).append(" file ").append(strpath(path)) } ;
 }
 

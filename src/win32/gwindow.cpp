@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gwindow.cpp
 ///
@@ -234,7 +222,7 @@ UINT GGui::Window::classStyle( bool redraw )
 
 HBRUSH GGui::Window::classBrush()
 {
-	return (HBRUSH)( 1 + COLOR_BACKGROUND ) ;
+	return reinterpret_cast<HBRUSH>( 1 + COLOR_BACKGROUND ) ;
 }
 
 HICON GGui::Window::classIcon()
@@ -276,14 +264,16 @@ void GGui::Window::resize( Size new_size , bool repaint )
 	if( GetWindowRect( handle() , &rect ) )
 	{
 		HWND parent = GetParent( handle() ) ;
-		const bool child_window = parent != 0 ;
+		const bool child_window = parent != HNULL ;
 		if( child_window )
 		{
 			rect.left = 0 ;
 			rect.top = 0 ;
 		}
 
-		MoveWindow( handle() , rect.left , rect.top , new_size.dx , new_size.dy , repaint ) ;
+		MoveWindow( handle() , rect.left , rect.top ,
+			static_cast<int>(new_size.dx) , static_cast<int>(new_size.dy) ,
+			repaint ) ;
 	}
 }
 

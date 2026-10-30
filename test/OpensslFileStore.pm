@@ -1,20 +1,6 @@
-#!/usr/bin/perl
 #
-# Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ===
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # OpensslFileStore.pm
 #
@@ -46,7 +32,7 @@
 #
 
 use strict ;
-use FileHandle ;
+use IO::File ;
 use File::Basename ;
 use Carp ;
 
@@ -164,10 +150,10 @@ sub _joinpath
 sub _cat
 {
 	my ( $path_out , @paths_in ) = @_ ;
-	my $fh_out = new FileHandle( "$path_out" , "w" ) or die ;
+	my $fh_out = new IO::File( "$path_out" , "w" ) or die ;
 	for my $path_in ( @paths_in )
 	{
-		my $fh_in = new FileHandle( $path_in , "r" ) or die ;
+		my $fh_in = new IO::File( $path_in , "r" ) or die ;
 		while(<$fh_in>)
 		{
 			my $line = $_ ;

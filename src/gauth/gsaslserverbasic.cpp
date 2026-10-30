@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsaslserverbasic.cpp
 ///
@@ -304,13 +292,11 @@ std::string GAuth::SaslServerBasicImp::apply( const std::string & response , boo
 	if( done )
 	{
 		std::ostringstream ss ;
-		ss
-			<< (m_authenticated?"successful":"failed") << " authentication of remote client using mechanism ["
-			<< G::Str::lower(m_mechanism) << "] and " << secret.info(id) ;
+		ss << " of remote client using mechanism [" << G::Str::lower(m_mechanism) << "] and " << secret.info(id) ;
 		if( m_authenticated )
-			G_LOG( "GAuth::SaslServerBasicImp::apply: " << ss.str() ) ;
+			G_LOG_G( auth , "GAuth::SaslServerBasicImp::apply: successful authentication" << ss.str() ) ;
 		else
-			G_WARNING( "GAuth::SaslServerBasicImp::apply: " << ss.str() ) ;
+			G_WARNING( "GAuth::SaslServerBasicImp::apply: failed authentication" << ss.str() ) ;
 	}
 
 	return next_challenge ;
@@ -329,7 +315,7 @@ bool GAuth::SaslServerBasicImp::trustedCore( const std::string & address_wildcar
 	std::string & trustee = pair.first ;
 	if( !trustee.empty() )
 	{
-		G_LOG( "GAuth::SaslServer::trusted: trusting [" << address_display << "]: "
+		G_LOG_G( auth , "GAuth::SaslServer::trusted: trusting [" << address_display << "]: "
 			<< "matched [" << address_wildcard << "] from " << pair.second ) ;
 		const_cast<SaslServerBasicImp*>(this)->m_trustee = trustee ;
 		return true ;

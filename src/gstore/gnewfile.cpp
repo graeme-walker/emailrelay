@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gnewfile.cpp
 ///
@@ -50,7 +38,7 @@ GStore::NewFile::NewFile( FileStore & store , const std::string & from ,
 		smtp_info.address_style == MessageStore::AddressStyle::Utf8Both ;
 
 	// ask the store for a content stream
-	G_LOG( "GStore::NewFile: new content file [" << cpath().basename() << "]" ) ;
+	G_LOG_G( store , "GStore::NewFile: new content file [" << cpath().basename() << "]" ) ;
 	m_content = FileStore::stream( cpath() ) ;
 }
 
@@ -160,7 +148,7 @@ std::size_t GStore::NewFile::contentSize() const
 
 void GStore::NewFile::saveEnvelope( Envelope & env , const G::Path & path )
 {
-	G_LOG( "GStore::NewFile: new envelope file [" << path.basename() << "]" ) ;
+	G_LOG_G( store , "GStore::NewFile: new envelope file [" << path.basename() << "]" ) ;
 	std::unique_ptr<std::ofstream> envelope_stream = FileStore::stream( path ) ;
 	env.endpos = GStore::Envelope::write( *envelope_stream , env ) ;
 	env.crlf = true ;

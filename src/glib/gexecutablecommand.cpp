@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gexecutablecommand.cpp
 ///
@@ -25,7 +13,6 @@
 #include <algorithm>
 #include <iterator>
 
-#ifndef G_LIB_SMALL
 G::ExecutableCommand::ExecutableCommand( const std::string & s )
 {
 	if( !s.empty() )
@@ -36,7 +23,6 @@ G::ExecutableCommand::ExecutableCommand( const std::string & s )
 		m_args.pop_back() ; // remove exe
 	}
 }
-#endif
 
 G::ExecutableCommand::ExecutableCommand( const G::Path & exe_ , const G::StringArray & args_ ) :
 	m_exe(exe_) ,
@@ -67,7 +53,6 @@ void G::ExecutableCommand::add( const std::string & arg )
 	m_args.push_back( arg ) ;
 }
 
-#ifndef G_LIB_SMALL
 void G::ExecutableCommand::insert( const G::StringArray & array )
 {
 	if( !array.empty() )
@@ -77,5 +62,4 @@ void G::ExecutableCommand::insert( const G::StringArray & array )
 		m_exe = m_args.at( 0U ) ;
 	}
 }
-#endif
 

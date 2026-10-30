@@ -1,20 +1,6 @@
-#!/usr/bin/perl
 #
-# Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ===
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # System.pm
 #
@@ -22,9 +8,11 @@
 #
 
 use strict ;
-use FileHandle ;
+use IO::File ;
 use Fcntl qw(:seek :flock LOCK_EX);
 use File::Glob ;
+use File::Basename ;
+use IO::Socket::INET ;
 use Cwd ;
 use Check ;
 
@@ -281,11 +269,49 @@ sub tempfile
 	return "$dir/e.$pid.$seq.$suffix" ;
 }
 
+my @_snapshot = () ;
+sub snapshot
+{
+	_snapshotTo( \@_snapshot ) ;
+}
+
+sub _snapshotTo
+{
+	my ( $list ) = @_ ;
+	my $dir = _tempdir() ;
+	@$list = glob_( "$dir/e.*" ) ;
+}
+
+sub dump
+{
+	my ( $heading ) = @_ ;
+	my @newlist = () ;
+	_snapshotTo( \@newlist ) ;
+	my %oldmap = () ;
+	map { $oldmap{$_} = 1 } @_snapshot ;
+	my @created = () ;
+	map { push @created , $_ if !exists $oldmap{$_} } @newlist ;
+	my $first = 1 ;
+	for my $f ( sort @created )
+	{
+		next if ! -f $f ;
+		next if ( $f =~ m/pem$/ ) ;
+		my $prefix = "  " . File::Basename::basename($f) . ": " ;
+		my $fh = new IO::File( $f , "r" ) or next ;
+		while(<$fh>)
+		{
+			chomp( my $line = $_ ) ;
+			print $heading if ( $heading && $first ) ; $first = 0 ;
+			print $prefix , $line , "\n" ;
+		}
+	}
+}
+
 sub createFile
 {
 	# Creates a file, optionally containing one or more lines of text.
 	my ( $path , $line ) = @_ ;
-	my $fh = new FileHandle( $path , "w" ) or die "cannot create [$path]" ;
+	my $fh = new IO::File( $path , "w" ) or die "cannot create [$path]" ;
 	if( defined($line) && ref($line) )
 	{
 		for my $s ( @{$line} )
@@ -319,7 +345,7 @@ sub waitForFileLine
 {
 	my ( $file , $re , $more , $timeout ) = @_ ;
 	waitFor( sub {
-		my $fh = new FileHandle( $file ) ;
+		my $fh = new IO::File( $file ) ;
 		while(<$fh>)
 		{
 			chomp( my $line = $_ ) ;
@@ -332,7 +358,7 @@ sub waitForFileLineCount
 {
 	my ( $file , $re , $count , $more , $timeout ) = @_ ;
 	waitFor( sub {
-		my $fh = new FileHandle( $file ) ;
+		my $fh = new IO::File( $file ) ;
 		my $n = 0 ;
 		while(<$fh>)
 		{
@@ -364,7 +390,7 @@ sub waitForPid
 	my ( $pidfile ) = @_ ;
 	my $pid = undef ;
 	waitFor( sub {
-		my $fh = new FileHandle( $pidfile , "r" ) ;
+		my $fh = new IO::File( $pidfile , "r" ) ;
 		$pid = $fh ? $fh->getline() : undef ;
 		$pid =~ s/[\r\n].*//g ;
 		int($pid)+0 > 0 ;
@@ -393,7 +419,7 @@ sub _createMessageContent
 	# Creates a message content file containing 'n' lines of text.
 	my ( $path , $n ) = @_ ;
 	$n = defined($n) ? $n : 10 ;
-	my $fh = new FileHandle( $path , "w" ) or die ;
+	my $fh = new IO::File( $path , "w" ) or die ;
 	print $fh "Subject: test\r\n" ;
 	print $fh "X-Foo: bar\r\n" ;
 	print $fh "\r\n" ;
@@ -536,7 +562,7 @@ sub submitMessageText
 	my ( $spool_dir , @lines ) = @_ ;
 	my $to = "me\@there.localnet" ;
 	my $tmp_path = tempfile( "message" ) ;
-	my $fh = new FileHandle( $tmp_path , "w" ) or die ;
+	my $fh = new IO::File( $tmp_path , "w" ) or die ;
 	print $fh "Subject: test\r\n\r\n" ;
 	for my $line ( @lines )
 	{
@@ -545,7 +571,7 @@ sub submitMessageText
 	$fh->close() or die ;
 	my $cmd = sanepath(exe($bin_dir,"emailrelay-submit")) .
 		" --verbose --from me\@here.localnet --spool-dir $spool_dir $to" ;
-	my $fh_out = new FileHandle( "$cmd < $tmp_path |" ) ;
+	my $fh_out = new IO::File( "$cmd < $tmp_path |" ) ;
 	chomp( my $content_path = <$fh_out> ) ;
 	$fh_out->close() ;
 	( my $envelope_path = $content_path ) =~ s/\.content$/.envelope/ ;
@@ -596,8 +622,8 @@ sub editEnvelope
 {
 	# Sets one field of an envelope file.
 	my ( $path , $key , $value ) = @_ ;
-	my $fh_in = new FileHandle( $path ) or die "cannot edit envelope [$path]" ;
-	my $fh_out = new FileHandle( "$path.tmp" , "w" ) or die ;
+	my $fh_in = new IO::File( $path ) or die "cannot edit envelope [$path]" ;
+	my $fh_out = new IO::File( "$path.tmp" , "w" ) or die ;
 	while(<$fh_in>)
 	{
 		( my $line = $_ ) =~ s/\r?\n$// ;
@@ -610,6 +636,29 @@ sub editEnvelope
 	$fh_in->close() ;
 	$fh_out->close() or die ;
 	rename( "$path.tmp" , $path ) or die ;
+}
+
+sub failEnvelope
+{
+	my ( $path , $reason_code , $reason_text , $count ) = @_ ;
+	if( defined($reason_code) )
+	{
+		addEnvelopeReason( $path , $reason_code , $reason_text , $count ) ;
+	}
+	rename( $path , "$path.bad" ) or die ;
+}
+
+sub addEnvelopeReason
+{
+	my ( $path , $reason_code , $reason_text , $count ) = @_ ;
+	$count ||= 1 ;
+	my $fh = new IO::File( $path , "a" ) or die "cannot edit envelope [$path]: $!" ;
+	for( my $i = 0 ; $i < $count ; $i++ )
+	{
+		print $fh "X-MailRelay-Reason: $reason_text\r\n" ;
+		print $fh "X-MailRelay-ReasonCode: $reason_code\r\n" ;
+	}
+	$fh->close() or die ;
 }
 
 sub _pstatus
@@ -633,7 +682,7 @@ sub _procstatus
 	die "no /proc" if ! -d "/proc" ;
 	return undef if ! -e "/proc/$pid" ;
 	my $result ;
-	my $fh = new FileHandle( "/proc/$pid/status" ) ; # no die
+	my $fh = new IO::File( "/proc/$pid/status" ) ; # no die
 	while(<$fh>)
 	{
 		chomp( my $line = $_ ) ;
@@ -655,7 +704,7 @@ sub _psstatus
 	my ( $pid , $key , $field ) = @_ ;
 	die "invalid pid for ps -p" if ( !$pid || int($pid) <= 0 || int($pid) ne $pid ) ;
 	my $cmd = "ps -p \"$pid\" -o pid,ruid,uid,svuid,gid,rgid,svgid" ;
-	my $fh = new FileHandle( "$cmd 2>&1 |" ) or die ;
+	my $fh = new IO::File( "$cmd 2>&1 |" ) or die ;
 	my $header = <$fh> ;
 	my $line = <$fh> ;
 	die "no \"ps -p\"" if ! ( $header =~ m/^\s*PID\s/ ) ; # busybox
@@ -824,7 +873,7 @@ sub processIsRunning
 	}
 	else
 	{
-		my $fh = new FileHandle( "tasklist /FI \"PID eq $pid\" /FO csv /NH 2>NUL |" ) ;
+		my $fh = new IO::File( "tasklist /FI \"PID eq $pid\" /FO csv /NH 2>NUL |" ) ;
 		$fh or die "tasklist error" ;
 		while(<$fh>)
 		{
@@ -838,6 +887,18 @@ sub processIsRunning
 
 sub nextPort
 {
+	my $port ;
+	for( my $try = 0 ; $try < 5 ; $try++ )
+	{
+		$port = nextPortImp() ;
+		my $socket = new IO::Socket::INET( LocalPort=>$port , Proto=>'tcp' ) ;
+		if( $socket ) { close($socket) ; last }
+	}
+	return $port ;
+}
+
+sub nextPortImp
+{
 	# Returns the next port number in sequence. The implementation
 	# uses a state file, which is created if necessary with a random
 	# port number. O/s file locking is used to avoid races on the
@@ -847,12 +908,12 @@ sub nextPort
 	my $file = ".tmp.port" ;
 	my $fh ;
 	my $old_mask = umask 0 ;
-	$fh = new FileHandle( $file , "a" , 0666 ) ;
+	$fh = new IO::File( $file , "a" , 0666 ) ;
 	umask $old_mask ;
 	$fh->close() if $fh ;
 	for( my $i = 0 ; $i < 5 ; $i++ )
 	{
-		$fh = new FileHandle( $file , "r+" ) ;
+		$fh = new IO::File( $file , "r+" ) ;
 		last if $fh ;
 		sleep_cs( 1 ) ;
 	}
@@ -874,8 +935,8 @@ sub edit
 	for my $path ( glob_($glob) )
 	{
 		my $tmp = $path . "." . time() . ".tmp" ;
-		my $fh_in = new FileHandle( $path , "r" ) or die "cannot open $path" ;
-		my $fh_out = new FileHandle( $tmp , "w" ) or die "cannot open $tmp" ;
+		my $fh_in = new IO::File( $path , "r" ) or die "cannot open $path" ;
+		my $fh_out = new IO::File( $tmp , "w" ) or die "cannot open $tmp" ;
 		while(<$fh_in>)
 		{
 			my $line = $_ ;

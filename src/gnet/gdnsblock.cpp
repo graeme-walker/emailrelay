@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gdnsblock.cpp
 ///
@@ -308,7 +296,7 @@ void GNet::DnsBlockResult::log() const
 	using namespace DnsBlockImp ;
 	if( m_type == Type::Local )
 	{
-		G_LOG( "GNet::DnsBlockResult::log: dnsbl: not checking local address [" << m_address.hostPartString() << "]" ) ;
+		G_LOG_G( dnsbl , "GNet::DnsBlockResult::log: dnsbl: not checking local address [" << m_address.hostPartString() << "]" ) ;
 	}
 	else if( m_type != Type::Inactive )
 	{
@@ -322,7 +310,7 @@ void GNet::DnsBlockResult::log() const
 				ss << "denied by [" << result.server() << "]: " << HostList{result.addresses()} ;
 			else
 				ss << "not checked by [" << result.server() << "]" ;
-			G_LOG( "GNet::DnsBlockResult::log: dnsbl: " << ss.str() ) ;
+			G_LOG_G( dnsbl , "GNet::DnsBlockResult::log: dnsbl: " << ss.str() ) ;
 		}
 	}
 }
@@ -348,12 +336,10 @@ bool GNet::DnsBlockResult::allow() const
 	return m_type == Type::Inactive || m_type == Type::Local || m_type == Type::TimeoutAllow || m_type == Type::Allow ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::DnsBlockResult::deny() const
 {
 	return !allow() ;
 }
-#endif
 
 std::size_t GNet::DnsBlock::countResponders( const ResultList & list )
 {

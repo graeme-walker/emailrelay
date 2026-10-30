@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gmxfilter.cpp
 ///
@@ -42,9 +30,14 @@ GFilters::MxFilter::MxFilter( GNet::EventState es , GStore::FileStore & store ,
 		m_timer(*this,&MxFilter::onTimeout,es)
 {
 	if( MxLookup::enabled() )
+	{
 		m_mxlookup_config = parseSpec( m_spec , m_mxlookup_nameservers ) ;
+		m_mxlookup_config.verbosity = m_filter_config.verbosity ;
+	}
 	else
+	{
 		throw G::Exception( "mx: not enabled at build time" ) ;
+	}
 }
 
 GFilters::MxFilter::~MxFilter()
@@ -61,7 +54,7 @@ void GFilters::MxFilter::start( const GStore::MessageId & message_id )
 	if( !forward_to.address.empty() )
 	{
 		// already an IP address so no DNS lookup
-		G_LOG_MORE( "GFilters::MxFilter::start: " << prefix() << " copying forward-to to forward-to-address: " << forward_to.address ) ;
+		G_LOG_MORE_V( verbosity() , "GFilters::MxFilter::start: " << prefix() << " copying forward-to to forward-to-address: " << forward_to.address ) ;
 		GStore::StoredFile msg( m_store , message_id , storestate() ) ;
 		msg.noUnlock() ;
 		msg.editEnvelope( [forward_to](GStore::Envelope &env_){env_.forward_to_address=forward_to.address;} ) ;
@@ -70,13 +63,13 @@ void GFilters::MxFilter::start( const GStore::MessageId & message_id )
 	}
 	else if( forward_to.domain.empty() )
 	{
-		G_LOG_MORE( "GFilters::MxFilter::start: " << prefix() << " no forward-to domain" ) ;
+		G_LOG_MORE_V( verbosity() , "GFilters::MxFilter::start: " << prefix() << " no forward-to domain" ) ;
 		m_timer.startTimer( 0U ) ;
 		m_result = Result::ok ;
 	}
 	else
 	{
-		G_LOG( "GFilters::MxFilter::start: " << prefix() << " looking up [" << forward_to.domain << "]" ) ;
+		G_LOG_V( verbosity() , "GFilters::MxFilter::start: " << prefix() << " looking up [" << forward_to.domain << "]" ) ;
 
 		if( m_lookup ) m_lookup->doneSignal().disconnect() ;
 		m_lookup = std::make_unique<MxLookup>( m_es , m_mxlookup_config , m_mxlookup_nameservers ) ;
@@ -95,9 +88,9 @@ std::string GFilters::MxFilter::id() const
 	return m_id ;
 }
 
-bool GFilters::MxFilter::quiet() const
+int GFilters::MxFilter::verbosity() const noexcept
 {
-	return false ;
+	return m_filter_config.verbosity ;
 }
 
 bool GFilters::MxFilter::special() const
@@ -150,7 +143,7 @@ void GFilters::MxFilter::lookupDone( GStore::MessageId message_id , std::string 
 	if( G::Str::headMatch(address,"0.0.0.0:") && GNet::Address::validString(address) )
 		address.clear() ;
 
-	G_LOG( "GFilters::MxFilter::start: " << prefix() << ": [" << message_id.str() << "]: "
+	G_LOG_V( verbosity() , "GFilters::MxFilter::start: " << prefix() << ": [" << message_id.str() << "]: "
 		<< "setting forward-to-address [" << address << "]"
 		<< (error.empty()?"":" (") << error << (error.empty()?"":")") ) ;
 

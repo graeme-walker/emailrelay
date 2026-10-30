@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file ggetopt.cpp
 ///
@@ -28,14 +16,12 @@
 #include <fstream>
 #include <algorithm>
 
-#ifndef G_LIB_SMALL
 G::GetOpt::GetOpt( const Arg & args_in , const std::string & spec , std::size_t ignore_non_options ) :
 	m_spec(spec) ,
 	m_args(args_in)
 {
 	parseArgs( ignore_non_options ) ;
 }
-#endif
 
 G::GetOpt::GetOpt( const Arg & args_in , const Options & spec , std::size_t ignore_non_options ) :
 	m_spec(spec) ,
@@ -44,25 +30,20 @@ G::GetOpt::GetOpt( const Arg & args_in , const Options & spec , std::size_t igno
 	parseArgs( ignore_non_options ) ;
 }
 
-#ifndef G_LIB_SMALL
 G::GetOpt::GetOpt( const StringArray & args_in , const std::string & spec , std::size_t ignore_non_options ) :
 	m_spec(spec) ,
 	m_args(args_in)
 {
 	parseArgs( ignore_non_options ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 G::GetOpt::GetOpt( const StringArray & args_in , const Options & spec , std::size_t ignore_non_options ) :
 	m_spec(spec) ,
 	m_args(args_in)
 {
 	parseArgs( ignore_non_options ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 void G::GetOpt::reload( const StringArray & args_in , std::size_t ignore_non_options )
 {
 	m_map.clear() ;
@@ -70,7 +51,6 @@ void G::GetOpt::reload( const StringArray & args_in , std::size_t ignore_non_opt
 	m_args = Arg( args_in ) ;
 	parseArgs( ignore_non_options ) ;
 }
-#endif
 
 void G::GetOpt::parseArgs( std::size_t ignore_non_options )
 {
@@ -79,7 +59,6 @@ void G::GetOpt::parseArgs( std::size_t ignore_non_options )
 	m_args = Arg( new_args ) ;
 }
 
-#ifndef G_LIB_SMALL
 bool G::GetOpt::addOptionsFromFile( std::size_t n , const StringArray & blocklist )
 {
 	if( n < m_args.c() )
@@ -92,9 +71,7 @@ bool G::GetOpt::addOptionsFromFile( std::size_t n , const StringArray & blocklis
 	}
 	return true ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 void G::GetOpt::addOptionsFromFile( std::size_t n , const std::string & varkey , const std::string & varvalue )
 {
 	if( n < m_args.c() )
@@ -110,7 +87,6 @@ void G::GetOpt::addOptionsFromFile( std::size_t n , const std::string & varkey ,
 		}
 	}
 }
-#endif
 
 G::StringArray G::GetOpt::readOptionsFromFile( const Path & filename )
 {
@@ -127,46 +103,36 @@ const std::vector<G::Option> & G::GetOpt::options() const
 	return m_spec.list() ;
 }
 
-#ifndef G_LIB_SMALL
 const G::OptionMap & G::GetOpt::map() const
 {
 	return m_map ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 G::StringArray G::GetOpt::errorList() const
 {
 	return m_errors ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 bool G::GetOpt::contains( char c ) const
 {
 	return m_map.contains( m_spec.lookup(c) ) ;
 }
-#endif
 
 bool G::GetOpt::contains( std::string_view name ) const
 {
 	return m_map.contains( name ) ;
 }
 
-#ifndef G_LIB_SMALL
 std::size_t G::GetOpt::count( std::string_view name ) const
 {
 	return m_map.count( name ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 std::string G::GetOpt::value( char c , std::string_view default_ ) const
 {
 	G_ASSERT( contains(c) ) ;
 	return value( m_spec.lookup(c) , default_ ) ;
 }
-#endif
 
 std::string G::GetOpt::value( std::string_view name , std::string_view default_ ) const
 {

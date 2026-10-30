@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gverifierfactory.h
 ///
@@ -67,10 +55,10 @@ public:
 
 protected: // overrides
 	std::unique_ptr<GSmtp::Verifier> newVerifier( GNet::EventState ,
-		const GSmtp::Verifier::Config & config ,
-		const GSmtp::VerifierFactoryBase::Spec & spec ) override ;
+		GSmtp::Verifier::Config config , const GSmtp::VerifierFactoryBase::Spec & spec ) override ;
 
 private:
+	static Spec makeSpec( std::string_view first , std::string_view second ) ;
 	static void checkFile( Spec & result , G::StringArray * warnings_p ) ;
 	static void fixFile( Spec & result , const G::Path & base_dir , const G::Path & app_dir ) ;
 	static void checkNet( Spec & result ) ;

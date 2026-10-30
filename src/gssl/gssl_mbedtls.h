@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gssl_mbedtls.h
 ///
@@ -23,6 +11,9 @@
 
 #include "gdef.h"
 #include "gssl.h"
+#if defined(MBEDTLS_USER_CONFIG)
+#include "mbedtls_user_config.h"
+#endif
 #include "gssl_mbedtls_headers.h"
 #include "gstringview.h"
 #include "gpath.h"
@@ -35,6 +26,7 @@ namespace GSsl
 {
 	namespace MbedTls /// A namespace for implementing the GSsl interface using the mbedtls library.
 	{
+		using RngFn = int (*)( void * , unsigned char * , std::size_t ) ;
 		class Certificate ;
 		class Rng ;
 		class Key ;
@@ -60,7 +52,8 @@ public:
 	void load( const std::string & file ) ;
 	bool loaded() const ;
 	mbedtls_x509_crt * ptr() ;
-	mbedtls_x509_crt * ptr() const ;
+	const mbedtls_x509_crt * ptr() const ;
+	static std::string generate( const std::string & issuer_name , RngFn f_rng , void * p_rng ) ;
 
 public:
 	Certificate( const Certificate & ) = delete ;
@@ -79,10 +72,13 @@ private:
 class GSsl::MbedTls::Rng
 {
 public:
-	Rng() ;
+	explicit Rng( const Config & ) ;
 	~Rng() ;
 	mbedtls_ctr_drbg_context * ptr() ;
-	mbedtls_ctr_drbg_context * ptr() const ;
+	const mbedtls_ctr_drbg_context * ptr() const ;
+	void * vptr() const ; // p_rng
+	RngFn fn() const ; // f_rng (mbedtls_ctr_drbg_random())
+	static int getEntropy( void * , unsigned char * , std::size_t , std::size_t * ) noexcept ;
 
 public:
 	Rng( const Rng & ) = delete ;
@@ -105,7 +101,7 @@ public:
 	~Key() ;
 	void load( const std::string & file , const Rng & ) ;
 	mbedtls_pk_context * ptr() ;
-	mbedtls_pk_context * ptr() const ;
+	const mbedtls_pk_context * ptr() const ;
 
 public:
 	Key( const Key & ) = delete ;
@@ -126,7 +122,7 @@ public:
 	explicit Context( const mbedtls_ssl_config * ) ;
 	~Context() ;
 	mbedtls_ssl_context * ptr() ;
-	mbedtls_ssl_context * ptr() const ;
+	const mbedtls_ssl_context * ptr() const ;
 
 public:
 	Context( const Context & ) = delete ;
@@ -212,10 +208,9 @@ private:
 class GSsl::MbedTls::LibraryImp : public LibraryImpBase
 {
 public:
-	using Rng = MbedTls::Rng ;
-
-	LibraryImp( G::StringArray & , Library::LogFn , bool verbose ) ;
+	explicit LibraryImp( G::StringArray & , Library::LogFn = nullptr , bool verbose = false ) ;
 	~LibraryImp() override ;
+	Rng & rng() ;
 	const Rng & rng() const ;
 	Library::LogFn log() const ;
 	Config config() const ;
@@ -249,7 +244,7 @@ private:
 	Library::LogFn m_log_fn ;
 	Config m_config ;
 	Map m_profile_map ;
-	Rng m_rng ;
+	std::unique_ptr<Rng> m_rng ;
 } ;
 
 //| \class GSsl::MbedTls::ProfileImp
@@ -258,10 +253,6 @@ private:
 class GSsl::MbedTls::ProfileImp : public Profile
 {
 public:
-	using Key = MbedTls::Key ;
-	using Error = MbedTls::Error ;
-	using Certificate = MbedTls::Certificate ;
-
 	ProfileImp( const LibraryImp & library_imp , bool is_server , const std::string & key_file ,
 		const std::string & cert_file , const std::string & ca_file ,
 		const std::string & default_peer_certificate_name , const std::string & default_peer_host_name ,
@@ -306,8 +297,6 @@ class GSsl::MbedTls::ProtocolImp : public ProtocolImpBase
 {
 public:
 	using Result = Protocol::Result ;
-	using Context = MbedTls::Context ;
-	using Error = MbedTls::Error ;
 
 	ProtocolImp( const ProfileImp & , const std::string & , const std::string & ) ;
 	~ProtocolImp() override ;
@@ -356,7 +345,6 @@ private:
 class GSsl::MbedTls::DigesterImp : public GSsl::DigesterImpBase
 {
 public:
-	using Error = MbedTls::Error ;
 	DigesterImp( const std::string & , const std::string & , bool ) ;
 	~DigesterImp() override ;
 

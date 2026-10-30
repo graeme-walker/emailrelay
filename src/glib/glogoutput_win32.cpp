@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file glogoutput_win32.cpp
 ///
@@ -103,9 +91,9 @@ void G::LogOutput::register_( const Path & exe_path )
 	std::string reg_path = std::string("SYSTEM/CurrentControlSet/services/eventlog/Application/")
 		.append( exe_path.withoutExtension().basename() ) ;
 
-	HKEY key = 0 ;
+	HKEY key = HNULL ;
 	LONG e = nowide::regCreateKey( reg_path , &key ) ;
-	if( e == ERROR_SUCCESS && key != 0 )
+	if( e == ERROR_SUCCESS && key != HNULL )
 	{
 		DWORD types = EVENTLOG_INFORMATION_TYPE | EVENTLOG_WARNING_TYPE | EVENTLOG_ERROR_TYPE ;
 		nowide::regSetValue( key , "EventMessageFile" , exe_path.str() ) ;
@@ -113,7 +101,7 @@ void G::LogOutput::register_( const Path & exe_path )
 		nowide::regSetValue( key , "CategoryMessageFile" , exe_path.str() ) ;
 		nowide::regSetValue( key , "TypesSupported" , types ) ;
 	}
-	if( key != 0 )
+	if( key != HNULL )
 		RegCloseKey( key ) ;
 }
 

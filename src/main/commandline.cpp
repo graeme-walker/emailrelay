@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file commandline.cpp
 ///
@@ -125,7 +113,7 @@ Main::CommandLine::CommandLine( Output & output , const G::Arg & args_in ,
 			config_names.emplace_back() ;
 
 		// parse each config name
-		for( std::size_t i = 0U ; i < config_names.size() ; i++ )
+		for( std::size_t i = 0U ; i < config_names.size() ; i++ ) // NOLINT(modernize-loop-convert)
 		{
 			m_config_names.push_back( config_names[i] ) ;
 			m_option_maps.emplace_back() ;
@@ -186,7 +174,7 @@ void Main::CommandLine::dump() const
 	for( std::size_t i = 0U ; i < m_config_names.size() ; i++ )
 	{
 		std::cout << m_config_names.at(i) << "...\n" ;
-		for( auto p = m_option_maps.at(i).begin() ; p != m_option_maps.at(i).end() ; ++p ) // NOLINT modernize-loop-convert
+		for( auto p = m_option_maps.at(i).begin() ; p != m_option_maps.at(i).end() ; ++p ) // NOLINT(modernize-loop-convert)
 		{
 			std::cout << "  " << (*p).first << "=[" << (*p).second.value() << "] (" << (*p).second.count() << ")\n" ;
 		}
@@ -433,14 +421,14 @@ void Main::CommandLine::showAdmin( bool e , const std::string & eot ) const
 	show.s() << "Admin server: " << (enabled?"enabled":"disabled") << eot ;
 }
 
-void Main::CommandLine::showSemanticError( const std::string & error ) const
+void Main::CommandLine::showError( const std::string & error ) const
 {
 	using G::txt ;
 	Show show( m_output , true , m_verbose ) ;
 	show.s() << m_arg_prefix << ": " << txt("usage error: ") << error << std::endl ;
 }
 
-void Main::CommandLine::showSemanticWarnings( const G::StringArray & warnings ) const
+void Main::CommandLine::showWarnings( const G::StringArray & warnings ) const
 {
 	using G::txt ;
 	if( !warnings.empty() )
@@ -453,10 +441,10 @@ void Main::CommandLine::showSemanticWarnings( const G::StringArray & warnings ) 
 	}
 }
 
-void Main::CommandLine::logSemanticWarnings( const G::StringArray & warnings ) const
+void Main::CommandLine::logWarnings( const G::StringArray & warnings ) const
 {
 	for( const auto & warning : warnings )
-		G_WARNING( "CommandLine::logSemanticWarnings: " << warning ) ;
+		G_WARNING( "CommandLine::logWarnings: " << warning ) ;
 }
 
 // ===

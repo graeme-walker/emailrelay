@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gdirectory.cpp
 ///
@@ -28,24 +16,20 @@
 #include <functional>
 #include <iterator> // std::distance
 
-#ifndef G_LIB_SMALL
 G::Directory::Directory() :
 	m_path(".")
 {
 }
-#endif
 
 G::Directory::Directory( const Path & path ) :
 	m_path(path)
 {
 }
 
-#ifndef G_LIB_SMALL
 G::Directory::Directory( const std::string & path ) :
 	m_path(path)
 {
 }
-#endif
 
 G::Path G::Directory::path() const
 {
@@ -70,14 +54,12 @@ bool G::Directory::valid( bool for_creation ) const
 G::DirectoryList::DirectoryList()
 = default;
 
-#ifndef G_LIB_SMALL
 void G::DirectoryList::readAll( const G::Path & dir , std::vector<Item> & out )
 {
 	DirectoryList list ;
 	list.readAll( dir ) ;
 	list.m_list.swap( out ) ;
 }
-#endif
 
 std::size_t G::DirectoryList::readAll( const G::Path & dir )
 {
@@ -120,12 +102,10 @@ void G::DirectoryList::readImp( const G::Path & dir , bool sub_dirs , std::strin
 	}
 }
 
-#ifndef G_LIB_SMALL
 bool G::DirectoryList::empty() const noexcept
 {
 	return m_list.empty() ;
 }
-#endif
 
 bool G::DirectoryList::more()
 {
@@ -143,12 +123,10 @@ bool G::DirectoryList::more()
 	return more ;
 }
 
-#ifndef G_LIB_SMALL
 bool G::DirectoryList::isLink() const
 {
 	return m_list.at(m_index).m_is_link ;
 }
-#endif
 
 bool G::DirectoryList::isDir() const
 {

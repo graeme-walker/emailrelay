@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file goptionmap.h
 ///
@@ -23,6 +11,7 @@
 
 #include "gdef.h"
 #include "goptionvalue.h"
+#include "gdatetime.h"
 #include "gstringview.h"
 #include <string>
 #include <map>
@@ -47,6 +36,8 @@ public:
 	using value_type = Map::value_type ;
 	using iterator = Map::iterator ;
 	using const_iterator = Map::const_iterator ;
+	using IntervalPair = std::pair<bool,TimeInterval> ;
+	using IntervalsPair = std::pair<bool,std::vector<TimeInterval>> ;
 
 public:
 	void insert( const Map::value_type & ) ;
@@ -98,8 +89,25 @@ public:
 		///< corresponding to the first one, being G::Str::positive() if 'on'
 		///< or the supplied default if 'off'.
 
+	std::pair<bool,std::vector<unsigned>> numbers( std::string_view key , unsigned int default_ ) const ;
+		///< Returns the matching values as a list of numbers.
+
 	unsigned int number( std::string_view key , unsigned int default_ ) const noexcept ;
 		///< Returns the matching value as a number.
+
+	IntervalPair interval( std::string_view key , unsigned int default_ ) const noexcept ;
+		///< Returns value() as a time interval, together with a success status.
+		///< Returns the default number-of-seconds value if the value
+		///< status is not ok.
+
+	IntervalsPair intervals( std::string_view key ) const ;
+		///< Returns value() as a list of time intervals with a boolean
+		///< that is false on error.
+
+	static IntervalPair parseInterval( std::string_view value ,
+		unsigned int default_ = 0U ) noexcept ;
+			///< Parses a time interval value into an interval() pair,
+			///< with support for value strings like "1d", "3ms" etc.
 
 private:
 	using Range = std::pair<Map::const_iterator,Map::const_iterator> ;

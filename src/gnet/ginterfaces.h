@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file ginterfaces.h
 ///
@@ -99,13 +87,19 @@ public:
 	const_iterator end() const ;
 		///< Returns a one-off-the-end iterator.
 
-	std::vector<Address> addresses( const std::string & name , unsigned int port , int af = AF_UNSPEC ) const ;
-		///< Returns addresses bound to the given interface.
-		///< Does a lazy load().
+	std::vector<Address> addresses( const std::string & name ,
+		unsigned int port , int af = AF_UNSPEC ) const ;
+			///< Returns addresses bound to the given interface.
+			///< Does a lazy load().
 
-	std::size_t addresses( std::vector<Address> & out , const std::string & name , unsigned int port , int af = AF_UNSPEC ) const ;
-		///< An overload that appends to the given list and returns
-		///< the number added.
+	std::size_t addresses( std::vector<Address> & out , const std::string & name ,
+		unsigned int port , int af = AF_UNSPEC ) const ;
+			///< An overload that appends to the given list and returns
+			///< the number added.
+
+	std::size_t addresses( std::vector<Address> & out , const std::string & name ,
+		const std::vector<unsigned> & ports , int af = AF_UNSPEC ) const ;
+			///< An overload for multiple ports.
 
 private: // overrides
 	void readEvent() override ; // GNet::EventHandler

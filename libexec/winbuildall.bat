@@ -1,94 +1,212 @@
 @echo off
 rem
-rem Copyright (C) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
-rem 
-rem This program is free software: you can redistribute it and/or modify
-rem it under the terms of the GNU General Public License as published by
-rem the Free Software Foundation, either version 3 of the License, or
-rem (at your option) any later version.
-rem 
-rem This program is distributed in the hope that it will be useful,
-rem but WITHOUT ANY WARRANTY; without even the implied warranty of
-rem MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-rem GNU General Public License for more details.
-rem 
-rem You should have received a copy of the GNU General Public License
-rem along with this program.  If not, see <http://www.gnu.org/licenses/>.
-rem ===
+rem SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+rem SPDX-License-Identifier: GPL-3.0-or-later
 rem
 rem winbuildall.bat
 rem
-rem Builds perl, libressl, mbedtls, qt and emailrelay from source when
-rem run from a msvc 64-bit build environment ("developer command prompt"),
-rem without using "cmake". Typically used from a Microsoft "WinDev" VM or
-rem a continuous-integration build server. The output build artifacts are
-rem statically-linked executables in "emailrelay-bin-x64/src/main/release"
-rem and "emailrelay-bin-x64/src/gui/release".
+rem Builds perl, libressl, mbedtls, Qt and emailrelay from source
+rem using cmake.
 rem
-rem There is no reliance on cmake because it is not available on a
-rem clean "WinDev" VM and it is impossible to build from source.
+rem usage: winbuildall.bat [--no-gui] [{debug|release} [<arch> [<cmake>]]]
 rem
-rem This batch file should be in a base directory containing read-only
-rem source trees called "perl-src", "libressl-src", "mbedtls-src",
-rem "qt-src" and "emailrelay-src":
+rem This batch file should normally be run from a MSVC build
+rem environment, ie. a "developer command prompt". Alternatively,
+rem the build environment can be bootstrapped using "cmake", as
+rem follows:
+rem     copy emailrelay-src\etc\winbuildall-cmake.txt CMakeLists.txt
+rem     cmake --fresh -A x64 .
+rem     cmake --build . --config release  [runs winbuildall.bat]
 rem
-rem Download perl:
-rem $ wget https://www.cpan.org/src/5.0/perl-5.38.2.tar.gz
-rem $ tar -xzf perl-5.38.2.tar.gz
-rem $ ren perl-5.38.2 perl-src
+rem If the "cmake" path is not specified on the command-line then
+rem the perl scripts called by this batch file will choose the first
+rem cmake program on the PATH that has some version of Visual Studio
+rem as its default generator.
 rem
-rem Download libressl:
-rem $ wget https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-3.8.2.tar.gz
-rem $ tar -xzf libressl-3.8.2.tar.gz
-rem $ ren libressl-3.8.2 libressl-src
+rem The emailrelay build produces statically-linked executables in:
+rem     <arch>/emailrelay-build-<arch>-<config>/src/{main,gui}/<config>
 rem
-rem Download mbedtls:
-rem $ git clone https://github.com/Mbed-TLS/mbedtls.git mbedtls-src
-rem $ git -C mbedtls-src checkout -q "mbedtls-2.28"
+rem The built executables are then assembled into a release tree under:
+rem     emailrelay-windows-<arch>-<config>
 rem
-rem Download qt5:
-rem $ git clone https://code.qt.io/qt/qt5.git qt-src
-rem $ git -C qt-src checkout 5.15.2
-rem $ cd qt-src && perl init-repository --module-subset=qtbase,qttools,qttranslations
+rem This batch script assumes that the mbedtls and libressl libraries
+rem end up in debug-or-release sub-directories. This is normally the
+rem case but it will depend on the default cmake generator being
+rem "multi-config" (eg. MSVC).
 rem
-rem Download emailrelay:
-rem $ git clone https://git.code.sf.net/p/emailrelay/git emailrelay-src
-rem $ git -C emailrelay-src checkout 2.6.1
-rem $ copy emailrelay-src\libexec\winbuildall.bat .
+rem This batch file should normally be in a base directory containing
+rem read-only source trees called "perl-src", "libressl-src", "mbedtls-src",
+rem "qt-src" and "emailrelay-src". (Use "winbuildall.bat download" to
+rem download and unpack sources.) However, if this batch file is being run
+rem from "<edir>/libexec" then the library source trees must be under
+rem "<edir>" and their build trees under "<edir>/<arch>". If a complete
+rem library build tree exists then the corresponding source tree is not
+rem required.
+rem
+rem If downloading with git rather than fetching tarballs note that:
+rem Qt and mbedtls have git submodules that must be initialised; if
+rem deleting Qt ".git" sub-directories to save space then they should
+rem be replaced with empty files; and some Qt git branches will not
+rem include machine-generated source files, so it can be better to
+rem checkout released tags rather than development branches.
 rem
 
 setlocal
+set version=2.7
 set thisdir=%~dp0
 set thisdrive=%~d0
-set arch=%Platform%
+
+rem download and unpack tarballs to cwd if requested
+rem
+set qt=https://download.qt.io/archive/qt/6.8/6.8.3/submodules
+set qtname=src-6.8.3
+perl.exe -e "exit 99" 2>NUL
+if "%1"=="download" (
+
+	rem download perl
+	if not "%errorlevel%"=="99" if not exist perl-src (
+		echo winbuildall: downloading perl source
+		curl -L -O https://www.cpan.org/src/5.0/perl-5.38.2.tar.gz
+		certutil -hashfile perl-5.38.2.tar.gz SHA256 | findstr /i "a0a31534451eb7b83c7d6594a497543a54d488bc90ca00f5e34762577f40655e" >NUL
+		if errorlevel 1 (
+			echo winbuildall: perl tarball checksum failed
+			certutil -hashfile perl-5.38.2.tar.gz SHA256
+			goto error
+		)
+		mkdir perl-src
+		tar -m -C perl-src --strip-components=1 -xzf perl-5.38.2.tar.gz
+	)
+
+	rem download libressl
+	if not exist libressl-src (
+		echo winbuildall: downloading libressl source
+		curl -L -O https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-4.2.1.tar.gz
+		certutil -hashfile libressl-4.2.1.tar.gz SHA256 | findstr /i "6d5c2f58583588ea791f4c8645004071d00dfa554a5bf788a006ca1eb5abd70b"
+		if errorlevel 1 (
+			echo winbuildall: libressl tarball checksum failed
+			certutil -hashfile libressl-4.2.1.tar.gz SHA256
+			goto error
+		)
+		mkdir libressl-src
+		tar -m -C libressl-src --strip-components=1 -xf libressl-4.2.1.tar.gz
+	)
+
+	rem download mbedtls
+	if not exist mbedtls-src\CMakeLists.txt (
+		echo winbuildall: downloading mbedtls source
+		curl -L -O https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.5/mbedtls-3.6.5.tar.bz2
+		certutil -hashfile mbedtls-3.6.5.tar.bz2 SHA256 | findstr /i "4a11f1777bb95bf4ad96721cac945a26e04bf19f57d905f241fe77ebeddf46d8" >NUL
+		if errorlevel 1 (
+			echo winbuildall: mbedtls tarball checksum failed
+			certutil -hashfile mbedtls-3.6.5.tar.bz2 SHA256
+			goto error
+		)
+		mkdir mbedtls-src
+		tar -m -C mbedtls-src --strip-components=1 -xf mbedtls-3.6.5.tar.bz2
+		if not exist mbedtls-src\CMakeLists.txt (
+			rmdir /q /s mbedtls-src
+			cmake -E tar -xjf mbedtls-3.6.5.tar.bz2
+			move mbedtls-3.6.5 mbedtls-src
+		)
+	)
+
+	rem download qt
+	if not exist qt-src (
+		echo winbuildall: downloading Qt source
+		curl -L -O %qt%/qtbase-everywhere-%qtname%.zip
+		certutil -hashfile qtbase-everywhere-%qtname%.zip SHA256 | findstr /i "992bf7766e214a341ef793eb3665fb784787d2fd666955f5f507f4c6f1f770dd" >NUL
+		if errorlevel 1 (
+			echo winbuildall: qtbase tarball checksum failed
+			certutil -hashfile qtbase-everywhere-%qtname%.zip SHA256
+			goto error
+		)
+		curl -L -O %qt%/qttools-everywhere-%qtname%.zip
+		certutil -hashfile qttools-everywhere-%qtname%.zip SHA256 | findstr /i "4797251aa4d04c9d9da279d8da75f6348f76cff2a75192eac7cca81f5e1b1b38" >NUL
+		if errorlevel 1 (
+			echo winbuildall: qttools tarball checksum failed
+			certutil -hashfile qttools-everywhere-%qtname%.zip SHA256
+			goto error
+		)
+		curl -L -O %qt%/qttranslations-everywhere-%qtname%.zip
+		certutil -hashfile qttranslations-everywhere-%qtname%.zip SHA256 | findstr /i "2a51d6d2a143b17fb0f9a0ac5fbab67602a950447504ec8cb8e23db12ccd3beb" >NUL
+		if errorlevel 1 (
+			echo winbuildall: qttranslations tarball checksum failed
+			certutil -hashfile qttranslations-everywhere-%qtname%.zip SHA256
+			goto error
+		)
+		mkdir qt-src && mkdir qt-src\qtbase && mkdir qt-src\qttools && mkdir qt-src\qttranslations
+		tar -m -C qt-src/qtbase --strip-components=1 -xf qtbase-everywhere-%qtname%.zip
+		tar -m -C qt-src/qttools --strip-components=1 -xf qttools-everywhere-%qtname%.zip
+		tar -m -C qt-src/qttranslations --strip-components=1 -xf qttranslations-everywhere-%qtname%.zip
+	)
+
+	rem download emailrelay
+	if not exist Makefile.am if not exist emailrelay-src (
+		echo winbuildall: downloading emailrelay source
+		curl -L -O https://sf.net/projects/emailrelay/files/emailrelay/%version%/emailrelay-%version%-src.tar.gz
+		mkdir emailrelay-src
+		tar -m -C emailrelay-src --strip-components=1 -xf emailrelay-%version%-src.tar.gz
+	)
+	goto end
+)
+
+set gui=1
 set config=release
-if "%1"=="debug" set config=debug
+set arch=%Platform%
+set cmake=
+:parse
+if "%~1"=="--no-gui" (set gui=0 & shift & goto parse)
+if /I "%~1"=="debug" set config=debug
+if not "%~2"=="" set "arch=%~2"
+if not "%~3"=="" set "cmake=%~3"
 
-set emailrelaysrc=%thisdir%emailrelay-src
-set perlsrc=%thisdir%perl-src
-set mbedtlssrc=%thisdir%mbedtls-src
-set libresslsrc=%thisdir%libressl-src
-set qtsrc=%thisdir%qt-src
+echo winbuildall: arch=[%arch%]
+echo winbuildall: config=[%config%]
+echo winbuildall: cmake=[%cmake%]
 
-if not exist %emailrelaysrc%\src\glib\gdef.h (
+set "basedir=%thisdir%"
+set "emailrelaysrc=%basedir%emailrelay-src"
+set "thisdir_=%thisdir%"
+if "%thisdir:~-1%"=="\" set "thisdir_=%thisdir:~0,-1%"
+if exist "%thisdir%\winbuild.pm" (
+	for %%I in ("%thisdir_%") do (
+		set "basedir=%%~dpI"
+		set "emailrelaysrc=%%~dpI"
+	)
+)
+if "%emailrelaysrc:~-1%"=="\" set "emailrelaysrc=%emailrelaysrc:~0,-1%"
+set "perlsrc=%basedir%perl-src"
+set "mbedtlssrc=%basedir%mbedtls-src"
+set "libresslsrc=%basedir%libressl-src"
+set "qtsrc=%basedir%qt-src"
+
+echo winbuildall: basedir=[%basedir%]
+echo winbuildall: perlsrc=[%perlsrc%]
+echo winbuildall: mbedtlssrc=[%mbedtlssrc%]
+echo winbuildall: libresslsrc=[%libresslsrc%]
+echo winbuildall: qtsrc=[%qtsrc%]
+echo winbuildall: emailrelaysrc=[%emailrelaysrc%]
+
+if not exist "%emailrelaysrc%\src\glib\gdef.h" (
 	echo winbuildall: no emailrelay source at %emailrelaysrc%
 	goto error
 )
-if not exist %libresslsrc%\ssl\ssl_lib.c (
-	echo winbuildall: no libressl source at %libresslsrc%
+if not exist "%emailrelaysrc%\src\gui\guimain.cpp" if "%gui%"=="1" (
+	echo winbuildall: no emailrelay-gui source under %emailrelaysrc%\src\gui
 	goto error
 )
-if not exist %mbedtlssrc%\include\mbedtls\ssl.h (
-	echo winbuildall: no mbedtls source at %mbedtlssrc%
-	goto error
+if not exist "%libresslsrc%\ssl\ssl_lib.c" (
+	echo winbuildall: warning: no libressl source at %libresslsrc%
 )
-if not exist %qtsrc%\qtbase\src\corelib (
-	echo winbuildall: no qt source at %qtsrc%
-	goto error
+if not exist "%mbedtlssrc%\include\mbedtls\ssl.h" (
+	echo winbuildall: warning: no mbedtls source at %mbedtlssrc%
 )
-if not "%Platform%" == "x64" (
-	if not "%Platform%" == "x86" (
-		echo winbuildall: please run from a visual studio 64-bit developer command prompt
+if not exist "%qtsrc%\qtbase\src\corelib" if "%gui%"=="1" (
+	echo winbuildall: warning: no qt source at %qtsrc%
+)
+if not "%arch%" == "x64" (
+	if not "%arch%" == "x86" (
+		echo winbuildall: warning: unknown architecture [%arch%]: try running from a developer command prompt
 		goto error
 	)
 )
@@ -98,34 +216,42 @@ rem
 set cctype=MSVC143
 if "%VisualStudioVersion%" == "16.0" set cctype=MSVC142
 perl.exe -e "exit 99" 2>NUL
-if %errorlevel% == 99 (
+if "%errorlevel%"=="99" (
 	set perl=perl.exe
 ) else (
-	if not exist %perlsrc%\win32 (
+	if not exist "%perlsrc%\win32" (
 		echo winbuildall: no perl source at %perlsrc%
 		goto error
 	)
-	mkdir %thisdir%perl-bin 2>NUL
-	if not exist %thisdir%perl-bin\bin\perl.exe (
-		echo winbuildall: building perl: CCTYPE=%cctype% INST_DRV=%thisdrive% INST_TOP=%thisdir%perl-bin
-		cd %perlsrc%\win32 && nmake CCTYPE=%cctype% INST_DRV=%thisdrive% INST_TOP=%thisdir%perl-bin clean
-		cd %perlsrc%\win32 && nmake CCTYPE=%cctype% INST_DRV=%thisdrive% INST_TOP=%thisdir%perl-bin install
+	mkdir "%basedir%perl-bin" 2>NUL
+	if not exist "%basedir%perl-bin\bin\perl.exe" (
+		if not exist perl-build (
+			echo winbuildall: copying perl source to perl-build
+			mkdir perl-build
+			xcopy /E /Q /V "%perlsrc%" perl-build\
+		)
+		echo winbuildall: building perl: CCTYPE=%cctype% INST_DRV=%thisdrive% INST_TOP=%basedir%perl-bin
+		cd %perlsrc%\win32 && nmake CCTYPE=%cctype% INST_DRV=%thisdrive% "INST_TOP=%basedir%perl-bin" install
 	)
-	set perl=%thisdir%perl-bin\bin\perl.exe
+	if not exist "%basedir%perl-bin\bin\perl.exe" (
+		echo winbuildall: perl not built: [%basedir%perl-bin\bin\perl.exe]
+		goto error
+	)
+	set perl=%basedir%perl-bin\bin\perl.exe
 )
 %perl% -e "exit 99" 2>NUL
-if not %errorlevel% == 99 (
-	echo winbuildall: perl %perl% not built
+if not "%errorlevel%"=="99" (
+	echo winbuildall: perl [%perl%] not working
 	goto error
 )
 
 rem libressl
 rem
-if exist %thisdir%libressl-bin-%arch%\library\%config%\ssl.lib (
+if exist "%basedir%%arch%\libressl-build-%arch%-%config%\library\%config%\ssl.lib" (
 	echo winbuildall: libressl already built
 ) else (
-	cd %thisdir% && %perl% %emailrelaysrc%/libexec/libresslbuild.pl --config=%config% --arch=%arch% %libresslsrc% libressl-bin-%arch%
-	if not exist %thisdir%libressl-bin-%arch%\library\%config%\ssl.lib (
+	cd %basedir% && "%perl%" "%emailrelaysrc%/libexec/libresslbuild.pl" "--cmake=%cmake%" --config=%config% --arch=%arch% "%libresslsrc%" %arch%/libressl-build-%arch%-%config%
+	if not exist "%basedir%%arch%\libressl-build-%arch%-%config%\library\%config%\ssl.lib" (
 		echo winbuildall: libressl not built
 		goto error
 	)
@@ -133,11 +259,11 @@ if exist %thisdir%libressl-bin-%arch%\library\%config%\ssl.lib (
 
 rem mbedtls
 rem
-if exist %thisdir%mbedtls-bin-%arch%\library\%config%\mbedtls.lib (
+if exist "%basedir%%arch%\mbedtls-build-%arch%-%config%\library\%config%\mbedtls.lib" (
 	echo winbuildall: mbedtls already built
 ) else (
-	cd %thisdir% && %perl% %emailrelaysrc%/libexec/mbedtlsbuild.pl --config=%config% --arch=%arch% %mbedtlssrc% mbedtls-bin-%arch%
-	if not exist %thisdir%mbedtls-bin-%arch%\library\%config%\mbedtls.lib (
+	cd %basedir% && "%perl%" "%emailrelaysrc%/libexec/mbedtlsbuild.pl" "--cmake=%cmake%" --config=%config% --arch=%arch% "%mbedtlssrc%" %arch%/mbedtls-build-%arch%-%config%
+	if not exist "%basedir%%arch%\mbedtls-build-%arch%-%config%\library\%config%\mbedtls.lib" (
 		echo winbuildall: mbedtls not built
 		goto error
 	)
@@ -145,47 +271,56 @@ if exist %thisdir%mbedtls-bin-%arch%\library\%config%\mbedtls.lib (
 
 rem qt
 rem
-set corelib=Qt5Core.lib
-if "%config%"=="debug" set corelib=Qt5Cored.lib
-if exist %thisdir%qt-bin-%arch%\lib\%corelib% (
-	echo winbuildall: qt already built
-) else (
-	cd %thisdir% && %perl% %emailrelaysrc%/libexec/qtbuild.pl --config=%config% --arch=%arch% %qtsrc% qt-build-%arch%-%config% qt-bin-%arch%
-	if not exist %thisdir%qt-bin-%arch%\lib\%corelib% (
-		echo winbuildall: qt not built
-		goto error
+set qtversion=6
+if exist "%qtsrc%/qtbase/qtbase.pro" set qtversion=5
+set corelib=Qt%qtversion%Widgets.lib
+if "%config%"=="debug" set corelib=Qt%qtversion%Widgetsd.lib
+if "%gui%"=="1" (
+	if exist "%basedir%%arch%\qt-bin-%arch%\lib\%corelib%" (
+		echo winbuildall: qt%qtversion% already built
+	) else (
+		cd %basedir% && "%perl%" "%emailrelaysrc%/libexec/qtbuild.pl" "--cmake=%cmake%" --config=%config% --arch=%arch% "%qtsrc%" %arch%/qt-build-%arch%-%config% %arch%/qt-bin-%arch%
+		if not exist "%basedir%%arch%\qt-bin-%arch%\lib\%corelib%" (
+			echo winbuildall: qt not built
+			goto error
+		)
 	)
 )
 
 rem emailrelay
 rem
-mkdir %thisdir%emailrelay-bin-%arch% 2>NUL
-cd %thisdir%emailrelay-bin-%arch% && %perl% %emailrelaysrc%/libexec/make2nmake --openssl
-set OPENSSL_INC=%thisdir%libressl-bin-%arch%\include
-set OPENSSL_RLIB=%thisdir%libressl-bin-%arch%\library\release
-set OPENSSL_DLIB=%thisdir%libressl-bin-%arch%\library\debug
-set MBEDTLS_INC=%thisdir%mbedtls-bin-%arch%\include
-set MBEDTLS_RLIB=%thisdir%mbedtls-bin-%arch%\library\release
-set MBEDTLS_DLIB=%thisdir%mbedtls-bin-%arch%\library\debug
-set QT_INC=%thisdir%qt-bin-%arch%\include
-set QT_LIB=%thisdir%qt-bin-%arch%\lib
-set QT_MOC=%thisdir%qt-bin-%arch%\bin\moc.exe
-cd %thisdir%emailrelay-bin-%arch% && nmake /nologo /e CONFIG=%config% ARCH=%arch%
-if not exist %thisdir%emailrelay-bin-%arch%\src\main\%config%\emailrelay.exe (
+set OPENSSL_INC=%basedir%%arch%\libressl-build-%arch%-%config%\include
+set OPENSSL_RLIB=%basedir%%arch%\libressl-build-%arch%-%config%\library\release
+set OPENSSL_DLIB=%basedir%%arch%\libressl-build-%arch%-%config%\library\debug
+set MBEDTLS_INC=%basedir%%arch%\mbedtls-build-%arch%-%config%\include
+set MBEDTLS_RLIB=%basedir%%arch%\mbedtls-build-%arch%-%config%\library\release
+set MBEDTLS_DLIB=%basedir%%arch%\mbedtls-build-%arch%-%config%\library\debug
+set QT_INC=%basedir%%arch%\qt-bin-%arch%\include
+set QT_LIB=%basedir%%arch%\qt-bin-%arch%\lib
+set QT_MOC=%basedir%%arch%\qt-bin-%arch%\bin\moc.exe
+"%perl%" "%emailrelaysrc%/winbuild.pl" --all --gui=%gui% --qt-version=%qtversion% "--cmake=%cmake%" --config=%config% --arch=%arch% "%emailrelaysrc%" "%basedir%%arch%\emailrelay-build-%arch%-%config%"
+if not exist "%basedir%%arch%\emailrelay-build-%arch%-%config%\src\main\%config%\emailrelay.exe" (
 	echo winbuildall: emailrelay executable not built
 	goto error
 )
-if not exist %thisdir%emailrelay-bin-%arch%\src\gui\%config%\emailrelay-gui.exe (
+if not exist "%basedir%%arch%\emailrelay-build-%arch%-%config%\src\gui\%config%\emailrelay-gui.exe" if "%gui%"=="1" (
 	echo winbuildall: emailrelay gui executable not built
 	goto error
 )
 
+rem assembly
+rem
+if "%gui%"=="1" (
+	cd %basedir% && "%perl%" "%emailrelaysrc%/libexec/winbuild-assembly.pl" --static --arch=%arch% --config=%config% --src-dir "%emailrelaysrc%" --dst-dir emailrelay-windows-%arch%-%config% --build-dir %arch%/emailrelay-build-%arch%-%config% --qt-dir %arch%/qt-bin-%arch% --qt-build-dir %arch%/qt-build-%arch%-%config%
+	if errorlevel 1 goto error
+)
+
 echo winbuildall: done
-endlocal
 goto end
 
 :error
 echo winbuildall: failed
-endlocal
+timeout /t 2
 
 :end
+@endlocal

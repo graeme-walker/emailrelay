@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file ginterfaces_unix.cpp
 ///
@@ -22,6 +10,7 @@
 //   ip address del 127.0.0.2/8 dev lo
 //   ip address add fe80::dead:beef/64 dev eth0
 //   ip address del fe80::dead:beef/64 dev eth0
+//   ip link add dummy0 type dummy && ip link set dummy0 up
 //
 // BSD:
 //   ifconfig lo0 inet 127.0.0.2 alias netmask 255.0.0.0

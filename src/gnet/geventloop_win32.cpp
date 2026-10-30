@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file geventloop_win32.cpp
 ///
@@ -36,6 +24,7 @@
 #include <vector>
 #include <memory>
 #include <new>
+#include <iterator>
 
 namespace GNet
 {
@@ -48,7 +37,7 @@ public:
 	EventLoopImp() ;
 		// Default constructor.
 
-	virtual ~EventLoopImp() ;
+	~EventLoopImp() override ;
 		// Destructor.
 
 private: // overrides
@@ -85,7 +74,7 @@ private:
 	struct Library
 	{
 		Library() ;
-		~Library() ;
+		~Library() ; // NOLINT(*-trivially-destructible)
 		Library( const Library & ) = delete ;
 		Library( Library && ) = delete ;
 		Library & operator=( const Library & ) = delete ;
@@ -133,9 +122,9 @@ private:
 	Library m_library ;
 	List m_list ;
 	std::unique_ptr<EventLoopHandles> m_handles ;
-	bool m_running ;
-	bool m_dirty ;
-	bool m_quit ;
+	bool m_running {false} ;
+	bool m_dirty {false} ;
+	bool m_quit {false} ;
 	std::string m_quit_reason ;
 	EventState m_es_current {EventState::Private(),nullptr,nullptr} ;
 } ;
@@ -147,17 +136,13 @@ std::unique_ptr<GNet::EventLoop> GNet::EventLoop::create()
 
 // ===
 
-GNet::EventLoopImp::EventLoopImp() :
-	m_running(false) ,
-	m_dirty(false) ,
-	m_quit(false)
+GNet::EventLoopImp::EventLoopImp()
 {
 	m_handles = std::make_unique<EventLoopHandles>() ;
 }
 
 GNet::EventLoopImp::~EventLoopImp()
-{
-}
+= default ;
 
 void GNet::EventLoopImp::disarm( ExceptionHandler * eh ) noexcept
 {
@@ -317,7 +302,7 @@ GNet::EventLoopImp::ListItem & GNet::EventLoopImp::findOrCreate( Descriptor fdd 
 	if( p == m_list.end() )
 	{
 		m_list.emplace_back( fdd ) ;
-		p = m_list.begin() + m_list.size() - 1U ;
+		p = std::prev( m_list.end() ) ; // (m_list.back() iterator)
 		(*p).m_events = 0 ; // => newly created
 	}
 	return *p ;
@@ -558,7 +543,5 @@ GNet::EventLoopImp::Library::Library()
 }
 
 GNet::EventLoopImp::Library::~Library()
-{
-	// WSACleanup() not
-}
+= default ; // WSACleanup() not
 

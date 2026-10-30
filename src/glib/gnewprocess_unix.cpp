@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gnewprocess_unix.cpp
 ///
@@ -60,7 +48,7 @@ class G::NewProcessUnixImp::Pipe
 	void inChild() ; // writer
 	void inParent() ; // reader
 	int fd() const ;
-	void dupTo( int fd_std ) ; // onto stdout/stderr
+	void close() noexcept ;
 	void write( const std::string & ) ;
 
 public:
@@ -144,7 +132,9 @@ void G::NewProcess::kill( bool yield ) noexcept
 G::NewProcessImp::NewProcessImp( const Path & exe , const StringArray & args , const NewProcess::Config & config )
 {
 	// sanity checks
-	if( 1 != (config.stdout==Fd::pipe()?1:0) + (config.stderr==Fd::pipe()?1:0) || config.stdin==Fd::pipe() )
+	if( !config.stdout.m_pipe && !config.stderr.m_pipe )
+		throw NewProcess::InvalidParameter() ;
+	if( config.stdin.m_pipe )
 		throw NewProcess::InvalidParameter() ;
 	if( exe.empty() )
 		throw NewProcess::InvalidParameter() ;
@@ -173,18 +163,11 @@ G::NewProcessImp::NewProcessImp( const Path & exe , const StringArray & args , c
 
 			// set up standard streams
 			m_pipe.inChild() ;
-			if( config.stdout == Fd::pipe() )
-			{
-				m_pipe.dupTo( STDOUT_FILENO ) ;
-				duplicate( config.stderr , STDERR_FILENO ) ;
-			}
-			else
-			{
-				duplicate( config.stdout , STDOUT_FILENO ) ;
-				m_pipe.dupTo( STDERR_FILENO ) ;
-			}
+			duplicate( config.stdout.m_pipe ? Fd::fd(m_pipe.fd()) : config.stdout , STDOUT_FILENO ) ;
+			duplicate( config.stderr.m_pipe ? Fd::fd(m_pipe.fd()) : config.stderr , STDERR_FILENO ) ;
 			duplicate( config.stdin , STDIN_FILENO ) ;
 			Process::inheritStandardFiles() ;
+			m_pipe.close() ;
 
 			// close other file descriptors
 			if( config.close_other_fds )
@@ -205,7 +188,7 @@ G::NewProcessImp::NewProcessImp( const Path & exe , const StringArray & args , c
 			int e = run( exe , args , config.env , config.strict_exe ) ;
 
 			// execve() failed -- write an error message to the pipe
-			int fd_pipe = config.stdout == Fd::pipe() ? STDOUT_FILENO : STDERR_FILENO ;
+			int fd_pipe = config.stdout.m_pipe ? STDOUT_FILENO : STDERR_FILENO ;
 			if( config.exec_error_format_fn != nullptr )
 				printError( fd_pipe , (config.exec_error_format_fn)(config.exec_error_format,e) ) ;
 			else if( !config.exec_error_format.empty() )
@@ -316,20 +299,20 @@ std::string G::NewProcessImp::execErrorFormat( const std::string & format , int 
 
 bool G::NewProcessImp::duplicate( Fd fd , int fd_std )
 {
-	G_ASSERT( !(fd==Fd::pipe()) ) ;
-	if( fd == Fd::devnull() )
+	G_ASSERT( !fd.m_pipe ) ;
+	if( fd.m_null )
 	{
 		auto mode = fd_std == STDIN_FILENO ? G::File::InOutAppend::In : G::File::InOutAppend::OutNoCreate ;
 		int fd_null = File::open( G::Path::nullDevice() , mode ) ;
 		if( fd_null < 0 ) throw NewProcess::Error( "failed to open /dev/null" ) ;
 		::dup2( fd_null , fd_std ) ;
+		::close( fd_null ) ;
 		return true ;
 	}
 	else if( fd.m_fd != fd_std )
 	{
 		if( ::dup2(fd.m_fd,fd_std) != fd_std )
 			throw NewProcess::Error( "dup failed" ) ;
-		::close( fd.m_fd ) ;
 		return true ;
 	}
 	else
@@ -349,8 +332,7 @@ G::NewProcessUnixImp::Pipe::Pipe()
 
 G::NewProcessUnixImp::Pipe::~Pipe()
 {
-	if( m_fds[0] >= 0 ) ::close( m_fds[0] ) ;
-	if( m_fds[1] >= 0 ) ::close( m_fds[1] ) ;
+	close() ;
 }
 
 void G::NewProcessUnixImp::Pipe::inChild()
@@ -372,13 +354,11 @@ int G::NewProcessUnixImp::Pipe::fd() const
 	return m_fd ;
 }
 
-void G::NewProcessUnixImp::Pipe::dupTo( int fd_std )
+void G::NewProcessUnixImp::Pipe::close() noexcept
 {
-	if( NewProcessImp::duplicate( NewProcess::Fd::fd(m_fd) , fd_std ) )
-	{
-		m_fd = -1 ;
-		m_fds[1] = -1 ;
-	}
+	if( m_fds[0] >= 0 ) ::close( m_fds[0] ) ;
+	if( m_fds[1] >= 0 ) ::close( m_fds[1] ) ;
+	m_fds[0] = m_fds[1] = -1 ;
 }
 
 // ==
@@ -388,7 +368,6 @@ G::NewProcessWaitable::NewProcessWaitable() :
 {
 }
 
-#ifndef G_LIB_SMALL
 G::NewProcessWaitable::NewProcessWaitable( pid_t pid , int fd ) :
 	m_buffer(1024U) ,
 	m_pid(pid) ,
@@ -396,7 +375,6 @@ G::NewProcessWaitable::NewProcessWaitable( pid_t pid , int fd ) :
 	m_test_mode(G::Test::enabled("waitpid-slow"))
 {
 }
-#endif
 
 void G::NewProcessWaitable::assign( pid_t pid , int fd )
 {
@@ -411,7 +389,6 @@ void G::NewProcessWaitable::assign( pid_t pid , int fd )
 	m_read_error = 0 ;
 }
 
-#ifndef G_LIB_SMALL
 void G::NewProcessWaitable::waitp( std::promise<std::pair<int,std::string>> p ) noexcept
 {
 	try
@@ -425,7 +402,6 @@ void G::NewProcessWaitable::waitp( std::promise<std::pair<int,std::string>> p ) 
 		try { p.set_exception( std::current_exception() ) ; } catch(...) {}
 	}
 }
-#endif
 
 G::NewProcessWaitable & G::NewProcessWaitable::wait()
 {

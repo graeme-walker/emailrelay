@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gprocess_unix.cpp
 ///
@@ -147,12 +135,10 @@ std::string G::Process::strerror( int errno_ )
 	return Str::isPrintableAscii(s) ? Str::lower(s) : s ;
 }
 
-#ifndef G_LIB_SMALL
 std::string G::Process::errorMessage( DWORD e )
 {
 	return std::string("error ").append( std::to_string(e) ) ;
 }
-#endif
 
 void G::Process::beSpecial( Identity special_identity , bool change_group )
 {
@@ -193,19 +179,15 @@ void G::Process::beOrdinaryForExec( Identity run_as_id ) noexcept
 	ProcessImp::beOrdinaryForExec( run_as_id ) ;
 }
 
-#ifndef G_LIB_SMALL
 void G::Process::setEffectiveUser( Identity id )
 {
 	G::ProcessImp::setEffectiveUser( id ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 void G::Process::setEffectiveGroup( Identity id )
 {
 	G::ProcessImp::setEffectiveGroup( id ) ;
 }
-#endif
 
 G::Path G::Process::cwd()
 {
@@ -287,12 +269,10 @@ std::string G::Process::Id::str() const
 	return ss.str() ;
 }
 
-#ifndef G_LIB_SMALL
 bool G::Process::Id::operator==( const Id & other ) const noexcept
 {
 	return m_pid == other.m_pid ;
 }
-#endif
 
 bool G::Process::Id::operator!=( const Id & other ) const noexcept
 {
@@ -344,19 +324,15 @@ void G::Process::Umask::set( Mode mode )
 	UmaskImp::set( mode ) ;
 }
 
-#ifndef G_LIB_SMALL
 void G::Process::Umask::tightenOther()
 {
 	set( Mode::TightenOther ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 void G::Process::Umask::loosenGroup()
 {
 	set( Mode::LoosenGroup ) ;
 }
-#endif
 
 // ==
 
@@ -374,7 +350,6 @@ void G::ProcessImp::reopen( int fd , Mode mode_in )
 	::close( fd_null ) ;
 }
 
-#ifndef G_LIB_SMALL
 mode_t G::ProcessImp::umaskValue( Process::Umask::Mode mode )
 {
 	mode_t m = 0 ;
@@ -384,7 +359,6 @@ mode_t G::ProcessImp::umaskValue( Process::Umask::Mode mode )
 	if( mode == Process::Umask::Mode::GroupOpen ) m = 0113 ;// -rw-rw-r--
 	return m ;
 }
-#endif
 
 bool G::ProcessImp::readlink_( std::string_view path , std::string & value )
 {

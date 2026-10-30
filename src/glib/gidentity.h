@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gidentity.h
 ///
@@ -33,6 +21,7 @@
 namespace G
 {
 	class Identity ;
+	class File ;
 }
 
 //| \class G::Identity
@@ -47,11 +36,20 @@ public:
 	G_EXCEPTION( NoSuchUser , tx("no such user") )
 	G_EXCEPTION( NoSuchGroup , tx("no such group") )
 	G_EXCEPTION( Error , tx("cannot read user database") )
+	struct FromFile
+	{
+		friend class G::File ;
+		private: FromFile() = default ;
+	} ;
 
 	explicit Identity( const std::string & username ,
 		const std::string & group_name_override = {} ) ;
 			///< Constructor for the named identity.
 			///< Throws NoSuchUser on error.
+
+	Identity( FromFile , uid_t , gid_t ) ;
+		///< Constructor taking Unix uid and gid, used by G::File.
+		///< Initialises with invalid() on Windows.
 
 	static Identity effective() noexcept ;
 		///< Returns the current effective identity.
@@ -76,13 +74,13 @@ public:
 		///< Returns a string representation.
 
 	uid_t userid() const noexcept ;
-		///< Returns the user part (Unix).
+		///< Returns the user part (Unix) or the RID (Windows).
 
 	gid_t groupid() const noexcept ;
-		///< Returns the group part (Unix).
+		///< Returns the group part (Unix) or -1 (Windows).
 
 	std::string sid() const ;
-		///< Returns the sid (Windows).
+		///< Returns the SID (Windows).
 
 	bool operator==( const Identity & ) const noexcept ;
 		///< Comparison operator.
@@ -104,8 +102,8 @@ public:
 		///< such group. Throws on error.
 
 	bool match( std::pair<int,int> uid_range ) const ;
-		///< Returns true if the user-id is in the given range
-		///< or if not implemented.
+		///< Returns true if this identity's user-id value (Unix)
+		///< or RID (Windows) is in the given inclusive range.
 
 private:
 	Identity() noexcept ;

@@ -1,26 +1,13 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gcopyfilter.cpp
 ///
 
 #include "gdef.h"
 #include "gcopyfilter.h"
-#include "gfiledelivery.h"
 #include "gdirectory.h"
 #include "gstringtoken.h"
 #include "groot.h"
@@ -31,16 +18,21 @@ GFilters::CopyFilter::CopyFilter( GNet::EventState es , GStore::FileStore & stor
 	Filter::Type filter_type , const Filter::Config & filter_config , const std::string & spec ) :
 		SimpleFilterBase(es,filter_type,"copy:") ,
 		m_store(store) ,
-		m_filter_config(filter_config) ,
-		m_spec(spec)
+		m_filter_config(filter_config)
 {
 	std::string_view spec_sv = spec ;
 	for( G::StringTokenView t( spec_sv , ";" , 1U ) ; t ; ++t )
 	{
-		if( t() == "p" || t() == "pop" ) m_pop_by_name = true ;
-		if( t() == "h" || t() == "hardlink" ) m_hardlink = true ;
-		if( t() == "n" || t() == "nodelete" || t() == "no_delete" ) m_no_delete = true ;
+		if( t() == "p" || t() == "pop" ) m_delivery_config.pop_by_name = true ;
+		if( t() == "h" || t() == "hardlink" ) m_delivery_config.hardlink = true ;
+		if( t() == "n" || t() == "nodelete" || t() == "no_delete" ) m_delivery_config.no_delete = true ;
+		if( t() == "s" || t() == "simple" ) m_delivery_config.simple = true ;
 	}
+}
+
+int GFilters::CopyFilter::verbosity() const noexcept
+{
+	return m_filter_config.verbosity ;
 }
 
 GSmtp::Filter::Result GFilters::CopyFilter::run( const GStore::MessageId & message_id ,
@@ -71,7 +63,7 @@ GSmtp::Filter::Result GFilters::CopyFilter::run( const GStore::MessageId & messa
 			copy_names.push_back( name ) ;
 			GStore::FileDelivery::deliverTo( m_store , "copy" ,
 				subdir , envelope_path , content_path ,
-				m_hardlink , m_pop_by_name ) ;
+				m_delivery_config ) ;
 		}
 	}
 
@@ -83,12 +75,12 @@ GSmtp::Filter::Result GFilters::CopyFilter::run( const GStore::MessageId & messa
 	}
 	else
 	{
-		G_LOG( "GFilters::CopyFilter::start: " << prefix() << ": "
+		G_LOG_V( verbosity() , "GFilters::CopyFilter::start: " << prefix() << ": "
 			<< message_id.str() << " copied to [" << G::Str::join(",",copy_names) << "]"
 			<< (ignore_names.empty()?"":" not [") << G::Str::join(",",ignore_names)
 			<< (ignore_names.empty()?"":"]") ) ;
 
-		if( m_no_delete )
+		if( m_delivery_config.no_delete )
 		{
 			return Result::ok ;
 		}
@@ -96,7 +88,7 @@ GSmtp::Filter::Result GFilters::CopyFilter::run( const GStore::MessageId & messa
 		{
 			G::Root claim_root ;
 			G::File::remove( envelope_path ) ;
-			if( !m_pop_by_name )
+			if( !m_delivery_config.pop_by_name )
 				G::File::remove( content_path ) ;
 			return Result::abandon ;
 		}

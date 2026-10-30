@@ -5,10 +5,21 @@
 # See dh(1) and debhelper(7)
 #
 
+# default debhelper rule
 %:
-	dh $@ --parallel --no-start
+	dh $@ --no-start
 
 override_dh_auto_configure:
-	# (the init script and pam file go to one side under /usr/lib since we have .init and .pam files in debian/)
-	dh_auto_configure -- e_libdir=/usr/lib/emailrelay e_initdir=/usr/lib/emailrelay/init e_rundir=/run/emailrelay e_pamdir=/usr/lib/emailrelay/pam --without-doxygen --without-man2html --with-openssl --without-mbedtls --with-pam --disable-gui --disable-testing
+	dh_auto_configure -- --without-doxygen --without-html --with-openssl --without-mbedtls --with-pam --disable-gui --disable-testing --disable-install-config --disable-install-pam
 
+override_dh_installinit:
+	cp bin/emailrelay debian/emailrelay.init
+	dh_installinit --name=emailrelay
+
+override_dh_installsystemd:
+	cp etc/emailrelay.service debian/emailrelay.service
+	dh_installsystemd --name=emailrelay
+
+override_dh_installpam:
+	cp etc/emailrelay.pam debian/emailrelay.pam
+	dh_installpam --name=emailrelay

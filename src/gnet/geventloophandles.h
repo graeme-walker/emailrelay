@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file geventloophandles.h
 ///
@@ -41,7 +29,7 @@ namespace GNet
 	struct EventLoopHandlesRc
 	{
 		using RcType = EventLoopHandlesRcType ;
-		EventLoopHandlesRc( RcType type , std::size_t index = 0U ) noexcept : m_type(type) , m_index(index) , m_error(0) {}
+		EventLoopHandlesRc( RcType type , std::size_t index = 0U ) noexcept : m_type(type) , m_index(index) {}
 		static EventLoopHandlesRc failure( DWORD error ) noexcept { EventLoopHandlesRc rc(RcType::failed) ; rc.m_error = error ; return rc ; }
 		RcType type() const noexcept { return m_type ; }
 		operator RcType () const noexcept { return m_type ; }
@@ -49,7 +37,7 @@ namespace GNet
 		//
 		RcType m_type ;
 		std::size_t m_index ; // ListItem index
-		DWORD m_error ; // if 'failed'
+		DWORD m_error {0} ; // if 'failed'
 	} ;
 	struct EventLoopHandlesBase
 	{
@@ -64,8 +52,8 @@ namespace GNet
 	struct EventLoopConfig
 	{
 		EventLoopConfig() ;
-		bool st_only ;
-		bool update_all ;
+		bool st_only {false} ;
+		bool update_all {false} ;
 		std::size_t st_wait_limit ;
 		std::size_t mt_wait_limit ;
 		std::size_t mt_thread_limit ;

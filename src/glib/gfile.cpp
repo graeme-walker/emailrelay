@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gfile.cpp
 ///
@@ -55,21 +43,18 @@ void G::File::rename( const Path & from , const Path & to , bool ignore_missing 
 	G_DEBUG( "G::File::rename: \"" << from << "\" -> \"" << to << "\": success=" << ok ) ;
 }
 
-#ifndef G_LIB_SMALL
 void G::File::copy( const Path & from , const Path & to )
 {
 	std::string reason = copy( from , to , 0 ) ;
 	if( !reason.empty() )
 		throw CannotCopy( std::string() + "[" + from.str() + "] to [" + to.str() + "]: " + reason ) ;
 }
-#endif
 
 bool G::File::copy( const Path & from , const Path & to , std::nothrow_t )
 {
 	return copy(from,to,0).empty() ;
 }
 
-#ifndef G_LIB_SMALL
 bool G::File::copyInto( const Path & from , const Path & to_dir , std::nothrow_t )
 {
 	G::Path to = to_dir / from.basename() ;
@@ -78,7 +63,6 @@ bool G::File::copyInto( const Path & from , const Path & to_dir , std::nothrow_t
 		ok = chmodx( to , std::nothrow ) ;
 	return ok ;
 }
-#endif
 
 std::string G::File::copy( const Path & from , const Path & to , int )
 {
@@ -163,13 +147,11 @@ bool G::File::exists( const Path & path , bool error_return_value , bool do_thro
 	return true ;
 }
 
-#ifndef G_LIB_SMALL
 bool G::File::isLink( const Path & path , std::nothrow_t )
 {
 	Stat s = statImp( path.cstr() , /*symlink_nofollow=*/true ) ;
 	return 0 == s.error && s.is_link ;
 }
-#endif
 
 G::File::Stat G::File::stat( const Path & path , bool symlink_nofollow )
 {
@@ -188,13 +170,11 @@ bool G::File::isExecutable( const Path & path , std::nothrow_t )
 	return 0 == s.error && s.is_executable ;
 }
 
-#ifndef G_LIB_SMALL
 bool G::File::isEmpty( const Path & path , std::nothrow_t )
 {
 	Stat s = statImp( path.cstr() ) ;
 	return 0 == s.error && s.is_empty ;
 }
-#endif
 
 std::string G::File::sizeString( const Path & path )
 {
@@ -210,7 +190,6 @@ G::SystemTime G::File::time( const Path & path )
 	return SystemTime( s.mtime_s , s.mtime_us ) ;
 }
 
-#ifndef G_LIB_SMALL
 G::SystemTime G::File::time( const Path & path , std::nothrow_t )
 {
 	Stat s = statImp( path.cstr() ) ;
@@ -218,33 +197,28 @@ G::SystemTime G::File::time( const Path & path , std::nothrow_t )
 		return SystemTime( 0 ) ;
 	return SystemTime( s.mtime_s , s.mtime_us ) ;
 }
-#endif
 
 bool G::File::chmodx( const Path & path , std::nothrow_t )
 {
 	return chmodx( path , false ) ;
 }
 
-#ifndef G_LIB_SMALL
 void G::File::chmodx( const Path & path )
 {
 	chmodx( path , true ) ;
 }
-#endif
 
 bool G::File::mkdir( const Path & dir , std::nothrow_t )
 {
 	return 0 == mkdirImp( dir ) ;
 }
 
-#ifndef G_LIB_SMALL
 void G::File::mkdir( const Path & dir )
 {
 	int e = mkdirImp( dir ) ;
 	if( e )
 		throw CannotMkdir( dir.str() , Process::strerror(e) ) ;
 }
-#endif
 
 bool G::File::mkdirsImp( const Path & path_in , int & e , int limit )
 {
@@ -272,24 +246,19 @@ bool G::File::mkdirsImp( const Path & path_in , int & e , int limit )
 	return e == 0 || e == EEXIST ;
 }
 
-#ifndef G_LIB_SMALL
 bool G::File::mkdirs( const Path & path , std::nothrow_t , int limit )
 {
 	int e = 0 ;
 	return mkdirsImp( path , e , limit ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 void G::File::mkdirs( const Path & path , int limit )
 {
 	int e = 0 ;
 	if( !mkdirsImp(path,e,limit) )
 		throw CannotMkdir( path.str() , e ? G::Process::strerror(e) : std::string() ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 int G::File::compare( const Path & path_1 , const Path & path_2 , bool ignore_whitespace )
 {
 	std::ifstream file_1 ; open( file_1 , path_1 ) ;
@@ -316,9 +285,7 @@ int G::File::compare( const Path & path_1 , const Path & path_2 , bool ignore_wh
 	}
 	return result ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 G::Path G::File::backup( const Path & path , std::nothrow_t )
 {
 	constexpr char prefix = G::is_windows() ? '~' : '.' ;
@@ -336,5 +303,4 @@ G::Path G::File::backup( const Path & path , std::nothrow_t )
 	bool copied = File::copy( path , backup_path , std::nothrow ) ;
 	return copied ? backup_path : G::Path() ;
 }
-#endif
 

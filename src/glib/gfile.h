@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gfile.h
 ///
@@ -23,6 +11,7 @@
 
 #include "gdef.h"
 #include "gpath.h"
+#include "gidentity.h"
 #include "gexception.h"
 #include "gcleanup.h"
 #include "gdatetime.h"
@@ -78,8 +67,7 @@ public:
 		unsigned long mode {0} ;
 		unsigned long long size {0} ;
 		unsigned long long blocks {0} ;
-		uid_t uid {0} ; // unix
-		gid_t gid {0} ; // unix
+		Identity ownership {Identity::invalid()} ; // unix uid/gid, windows sid
 		bool inherit {false} ; // unix, directory group ownership passed on to new files
 	} ;
 
@@ -202,6 +190,10 @@ public:
 		///< Sets the file permissions. Throws on error. The
 		///< spec is a simplified sub-set of the /bin/chmod
 		///< command syntax. The umask is ignored.
+
+	static bool chown( const Path & path , Identity , std::nothrow_t ) ;
+		///< Sets the file user and group ownership. Returns false on error.
+		///< Ignores ids of -1.
 
 	static void chgrp( const Path & file , const std::string & group ) ;
 		///< Sets the file group ownership. Throws on error.

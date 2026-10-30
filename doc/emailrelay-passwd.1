@@ -1,17 +1,6 @@
-.\" Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-.\" 
-.\" This program is free software: you can redistribute it and/or modify
-.\" it under the terms of the GNU General Public License as published by
-.\" the Free Software Foundation, either version 3 of the License, or
-.\" (at your option) any later version.
-.\" 
-.\" This program is distributed in the hope that it will be useful,
-.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
-.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-.\" GNU General Public License for more details.
-.\" 
-.\" You should have received a copy of the GNU General Public License
-.\" along with this program.  If not, see <http://www.gnu.org/licenses/>.
+.\" SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+.\" SPDX-License-Identifier: GPL-3.0-or-later
+.\"
 .TH EMAILRELAY-PASSWD 1 local
 .SH NAME
 emailrelay-passwd \- a password encoding utility for emailrelay
@@ -40,19 +29,39 @@ server md5 alice Oqng9/H7wAyKgbuqw5VzG1bNO6feqtblyiNEi6QuN5dH
 server md5 bob Ot6SDdGj23eWjdEuKICgN8Nj9z/Vx9IV3ISz9VvmnaUB
 .SH OPTIONS
 .TP
-.B \-H, --hash \fI<function>\fR
+.B \-H \fI<function>\fR
+.PD 0
+.TP
+.PD
+.B \-\-hash \fI<function>\fR
 Specifies the hash function, such as MD5 or SHA1. MD5 is the default, and a hash function of NONE does simple xtext encoding. Other hash function may or may not be available, depending on the build.
 .TP
-.B \-h, --help
+.B \-h
+.PD 0
+.TP
+.PD
+.B \-\-help
 Shows help text and exits.
 .TP
-.B \-b, --base64
+.B \-b
+.PD 0
+.TP
+.PD
+.B \-\-base64
 The input password is interpreted as being Base64 encoded.
 .TP
-.B \-d, --dotted
+.B \-d
+.PD 0
+.TP
+.PD
+.B \-\-dotted
 Generates a dotted decimal format, for backwards compatibility.
 .TP
-.B \-p, --password \fI<pwd>\fR
+.B \-p \fI<pwd>\fR
+.PD 0
+.TP
+.PD
+.B \-\-password \fI<pwd>\fR
 Specifies the password to be hashed. Beware of leaking sensitive passwords via command-line history or the process-table when using this option.
 .SH SEE ALSO
 .BR emailrelay (1),

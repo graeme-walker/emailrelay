@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gprotocolmessagestore.cpp
 ///
@@ -144,7 +132,7 @@ void GSmtp::ProtocolMessageStore::process( const std::string & session_auth_id ,
 		m_new_msg->prepare( session_auth_id , peer_socket_address , peer_certificate ) ;
 
 		// start filtering
-		G_LOG_MORE( "GSmtp::ProtocolMessageStore::process: filter [" << m_filter->id() << "]: [" << m_new_msg->id().str() << "]" ) ;
+		G_LOG_MORE_V( m_filter->verbosity() , "GSmtp::ProtocolMessageStore::process: filter [" << m_filter->id() << "]: [" << m_new_msg->id().str() << "]" ) ;
 		m_filter->start( m_new_msg->id() ) ;
 	}
 	catch( std::exception & e ) // catch filtering errors, size-limit errors, and file i/o errors
@@ -171,7 +159,7 @@ void GSmtp::ProtocolMessageStore::filterDone( int filter_result )
 		int filter_response_code = (ok||abandon) ? 0 : m_filter->responseCode() ;
 		std::string filter_reason = (ok||abandon) ? std::string() : m_filter->reason() ;
 
-		G_LOG_IF( !m_filter->quiet() , "GSmtp::ProtocolMessageStore::filterDone: "
+		G_LOG_V( m_filter->verbosity() , "GSmtp::ProtocolMessageStore::filterDone: "
 			"filter [" << m_filter->id() << "]: [" << m_new_msg->id().str() << "]: "
 			<< m_filter->str(Filter::Type::server) ) ;
 
@@ -190,7 +178,7 @@ void GSmtp::ProtocolMessageStore::filterDone( int filter_result )
 		}
 		else
 		{
-			G_LOG_S( "GSmtp::ProtocolMessageStore::filterDone: rejected by filter: [" << filter_reason << "]" ) ;
+			G_LOG_S_V( m_filter->verbosity() , "GSmtp::ProtocolMessageStore::filterDone: rejected by filter: [" << filter_reason << "]" ) ;
 		}
 
 		if( rescan )

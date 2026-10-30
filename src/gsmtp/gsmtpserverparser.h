@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsmtpserverparser.h
 ///
@@ -105,10 +93,12 @@ private:
 	static std::string encodeDomain( std::string_view ) ;
 } ;
 
+// clang-format off
 inline GSmtp::ServerParser::Config & GSmtp::ServerParser::Config::set_allow_spaces( bool b ) noexcept { allow_spaces = b ; return *this ; }
 inline GSmtp::ServerParser::Config & GSmtp::ServerParser::Config::set_allow_nobrackets( bool b ) noexcept { allow_nobrackets = b ; return *this ; }
 inline GSmtp::ServerParser::Config & GSmtp::ServerParser::Config::set_alabels( bool b ) noexcept { alabels = b ; return *this ; }
 inline GSmtp::ServerParser::Config & GSmtp::ServerParser::Config::set_allow_spaces_help( const std::string & s ) { allow_spaces_help = s ; return *this ; }
 inline GSmtp::ServerParser::Config & GSmtp::ServerParser::Config::set_allow_nobrackets_help( const std::string & s ) { allow_nobrackets_help = s ; return *this ; }
+// clang-format on
 
 #endif

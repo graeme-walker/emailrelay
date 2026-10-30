@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gfilestore.cpp
 ///
@@ -270,6 +258,12 @@ std::vector<GStore::MessageId> GStore::FileStore::failures()
 	return result ;
 }
 
+void GStore::FileStore::getBadEnvelopes( G::DirectoryList & list ) const
+{
+	DirectoryReader claim_reader ;
+	list.readType( m_dir , ".envelope.bad" ) ;
+}
+
 void GStore::FileStore::unfailAll()
 {
 	G::DirectoryList list ;
@@ -281,6 +275,43 @@ void GStore::FileStore::unfailAll()
 	{
 		FileWriter claim_writer ;
 		FileOp::rename( list.filePath() , list.filePath().withoutExtension() ) ; // ignore errors
+	}
+}
+
+void GStore::FileStore::retry( unsigned int limit , int verbosity )
+{
+	G::DirectoryList list ;
+	getBadEnvelopes( list ) ;
+	while( list.more() )
+	{
+		unsigned int count = 0U ; // the number of ReasonCode headers
+		unsigned int latest = 0U ; // latest ReasonCode value
+		std::ifstream stream ;
+		{
+			DirectoryReader claim_reader ;
+			FileOp::openIn( stream , list.filePath() ) ;
+		}
+		if( stream.good() )
+		{
+			Envelope envelope ;
+			Envelope::read( stream , envelope , std::nothrow ) ;
+			Envelope::readExtra( stream , [&count,&latest](std::string_view key_,std::string_view value_) {
+				if(key_ == "ReasonCode") { latest=G::Str::toUInt(value_,0U) ; count++ ; } } ) ;
+		}
+		if( !stream.fail() && (limit == 0U || count <= limit) && latest < 500U ) // 500 => smtp permanent error
+		{
+			stream.close() ;
+			G_LOG_V( verbosity , "GStore::FileStore::retry: retrying [" << list.fileName() << "] (" << count << "/" << limit << ")" ) ;
+			FileWriter claim_writer ;
+			FileOp::rename( list.filePath() , list.filePath().withoutExtension() ) ; // ignore errors
+		}
+		else
+		{
+			G_LOG_MORE_V( verbosity , "GStore::FileStore::retry: not retrying [" << list.fileName() << "] "
+				<< "(" << count << ") "
+				<< (count>0U?(G::Str::fromUInt(latest)+" "):"")
+				<< (stream.fail()?"failed":"") ) ;
+		}
 	}
 }
 
@@ -467,15 +498,6 @@ bool GStore::FileStore::FileOp::hardlink( const G::Path & src , const G::Path & 
 	if( !linked )
 		copied = G::File::copy( src , dst , std::nothrow ) ;
 	errno_() = G::Process::errno_() ;
-
-	// fix up group ownership if hard-linked into a set-group-id directory
-	if( linked )
-	{
-		auto dir_stat = G::File::stat( dst.simple() ? G::Path(".") : dst.dirname() ) ;
-		if( !dir_stat.error && !dir_stat.is_link && dir_stat.inherit )
-			G::File::chgrp( dst , dir_stat.gid , std::nothrow ) ;
-	}
-
 	return linked || copied ;
 }
 
@@ -494,6 +516,20 @@ bool GStore::FileStore::FileOp::copy( const G::Path & src , const G::Path & dst 
 	bool ok = G::File::copy( src , dst , std::nothrow ) ;
 	errno_() = G::Process::errno_() ;
 	return ok ;
+}
+
+bool GStore::FileStore::FileOp::chown( const G::Path & path )
+{
+	if( G::is_windows() )
+	{
+		return true ;
+	}
+	else
+	{
+		FileWriter claim_root ;
+		auto dir_stat = G::File::stat( path.dirname() ) ;
+		return !dir_stat.error && G::File::chown( path , dir_stat.ownership , std::nothrow ) ;
+	}
 }
 
 bool GStore::FileStore::FileOp::mkdir( const G::Path & dir )

@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gcracker.cpp
 ///
@@ -40,7 +28,7 @@ LRESULT GGui::Cracker::crack( UINT message , WPARAM wparam , LPARAM lparam , boo
 {
 	//G_DEBUG( "GGui::Cracker::crack: " << message << " " << wparam << " " << lparam ) ;
 	call_default = false ;
-	switch( message )
+	switch( message ) // NOLINT(*-switch-missing-default-case)
 	{
 		case WM_PAINT:
 		{
@@ -441,7 +429,7 @@ LRESULT GGui::Cracker::onControlColour_( WPARAM wparam , LPARAM lparam , WORD id
 
 HBRUSH GGui::Cracker::onControlColour( HDC , HWND , WORD )
 {
-	return 0 ;
+	return HNULL ;
 }
 
 void GGui::Cracker::onSysColourChange()

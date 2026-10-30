@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gnetworkverifier.cpp
 ///
@@ -26,14 +14,14 @@
 #include "glog.h"
 
 GVerifiers::NetworkVerifier::NetworkVerifier( GNet::EventState es , const GSmtp::Verifier::Config & config ,
-	const std::string & server ) :
+	const std::string & spec ) :
 		m_es(es) ,
-		m_config(config) ,
-		m_location(server) ,
+		m_verifier_config(config) ,
+		m_location(spec) ,
 		m_connection_timeout(config.timeout) ,
 		m_response_timeout(config.timeout)
 {
-	G_DEBUG( "GVerifiers::NetworkVerifier::ctor: " << server ) ;
+	G_DEBUG( "GVerifiers::NetworkVerifier::ctor: " << spec ) ;
 	m_client_ptr.eventSignal().connect( G::Slot::slot(*this,&GVerifiers::NetworkVerifier::clientEvent) ) ;
 }
 
@@ -43,12 +31,17 @@ GVerifiers::NetworkVerifier::~NetworkVerifier()
 	m_client_ptr.deletedSignal().disconnect() ;
 }
 
+int GVerifiers::NetworkVerifier::verbosity() const noexcept
+{
+	return m_verifier_config.verbosity ;
+}
+
 void GVerifiers::NetworkVerifier::verify( const GSmtp::Verifier::Request & request )
 {
 	m_command = request.command ;
 	if( m_client_ptr.get() == nullptr )
 	{
-		unsigned int idle_timeout = 0U ;
+		auto idle_timeout = G::TimeInterval::zero() ;
 		m_client_ptr.reset( std::make_unique<GSmtp::RequestClient>(
 			m_es.eh(this) ,
 			"verify" , "" ,
@@ -56,14 +49,14 @@ void GVerifiers::NetworkVerifier::verify( const GSmtp::Verifier::Request & reque
 			idle_timeout ) ) ;
 	}
 
-	G_LOG( "GVerifiers::NetworkVerifier: verification request: ["
+	G_LOG_V( verbosity() , "GVerifiers::NetworkVerifier: verification request: ["
 		<< G::Str::printable(request.address) << "] (" << request.client_ip.displayString() << ")" ) ;
 
 	G::StringArray args ;
 	args.push_back( request.address ) ;
 	args.push_back( request.from_address ) ;
 	args.push_back( request.client_ip.displayString() ) ;
-	args.push_back( m_config.domain ) ;
+	args.push_back( m_verifier_config.domain ) ;
 	args.push_back( G::Str::lower(request.auth_mechanism) ) ;
 	args.push_back( request.auth_extra ) ;
 
@@ -92,7 +85,7 @@ void GVerifiers::NetworkVerifier::clientEvent( const std::string & s1 , const st
 	G_DEBUG( "GVerifiers::NetworkVerifier::clientEvent: [" << s1 << "] [" << s2 << "]" ) ;
 	if( s1 == "verify" )
 	{
-		G_LOG( "GVerifiers::NetworkVerifier: verification response: [" << G::Str::printable(s2) << "]" ) ;
+		G_LOG_V( verbosity() , "GVerifiers::NetworkVerifier: verification response: [" << G::Str::printable(s2) << "]" ) ;
 
 		// parse the output from the remote verifier using pipe-delimited
 		// fields based on the script-based verifier interface, but backwards

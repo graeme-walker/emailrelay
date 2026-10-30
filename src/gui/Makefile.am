@@ -1,19 +1,6 @@
 #
-## Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-## 
-## This program is free software: you can redistribute it and/or modify
-## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or
-## (at your option) any later version.
-## 
-## This program is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-## GNU General Public License for more details.
-## 
-## You should have received a copy of the GNU General Public License
-## along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
+## SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+## SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Makefile.am
 #
@@ -108,27 +95,20 @@ AM_CPPFLAGS=\
 	-I$(top_srcdir)/src/gnet \
 	-I$(top_srcdir)/src/main \
 	-I$(top_srcdir)/src/main/icon \
-	-D "G_SBINDIR=$(sbindir)" \
 	-D "G_SPOOLDIR=$(e_spooldir)" \
-	-D "G_INITDIR=$(e_initdir)" \
-	-D "G_SYSCONFDIR=$(e_sysconfdir)" \
-	-D "G_ICONDIR=$(e_icondir)" \
-	-D "G_LIBDIR=$(e_libdir)" \
-	-D "G_MANDIR=$(mandir)" \
-	-D "G_DOCDIR=$(e_docdir)" \
-	-D "G_EXAMPLESDIR=$(e_examplesdir)" \
+	-D "G_CONFDIR=$(e_confdir)" \
 	$(GCONFIG_QT_CFLAGS)
 
-if GCONFIG_GUI
+if GCONFIG_ENABLE_GUI
 
 moc_guidialog.cpp: $(srcdir)/guidialog.h
-	$(GCONFIG_QT_MOC) $< -o $@
+	$(GCONFIG_QT_MOC) $(srcdir)/guidialog.h -o $@
 
 moc_guipage.cpp: $(srcdir)/guipage.h
-	$(GCONFIG_QT_MOC) $< -o $@
+	$(GCONFIG_QT_MOC) $(srcdir)/guipage.h -o $@
 
 moc_guipages.cpp: $(srcdir)/guipages.h
-	$(GCONFIG_QT_MOC) $< -o $@
+	$(GCONFIG_QT_MOC) $(srcdir)/guipages.h -o $@
 
 guidialog.o: moc_guidialog.cpp
 guipage.o: moc_guipage.cpp
@@ -169,14 +149,14 @@ install-exec-hook:
 	@echo exec $(DESTDIR)$(sbindir)/emailrelay-gui.real --qmdir=$(DESTDIR)$(e_trdir) \"$$\@\" >> "$(DESTDIR)$(sbindir)/emailrelay-gui"
 	@echo "dir-install"=\"$(DESTDIR)/usr\" >> "$(DESTDIR)$(sbindir)/emailrelay-gui"
 	@echo "dir-spool"=\"$(DESTDIR)$(e_spooldir)\" >> "$(DESTDIR)$(sbindir)/emailrelay-gui"
-	@echo "dir-config"=\"$(DESTDIR)$(e_sysconfdir)\" >> "$(DESTDIR)$(sbindir)/emailrelay-gui"
+	@echo "dir-config"=\"$(DESTDIR)$(e_confdir)\" >> "$(DESTDIR)$(sbindir)/emailrelay-gui"
 	@chmod +x "$(DESTDIR)$(sbindir)/emailrelay-gui"
 
 uninstall-hook:
 	-rm -f "$(DESTDIR)$(sbindir)/emailrelay-gui"
 
 clean-local:
-	-rm -f payload
+	-rm -rf payload
 
 else
 
@@ -187,7 +167,7 @@ uninstall-hook:
 endif
 
 payload: $(top_srcdir)/libexec/make-setup.sh
-	-mkdir payload 2>/dev/null
+	-mkdir payload || true 2>/dev/null
 	-@chmod +x $(top_srcdir)/libexec/make-setup.sh
 	$(top_srcdir)/libexec/make-setup.sh $(MAKE_SETUP_DEBUG) $@
 

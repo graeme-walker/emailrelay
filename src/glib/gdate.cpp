@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gdate.cpp
 ///
@@ -36,29 +24,23 @@ int G::Date::yearLowerLimit() noexcept
 	return 1970 ; // see mktime()
 }
 
-#ifndef G_LIB_SMALL
 G::Date::Date()
 {
 	init( SystemTime::now().utc() ) ;
 	//check() ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 G::Date::Date( SystemTime t )
 {
 	init( t.utc() ) ;
 	//check() ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 G::Date::Date( SystemTime t , const LocalTime & )
 {
 	init( t.local() ) ;
 	//check() ;
 }
-#endif
 
 G::Date::Date( const BrokenDownTime & tm )
 {
@@ -66,15 +48,12 @@ G::Date::Date( const BrokenDownTime & tm )
 	//check() ;
 }
 
-#ifndef G_LIB_SMALL
 G::Date::Date( const LocalTime & )
 {
 	init( SystemTime::now().local() ) ;
 	//check() ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 G::Date::Date( int year , Date::Month month , int day_of_month , std::nothrow_t ) noexcept :
 	m_day(day_of_month) ,
 	m_month(static_cast<int>(month)) ,
@@ -84,9 +63,7 @@ G::Date::Date( int year , Date::Month month , int day_of_month , std::nothrow_t 
 	m_month = std::max( 1 , std::min(m_month,12) ) ;
 	m_year = std::max( yearLowerLimit() , std::min(m_year,yearUpperLimit()) ) ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 G::Date::Date( int year , Date::Month month , int day_of_month ) :
 	m_day(day_of_month) ,
 	m_month(static_cast<int>(month)) ,
@@ -94,7 +71,6 @@ G::Date::Date( int year , Date::Month month , int day_of_month ) :
 {
 	check() ;
 }
-#endif
 
 void G::Date::init( const BrokenDownTime & tm )
 {
@@ -116,7 +92,6 @@ void G::Date::check() const
 		throw DateError( "out of range" ) ;
 }
 
-#ifndef G_LIB_SMALL
 std::string G::Date::str( Format format ) const
 {
 	std::ostringstream ss ;
@@ -138,7 +113,6 @@ std::string G::Date::str( Format format ) const
 	}
 	return ss.str() ;
 }
-#endif
 
 int G::Date::monthday() const
 {
@@ -164,7 +138,7 @@ G::Date::Weekday G::Date::weekday() const
 {
 	if( ! m_weekday_set )
 	{
-		BrokenDownTime bdt = BrokenDownTime::midday( m_year , m_month , m_day ) ;
+		auto bdt = BrokenDownTime::midday( m_year , m_month , m_day ) ;
 		const_cast<Date*>(this)->m_weekday_set = true ;
 		const_cast<Date*>(this)->m_weekday = Weekday(bdt.wday()) ;
 	}
@@ -214,14 +188,12 @@ int G::Date::year() const
 	return m_year ;
 }
 
-#ifndef G_LIB_SMALL
 G::Date G::Date::next() const
 {
 	Date d( *this ) ;
 	++d ;
 	return d ;
 }
-#endif
 
 G::Date & G::Date::operator++()
 {
@@ -246,14 +218,12 @@ G::Date & G::Date::operator++()
 	return *this ;
 }
 
-#ifndef G_LIB_SMALL
 G::Date G::Date::previous() const
 {
 	Date d( *this ) ;
 	--d ;
 	return d ;
 }
-#endif
 
 G::Date & G::Date::operator--()
 {
@@ -318,10 +288,8 @@ bool G::Date::operator==( const Date &other ) const
 		monthday() == other.monthday() ;
 }
 
-#ifndef G_LIB_SMALL
 bool G::Date::operator!=( const Date &other ) const
 {
 	return !( other == *this ) ;
 }
-#endif
 

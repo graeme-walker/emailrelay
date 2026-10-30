@@ -1,18 +1,6 @@
 /*
-   Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-   
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-   
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-   
-   You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+   SPDX-License-Identifier: GPL-3.0-or-later
 */
 
 /*
@@ -450,6 +438,13 @@
 			#define GCONFIG_HAVE_WINDOWS_IPHLPAPI_H 1
 		#endif
 	#endif
+	#if !defined(GCONFIG_HAVE_SHELLSCALINGAPI_H)
+		#if defined(G_WINDOWS) && !defined(G_MINGW)
+			#define GCONFIG_HAVE_SHELLSCALINGAPI_H 1
+		#else
+			#define GCONFIG_HAVE_SHELLSCALINGAPI_H 0
+		#endif
+	#endif
 	#if !defined(GCONFIG_HAVE_GAI_STRERROR)
 		#define GCONFIG_HAVE_GAI_STRERROR 1
 	#endif
@@ -830,6 +825,9 @@
 		#if GCONFIG_HAVE_WINDOWS_VERSIONHELPERS_H
 			#include <versionhelpers.h>
 		#endif
+		#if GCONFIG_HAVE_SHELLSCALINGAPI_H
+			#include <ShellScalingApi.h>
+		#endif
 	#endif
 
 	/* Include commonly-used c++ headers
@@ -953,7 +951,7 @@
 
 		/* Define a few Windows-style types under unix
 	 	*/
-		#if ! defined(G_WINDOWS)
+		#if !defined(G_WINDOWS)
 			using BOOL = unsigned char ;
 			using HDC = unsigned int ;
 			using HWND = unsigned int ;
@@ -962,12 +960,10 @@
 			using TCHAR = wchar_t ;
 			using SOCKET = int ;
 			using DWORD = unsigned int ;
+			static constexpr HANDLE HNULL = 0U ;
+		#else
+			#define HNULL nullptr
 		#endif
-
-		/* Define a null value for opaque pointer types that are
-	 	 * never dereferenced
-	 	 */
-		#define HNULL 0
 
 		/* Define fixed-size types - the underlying types should come
 	 	 * from C99's stdint.h, but they are all optional

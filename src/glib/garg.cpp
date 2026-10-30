@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file garg.cpp
 ///
@@ -51,7 +39,6 @@ G::Arg::Arg( const StringArray & args ) :
 {
 }
 
-#ifndef G_LIB_SMALL
 G::Arg::Arg( const Path & argv0 , const std::string & command_line_tail )
 {
 	if( argv0.empty() )
@@ -59,7 +46,6 @@ G::Arg::Arg( const Path & argv0 , const std::string & command_line_tail )
 	parseImp( command_line_tail ) ;
 	m_array.insert( m_array.begin() , argv0.str() ) ;
 }
-#endif
 
 G::Arg::Arg( const std::string & command_line )
 {
@@ -78,12 +64,10 @@ G::Arg G::Arg::windows()
 	return arg ;
 }
 
-#ifndef G_LIB_SMALL
 G::Path G::Arg::v0()
 {
 	return m_v0 ;
 }
-#endif
 
 G::StringArray G::Arg::array( unsigned int shift ) const
 {
@@ -98,12 +82,10 @@ bool G::Arg::contains( std::string_view option , std::size_t option_args , bool 
 	return find( cs , option , option_args , nullptr ) != 0U ;
 }
 
-#ifndef G_LIB_SMALL
 std::size_t G::Arg::count( std::string_view option ) const
 {
 	return find( true , option , 0U , nullptr ) ;
 }
-#endif
 
 std::size_t G::Arg::find( bool cs , std::string_view option , std::size_t option_args ,
 	std::size_t * index_p ) const
@@ -230,12 +212,10 @@ G::Path G::Arg::exe()
 	return exeImp( true ) ;
 }
 
-#ifndef G_LIB_SMALL
 G::Path G::Arg::exe( std::nothrow_t )
 {
 	return exeImp( false ) ;
 }
-#endif
 
 G::Path G::Arg::exeImp( bool do_throw )
 {
@@ -263,12 +243,10 @@ G::Path G::Arg::exeImp( bool do_throw )
 	}
 }
 
-#ifndef G_LIB_SMALL
 G::StringArray::const_iterator G::Arg::cbegin() const
 {
 	return m_array.size() <= 1U ? cend() : std::next( m_array.cbegin() ) ;
 }
-#endif
 
 G::StringArray::const_iterator G::Arg::cend() const
 {

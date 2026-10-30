@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gclient.h
 ///
@@ -34,6 +22,7 @@
 #include "glinebuffer.h"
 #include "gstringview.h"
 #include "gcall.h"
+#include "gdatetime.h"
 #include "gtimer.h"
 #include "gsocket.h"
 #include "gsocketprotocol.h"
@@ -92,9 +81,9 @@ public:
 		bool sync_dns {false} ;
 		bool auto_start {true} ;
 		bool bind_local_address {false} ;
-		unsigned int connection_timeout {0U} ;
-		unsigned int response_timeout {0U} ;
-		unsigned int idle_timeout {0U} ;
+		G::TimeInterval connection_timeout {0U} ;
+		G::TimeInterval response_timeout {0U} ;
+		G::TimeInterval idle_timeout {0U} ;
 		bool no_throw_on_peer_disconnect {false} ; // call SocketProtocolSink::onPeerDisconnect() instead
 
 		Config & set_stream_socket_config( const StreamSocket::Config & ) ;
@@ -105,9 +94,13 @@ public:
 		Config & set_bind_local_address( bool = true ) noexcept ;
 		Config & set_local_address( const Address & ) ;
 		Config & set_connection_timeout( unsigned int ) noexcept ;
+		Config & set_connection_timeout( G::TimeInterval ) noexcept ;
 		Config & set_response_timeout( unsigned int ) noexcept ;
+		Config & set_response_timeout( G::TimeInterval ) noexcept ;
 		Config & set_idle_timeout( unsigned int ) noexcept ;
-		Config & set_all_timeouts( unsigned int ) noexcept ;
+		Config & set_idle_timeout( G::TimeInterval ) noexcept ;
+		Config & set_all_timeouts( unsigned int ) noexcept ; // secure_connection, connection, response, idle
+		Config & set_all_timeouts( G::TimeInterval ) noexcept ; // secure_connection, connection, response, idle
 		Config & set_no_throw_on_peer_disconnect( bool = true ) noexcept ;
 	} ;
 
@@ -318,6 +311,7 @@ private:
 	std::string m_event_logging_string ;
 } ;
 
+// clang-format off
 inline GNet::Client::Config & GNet::Client::Config::set_stream_socket_config( const StreamSocket::Config & cfg ) { stream_socket_config = cfg ; return *this ; }
 inline GNet::Client::Config & GNet::Client::Config::set_line_buffer_config( const LineBuffer::Config & cfg ) { line_buffer_config = cfg ; return *this ; }
 inline GNet::Client::Config & GNet::Client::Config::set_socket_protocol_config( const SocketProtocol::Config & cfg ) { socket_protocol_config = cfg ; return *this ; }
@@ -325,9 +319,13 @@ inline GNet::Client::Config & GNet::Client::Config::set_sync_dns( bool b ) noexc
 inline GNet::Client::Config & GNet::Client::Config::set_auto_start( bool b ) noexcept { auto_start = b ; return *this ; }
 inline GNet::Client::Config & GNet::Client::Config::set_bind_local_address( bool b ) noexcept { bind_local_address = b ; return *this ; }
 inline GNet::Client::Config & GNet::Client::Config::set_local_address( const Address & a ) { local_address = a ; return *this ; }
-inline GNet::Client::Config & GNet::Client::Config::set_connection_timeout( unsigned int t ) noexcept { connection_timeout = t ; return *this ; }
-inline GNet::Client::Config & GNet::Client::Config::set_response_timeout( unsigned int t ) noexcept { response_timeout = t ; return *this ; }
-inline GNet::Client::Config & GNet::Client::Config::set_idle_timeout( unsigned int t ) noexcept { idle_timeout = t ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_connection_timeout( unsigned int t ) noexcept { connection_timeout = G::TimeInterval(t) ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_connection_timeout( G::TimeInterval i ) noexcept { connection_timeout = i ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_response_timeout( unsigned int t ) noexcept { response_timeout = G::TimeInterval(t) ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_response_timeout( G::TimeInterval i ) noexcept { response_timeout = i ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_idle_timeout( unsigned int t ) noexcept { idle_timeout = G::TimeInterval(t) ; return *this ; }
+inline GNet::Client::Config & GNet::Client::Config::set_idle_timeout( G::TimeInterval i ) noexcept { idle_timeout = i ; return *this ; }
 inline GNet::Client::Config & GNet::Client::Config::set_no_throw_on_peer_disconnect( bool b ) noexcept { no_throw_on_peer_disconnect = b ; return *this ; }
+// clang-format on
 
 #endif

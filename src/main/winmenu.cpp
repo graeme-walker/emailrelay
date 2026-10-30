@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file winmenu.cpp
 ///
@@ -30,18 +18,17 @@ namespace Main
 	const int close_pos = 1 ;
 	struct ScopeZero
 	{
-		ScopeZero( HMENU h ) : m_h(h) {}
-		~ScopeZero() { m_h = 0 ; }
+		ScopeZero( HMENU & h ) : m_h(h) {}
+		~ScopeZero() { m_h = HNULL ; }
 		HMENU & m_h ;
 	} ;
 }
 
-Main::WinMenu::WinMenu( unsigned int id ) :
-	m_hmenu_popup(0)
+Main::WinMenu::WinMenu( unsigned int id )
 {
 	HINSTANCE hinstance = GGui::ApplicationInstance::hinstance() ;
-	m_hmenu = G::nowide::loadMenu( hinstance , id ) ;
-	if( m_hmenu == nullptr )
+	m_hmenu = G::nowide::loadMenu( hinstance , static_cast<int>(id) ) ;
+	if( m_hmenu == HNULL )
 		throw Error() ;
 }
 
@@ -94,7 +81,7 @@ void Main::WinMenu::update( bool with_open , bool with_close )
 
 Main::WinMenu::~WinMenu()
 {
-	if( m_hmenu != nullptr )
+	if( m_hmenu != HNULL )
 		DestroyMenu( m_hmenu ) ;
 }
 

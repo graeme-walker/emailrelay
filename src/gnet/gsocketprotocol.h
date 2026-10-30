@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsocketprotocol.h
 ///
@@ -26,6 +14,7 @@
 #include "geventhandler.h"
 #include "gexception.h"
 #include "gstringview.h"
+#include "gdatetime.h"
 #include "glimits.h"
 #include <string>
 #include <memory>
@@ -69,11 +58,12 @@ public:
 	struct Config /// A configuration structure for GNet::SocketProtocol.
 	{
 		std::size_t read_buffer_size {G::Limits<>::net_buffer} ;
-		unsigned int secure_connection_timeout {0U} ;
+		G::TimeInterval secure_connection_timeout {0U} ; // no timeout if zero
 		std::string server_tls_profile ;
 		std::string client_tls_profile ;
 		Config & set_read_buffer_size( std::size_t n ) noexcept ;
 		Config & set_secure_connection_timeout( unsigned int t ) noexcept ;
+		Config & set_secure_connection_timeout( G::TimeInterval ) noexcept ;
 		Config & set_server_tls_profile( const std::string & s ) ;
 		Config & set_client_tls_profile( const std::string & s ) ;
 	} ;
@@ -197,9 +187,12 @@ public:
 		///< and the connection is defunct.
 } ;
 
+// clang-format off
 inline GNet::SocketProtocol::Config & GNet::SocketProtocol::Config::set_read_buffer_size( std::size_t n ) noexcept { read_buffer_size = n ; return *this ; }
-inline GNet::SocketProtocol::Config & GNet::SocketProtocol::Config::set_secure_connection_timeout( unsigned int t ) noexcept { secure_connection_timeout = t ; return *this ; }
+inline GNet::SocketProtocol::Config & GNet::SocketProtocol::Config::set_secure_connection_timeout( unsigned int t ) noexcept { secure_connection_timeout = G::TimeInterval(t) ; return *this ; }
+inline GNet::SocketProtocol::Config & GNet::SocketProtocol::Config::set_secure_connection_timeout( G::TimeInterval i ) noexcept { secure_connection_timeout = i ; return *this ; }
 inline GNet::SocketProtocol::Config & GNet::SocketProtocol::Config::set_server_tls_profile( const std::string & s ) { server_tls_profile = s ; return *this ; }
 inline GNet::SocketProtocol::Config & GNet::SocketProtocol::Config::set_client_tls_profile( const std::string & s ) { client_tls_profile = s ; return *this ; }
+// clang-format on
 
 #endif

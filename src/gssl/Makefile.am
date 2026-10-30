@@ -1,25 +1,13 @@
 #
-## Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-## 
-## This program is free software: you can redistribute it and/or modify
-## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or
-## (at your option) any later version.
-## 
-## This program is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-## GNU General Public License for more details.
-## 
-## You should have received a copy of the GNU General Public License
-## along with this program.  If not, see <http://www.gnu.org/licenses/>.
+## SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+## SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-noinst_LIBRARIES = libgssl.a libgsslkeygen.a
+noinst_LIBRARIES = libgssl.a
 
 EXTRA_LIBRARIES = libgsslextra.a
 
-AM_CPPFLAGS = -I$(top_srcdir)/src/glib -DG_LIB_SMALL
+AM_CPPFLAGS = -I$(top_srcdir)/src/glib
 
 # =
 
@@ -45,14 +33,9 @@ SSL_EXTRA_DIST = \
 	gssl_mbedtls.h \
 	gssl_mbedtls_headers.h \
 	gssl_mbedtls_utils.h \
-	gssl_mbedtls_keygen.h \
-	gssl_mbedtls_keygen.cpp \
 	gssl_use_both.cpp \
 	gssl_use_openssl.cpp \
 	gssl_use_mbedtls.cpp
-
-SSL_KEYGEN_SOURCES = \
-	empty.cpp
 
 endif
 
@@ -81,10 +64,6 @@ SSL_EXTRA_DIST = \
 	gssl_use_openssl.cpp \
 	gssl_use_mbedtls.cpp
 
-SSL_KEYGEN_SOURCES = \
-	gssl_mbedtls_keygen.h \
-	gssl_mbedtls_keygen.cpp
-
 endif
 
 # =
@@ -110,13 +89,8 @@ SSL_EXTRA_DIST = \
 	gssl_mbedtls.h \
 	gssl_mbedtls_headers.h \
 	gssl_mbedtls_utils.h \
-	gssl_mbedtls_keygen.h \
-	gssl_mbedtls_keygen.cpp \
 	gssl_use_mbedtls.cpp \
 	gssl_use_both.cpp
-
-SSL_KEYGEN_SOURCES = \
-	empty.cpp
 
 endif
 
@@ -146,22 +120,13 @@ SSL_EXTRA_DIST = \
 	gssl_use_openssl.cpp \
 	gssl_use_both.cpp
 
-SSL_KEYGEN_SOURCES = \
-	gssl_mbedtls_keygen.h \
-	gssl_mbedtls_keygen.cpp
-
 endif
 
 EXTRA_DIST = \
-	mbedtls-vsnprintf-fix.p1 \
-	mbedtls-vsnprintf-fix-new.p1 \
 	$(SSL_EXTRA_DIST)
 
 libgssl_a_SOURCES = \
 	$(SSL_SOURCES)
-
-libgsslkeygen_a_SOURCES = \
-	$(SSL_KEYGEN_SOURCES)
 
 libgsslextra_a_SOURCES = \
 	$(SSL_EXTRA_SOURCES)

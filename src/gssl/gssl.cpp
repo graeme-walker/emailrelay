@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gssl.cpp
 ///
@@ -48,12 +36,10 @@ GSsl::Library::~Library()
 		m_this = nullptr ;
 }
 
-#ifndef G_LIB_SMALL
 bool GSsl::Library::real()
 {
 	return true ;
 }
-#endif
 
 GSsl::Library * GSsl::Library::instance()
 {
@@ -65,12 +51,10 @@ bool GSsl::Library::enabled() const
 	return m_imp != nullptr ;
 }
 
-#ifndef G_LIB_SMALL
 std::string GSsl::Library::id() const
 {
 	return m_imp->id() ;
 }
-#endif
 
 void GSsl::Library::addProfile( const std::string & profile_name , bool is_server_profile ,
 	const std::string & key_file , const std::string & cert_file , const std::string & ca_file ,
@@ -125,7 +109,7 @@ void GSsl::Library::log( int level , const std::string & log_line )
 	if( level == 1 )
 		G_DEBUG( "GSsl::Library::log: tls: " << log_line ) ;
 	else if( level == 2 )
-		G_LOG( "GSsl::Library::log: tls: " << log_line ) ;
+		G_LOG_G( tls , "GSsl::Library::log: tls: " << log_line ) ;
 	else
 		G_WARNING( "GSsl::Library::log: tls: " << log_line ) ;
 }
@@ -155,12 +139,10 @@ std::string GSsl::Protocol::peerCertificate() const
 	return m_imp->peerCertificate() ;
 }
 
-#ifndef G_LIB_SMALL
 std::string GSsl::Protocol::peerCertificateChain() const
 {
 	return m_imp->peerCertificateChain() ;
 }
-#endif
 
 std::string GSsl::Protocol::protocol() const
 {
@@ -172,12 +154,10 @@ std::string GSsl::Protocol::cipher() const
 	return m_imp->cipher() ;
 }
 
-#ifndef G_LIB_SMALL
 bool GSsl::Protocol::verified() const
 {
 	return m_imp->verified() ;
 }
-#endif
 
 std::string GSsl::Protocol::str( Result result )
 {

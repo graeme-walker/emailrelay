@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gnewprocess_win32.cpp
 ///
@@ -45,45 +33,73 @@ namespace G
 		{
 			Pipe() ;
 			~Pipe() ;
-			HANDLE hread() const ;
-			HANDLE hwrite() const ;
+			HANDLE hread() const noexcept { return m_read ; }
+			HANDLE hwrite() const noexcept { return m_write ; }
+			void duplicate() noexcept ; // two write ends
+			HANDLE pop() noexcept { HANDLE h = m_first ? m_write : m_write2 ; m_first = false ; return h ; }
 			static std::size_t read( HANDLE read , char * buffer , std::size_t buffer_size ) noexcept ;
 			void close() ;
 			private:
 			static void create( HANDLE & read , HANDLE & write ) ;
 			static void uninherited( HANDLE h ) ;
-			HANDLE m_read ;
-			HANDLE m_write ;
+			HANDLE m_read {HNULL} ;
+			HANDLE m_write {HNULL} ;
+			HANDLE m_write2 {HNULL} ;
+			bool m_first {true} ;
+		} ;
+		struct NullDevice
+		{
+			HANDLE m_handle {HNULL} ;
+			void open( bool read_only = false ) noexcept
+			{
+				SECURITY_ATTRIBUTES attributes {} ;
+				attributes.nLength = sizeof(attributes) ;
+				attributes.lpSecurityDescriptor = nullptr ;
+				attributes.bInheritHandle = TRUE ;
+				m_handle = CreateFileW( L"NUL" ,
+					read_only?(GENERIC_READ):(GENERIC_READ|GENERIC_WRITE) ,
+					FILE_SHARE_READ|FILE_SHARE_WRITE , &attributes ,
+					OPEN_EXISTING , FILE_ATTRIBUTE_NORMAL , nullptr ) ;
+				if( m_handle == INVALID_HANDLE_VALUE )
+					m_handle = HNULL ;
+			}
+			~NullDevice()
+			{
+				if( m_handle )
+					CloseHandle( m_handle ) ;
+			}
+			HANDLE handle() const noexcept { return m_handle ; }
 		} ;
 		#if GCONFIG_HAVE_WINDOWS_STARTUP_INFO_EX
 			struct AttributeList
 			{
 				G_EXCEPTION( Error , tx("AttributeList error") )
 				using pointer_type = LPPROC_THREAD_ATTRIBUTE_LIST ;
-				explicit AttributeList( const std::array<HANDLE,4U> & ) ;
+				explicit AttributeList( const std::array<HANDLE,5U> & ) ;
 				~AttributeList() ;
 				pointer_type ptr() ;
 				private:
 				void cleanup() noexcept ;
 				G::Buffer<char> m_buffer ;
-				std::array<HANDLE,4U> m_handles ;
-				pointer_type m_ptr {NULL} ;
+				std::array<HANDLE,5U> m_handles ;
+				pointer_type m_ptr {nullptr} ;
 			} ;
 		#else
 			struct AttributeList
 			{
 				using pointer_type = void* ;
-				explicit AttributeList( const std::array<HANDLE,4U> & ) {}
+				explicit AttributeList( const std::array<HANDLE,5U> & ) {}
 				pointer_type ptr() { return nullptr ; }
 			} ;
 		#endif
 		struct StartupInfo
 		{
 			nowide::STARTUPINFO_REAL_type m_startup_info ;
-			nowide::STARTUPINFO_BASE_type * m_ptr ;
-			DWORD m_flags ;
+			nowide::STARTUPINFO_BASE_type * m_ptr {nullptr} ;
+			DWORD m_flags {0U} ;
 			StartupInfo( AttributeList & attribute_list , HANDLE hstdin , HANDLE hstdout , HANDLE hstderr )
 			{
+				// NOLINTBEGIN(*-prefer-member-initializer)
 				#if GCONFIG_HAVE_WINDOWS_STARTUP_INFO_EX
 					nowide::STARTUPINFO_REAL_type zero {} ;
 					m_startup_info = zero ;
@@ -107,6 +123,7 @@ namespace G
 					m_ptr = &m_startup_info ;
 					m_flags = CREATE_NO_WINDOW | nowide::STARTUPINFO_flags ;
 				#endif
+				// NOLINTEND(*-prefer-member-initializer)
 			}
 		} ;
 		HANDLE fdhandle( int fd ) ;
@@ -155,7 +172,8 @@ private:
 	static std::pair<std::string,std::string> commandLine( std::string exe , StringArray args ) ;
 	static std::pair<HANDLE,DWORD> createProcessImp( const std::string & exe ,
 		const std::string & command_line , const Environment & ,
-		HANDLE hpipe , HANDLE keep_handle_1 , HANDLE keep_handle_2 ,
+		Pipe & pipe , HANDLE hnulldevice_out , HANDLE hnulldevice_in ,
+		HANDLE keep_handle_1 , HANDLE keep_handle_2 ,
 		Fd fd_stdin , Fd fd_stdout , Fd fd_stderr , bool with_cd , const Path & cd ) ;
 	static void dequote( std::string & ) ;
 	static std::string withQuotes( const std::string & ) ;
@@ -167,9 +185,9 @@ private:
 
 private:
 	NewProcess::Config m_config ;
-	HANDLE m_hprocess ;
+	HANDLE m_hprocess {HNULL} ;
 	DWORD m_pid ;
-	bool m_killed ;
+	bool m_killed {false} ;
 	Pipe m_pipe ;
 	NewProcessWaitable m_waitable ;
 } ;
@@ -212,21 +230,32 @@ void G::NewProcess::kill( bool yield ) noexcept
 
 G::NewProcessImp::NewProcessImp( const Path & exe , const StringArray & args , const NewProcess::Config & config ) :
 	m_config(config) ,
-	m_hprocess(0) ,
-	m_killed(false) ,
 	m_waitable(HNULL,HNULL,0)
 {
+	namespace imp = NewProcessWindowsImp ;
 	G_DEBUG( "G::NewProcessImp::ctor: exe=[" << exe << "] args=[" << Str::join("],[",args) << "]" ) ;
 
-	bool one_pipe = config.stdout == Fd::pipe() || config.stderr == Fd::pipe() ;
+	bool pipe_ok = config.stdout.m_pipe || config.stderr.m_pipe ;
 	bool stdin_ok = config.stdin.m_null || config.stdin.m_fd >= 0 ;
-	if( !one_pipe || !stdin_ok )
+	if( !pipe_ok || !stdin_ok )
 		throw NewProcess::Error( "invalid parameters" ) ;
+
+	if( config.stdout.m_pipe && config.stderr.m_pipe )
+		m_pipe.duplicate() ;
+
+	imp::NullDevice null_device_in ;
+	if( config.stdin.m_null )
+		null_device_in.open( true ) ;
+
+	imp::NullDevice null_device_out ;
+	if( config.stdout.m_null || config.stderr.m_null )
+		null_device_out.open() ;
 
 	auto command_line_pair = commandLine( exe.str() , args ) ;
 
 	std::pair<HANDLE,DWORD> pair = createProcessImp( command_line_pair.first , command_line_pair.second ,
-		config.env , m_pipe.hwrite() , config.keep_handle_1 , config.keep_handle_2 ,
+		config.env , m_pipe , null_device_out.handle() , null_device_in.handle() ,
+		config.keep_handle_1 , config.keep_handle_2 ,
 		config.stdin , config.stdout , config.stderr , !config.cd.empty() , config.cd ) ;
 
 	if( !valid(pair.first) )
@@ -235,7 +264,8 @@ G::NewProcessImp::NewProcessImp( const Path & exe , const StringArray & args , c
 		std::string s ;
 		if( m_config.exec_error_format_fn )
 		{
-			s = (config.exec_error_format_fn)(config.exec_error_format,e) ;
+			int ee = static_cast<int>( e ) ;
+			s = (config.exec_error_format_fn)(config.exec_error_format,ee) ;
 		}
 		else if( !m_config.exec_error_format.empty() )
 		{
@@ -253,7 +283,7 @@ G::NewProcessImp::NewProcessImp( const Path & exe , const StringArray & args , c
 	m_hprocess = pair.first ;
 	m_pid = pair.second ;
 
-	m_pipe.close() ; // close write end, now used by child process
+	m_pipe.close() ; // close write end(s), now used by child process
 	m_waitable.assign( m_hprocess , m_pipe.hread() , 0 ) ;
 }
 
@@ -282,7 +312,8 @@ int G::NewProcessImp::id() const noexcept
 
 std::pair<HANDLE,DWORD> G::NewProcessImp::createProcessImp( const std::string & exe ,
 	const std::string & command_line , const Environment & env ,
-	HANDLE hpipe , HANDLE keep_handle_1 , HANDLE keep_handle_2 ,
+	Pipe & pipe , HANDLE hnulldevice_out , HANDLE hnulldevice_in ,
+	HANDLE keep_handle_1 , HANDLE keep_handle_2 ,
 	Fd fd_stdin , Fd fd_stdout , Fd fd_stderr , bool with_cd , const Path & cd_path )
 {
 	namespace imp = NewProcessWindowsImp ;
@@ -291,21 +322,27 @@ std::pair<HANDLE,DWORD> G::NewProcessImp::createProcessImp( const std::string & 
 	HANDLE hstdin = INVALID_HANDLE_VALUE ;
 	if( fd_stdin.m_fd >= 0 )
 		hstdin = imp::fdhandle( fd_stdin.m_fd ) ;
+	else if( hnulldevice_in )
+		hstdin = hnulldevice_in ;
 
 	HANDLE hstdout = INVALID_HANDLE_VALUE ;
-	if( fd_stdout == Fd::pipe() )
-		hstdout = hpipe ;
+	if( fd_stdout.m_pipe )
+		hstdout = pipe.pop() ;
 	else if( fd_stdout.m_fd >= 0 )
 		hstdout = imp::fdhandle( fd_stdout.m_fd ) ;
+	else if( fd_stdout.m_null && hnulldevice_out )
+		hstdout = hnulldevice_out ;
 
 	HANDLE hstderr = INVALID_HANDLE_VALUE ;
-	if( fd_stderr == Fd::pipe() )
-		hstderr = hpipe ;
+	if( fd_stderr.m_pipe )
+		hstderr = pipe.pop() ;
 	else if( fd_stderr.m_fd >= 0 )
 		hstderr = imp::fdhandle( fd_stderr.m_fd ) ;
+	else if( fd_stderr.m_null && hnulldevice_out )
+		hstderr = hnulldevice_out ;
 
 	// redirect stdout or stderr onto the read end of our pipe
-	imp::AttributeList attribute_list({ hstdin , hpipe , keep_handle_1 , keep_handle_2 }) ;
+	imp::AttributeList attribute_list({ hstdin , hstdout , hstderr , keep_handle_1 , keep_handle_2 }) ;
 	imp::StartupInfo startup_info( attribute_list , hstdin , hstdout , hstderr ) ;
 
 	std::string env_char_block = env.block() ;
@@ -448,16 +485,16 @@ std::string G::NewProcessImp::powershell()
 // ==
 
 #if GCONFIG_HAVE_WINDOWS_STARTUP_INFO_EX
-G::NewProcessWindowsImp::AttributeList::AttributeList( const std::array<HANDLE,4U> & handles_in ) :
+G::NewProcessWindowsImp::AttributeList::AttributeList( const std::array<HANDLE,5U> & handles_in ) :
 	m_handles(handles_in)
 {
 	auto end = std::partition( m_handles.begin() , m_handles.end() ,
-		[](HANDLE h){return h!=0 && h!=INVALID_HANDLE_VALUE;} ) ;
+		[](HANDLE h){return h!=HNULL && h!=INVALID_HANDLE_VALUE;} ) ;
 	std::size_t handles_size = std::distance( m_handles.begin() , end ) ;
 	if( handles_size )
 	{
 		SIZE_T buffer_size = 0 ;
-		InitializeProcThreadAttributeList( NULL , 1 , 0 , &buffer_size ) ;
+		InitializeProcThreadAttributeList( nullptr , 1 , 0 , &buffer_size ) ;
 		if( buffer_size == 0 || buffer_size > 100000 )
 			throw Error() ;
 		m_buffer.resize( buffer_size ) ;
@@ -468,7 +505,8 @@ G::NewProcessWindowsImp::AttributeList::AttributeList( const std::array<HANDLE,4
 			throw Error() ;
 
 		ok = UpdateProcThreadAttribute( ptr , 0 , PROC_THREAD_ATTRIBUTE_HANDLE_LIST ,
-			m_handles.data() , handles_size * sizeof(HANDLE) , NULL , NULL ) ;
+			m_handles.data() , handles_size*sizeof(HANDLE) , // NOLINT(*-multi-level-implicit-pointer-conversion)
+			nullptr , nullptr ) ;
 		if( !ok )
 		{
 			cleanup() ;
@@ -487,7 +525,7 @@ void G::NewProcessWindowsImp::AttributeList::cleanup() noexcept
 {
 	if( m_ptr )
 		DeleteProcThreadAttributeList( m_ptr ) ;
-	m_ptr = NULL ;
+	m_ptr = nullptr ;
 }
 
 G::NewProcessWindowsImp::AttributeList::pointer_type G::NewProcessWindowsImp::AttributeList::ptr()
@@ -498,9 +536,7 @@ G::NewProcessWindowsImp::AttributeList::pointer_type G::NewProcessWindowsImp::At
 
 // ==
 
-G::NewProcessWindowsImp::Pipe::Pipe() :
-	m_read(HNULL) ,
-	m_write(HNULL)
+G::NewProcessWindowsImp::Pipe::Pipe()
 {
 	create( m_read , m_write ) ;
 	uninherited( m_read ) ;
@@ -510,6 +546,7 @@ G::NewProcessWindowsImp::Pipe::~Pipe()
 {
 	closeHandle( m_read ) ;
 	closeHandle( m_write ) ;
+	closeHandle( m_write2 ) ;
 }
 
 void G::NewProcessWindowsImp::Pipe::create( HANDLE & h_read , HANDLE & h_write )
@@ -542,20 +579,23 @@ void G::NewProcessWindowsImp::Pipe::uninherited( HANDLE h )
 	}
 }
 
-HANDLE G::NewProcessWindowsImp::Pipe::hwrite() const
+void G::NewProcessWindowsImp::Pipe::duplicate() noexcept
 {
-	return m_write ;
-}
-
-HANDLE G::NewProcessWindowsImp::Pipe::hread() const
-{
-	return m_read ;
+	if( !DuplicateHandle(
+		GetCurrentProcess() , m_write ,
+		GetCurrentProcess() , &m_write2 ,
+		0 , TRUE , DUPLICATE_SAME_ACCESS ) )
+	{
+		m_write2 = HNULL ;
+	}
 }
 
 void G::NewProcessWindowsImp::Pipe::close()
 {
 	closeHandle( m_write ) ;
+	closeHandle( m_write2 ) ;
 	m_write = HNULL ;
+	m_write2 = HNULL ;
 }
 
 std::size_t G::NewProcessWindowsImp::Pipe::read( HANDLE hread , char * buffer , std::size_t buffer_size_in ) noexcept
@@ -573,31 +613,21 @@ std::size_t G::NewProcessWindowsImp::Pipe::read( HANDLE hread , char * buffer , 
 // ==
 
 G::NewProcessWaitable::NewProcessWaitable() :
-	m_hprocess(HNULL),
-	m_hpipe(HNULL) ,
-	m_pid(0),
-	m_rc(0),
-	m_status(0),
-	m_error(0) ,
 	m_test_mode(G::Test::enabled("waitpid-slow"))
 {
 }
 
 G::NewProcessWaitable::NewProcessWaitable( HANDLE hprocess , HANDLE hpipe , int ) :
-	m_buffer(1024U*4U) ,
+	m_buffer(4096U) ,
 	m_hprocess(hprocess),
 	m_hpipe(hpipe),
-	m_pid(0),
-	m_rc(0),
-	m_status(0),
-	m_error(0) ,
 	m_test_mode(G::Test::enabled("waitpid-slow"))
 {
 }
 
 void G::NewProcessWaitable::assign( HANDLE hprocess , HANDLE hpipe , int )
 {
-	m_buffer.resize( 1024U * 4U ) ;
+	m_buffer.resize( 4096U ) ;
 	m_data_size = 0U ;
 	m_hprocess = hprocess ;
 	m_hpipe = hpipe ;
@@ -632,7 +662,7 @@ G::NewProcessWaitable & G::NewProcessWaitable::wait()
 	std::size_t space = m_buffer.size() ;
 	for(;;)
 	{
-		HANDLE handles[2] ;
+		std::array<HANDLE,2U> handles ;
 		DWORD nhandles = 0 ;
 		if( NewProcessImp::valid(m_hprocess) )
 			handles[nhandles++] = m_hprocess ;
@@ -642,7 +672,7 @@ G::NewProcessWaitable & G::NewProcessWaitable::wait()
 			break ;
 
 		// wait on both handles to avoid the pipe-writer from blocking if the pipe fills
-		DWORD rc = WaitForMultipleObjects( nhandles , handles , FALSE , INFINITE ) ;
+		DWORD rc = WaitForMultipleObjects( nhandles , handles.data() , FALSE , INFINITE ) ;
 		HANDLE h = rc == WAIT_OBJECT_0 ? handles[0] : (rc==(WAIT_OBJECT_0+1)?handles[1]:HNULL) ;
 		if( h == m_hprocess && m_hprocess )
 		{

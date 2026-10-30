@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gtimerlist.cpp
 ///
@@ -36,12 +24,10 @@ GNet::TimerList::ListItem::ListItem( TimerBase * t , EventState es ) :
 {
 }
 
-#ifndef G_LIB_SMALL
 inline bool GNet::TimerList::ListItem::operator==( const ListItem & rhs ) const noexcept
 {
 	return m_timer == rhs.m_timer ;
 }
-#endif
 
 inline void GNet::TimerList::ListItem::resetIf( TimerBase * p ) noexcept
 {
@@ -127,7 +113,7 @@ void GNet::TimerList::updateOnStart( TimerBase & timer )
 		m_soonest = &timer ;
 }
 
-void GNet::TimerList::updateOnCancel( TimerBase & timer )
+void GNet::TimerList::updateOnCancel( TimerBase & timer ) noexcept
 {
 	G_ASSERT( !timer.active() ) ;
 	if( m_soonest == &timer )
@@ -161,8 +147,8 @@ std::pair<G::TimeInterval,bool> GNet::TimerList::interval() const
 	}
 	else
 	{
-		G::TimerTime now = G::TimerTime::now() ;
-		G::TimerTime then = m_soonest->t() ;
+		auto now = G::TimerTime::now() ;
+		auto then = m_soonest->t() ;
 		return std::make_pair( G::TimeInterval(now,then) , false ) ;
 	}
 }
@@ -172,12 +158,10 @@ GNet::TimerList * GNet::TimerList::ptr() noexcept
 	return m_this ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::TimerList::exists()
 {
 	return m_this != nullptr ;
 }
-#endif
 
 GNet::TimerList & GNet::TimerList::instance()
 {
@@ -229,7 +213,7 @@ void GNet::TimerList::doTimeouts()
 	G_ASSERT( m_list_added.empty() ) ;
 	Lock lock( *this ) ;
 	m_adjust = 0 ;
-	G::TimerTime now = G::TimerTime::zero() ; // lazy initialisation to G::TimerTime::now() in G::Timer::expired()
+	auto now = G::TimerTime::zero() ; // lazy initialisation to TimerTime::now() in Timer::expired()
 
 	// move expired timers to the front
 	auto expired_end = std::partition( m_list.begin() , m_list.end() ,

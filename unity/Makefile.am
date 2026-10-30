@@ -1,19 +1,6 @@
 #
-## Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-## 
-## This program is free software: you can redistribute it and/or modify
-## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or
-## (at your option) any later version.
-## 
-## This program is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-## GNU General Public License for more details.
-## 
-## You should have received a copy of the GNU General Public License
-## along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
+## SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+## SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Makefile.am
 #
@@ -49,9 +36,7 @@
 # Note that "make small" will disregard autoconf's CXXFLAGS.
 #
 
-CPPFLAGS_SMALL=-DG_LIB_SMALL
-
-if GCONFIG_GUI
+if GCONFIG_ENABLE_GUI
 
 SOURCES_ = \
 	emailrelay.cpp \
@@ -66,15 +51,8 @@ PROGRAMS_ = \
 	emailrelay-gui
 
 CPPFLAGS_GUI = \
-	-D "G_SBINDIR=$(sbindir)" \
 	-D "G_SPOOLDIR=$(e_spooldir)" \
-	-D "G_INITDIR=$(e_initdir)" \
-	-D "G_SYSCONFDIR=$(e_sysconfdir)" \
-	-D "G_ICONDIR=$(e_icondir)" \
-	-D "G_LIBDIR=$(e_libdir)" \
-	-D "G_MANDIR=$(mandir)" \
-	-D "G_DOCDIR=$(e_docdir)" \
-	-D "G_EXAMPLESDIR=$(e_examplesdir)" \
+	-D "G_CONFDIR=$(e_confdir)" \
 	-I . \
 	$(GCONFIG_QT_CFLAGS)
 
@@ -156,32 +134,32 @@ strip:
 	"$(STRIP)" $(PROGRAMS_)
 
 emailrelay: emailrelay.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(CPPFLAGS_SMALL) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ emailrelay.cpp $(LIBS) $(GCONFIG_TLS_LIBS)
 
 emailrelay-submit: emailrelay-submit.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ emailrelay-submit.cpp $(LIBS) $(GCONFIG_TLS_LIBS)
 
 emailrelay-passwd: emailrelay-passwd.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(IFLAGS) -o $@ emailrelay-passwd.cpp $(LIBS) $(GCONFIG_TLS_LIBS)
 
 emailrelay-gui: emailrelay-gui.cpp $(MOC)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(CPPFLAGS_GUI) $(IFLAGS) -o $@ $< $(LIBS) $(GCONFIG_TLS_LIBS) $(GCONFIG_QT_LIBS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(CPPFLAGS_GUI) $(IFLAGS) -o $@ emailrelay-gui.cpp $(LIBS) $(GCONFIG_TLS_LIBS) $(GCONFIG_QT_LIBS)
 
 moc_guidialog.cpp: $(top_srcdir)/src/gui/guidialog.h
-	$(GCONFIG_QT_MOC) $< -o $@
+	$(GCONFIG_QT_MOC) $(top_srcdir)/src/gui/guidialog.h -o $@
 
 moc_guipage.cpp: $(top_srcdir)/src/gui/guipage.h
-	$(GCONFIG_QT_MOC) $< -o $@
+	$(GCONFIG_QT_MOC) $(top_srcdir)/src/gui/guipage.h -o $@
 
 moc_guipages.cpp: $(top_srcdir)/src/gui/guipages.h
-	$(GCONFIG_QT_MOC) $< -o $@
+	$(GCONFIG_QT_MOC) $(top_srcdir)/src/gui/guipages.h -o $@
 
 .PHONY: tidy
 tidy: emailrelay.cpp $(CDB) .clang-tidy
 	clang-tidy --header-filter=.* emailrelay.cpp
 
 .PHONY: tidygui
-tidygui: emailrelay.cpp $(CDB) $(MOC) .clang-tidy
+tidygui: emailrelay-gui.cpp $(CDB) $(MOC) .clang-tidy
 	-@rm $(top_builddir)/src/gui/moc_guipage.cpp 2>/dev/null
 	-@rm $(top_builddir)/src/gui/moc_guidialog.cpp 2>/dev/null
 	-@rm $(top_builddir)/src/gui/moc_guipages.cpp 2>/dev/null

@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsmtpclientprotocol.cpp
 ///
@@ -117,7 +105,7 @@ void GSmtp::ClientProtocol::sendComplete()
 		std::size_t n = sendContentLines() ;
 		n++ ; // since the socket protocol has now sent the line that was blocked
 
-		G_LOG( "GSmtp::ClientProtocol: tx>>: [" << n << " line(s) of content]" ) ;
+		G_LOG_G( io , "GSmtp::ClientProtocol: tx>>: [" << n << " line(s) of content]" ) ;
 		if( endOfContent() )
 		{
 			m_protocol.state = State::SentDot ;
@@ -138,7 +126,7 @@ G::Slot::Signal<> & GSmtp::ClientProtocol::filterSignal() noexcept
 
 bool GSmtp::ClientProtocol::apply( const std::string & rx )
 {
-	G_LOG( "GSmtp::ClientProtocol: rx<<: \"" << G::Str::printable(rx) << "\"" ) ;
+	G_LOG_G( io , "GSmtp::ClientProtocol: rx<<: \"" << G::Str::printable(rx) << "\"" ) ;
 
 	m_protocol.reply_lines.push_back( rx ) ;
 
@@ -178,7 +166,7 @@ bool GSmtp::ClientProtocol::applyEvent( const ClientReply & reply )
 	{
 		// got start-event -- wait for 220 greeting
 		m_protocol.state = State::Started ;
-		if( m_config.ready_timeout != 0U )
+		if( m_config.ready_timeout )
 			startTimer( m_config.ready_timeout ) ;
 	}
 	else if( m_protocol.state == State::Init && reply.is(ClientReply::Value::ServiceReady_220) )
@@ -330,7 +318,7 @@ bool GSmtp::ClientProtocol::applyEvent( const ClientReply & reply )
 		// authenticated -- proceed to first message
 		m_session.authenticated = true ;
 		m_session.auth_selector = m_message_state.selector ;
-		G_LOG( "GSmtp::ClientProtocol::applyEvent: successful authentication with remote server "
+		G_LOG_G( auth , "GSmtp::ClientProtocol::applyEvent: successful authentication with remote server "
 			<< (m_session.secure?"over tls ":"") << m_sasl->info() ) ;
 		m_protocol.state = State::Filtering ;
 		startFiltering() ;
@@ -338,7 +326,7 @@ bool GSmtp::ClientProtocol::applyEvent( const ClientReply & reply )
 	else if( m_protocol.state == State::Auth && !reply.positive() && m_sasl->next() )
 	{
 		// authentication failed -- try the next mechanism
-		G_LOG( "GSmtp::ClientProtocol::applyEvent: " << AuthError(*m_sasl,reply).str()
+		G_LOG_MORE_G( auth , "GSmtp::ClientProtocol::applyEvent: " << AuthError(*m_sasl,reply).str()
 			<< ": trying [" << G::Str::lower(m_sasl->mechanism()) << "]" ) ;
 		m_session.auth_mechanism = m_sasl->mechanism() ;
 		GAuth::SaslClient::Response rsp = initialResponse( *m_sasl , m_message_state.selector ) ;
@@ -458,7 +446,7 @@ bool GSmtp::ClientProtocol::applyEvent( const ClientReply & reply )
 		// DATA command accepted -- send content until flow-control asserted or all sent
 		m_protocol.state = State::Data ;
 		std::size_t n = sendContentLines() ;
-		G_LOG( "GSmtp::ClientProtocol: tx>>: [" << n << " line(s) of content]" ) ;
+		G_LOG_G( io , "GSmtp::ClientProtocol: tx>>: [" << n << " line(s) of content]" ) ;
 		if( endOfContent() )
 		{
 			m_protocol.state = State::SentDot ;
@@ -540,7 +528,7 @@ void GSmtp::ClientProtocol::onTimeout()
 	{
 		// no 220 greeting seen -- go on regardless
 		G_WARNING( "GSmtp::ClientProtocol: timeout: no greeting from remote server after "
-			<< m_config.ready_timeout << "s: continuing" ) ;
+			<< m_config.ready_timeout.s() << "s: continuing" ) ;
 		m_protocol.state = State::SentEhlo ;
 		sendEhlo() ;
 	}
@@ -550,11 +538,11 @@ void GSmtp::ClientProtocol::onTimeout()
 	}
 	else if( m_protocol.state == State::Data )
 	{
-		throw SmtpError( "flow-control timeout after " + G::Str::fromUInt(m_config.response_timeout) + "s" ) ;
+		throw SmtpError( "flow-control timeout after " + G::Str::fromUInt(m_config.response_timeout.s()) + "s" ) ;
 	}
 	else
 	{
-		throw SmtpError( "response timeout after " + G::Str::fromUInt(m_config.response_timeout) + "s" ) ;
+		throw SmtpError( "response timeout after " + G::Str::fromUInt(m_config.response_timeout.s()) + "s" ) ;
 	}
 }
 
@@ -881,17 +869,17 @@ void GSmtp::ClientProtocol::sendChunkImp( const char * p , std::size_t n )
 {
 	std::string_view sv( p , n ) ;
 
-	if( m_config.response_timeout != 0U )
+	if( m_config.response_timeout )
 		startTimer( m_config.response_timeout ) ; // response timer on every bdat block
 
-	if( G::LogOutput::Instance::atVerbose() )
+	if( G_LOG_ACTIVE_G(io) )
 	{
 		std::size_t pos = sv.find( "\r\n"_sv ) ;
 		std::string_view cmd = G::Str::headView( sv , pos , {p,std::size_t(0U)} ) ;
 		G::StringTokenView t( cmd , " "_sv ) ;
 		std::string_view count = t.next()() ;
 		std::string_view end = count.size() == 1U && count[0] == '1' ? "]"_sv : "s]"_sv ;
-		G_LOG( "GSmtp::ClientProtocol: tx>>: \"" << cmd << "\" [" << count << " byte" << end ) ;
+		G_LOG_G( io , "GSmtp::ClientProtocol: tx>>: \"" << cmd << "\" [" << count << " byte" << end ) ;
 	}
 
 	m_sender.protocolSend( sv , 0U , false ) ;
@@ -900,7 +888,7 @@ void GSmtp::ClientProtocol::sendChunkImp( const char * p , std::size_t n )
 bool GSmtp::ClientProtocol::sendContentLineImp( const std::string & line , std::size_t offset )
 {
 	bool all_sent = m_sender.protocolSend( line , offset , false ) ;
-	if( !all_sent && m_config.response_timeout != 0U )
+	if( !all_sent && m_config.response_timeout )
 		startTimer( m_config.response_timeout ) ; // response timer while blocked by flow-control
 	return all_sent ;
 }
@@ -911,19 +899,19 @@ bool GSmtp::ClientProtocol::sendImp( std::string_view line , std::size_t sensiti
 
 	if( m_protocol.state == State::Quitting )
 		startTimer( 1U ) ;
-	else if( m_config.response_timeout != 0U )
+	else if( m_config.response_timeout )
 		startTimer( m_config.response_timeout ) ; // response timer on every smtp command
 
 	std::size_t pos = 0U ;
 	for( G::StringFieldT<std::string_view> f(line,"\r\n",2U) ; f && !f.last() ; pos += (f.size()+2U) , ++f )
 	{
 		if( sensitive_from == std::string::npos || (pos+f.size()) < sensitive_from )
-			G_LOG( "GSmtp::ClientProtocol: tx>>: "
+			G_LOG_G( io , "GSmtp::ClientProtocol: tx>>: "
 				"\"" << G::Str::printable(f()) << "\"" ) ;
 		else if( pos >= sensitive_from )
-			G_LOG( "GSmtp::ClientProtocol: tx>>: [response not logged]" ) ;
+			G_LOG_G( io , "GSmtp::ClientProtocol: tx>>: [response not logged]" ) ;
 		else
-			G_LOG( "GSmtp::ClientProtocol: tx>>: "
+			G_LOG_G( io , "GSmtp::ClientProtocol: tx>>: "
 				"\"" << G::Str::printable(f().substr(0U,sensitive_from-pos)) << " [not logged]\"" ) ;
 	}
 

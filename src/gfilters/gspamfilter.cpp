@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gspamfilter.cpp
 ///
@@ -24,17 +12,18 @@
 #include "glog.h"
 
 GFilters::SpamFilter::SpamFilter( GNet::EventState es , GStore::FileStore & file_store ,
-	Filter::Type , const Filter::Config & config , const std::string & server ,
+	Filter::Type , const Filter::Config & filter_config , const std::string & spec ,
 	bool read_only , bool always_pass ) :
 		m_es(es) ,
 		m_done_timer(*this,&SpamFilter::onDoneTimeout,m_es) ,
 		m_done_signal(true) ,
 		m_file_store(file_store) ,
-		m_location(server) ,
+		m_location(spec) ,
 		m_read_only(read_only) ,
 		m_always_pass(always_pass) ,
-		m_connection_timeout(config.timeout) ,
-		m_response_timeout(config.timeout)
+		m_filter_config(filter_config) ,
+		m_connection_timeout(filter_config.timeout) ,
+		m_response_timeout(filter_config.timeout)
 {
 	m_client_ptr.eventSignal().connect( G::Slot::slot(*this,&GFilters::SpamFilter::clientEvent) ) ;
 	m_client_ptr.deletedSignal().connect( G::Slot::slot(*this,&GFilters::SpamFilter::clientDeleted) ) ;
@@ -51,9 +40,9 @@ std::string GFilters::SpamFilter::id() const
 	return m_location.displayString() ;
 }
 
-bool GFilters::SpamFilter::quiet() const
+int GFilters::SpamFilter::verbosity() const noexcept
 {
-	return false ;
+	return m_filter_config.verbosity ;
 }
 
 void GFilters::SpamFilter::start( const GStore::MessageId & message_id )

@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gmessageidfilter.cpp
 ///
@@ -30,17 +18,22 @@
 #include <sstream>
 
 GFilters::MessageIdFilter::MessageIdFilter( GNet::EventState es , GStore::FileStore & store ,
-	Filter::Type filter_type , const Filter::Config & config , const std::string & ) :
+	Filter::Type filter_type , const Filter::Config & filter_config , const std::string & /*spec*/ ) :
 		SimpleFilterBase(es,filter_type,"msgid:") ,
 		m_store(store) ,
-		m_domain(config.domain)
+		m_filter_config(filter_config)
 {
+}
+
+int GFilters::MessageIdFilter::verbosity() const noexcept
+{
+	return m_filter_config.verbosity ;
 }
 
 GSmtp::Filter::Result GFilters::MessageIdFilter::run( const GStore::MessageId & message_id ,
 	bool & , GStore::FileStore::State )
 {
-	std::string e = process( m_store.contentPath(message_id) , m_domain ) ;
+	std::string e = process( m_store.contentPath(message_id) , m_filter_config.domain ) ;
 	if( !e.empty() )
 		throw Error( e ) ;
 	return Result::ok ;
@@ -108,7 +101,7 @@ bool GFilters::MessageIdFilter::isId( std::string_view line ) noexcept
 std::string GFilters::MessageIdFilter::newId( const std::string & domain )
 {
 	std::ostringstream ss ;
-	G::SystemTime now = G::SystemTime::now() ;
+	auto now = G::SystemTime::now() ;
 	static int generator = 0 ;
 	ss << "<"
 		<< now.s() << "." << now.us() << "."

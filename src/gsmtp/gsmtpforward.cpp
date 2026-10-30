@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsmtpforward.cpp
 ///
@@ -102,19 +90,19 @@ bool GSmtp::Forward::sendNext()
 		}
 		else
 		{
-			G_LOG( "GSmtp::Forward::sendNext: forwarding [" << message->id().str() << "]" << messageInfo(*message) ) ;
+			G_LOG_G( forwarding , "GSmtp::Forward::sendNext: forwarding [" << message->id().str() << "]" << messageInfo(*message) ) ;
 			start( std::move(message) ) ;
 			return true ;
 		}
 	}
 	if( m_message_count != 0U )
-		G_LOG( "GSmtp::Forward: forwarding: no more messages to send" ) ;
+		G_LOG_G( forwarding , "GSmtp::Forward: forwarding: no more messages to send" ) ;
 	return false ;
 }
 
 void GSmtp::Forward::sendMessage( std::unique_ptr<GStore::StoredMessage> message )
 {
-	G_LOG( "GSmtp::Forward::sendMessage: forwarding [" << message->id().str() << "]" << messageInfo(*message) ) ;
+	G_LOG_G( forwarding , "GSmtp::Forward::sendMessage: forwarding [" << message->id().str() << "]" << messageInfo(*message) ) ;
 	start( std::move(message) ) ;
 }
 
@@ -127,7 +115,7 @@ void GSmtp::Forward::start( std::unique_ptr<GStore::StoredMessage> message )
 		m_message = std::move( message ) ;
 
 		m_routing_filter = m_ff.newFilter( m_es , Filter::Type::routing , m_config.filter_config , m_config.filter_spec ) ;
-		G_LOG_MORE( "GSmtp::Forward::start: routing-filter [" << m_routing_filter->id() << "]: [" << m_message->id().str() << "]" ) ;
+		G_LOG_MORE_V( m_routing_filter->verbosity() , "GSmtp::Forward::start: routing-filter [" << m_routing_filter->id() << "]: [" << m_message->id().str() << "]" ) ;
 		m_routing_filter->doneSignal().connect( G::Slot::slot(*this,&Forward::routingFilterDone) ) ;
 		m_routing_filter->start( m_message->id() ) ;
 	}
@@ -148,7 +136,7 @@ void GSmtp::Forward::routingFilterDone( int filter_result )
 	G_ASSERT( static_cast<int>(m_routing_filter->result()) == filter_result ) ;
 	G_DEBUG( "GSmtp::Forward::routingFilterDone: result=" << filter_result ) ;
 
-	G_LOG_IF( !m_routing_filter->quiet() , "GSmtp::Forward::routingFilterDone: routing-filter "
+	G_LOG_V( m_routing_filter->verbosity() , "GSmtp::Forward::routingFilterDone: routing-filter "
 		"[" << m_routing_filter->id() << "]: [" << m_message->id().str() << "]: "
 		<< m_routing_filter->str(Filter::Type::client) ) ;
 
@@ -199,7 +187,7 @@ bool GSmtp::Forward::updateClient( const GStore::StoredMessage & message )
 	bool new_selector = m_selector != message.clientAccountSelector() ;
 	if( unconnectable( message.forwardToAddress() ) )
 	{
-		G_LOG( "GSmtp::Forward::updateClient: forwarding [" << message.id().str() << "]: "
+		G_LOG_G( forwarding , "GSmtp::Forward::updateClient: forwarding [" << message.id().str() << "]: "
 			"skipping message with unconnectable address [" << message.forwardToAddress() << "]" ) ;
 		return false ;
 	}
@@ -217,7 +205,7 @@ bool GSmtp::Forward::updateClient( const GStore::StoredMessage & message )
 		if( new_address ) ss << "[" << message.forwardToAddress() << "]" ;
 		if( new_address && new_selector ) ss << " and " ;
 		if( new_selector ) ss << "account selector [" << message.clientAccountSelector() << "]" ;
-		G_LOG( "GSmtpForward::updateClient: forwarding [" << message.id().str() << "]: new connection for " << ss.str() ) ;
+		G_LOG_G( forwarding , "GSmtpForward::updateClient: forwarding [" << message.id().str() << "]: new connection for " << ss.str() ) ;
 
 		newClient( message ) ;
 	}

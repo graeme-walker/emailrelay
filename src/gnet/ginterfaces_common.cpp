@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file ginterfaces_common.cpp
 ///
@@ -24,12 +12,10 @@
 #include "gtest.h"
 #include <algorithm>
 
-#ifndef G_LIB_SMALL
 GNet::Interfaces::Interfaces( EventState es ) :
 	m_es(es)
 {
 }
-#endif
 
 GNet::Interfaces::Interfaces( EventState es , InterfacesHandler & handler ) :
 	m_es(es) ,
@@ -49,28 +35,31 @@ void GNet::Interfaces::load()
 	swap( m_list , new_list ) ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::Interfaces::supported()
 {
 	return true ;
 }
-#endif
 
 bool GNet::Interfaces::loaded() const
 {
 	return m_loaded ;
 }
 
-#ifndef G_LIB_SMALL
 std::vector<GNet::Address> GNet::Interfaces::addresses( const std::string & name , unsigned int port , int af ) const
 {
 	std::vector<GNet::Address> result ;
 	addresses( result , name , port , af ) ;
 	return result ;
 }
-#endif
 
-std::size_t GNet::Interfaces::addresses( std::vector<Address> & out , const std::string & name , unsigned int port , int af ) const
+std::size_t GNet::Interfaces::addresses( std::vector<Address> & out , const std::string & name ,
+	unsigned int port , int af ) const
+{
+	return addresses( out , name , std::vector<unsigned>{port} , af ) ;
+}
+
+std::size_t GNet::Interfaces::addresses( std::vector<Address> & out , const std::string & name ,
+	const std::vector<unsigned> & ports , int af ) const
 {
 	if( !loaded() )
 		const_cast<Interfaces*>(this)->load() ;
@@ -84,16 +73,18 @@ std::size_t GNet::Interfaces::addresses( std::vector<Address> & out , const std:
 				( af == AF_INET6 && item.address.is6() ) ||
 				( af == AF_INET && item.address.is4() ) )
 			{
-				count++ ;
-				out.push_back( item.address ) ;
-				out.back().setPort( port ) ;
+				for( auto port : ports )
+				{
+					count++ ;
+					out.push_back( item.address ) ;
+					out.back().setPort( port ) ;
+				}
 			}
 		}
 	}
 	return count ;
 }
 
-#ifndef G_LIB_SMALL
 G::StringArray GNet::Interfaces::names( bool all ) const
 {
 	G::StringArray list ;
@@ -106,7 +97,6 @@ G::StringArray GNet::Interfaces::names( bool all ) const
 	list.erase( std::unique(list.begin(),list.end()) , list.end() ) ;
 	return list ;
 }
-#endif
 
 GNet::Interfaces::const_iterator GNet::Interfaces::begin() const
 {

@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsmtpclientprotocol.h
 ///
@@ -77,8 +65,8 @@ public:
 	struct Config /// A structure containing GSmtp::ClientProtocol configuration parameters.
 	{
 		std::string ehlo ; // EHLO parameter
-		unsigned int response_timeout {0U} ;
-		unsigned int ready_timeout {0U} ;
+		G::TimeInterval response_timeout {0U} ;
+		G::TimeInterval ready_timeout {0U} ;
 		bool use_starttls_if_possible {false} ;
 		bool must_use_tls {false} ;
 		bool authentication_fallthrough {false} ; // try MAIL FROM even if authentication failed
@@ -94,8 +82,8 @@ public:
 		bool try_reauthentication {false} ; // try a new EHLO and AUTH if the client account changes
 		Config() ;
 		Config & set_ehlo( const std::string & ) ;
-		Config & set_response_timeout( unsigned int ) noexcept ;
-		Config & set_ready_timeout( unsigned int ) noexcept ;
+		Config & set_response_timeout( G::TimeInterval ) noexcept ;
+		Config & set_ready_timeout( G::TimeInterval ) noexcept ;
 		Config & set_use_starttls_if_possible( bool = true ) noexcept ;
 		Config & set_must_use_tls( bool = true ) noexcept ;
 		Config & set_authentication_fallthrough( bool = true ) noexcept ;
@@ -179,7 +167,7 @@ public:
 	ClientProtocol & operator=( ClientProtocol && ) = delete ;
 
 private: // overrides
-	void onTimeout() override ; // Override from GNet::TimerBase.
+	void onTimeout() override ; // GNet::TimerBase
 
 private:
 	enum class State
@@ -293,9 +281,10 @@ private:
 	SessionState m_session ;
 } ;
 
+// clang-format off
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_ehlo( const std::string & s ) { ehlo = s ; return *this ; }
-inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_response_timeout( unsigned int t ) noexcept { response_timeout = t ; return *this ; }
-inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_ready_timeout( unsigned int t ) noexcept { ready_timeout = t ; return *this ; }
+inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_response_timeout( G::TimeInterval t ) noexcept { response_timeout = t ; return *this ; }
+inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_ready_timeout( G::TimeInterval t ) noexcept { ready_timeout = t ; return *this ; }
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_use_starttls_if_possible( bool b ) noexcept { use_starttls_if_possible = b ; return *this ; }
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_must_use_tls( bool b ) noexcept { must_use_tls = b ; return *this ; }
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_authentication_fallthrough( bool b ) noexcept { authentication_fallthrough = b ; return *this ; }
@@ -308,5 +297,6 @@ inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_pipeli
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_reply_size_limit( std::size_t n ) noexcept { reply_size_limit = n ; return *this ; }
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_crlf_only( bool b ) noexcept { crlf_only = b ; return *this ; }
 inline GSmtp::ClientProtocol::Config & GSmtp::ClientProtocol::Config::set_try_reauthentication( bool b ) noexcept { try_reauthentication = b ; return *this ; }
+// clang-format on
 
 #endif

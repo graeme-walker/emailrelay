@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gverifierfactorybase.h
 ///
@@ -43,13 +31,14 @@ public:
 	struct Spec /// Verifier specification tuple for GSmtp::VerifierFactoryBase::newVerifier().
 	{
 		Spec() ;
-		Spec( std::string_view , std::string_view ) ;
+		Spec( std::string_view , std::string_view , int ) ; // c++11
 		std::string first ; // "exit", "file", "net", empty on error
-		std::string second ; // reason on error, or eg. "/bin/a" if "file"
+		std::string second ; // reason on error, or eg. "/bin/a" or "/bin/b;v-2" if "file"
+		int verbosity {0} ;
 	} ;
 
 	virtual std::unique_ptr<Verifier> newVerifier( GNet::EventState ,
-		const Verifier::Config & config , const Spec & spec ) = 0 ;
+		Verifier::Config config , const Spec & spec ) = 0 ;
 			///< Returns a Verifier on the heap. Throws if an invalid
 			///< or unsupported specification.
 

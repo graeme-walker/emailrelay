@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gidentity_win32.cpp
 ///
@@ -63,7 +51,7 @@ G::Identity::Identity() noexcept : // invalid()
 	m_uid(-1) ,
 	m_gid(-1)
 {
-	static_assert( noexcept(std::string()) , "" ) ; // only guaranteed for c++17
+	//static_assert( noexcept(std::string()) , "" ) ; // only guaranteed for c++17
 }
 
 G::Identity::Identity( SignalSafe ) noexcept : // invalid()
@@ -100,14 +88,6 @@ G::Identity G::Identity::invalid( SignalSafe ) noexcept
 	return {} ;
 }
 
-G::Identity G::Identity::root() noexcept
-{
-	Identity id( "Administrator" ) ; // hmm
-	if( id != invalid() )
-		return id ;
-	return { -1 , -1 , IdentityImp::rootsid() } ;
-}
-
 std::string G::Identity::str() const
 {
 	return sid() ;
@@ -115,8 +95,12 @@ std::string G::Identity::str() const
 
 uid_t G::Identity::userid() const noexcept
 {
-	if( m_sid.empty() ) return false ;
-	return G::Str::toInt( G::Str::tail( m_sid , m_sid.rfind('-') , "" ) , "-1" ) ; // "RID"
+	if( m_sid.empty() ) return -1 ;
+	std::size_t dashpos = m_sid.rfind( '-' ) ;
+	std::string_view rid = Str::tailView( m_sid , dashpos ) ;
+	if( !Str::isUInt(rid) ) return -1 ;
+	int id = static_cast<int>( Str::toUInt( rid , ~0U ) ) ;
+	return id < 0 ? -1 : id ;
 }
 
 gid_t G::Identity::groupid() const noexcept
@@ -134,7 +118,7 @@ std::string G::Identity::sid() const
 
 bool G::Identity::isRoot() const noexcept
 {
-	return G::Str::headMatch(m_sid,"S-1-5-") && G::Str::tailMatch(m_sid,"-500") ;
+	return Str::headMatch(m_sid,"S-1-5-") && Str::tailMatch(m_sid,"-500") ;
 }
 
 bool G::Identity::operator==( const Identity & other ) const noexcept
@@ -192,17 +176,17 @@ std::string G::IdentityImp::sidstr( PSID sid_p )
 
 std::string G::IdentityImp::sid()
 {
-	HANDLE htoken = NULL ;
+	HANDLE htoken = HNULL ;
 	if( !OpenProcessToken( GetCurrentProcess() , TOKEN_QUERY , &htoken ) )
 		return {} ;
-	G::ScopeExit close( [htoken](){CloseHandle(htoken);} ) ;
+	ScopeExit close( [htoken](){CloseHandle(htoken);} ) ;
 	DWORD size = 0 ;
-	G::Buffer<char> buffer( sizeof(TOKEN_USER) ) ;
-	if( !GetTokenInformation( htoken , TokenUser , &buffer[0] , static_cast<DWORD>(buffer.size()) , &size ) && size )
+	Buffer<char> buffer( sizeof(TOKEN_USER) ) ;
+	if( !GetTokenInformation( htoken , TokenUser , buffer.data() , static_cast<DWORD>(buffer.size()) , &size ) && size )
 		buffer.resize( static_cast<std::size_t>(size) ) ;
-	if( !GetTokenInformation( htoken , TokenUser , &buffer[0] , static_cast<DWORD>(buffer.size()) , &size ) )
+	if( !GetTokenInformation( htoken , TokenUser , buffer.data() , static_cast<DWORD>(buffer.size()) , &size ) )
 		return {} ;
-	TOKEN_USER * info_p = G::buffer_cast<TOKEN_USER*>( buffer ) ;
+	TOKEN_USER * info_p = buffer_cast<TOKEN_USER*>( buffer ) ;
 	return sidstr( info_p->User.Sid ) ;
 }
 
@@ -213,7 +197,7 @@ std::string G::IdentityImp::computername()
 
 G::IdentityImp::Account G::IdentityImp::lookup( std::string_view name , bool with_canonical_name )
 {
-	const Account error ;
+	Account error ; // const
 	if( name.empty() || name.find('\\') != std::string::npos )
 		return error ;
 	std::string domain = computername() ; // => local accounts
@@ -224,12 +208,12 @@ G::IdentityImp::Account G::IdentityImp::lookup( std::string_view name , bool wit
 	DWORD sidsize = 0 ;
 	DWORD domainsize = 0 ;
 	SID_NAME_USE type = SidTypeInvalid ;
-	if( nowide::lookupAccountName( full_name , NULL , &sidsize , false , &domainsize , &type ) )
+	if( nowide::lookupAccountName( full_name , nullptr , &sidsize , false , &domainsize , &type ) )
 		return error ;
-	G::Buffer<char> sidbuffer( std::max(DWORD(1),sidsize) ) ;
+	Buffer<char> sidbuffer( std::max(DWORD(1),sidsize) ) ;
 	if( !nowide::lookupAccountName( full_name , sidbuffer.data() , &sidsize , true , &domainsize , &type ) )
 		return error ;
-	SID * sid_p = G::buffer_cast<SID*>(sidbuffer) ;
+	SID * sid_p = buffer_cast<SID*>(sidbuffer) ;
 
 	std::string canonical_name ;
 	if( with_canonical_name )
@@ -250,13 +234,13 @@ G::IdentityImp::Account G::IdentityImp::lookup( std::string_view name , bool wit
 std::string G::IdentityImp::rootsid()
 {
 	DWORD size = 0 ;
-	G::Buffer<char> buffer( 1U ) ;
+	Buffer<char> buffer( 1U ) ;
 	WELL_KNOWN_SID_TYPE type = WinLocalAccountAndAdministratorSid ;
-	if( !CreateWellKnownSid( type , NULL , &buffer[0] , &size ) && size )
+	if( !CreateWellKnownSid( type , nullptr , buffer.data() , &size ) && size )
 		buffer.resize( static_cast<std::size_t>(size) ) ;
-	if( !CreateWellKnownSid( type , NULL , &buffer[0] , &size ) )
+	if( !CreateWellKnownSid( type , nullptr , buffer.data() , &size ) )
 		return {} ;
-	SID * sid_p = G::buffer_cast<SID*>( buffer ) ;
+	SID * sid_p = buffer_cast<SID*>( buffer ) ;
 	return sidstr( sid_p ) ;
 }
 

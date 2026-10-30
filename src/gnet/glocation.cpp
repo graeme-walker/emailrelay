@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file glocation.cpp
 ///
@@ -79,12 +67,10 @@ GNet::Location GNet::Location::nosocks( const std::string & spec , int family )
 	return { spec , family , 1 } ;
 }
 
-#ifndef G_LIB_SMALL
 GNet::Location GNet::Location::socks( const std::string & socks_server , const std::string & far_server )
 {
 	return { socks_server , far_server , AF_UNSPEC } ;
 }
-#endif
 
 std::string GNet::Location::sockless( const std::string & s )
 {
@@ -196,12 +182,10 @@ std::string GNet::Location::displayString() const
 	}
 }
 
-#ifndef G_LIB_SMALL
 G::SystemTime GNet::Location::updateTime() const
 {
 	return m_update_time ;
 }
-#endif
 
 bool GNet::Location::socks() const
 {

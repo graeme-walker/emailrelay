@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gcodepage.cpp
 ///
@@ -170,7 +158,7 @@ std::string G::CodePageImp::toCodePage( std::string_view sv , const value_type *
 			if( map_p == map_end || (*map_p) == 0xFFFF )
 				result.append( 1U , e ) ;
 			else
-				result.append( 1U , static_cast<unsigned char>(static_cast<unsigned int>(std::distance(map_begin,map_p))) ) ;
+				result.append( 1U , static_cast<unsigned char>(static_cast<unsigned int>(std::distance(map_begin,map_p))) ) ; // NOLINT(*-narrowing-conversions)
 		}
 	}
 	return result ;
@@ -283,7 +271,8 @@ std::string G::CodePageImp::fromCodePageImp( unsigned int cp , std::string_view 
 	return Convert::narrow( buffer.data() , buffer.size() ) ;
 }
 
-#if 0
+// clang-format off
+/*
 #!/usr/bin/perl
 use strict ;
 use FileHandle ;
@@ -336,5 +325,5 @@ for my $url_pair ( @url )
 		print "}} ;\n" ;
 	}
 }
-#endif
-
+*/
+// clang-format on

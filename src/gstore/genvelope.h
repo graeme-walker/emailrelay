@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file genvelope.h
 ///
@@ -27,6 +15,8 @@
 #include "gstringview.h"
 #include "gexception.h"
 #include <iostream>
+#include <functional>
+#include <new>
 
 namespace GStore
 {
@@ -43,11 +33,6 @@ public:
 	G_EXCEPTION( ReadError , tx("cannot read envelope file") )
 	G_EXCEPTION( WriteError , tx("cannot write envelope file") )
 
-	static void read( std::istream & , Envelope & ) ;
-		///< Reads an envelope from a stream. Throws on error.
-		///< Input lines can be newline delimited, in which case
-		///< 'crlf' is set false.
-
 	static std::size_t write( std::ostream & , const Envelope & ) ;
 		///< Writes an envelope to a seekable stream. Returns the new
 		///< endpos value. Returns zero and sets the fail state on
@@ -55,6 +40,19 @@ public:
 		///< lines are CR-LF delimited. The structure 'crlf' and
 		///< 'endpos' fields should normally be updated after
 		///< using write().
+
+	static void read( std::istream & , Envelope & ) ;
+		///< Reads an envelope from a stream. Throws on error.
+		///< Input lines can be newline delimited, in which case
+		///< 'crlf' is set false.
+
+	static void read( std::istream & , Envelope & , std::nothrow_t ) ;
+		///< Overload that fails the stream on error.
+
+	static void readExtra( std::istream & , std::function<void(std::string_view,std::string_view)> ) ;
+		///< Reads extra headers from a stream that has already
+		///< been used by read(), with a callback for each
+		///< key-value pair.
 
 	static void copyExtra( std::istream & , std::ostream & ) ;
 		///< A convenience function to copy extra envelope lines from an

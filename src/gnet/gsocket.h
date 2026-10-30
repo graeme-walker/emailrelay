@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsocket.h
 ///
@@ -504,17 +492,18 @@ public:
 inline GNet::Socket::SocketBindError::SocketBindError( const std::string & s ) : SocketBindErrorBase(s) , m_reason(s) {}
 inline GNet::Socket::SocketBindError::SocketBindError( const Address & a , const std::string & s , bool b ) : SocketBindErrorBase(s) , m_address(a) , m_reason(s) , m_einuse(b) {}
 
+// clang-format off
 inline GNet::Socket::Config & GNet::Socket::Config::set_listen_queue( int n ) noexcept { listen_queue = n ; return *this ; }
 inline GNet::Socket::Config & GNet::Socket::Config::set_bind_reuse( bool b ) noexcept { bind_reuse = b ; return *this ; }
 inline GNet::Socket::Config & GNet::Socket::Config::set_bind_exclusive( bool b ) noexcept { bind_exclusive = b ; return *this ; }
 inline GNet::Socket::Config & GNet::Socket::Config::set_free_bind( bool b ) noexcept { free_bind = b ; return *this ; }
 template <typename T> const T & GNet::Socket::Config::set_last() { return static_cast<const T&>(*this) ; }
-
 inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_create_linger( std::pair<int,int> p ) noexcept { create_linger_onoff = p.first ; create_linger_time = p.second ; return *this ; }
 inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_create_linger_onoff( int n ) noexcept { create_linger_onoff = n ; return *this ; }
 inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_create_linger_time( int n ) noexcept { create_linger_time = n ; return *this ; }
 inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_accept_linger( std::pair<int,int> p ) noexcept { accept_linger_onoff = p.first ; accept_linger_time = p.second ; return *this ; }
 inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_accept_linger_onoff( int n ) noexcept { accept_linger_onoff = n ; return *this ; }
 inline GNet::StreamSocket::Config & GNet::StreamSocket::Config::set_accept_linger_time( int n ) noexcept { accept_linger_time = n ; return *this ; }
+// clang-format on
 
 #endif

@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gfutureevent_win32.cpp
 ///
@@ -75,7 +63,7 @@ private:
 		Handle( Handle && ) = delete ;
 		Handle & operator=( const Handle & ) = delete ;
 		Handle & operator=( Handle && ) = delete ;
-		HANDLE h{0} ;
+		HANDLE h {HNULL} ;
 	} ;
 
 private:
@@ -89,12 +77,10 @@ GNet::FutureEventImp::FutureEventImp( FutureEventHandler & handler , EventState 
 	m_handler(handler) ,
 	m_es(es)
 {
-	m_h = FutureEvent::createHandle() ;
-	if( m_h == 0 )
+	m_h = FutureEvent::createHandle() ; // NOLINT(*-prefer-member-initializer)
+	if( m_h == HNULL )
 		throw FutureEvent::Error( "CreateEventEx" ) ;
-
 	m_h2 = dup() ;
-
 	EventLoop::instance().addRead( Descriptor(INVALID_SOCKET,m_h.h) , *this , es ) ;
 }
 
@@ -109,7 +95,7 @@ HANDLE GNet::FutureEventImp::dup()
 	// duplicate the handle so that the kernel object is only deleted
 	// once both handles are closed -- we need the main thread and the
 	// worker thread to both keep the kernel event-object alive
-	HANDLE h = 0 ;
+	HANDLE h = HNULL ;
 	BOOL ok = DuplicateHandle(
 		GetCurrentProcess() , m_h.h ,
 		GetCurrentProcess() , &h ,
@@ -124,7 +110,7 @@ HANDLE GNet::FutureEventImp::dup()
 
 HANDLE GNet::FutureEventImp::handle() noexcept
 {
-	HANDLE h2 = 0 ;
+	HANDLE h2 = HNULL ;
 	std::swap( h2 , m_h2.h ) ;
 	return h2 ;
 }

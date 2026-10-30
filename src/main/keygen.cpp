@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file keygen.cpp
 ///
@@ -26,7 +14,7 @@
 //
 
 #include "gdef.h"
-#include "gssl_mbedtls_keygen.h"
+#include "gssl_mbedtls.h"
 #include <stdexcept>
 #include <iostream>
 #include <fstream>
@@ -56,7 +44,9 @@ int main( int argc , char * argv [] )
 		std::string arg_name = arg1.empty() ? std::string("CN=example.com") : arg1  ;
 		std::string arg_filename = arg2 ;
 
-		std::string s = GSsl::MbedTls::generateKey( arg_name ) ;
+		G::StringArray config ;
+		GSsl::MbedTls::LibraryImp library( config ) ;
+		std::string s = GSsl::MbedTls::Certificate::generate( arg_name , library.rng().fn() , library.rng().ptr() ) ;
 		if( s.empty() )
 			throw std::runtime_error( "not implemented: rebuild with mbedtls" ) ;
 

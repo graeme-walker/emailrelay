@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsocket_unix.cpp
 ///
@@ -70,7 +58,8 @@ bool GNet::SocketBase::prepare( bool /*accepted*/ )
 
 void GNet::SocketBase::destroy() noexcept
 {
-	if( m_domain == PF_UNIX && !m_accepted ) unlink() ;
+	if( m_domain == PF_UNIX && !m_accepted )
+		unlink() ;
 	::close( m_fd.fd() ) ;
 }
 
@@ -81,7 +70,7 @@ void GNet::SocketBase::unlink() noexcept
 		AddressStorage address_storage ;
 		int rc = ::getsockname( m_fd.fd() , address_storage.p1() , address_storage.p2() ) ;
 		std::string path = rc == 0 ? Address(address_storage).hostPartString() : std::string() ;
-		if( !path.empty() && path.at(0U) == '/' )
+		if( path.size() > 1U && path.at(0U) == '/' && G::Str::isPrintable(path) )
 		{
 			G_DEBUG( "GNet::SocketBase::unlink: deleting unix-domain socket: fd=" << m_fd.fd() << " path=[" << G::Str::printable(path) << "]" ) ;
 			G::File::remove( G::Path(path) , std::nothrow ) ; // best-effort -- see also G::Root
@@ -137,12 +126,10 @@ bool GNet::SocketBase::eInUse() const
 	return m_reason == EADDRINUSE ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::SocketBase::eMsgSize() const
 {
 	return m_reason == EMSGSIZE ;
 }
-#endif
 
 bool GNet::SocketBase::eTooMany() const
 {
@@ -156,7 +143,6 @@ std::string GNet::SocketBase::reasonString( int e )
 
 // ==
 
-#ifndef G_LIB_SMALL
 std::string GNet::Socket::canBindHint( const Address & address , bool stream , const Config & config )
 {
 	if( address.family() == Address::Family::ipv4 || address.family() == Address::Family::ipv6 )
@@ -178,7 +164,6 @@ std::string GNet::Socket::canBindHint( const Address & address , bool stream , c
 		return {} ; // could do better
 	}
 }
-#endif
 
 void GNet::Socket::setOptionReuse()
 {
@@ -241,7 +226,6 @@ GNet::SocketBase::ssize_type GNet::RawSocket::write( const char * buffer , size_
 
 // ==
 
-#ifndef G_LIB_SMALL
 std::size_t GNet::DatagramSocket::limit( std::size_t default_in ) const
 {
 	int value = 0 ;
@@ -252,9 +236,7 @@ std::size_t GNet::DatagramSocket::limit( std::size_t default_in ) const
 	else
 		return default_in ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 GNet::Socket::ssize_type GNet::DatagramSocket::writeto( const std::vector<std::string_view> & data , const Address & dst )
 {
 	ssize_type nsent = G::Msg::sendto( fd() , data , MSG_NOSIGNAL , dst.address() , dst.length() ) ;
@@ -266,5 +248,4 @@ GNet::Socket::ssize_type GNet::DatagramSocket::writeto( const std::vector<std::s
 	}
 	return nsent ;
 }
-#endif
 

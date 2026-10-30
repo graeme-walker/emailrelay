@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file genvironment.cpp
 ///
@@ -44,7 +32,6 @@ void G::Environment::sanitise( Map & map )
 	}
 }
 
-#ifndef G_LIB_SMALL
 bool G::Environment::add( std::string_view key , std::string_view value )
 {
 	if( !key.empty() && key.find('\0') == std::string::npos && value.find('\0') == std::string::npos )
@@ -57,19 +44,16 @@ bool G::Environment::add( std::string_view key , std::string_view value )
 		return false ;
 	}
 }
-#endif
 
 bool G::Environment::contains( const std::string & name ) const
 {
 	return m_map.find(name) != m_map.end() ;
 }
 
-#ifndef G_LIB_SMALL
 std::string G::Environment::value( const std::string & name , const std::string & default_ ) const
 {
 	return contains(name) ? (*m_map.find(name)).second : default_ ;
 }
-#endif
 
 std::string G::Environment::block() const
 {
@@ -83,7 +67,6 @@ std::string G::Environment::block() const
 	return result ;
 }
 
-#ifndef G_LIB_SMALL
 std::wstring G::Environment::block( std::wstring (*fn)(std::string_view) ) const
 {
 	std::size_t n = std::accumulate( m_map.begin() , m_map.end() , std::size_t(0U) ,
@@ -95,7 +78,6 @@ std::wstring G::Environment::block( std::wstring (*fn)(std::string_view) ) const
 	result.append( 1U , L'\0' ) ;
 	return result ;
 }
-#endif
 
 std::vector<char*> G::Environment::array( const std::string & block )
 {

@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gfilestore.h
 ///
@@ -27,6 +15,7 @@
 #include "gdatetime.h"
 #include "gexception.h"
 #include "gprocess.h"
+#include "gdirectory.h"
 #include "gslot.h"
 #include "groot.h"
 #include "gpath.h"
@@ -84,6 +73,7 @@ public:
 		static bool hardlink( const G::Path & , const G::Path & ) ;
 		static bool copy( const G::Path & , const G::Path & ) ;
 		static bool copy( const G::Path & , const G::Path & , bool hardlink ) ;
+		static bool chown( const G::Path & ) ;
 		static bool mkdir( const G::Path & ) ;
 		static bool isdir( const G::Path & , const G::Path & = {} , const G::Path & = {} ) ;
 		static std::ifstream & openIn( std::ifstream & , const G::Path & ) ;
@@ -148,6 +138,7 @@ private: // overrides
 	std::vector<MessageId> ids() override ;
 	std::vector<MessageId> failures() override ;
 	void unfailAll() override ;
+	void retry( unsigned int count , int verbosity ) override ;
 	void rescan() override ;
 
 public:
@@ -166,6 +157,7 @@ private:
 	static const std::string & crlf() ;
 	bool emptyCore() const ;
 	void clearAll() ;
+	void getBadEnvelopes( G::DirectoryList & ) const ;
 	static MessageId newId( unsigned long ) ;
 
 private:
@@ -243,7 +235,9 @@ public:
 	FileWriter & operator=( FileWriter && ) = delete ;
 } ;
 
+// clang-format off
 inline GStore::FileStore::Config & GStore::FileStore::Config::set_max_size( std::size_t n ) noexcept { max_size = n ; return *this ; }
 inline GStore::FileStore::Config & GStore::FileStore::Config::set_seq( unsigned long n ) noexcept { seq = n ; return *this ; }
+// clang-format on
 
 #endif

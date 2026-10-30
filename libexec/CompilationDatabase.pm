@@ -1,20 +1,7 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ===
+# SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # CompilationDatabase.pm
 #
@@ -27,8 +14,9 @@
 #
 #    use CompilationDatabase ;
 #    my @makefiles = AutoMakeParser::readall( ... ) ;
+#    my $cs = new ConfigStatus() ; # etc
 #    my $cdb = new CompilationDatabase( \@makefiles , {full_paths=>1} ) ;
-#    my $cdb = new CompilationDatabase( $src_dir , {WINDOWS=>0,...} , {top_srcdir=>'..'} , {full_paths=>1} ) ;
+#    my $cdb = new CompilationDatabase( $src_dir , $cs , {full_paths=>1} ) ;
 #    my @files = $cdb->list() ;
 #    my @stanzas = $cdb->stanzas() ;
 #    $cdb->print() ;
@@ -43,7 +31,7 @@ our $debug = 0 ;
 
 sub new
 {
-	if( ref($_[1]) )
+	if( ref($_[1]) ) # eg. \@makefiles
 	{
 		# Parses a set of makefiles as given by an array of Makefile
 		# objects obtained from AutoMakeParser::readall().
@@ -58,19 +46,21 @@ sub new
 		) ;
 		return bless \%me , $classname ;
 	}
-	else
+	else # eg. $src_dir
 	{
 		# Finds makefiles under the given base directory and parses
-		# them. The switches and read-only expansion variables can
-		# be hard-coded or extracted from a config.status file
-		# (see ConfigStatus).
+		# them. The switches and read-only expansion variables are
+		# provided via the 'cs' parameter (see ConfigStatus) which
+		# can be parsed out of "config.status" files or load()ed
+		# in from elsewhere.
 		#
-		my ( $classname , $base_makefile_dir , $switches , $ro_vars , $config ) = @_ ;
-		$AutoMakeParser::debug = 1 if $debug > 1 ;
+		my ( $classname , $base_makefile_dir , $cs , $config ) = @_ ;
+		die if ref($cs) ne "ConfigStatus" ;
 		$config ||= {} ;
 		$config->{test_mode} ||= 0 ;
 		$config->{full_paths} ||= 0 ;
-		my @makefiles = AutoMakeParser::readall( $base_makefile_dir , $switches , $ro_vars ) ;
+		$AutoMakeParser::debug = 1 if $debug > 1 ;
+		my @makefiles = AutoMakeParser::readall( $base_makefile_dir , $cs , {strict=>1} ) ;
 		my %me = (
 			m_makefiles => \@makefiles ,
 			m_config => $config ,
@@ -120,7 +110,7 @@ sub stanzas
 	for my $m ( @{$this->{m_makefiles}} )
 	{
 		my $dir = File::Basename::dirname( $m->path() ) ;
-		my @includes = map { "-I$_" } $m->includes( $m->base() , $this->{m_config}->{full_paths} , 1 ) ;
+		my @includes = map { "-I$_" } $m->includes( $this->{m_config}->{full_paths} , 1 ) ;
 		my @definitions = map { "-D$_" } $m->definitions() ;
 		my @compile_options = $m->compile_options() ;
 		my @link_options = $m->link_options() ;

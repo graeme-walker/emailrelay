@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gpath.h
 ///
@@ -60,8 +48,7 @@ namespace G
 ///
 /// This class is agnostic on the choice of UTF-8 or eight-bit characters since
 /// the delimiters are all seven-bit ascii. Wide characters are not used,
-/// following "utf8everywhere.org" rather than std::filesystem::path (but
-/// see G_ANSI as a temporary deprecated feature).
+/// following "utf8everywhere.org" rather than std::filesystem::path.
 ///
 /// Most file operations should be handled in o/s-aware source (see G::File,
 /// G::Environment, G::Process etc) so that the Path character encoding is
@@ -83,7 +70,7 @@ class G::Path
 public:
 	using value_type = char ;
 	using string_type = std::string ;
-	#if defined(G_WINDOWS) && !defined(G_ANSI)
+	#if defined(G_WINDOWS)
 		using iopath_char_type = wchar_t ;
 	#else
 		using iopath_char_type = char ;
@@ -228,7 +215,7 @@ public:
 
 private:
 	std::string m_str ;
-	#if defined(G_WINDOWS) && !defined(G_ANSI)
+	#if defined(G_WINDOWS)
 	mutable std::wstring m_wstr ;
 	#endif
 } ;
@@ -254,7 +241,7 @@ const char * G::Path::cstr() const noexcept
 inline
 const G::Path::iopath_char_type * G::Path::iopath() const
 {
-	#if defined(G_WINDOWS) && !defined(G_ANSI)
+	#if defined(G_WINDOWS)
 		m_wstr = Convert::widen( m_str ) ;
 		return m_wstr.c_str() ;
 	#else

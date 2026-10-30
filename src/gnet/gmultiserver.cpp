@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gmultiserver.cpp
 ///
@@ -29,39 +17,45 @@
 #include <list>
 #include <algorithm>
 
-GNet::MultiServer::MultiServer( EventState es , const G::StringArray & listener_list , unsigned int port ,
-	const std::string & server_type , ServerPeer::Config server_peer_config , Server::Config server_config ) :
+GNet::MultiServer::MultiServer( EventState es , const G::StringArray & listener_list ,
+	const std::vector<unsigned> & ports , const std::string & server_type ,
+	ServerPeer::Config server_peer_config , Server::Config server_config ) :
 		m_es(es) ,
 		m_listener_list(listener_list) ,
-		m_port(port) ,
+		m_ports(ports) ,
 		m_server_type(server_type) ,
 		m_server_peer_config(server_peer_config) ,
 		m_server_config(server_config) ,
 		m_if(es,*this) ,
 		m_interface_event_timer(*this,&MultiServer::onInterfaceEventTimeout,es)
 {
-	Listeners listeners( m_if , m_listener_list , m_port ) ;
+	Listeners listeners( m_if , m_listener_list , m_ports ) ;
 
-	// fail if any bad names (eg. "foo/bar")
-	if( listeners.hasBad() )
-		throw InvalidName( listeners.badName() ) ;
+	// fail if invalid interface names
+	if( !listeners.invalidNames().empty() )
+	{
+		if( Interfaces::supported() )
+			throw InvalidName( G::Str::join(",",listeners.invalidNames()) ) ;
+		else
+			throw InvalidAddress( G::Str::join(",",listeners.invalidNames()) ) ;
+	}
 
 	// fail if no addresses and no prospect of getting any
 	if( listeners.defunct() )
 		throw NoListeningAddresses() ;
 
 	// warn if no addresses from one or more interface names
-	if( listeners.hasEmpties() )
+	if( !listeners.emptyNames().empty() )
 	{
 		G_WARNING( "GNet::MultiServer::ctor: no addresses bound to named network interface"
-			<< listeners.logEmpties() ) ;
+			<< Listeners::logString(listeners.emptyNames()) ) ;
 	}
 
 	// warn if doing nothing until an interface comes up
 	if( listeners.idle() )
 	{
 		G_WARNING( "GNet::MultiServer::ctor: " << m_server_type << " server: nothing to do: "
-			<< "waiting for interface" << listeners.logEmpties() ) ;
+			<< "waiting for interface" << Listeners::logString(listeners.emptyNames()) ) ;
 	}
 
 	// warn if we got addresses from an interface name but won't get dynamic updates
@@ -74,9 +68,9 @@ GNet::MultiServer::MultiServer( EventState es , const G::StringArray & listener_
 	// instantiate the servers
 	for( const auto & fd : listeners.fds() )
 		createServer( Descriptor(fd) ) ;
-	for( const auto & a : listeners.fixed() )
+	for( const auto & a : listeners.fixedAddresses() )
 		createServer( a , true ) ;
-	for( const auto & a : listeners.dynamic() )
+	for( const auto & a : listeners.interfaceAddresses() )
 		createServer( a , false ) ;
 }
 
@@ -122,10 +116,11 @@ void GNet::MultiServer::serverCleanup()
 	}
 }
 
-void GNet::MultiServer::onInterfaceEvent( const std::string & /*description*/ )
+void GNet::MultiServer::onInterfaceEvent( const std::string & description )
 {
 	// notifications can be periodic and/or bursty, so minimal logging here
-	G_DEBUG( "GNet::MultiServer::onInterfaceEvent: network configuration change event" ) ;
+	GDEF_IGNORE_PARAM( description ) ;
+	G_DEBUG( "GNet::MultiServer::onInterfaceEvent: network configuration change event: " << description ) ;
 	m_if.load() ;
 	m_interface_event_timer.startTimer( 1U , 500000U ) ; // maybe increase for fewer bind warnings
 }
@@ -133,24 +128,25 @@ void GNet::MultiServer::onInterfaceEvent( const std::string & /*description*/ )
 void GNet::MultiServer::onInterfaceEventTimeout()
 {
 	// get a fresh address list
-	Listeners listeners( m_if , m_listener_list , m_port ) ;
+	Listeners listeners( m_if , m_listener_list , m_ports ) ;
 
 	// delete old
 	for( auto server_iter = m_server_list.begin() ; server_iter != m_server_list.end() ; )
 	{
-		if( (*server_iter)->dynamic() && !gotAddressFor( **server_iter , listeners.dynamic() ) )
+		G_DEBUG( "GNet::MultiServer::onInterfaceEventTimeout: " << (*server_iter)->address().displayString() ) ;
+		if( (*server_iter)->dynamic() && !gotAddressFor( **server_iter , listeners.interfaceAddresses() ) )
 			server_iter = removeServer( server_iter ) ;
 		else
 			++server_iter ;
 	}
 
 	// create new
-	for( const auto & address : listeners.dynamic() )
+	for( const auto & address : listeners.interfaceAddresses() )
 	{
 		G_DEBUG( "GNet::MultiServer::onInterfaceEvent: address: " << displayString(address) ) ;
 		if( !gotServerFor(address) )
 		{
-			createServer( address , true , std::nothrow ) ;
+			createServer( address , /*fixed=*/false , std::nothrow ) ; // was true
 		}
 	}
 }

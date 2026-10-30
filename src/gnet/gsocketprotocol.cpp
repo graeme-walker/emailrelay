@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gsocketprotocol.cpp
 ///
@@ -390,7 +378,7 @@ void GNet::SocketProtocolImp::secureConnect()
 	rawReset() ;
 	m_ssl = newProtocol( m_config.client_tls_profile ) ;
 	m_state = State::connecting ;
-	if( m_config.secure_connection_timeout != 0U )
+	if( m_config.secure_connection_timeout )
 		m_secure_connection_timer.startTimer( m_config.secure_connection_timeout ) ;
 	secureConnectImp() ;
 }
@@ -421,7 +409,7 @@ void GNet::SocketProtocolImp::secureConnectImp()
 	{
 		m_socket.dropWriteHandler() ;
 		m_state = State::idle ;
-		if( m_config.secure_connection_timeout != 0U )
+		if( m_config.secure_connection_timeout )
 			m_secure_connection_timer.cancelTimer() ;
 		m_peer_certificate = m_ssl->peerCertificate() ;
 		std::string protocol = m_ssl->protocol() ;
@@ -792,21 +780,19 @@ std::string GNet::SocketProtocolImp::peerCertificate() const
 	return m_peer_certificate ;
 }
 
-#ifndef G_LIB_SMALL
 void GNet::SocketProtocolImp::log( int level , const std::string & log_line )
 {
 	if( level == 1 )
 		G_DEBUG( "GNet::SocketProtocolImp::log: tls: " << log_line ) ;
 	else if( level == 2 )
-		G_LOG( "GNet::SocketProtocolImp::log: tls: " << log_line ) ;
+		G_LOG_G( tls , "GNet::SocketProtocolImp::log: tls: " << log_line ) ;
 	else
 		G_WARNING( "GNet::SocketProtocolImp::log: tls: " << log_line ) ;
 }
-#endif
 
 void GNet::SocketProtocolImp::logSecure( const std::string & protocol , const std::string & cipher ) const
 {
-	G_LOG( "GNet::SocketProtocolImp: tls protocol established with "
+	G_LOG_G( tls , "GNet::SocketProtocolImp: tls protocol established with "
 		<< m_socket.getPeerAddress().second.displayString()
 		<< (protocol.empty()?"":" protocol ") << protocol
 		<< (cipher.empty()?"":" cipher ") << G::Str::printable(cipher) ) ;
@@ -878,19 +864,15 @@ void GNet::SocketProtocol::secureAccept()
 	m_imp->secureAccept() ;
 }
 
-#ifndef G_LIB_SMALL
 bool GNet::SocketProtocol::secure() const
 {
 	return m_imp->secure() ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 bool GNet::SocketProtocol::raw() const
 {
 	return m_imp->raw() ;
 }
-#endif
 
 std::string GNet::SocketProtocol::peerCertificate() const
 {

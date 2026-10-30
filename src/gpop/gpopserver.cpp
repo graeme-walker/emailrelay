@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gpopserver.cpp
 ///
@@ -32,13 +20,13 @@ GPop::ServerPeer::ServerPeer( GNet::EventStateUnbound esu , GNet::ServerPeerInfo
 		m_ptext(ptext.release()) ,
 		m_protocol(*this,*this,store,server_secrets,sasl_server_config,*m_ptext,peerAddress(),protocol_config)
 {
-	G_LOG_S( "GPop::ServerPeer: pop connection from " << peerAddress().displayString() ) ;
+	G_LOG_S_G( pop , "GPop::ServerPeer: pop connection from " << peerAddress().displayString() ) ;
 	m_protocol.init() ;
 }
 
 void GPop::ServerPeer::onDelete( const std::string & reason )
 {
-	G_LOG_S( "GPop::ServerPeer: pop connection closed: " << reason << (reason.empty()?"":": ")
+	G_LOG_S_G( pop , "GPop::ServerPeer: pop connection closed: " << reason << (reason.empty()?"":": ")
 		<< peerAddress().displayString() ) ;
 }
 
@@ -85,7 +73,7 @@ void GPop::ServerPeer::onSecure( const std::string & , const std::string & , con
 // ===
 
 GPop::Server::Server( GNet::EventState es , Store & store , const GAuth::SaslServerSecrets & secrets , const Config & config ) :
-	GNet::MultiServer(es,config.addresses,config.port,"pop",config.net_server_peer_config,config.net_server_config) ,
+	GNet::MultiServer(es,config.addresses,{config.port},"pop",config.net_server_peer_config,config.net_server_config) ,
 	m_config(config) ,
 	m_store(store) ,
 	m_secrets(secrets)
@@ -100,7 +88,7 @@ GPop::Server::~Server()
 void GPop::Server::report( const std::string & group ) const
 {
 	serverReport( group ) ; // base class implementation
-	G_LOG_S( "GPop::Server: " << (group.empty()?"":"[") << group << (group.empty()?"":"] ")
+	G_LOG_S_G( pop , "GPop::Server: " << (group.empty()?"":"[") << group << (group.empty()?"":"] ")
 		<< "pop server authentication secrets from \"" << m_secrets.source() << "\"" ) ;
 }
 

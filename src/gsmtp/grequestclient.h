@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file grequestclient.h
 ///
@@ -49,8 +37,8 @@ public:
 	G_EXCEPTION( ProtocolError , tx("protocol error") )
 
 	RequestClient( GNet::EventState , const std::string & key , const std::string & ok ,
-		const GNet::Location & host_and_service , unsigned int connection_timeout ,
-		unsigned int response_timeout , unsigned int idle_timeout ) ;
+		const GNet::Location & location , G::TimeInterval connection_timeout ,
+		G::TimeInterval response_timeout , G::TimeInterval idle_timeout ) ;
 			///< Constructor.  The 'key' parameter is used in the callback
 			///< signal. The 'ok' parameter is a response string that is
 			///< converted to the empty string.
@@ -78,11 +66,11 @@ public:
 		///< event signal.
 
 private: // overrides
-	bool onReceive( const char * , std::size_t , std::size_t , std::size_t , char ) override ; // Override from GNet::Client.
-	void onSendComplete() override ; // Override from GNet::BufferedClient.
-	void onDelete( const std::string & ) override ; // Override from GNet::Client.
-	void onSecure( const std::string & , const std::string & , const std::string & ) override ; // Override from GNet::SocketProtocolSink.
-	void onConnect() override ; // Override from GNet::SimpleClient.
+	bool onReceive( const char * , std::size_t , std::size_t , std::size_t , char ) override ; // GNet::Client
+	void onSendComplete() override ; // GNet::BufferedClient
+	void onDelete( const std::string & ) override ; // GNet::Client
+	void onSecure( const std::string & , const std::string & , const std::string & ) override ; // GNet::SocketProtocolSink
+	void onConnect() override ; // GNet::SimpleClient
 
 public:
 	~RequestClient() override = default ;

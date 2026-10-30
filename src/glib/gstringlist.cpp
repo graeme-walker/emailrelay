@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gstringlist.cpp
 ///
@@ -81,13 +69,11 @@ bool G::StringList::headMatch( const StringArray & in , std::string_view head )
 		[&head](const std::string &x){return Str::headMatch(x,head);} ) ;
 }
 
-#ifndef G_LIB_SMALL
 bool G::StringList::tailMatch( const StringArray & in , std::string_view tail )
 {
 	return std::any_of( in.begin() , in.end() ,
 		[&tail](const std::string &x){return Str::tailMatch(x,tail);} ) ;
 }
-#endif
 
 std::string G::StringList::headMatchResidue( const StringArray & in , std::string_view head )
 {

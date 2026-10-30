@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gadminserver_enabled.cpp
 ///
@@ -26,6 +14,7 @@
 #include "gstoredmessage.h"
 #include "gprocess.h"
 #include "glocal.h"
+#include "glogoutput.h"
 #include "gmonitor.h"
 #include "gslot.h"
 #include "gstringtoken.h"
@@ -90,7 +79,7 @@ GSmtp::AdminServerPeer::AdminServerPeer( GNet::EventStateUnbound esu , GNet::Ser
 		m_info_commands(info_commands) ,
 		m_with_terminate(with_terminate)
 {
-	G_LOG_S( "GSmtp::AdminServerPeer: admin connection from " << peerAddress().displayString() ) ;
+	G_LOG_S_G( connection , "GSmtp::AdminServerPeer: admin connection from " << peerAddress().displayString() ) ;
 	m_client_ptr.deletedSignal().connect( G::Slot::slot(*this,&AdminServerPeer::clientDone) ) ;
 	// dont prompt here -- it confuses some clients
 }
@@ -106,12 +95,12 @@ void GSmtp::AdminServerPeer::clientDone( const std::string & s )
 	if( s.empty() )
 		sendLine( "OK" ) ;
 	else
-		sendLine( std::move(std::string("error: ").append(s)) ) ;
+		sendLine( "error: " + s ) ;
 }
 
 void GSmtp::AdminServerPeer::onDelete( const std::string & reason )
 {
-	G_LOG_S( "GSmtp::AdminServerPeer: admin connection closed: " << reason << (reason.empty()?"":": ")
+	G_LOG_S_G( connection , "GSmtp::AdminServerPeer: admin connection closed: " << reason << (reason.empty()?"":": ")
 		<< peerAddress().displayString() ) ;
 }
 
@@ -177,7 +166,7 @@ bool GSmtp::AdminServerPeer::onReceive( const char * line_data , std::size_t lin
 	{
 		std::string_view arg = (++t)() ;
 		if( arg.empty() || !find(arg,m_info_commands).first )
-			sendLine( std::move(std::string("usage: info {").append(G::Str::join("|",G::Str::keys(m_info_commands))).append(1U,'}')) ) ;
+			sendLine( std::string("usage: info {").append(G::Str::join("|",G::Str::keys(m_info_commands))).append(1U,'}') ) ;
 		else
 			sendLine( find(arg,m_info_commands).second ) ;
 	}
@@ -214,6 +203,26 @@ bool GSmtp::AdminServerPeer::onReceive( const char * line_data , std::size_t lin
 		{
 			sendLine( "usage: smtp {disable|enable}" ) ;
 		}
+	}
+	else if( is(t(),"set-log-config") )
+	{
+		std::string_view arg = (++t)() ;
+		bool error = false ;
+		auto mask = G::LogOutput::parseLogGroupMask( arg, &error ) ;
+		auto * log_output = G::LogOutput::instance() ;
+		if( !error && log_output )
+			log_output->configure( log_output->config().set_log_group_mask(mask) ) ;
+		sendLine( error ? "error" : "" ) ;
+	}
+	else if( is(t(),"set-verbose") )
+	{
+		std::string_view arg = (++t)() ;
+		unsigned int count = G::Str::toUInt( arg , "1" ) ;
+		bool error = count > 2U ;
+		auto * log_output = G::LogOutput::instance() ;
+		if( !error && log_output )
+			log_output->configure( log_output->config().set_verbose_count(count) ) ;
+		sendLine( error ? "error" : "" ) ;
 	}
 	else if( line.find_first_not_of(" \r\n\t") != std::string::npos )
 	{
@@ -252,7 +261,7 @@ std::pair<bool,std::string> GSmtp::AdminServerPeer::find( std::string_view line 
 
 void GSmtp::AdminServerPeer::help()
 {
-	sendLine( std::move(std::string("commands: ")
+	sendLine( std::string("commands: ")
 		.append( "dnsbl, " )
 		.append( "failures, " )
 		.append( "flush, " )
@@ -263,10 +272,12 @@ void GSmtp::AdminServerPeer::help()
 		.append( "notify, " )
 		.append( "pid, " )
 		.append( "quit, " )
+		.append( "set-log-config, " )
+		.append( "set-verbose, " )
 		.append( "smtp, " )
 		.append( "status, " )
 		.append( "terminate, " , m_with_terminate ? 11U : 0U )
-		.append( "unfail-all" )) ) ;
+		.append( "unfail-all" ) ) ;
 }
 
 void GSmtp::AdminServerPeer::flush()
@@ -306,8 +317,9 @@ void GSmtp::AdminServerPeer::forward()
 	}
 }
 
-void GSmtp::AdminServerPeer::sendLine( std::string && line ) // NOLINT cppcoreguidelines-rvalue-reference-param-not-moved
+void GSmtp::AdminServerPeer::sendLine( std::string_view line_in )
 {
+	std::string line = G::sv_to_string( line_in ) ;
 	if( !line.empty() )
 		line.append( "\n" ) ;
 	G::Str::replaceAll( line , "\n" , eol() ) ;
@@ -353,7 +365,7 @@ void GSmtp::AdminServerPeer::status()
 		GNet::Monitor::instance()->report( ss , "" , eolstr ) ;
 		std::string report = ss.str() ;
 		G::Str::trimRight( report , eolstr ) ;
-		sendLine( std::move(report) ) ;
+		sendLine( report ) ;
 	}
 	else
 	{
@@ -411,33 +423,25 @@ void GSmtp::AdminServer::report( const std::string & group ) const
 	m_imp->report( group ) ;
 }
 
-#ifndef G_LIB_SMALL
 GStore::MessageStore & GSmtp::AdminServer::store()
 {
 	return m_imp->store() ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 GSmtp::FilterFactoryBase & GSmtp::AdminServer::ff()
 {
 	return m_imp->ff() ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 const GAuth::SaslClientSecrets & GSmtp::AdminServer::clientSecrets() const
 {
 	return m_imp->clientSecrets() ;
 }
-#endif
 
-#ifndef G_LIB_SMALL
 void GSmtp::AdminServer::emitCommand( Command command , unsigned int arg )
 {
 	m_imp->emitCommand( command , arg ) ;
 }
-#endif
 
 bool GSmtp::AdminServer::notifying() const
 {
@@ -454,7 +458,7 @@ void GSmtp::AdminServer::notify( const std::string & s0 , const std::string & s1
 GSmtp::AdminServerImp::AdminServerImp( GNet::EventState es , GStore::MessageStore & store ,
 	FilterFactoryBase & ff , const GAuth::SaslClientSecrets & client_secrets ,
 	const G::StringArray & interfaces , const AdminServer::Config & config ) :
-		GNet::MultiServer(es,interfaces,config.port,"admin",config.net_server_peer_config,config.net_server_config) ,
+		GNet::MultiServer(es,interfaces,{config.port},"admin",config.net_server_peer_config,config.net_server_config) ,
 		m_store(store) ,
 		m_ff(ff) ,
 		m_client_secrets(client_secrets) ,

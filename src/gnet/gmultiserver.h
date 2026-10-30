@@ -1,19 +1,7 @@
 //
-// Copyright (C) 2001-2024 Graeme Walker <graeme_walker@users.sourceforge.net>
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-// ===
+// SPDX-FileCopyrightText: 2026 Graeme Walker <graeme_walker@users.sourceforge.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 ///
 /// \file gmultiserver.h
 ///
@@ -48,7 +36,8 @@ class GNet::MultiServer : private InterfacesHandler
 {
 public:
 	G_EXCEPTION( NoListeningAddresses , tx("no listening addresses") )
-	G_EXCEPTION( InvalidName , tx("invalid address or interface name") )
+	G_EXCEPTION( InvalidName , tx("invalid network address or interface name") )
+	G_EXCEPTION( InvalidAddress , tx("invalid network address") )
 	using AddressList = std::vector<Address> ;
 
 	struct ServerInfo /// A structure used in GNet::MultiServer::newPeer().
@@ -58,7 +47,7 @@ public:
 	} ;
 
 	MultiServer( EventState es_listener , const G::StringArray & listen_list ,
-		unsigned int port , const std::string & server_type ,
+		const std::vector<unsigned> & ports , const std::string & server_type ,
 		ServerPeer::Config server_peer_config , Server::Config server_config ) ;
 			///< Constructor. The server listens on inherited file descriptors
 			///< formatted like "fd#3", specific local addresses (eg. "127.0.0.1")
@@ -123,7 +112,7 @@ private:
 private:
 	EventState m_es ;
 	G::StringArray m_listener_list ;
-	unsigned int m_port ;
+	std::vector<unsigned> m_ports ;
 	std::string m_server_type ;
 	ServerPeer::Config m_server_peer_config ;
 	Server::Config m_server_config ;
