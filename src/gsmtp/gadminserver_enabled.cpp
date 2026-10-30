@@ -14,6 +14,7 @@
 #include "gstoredmessage.h"
 #include "gprocess.h"
 #include "glocal.h"
+#include "glogoutput.h"
 #include "gmonitor.h"
 #include "gslot.h"
 #include "gstringtoken.h"
@@ -94,7 +95,7 @@ void GSmtp::AdminServerPeer::clientDone( const std::string & s )
 	if( s.empty() )
 		sendLine( "OK" ) ;
 	else
-		sendLine( std::move(std::string("error: ").append(s)) ) ;
+		sendLine( "error: " + s ) ;
 }
 
 void GSmtp::AdminServerPeer::onDelete( const std::string & reason )
@@ -165,7 +166,7 @@ bool GSmtp::AdminServerPeer::onReceive( const char * line_data , std::size_t lin
 	{
 		std::string_view arg = (++t)() ;
 		if( arg.empty() || !find(arg,m_info_commands).first )
-			sendLine( std::move(std::string("usage: info {").append(G::Str::join("|",G::Str::keys(m_info_commands))).append(1U,'}')) ) ;
+			sendLine( std::string("usage: info {").append(G::Str::join("|",G::Str::keys(m_info_commands))).append(1U,'}') ) ;
 		else
 			sendLine( find(arg,m_info_commands).second ) ;
 	}
@@ -202,6 +203,26 @@ bool GSmtp::AdminServerPeer::onReceive( const char * line_data , std::size_t lin
 		{
 			sendLine( "usage: smtp {disable|enable}" ) ;
 		}
+	}
+	else if( is(t(),"set-log-config") )
+	{
+		std::string_view arg = (++t)() ;
+		bool error = false ;
+		auto mask = G::LogOutput::parseLogGroupMask( arg, &error ) ;
+		auto * log_output = G::LogOutput::instance() ;
+		if( !error && log_output )
+			log_output->configure( log_output->config().set_log_group_mask(mask) ) ;
+		sendLine( error ? "error" : "" ) ;
+	}
+	else if( is(t(),"set-verbose") )
+	{
+		std::string_view arg = (++t)() ;
+		unsigned int count = G::Str::toUInt( arg , "1" ) ;
+		bool error = count > 2U ;
+		auto * log_output = G::LogOutput::instance() ;
+		if( !error && log_output )
+			log_output->configure( log_output->config().set_verbose_count(count) ) ;
+		sendLine( error ? "error" : "" ) ;
 	}
 	else if( line.find_first_not_of(" \r\n\t") != std::string::npos )
 	{
@@ -240,7 +261,7 @@ std::pair<bool,std::string> GSmtp::AdminServerPeer::find( std::string_view line 
 
 void GSmtp::AdminServerPeer::help()
 {
-	sendLine( std::move(std::string("commands: ")
+	sendLine( std::string("commands: ")
 		.append( "dnsbl, " )
 		.append( "failures, " )
 		.append( "flush, " )
@@ -251,10 +272,12 @@ void GSmtp::AdminServerPeer::help()
 		.append( "notify, " )
 		.append( "pid, " )
 		.append( "quit, " )
+		.append( "set-log-config, " )
+		.append( "set-verbose, " )
 		.append( "smtp, " )
 		.append( "status, " )
 		.append( "terminate, " , m_with_terminate ? 11U : 0U )
-		.append( "unfail-all" )) ) ;
+		.append( "unfail-all" ) ) ;
 }
 
 void GSmtp::AdminServerPeer::flush()
@@ -294,8 +317,9 @@ void GSmtp::AdminServerPeer::forward()
 	}
 }
 
-void GSmtp::AdminServerPeer::sendLine( std::string && line ) // NOLINT cppcoreguidelines-rvalue-reference-param-not-moved
+void GSmtp::AdminServerPeer::sendLine( std::string_view line_in )
 {
+	std::string line = G::sv_to_string( line_in ) ;
 	if( !line.empty() )
 		line.append( "\n" ) ;
 	G::Str::replaceAll( line , "\n" , eol() ) ;
@@ -341,7 +365,7 @@ void GSmtp::AdminServerPeer::status()
 		GNet::Monitor::instance()->report( ss , "" , eolstr ) ;
 		std::string report = ss.str() ;
 		G::Str::trimRight( report , eolstr ) ;
-		sendLine( std::move(report) ) ;
+		sendLine( report ) ;
 	}
 	else
 	{

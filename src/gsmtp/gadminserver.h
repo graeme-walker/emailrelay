@@ -80,8 +80,7 @@ private:
 	void help() ;
 	void status() ;
 	void sendMessageIds( const std::vector<GStore::MessageId> & ) ;
-	void sendLine( std::string && ) ;
-	void sendLineCopy( std::string ) ;
+	void sendLine( std::string_view ) ;
 	void warranty() ;
 	void version() ;
 	void copyright() ;
