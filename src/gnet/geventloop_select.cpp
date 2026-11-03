@@ -293,7 +293,7 @@ void GNet::EventLoopImp::addImp( int fd , EventHandler & handler , EventState es
 	handler.setDescriptor( Descriptor(fd) ) ;
 
 	// update the list
-	if( list.size() < std::size_t(fd+1) )
+	if( list.size() < std::size_t(fd+1) ) // NOLINT(*-widening-cast)
 		list.resize( fd+1 ) ;
 	list[fd].update( &handler , es ) ;
 

@@ -171,7 +171,7 @@ sub _run
 	my ( $fh , $pid , $read , $write ) ;
 	if( $windows )
 	{
-		$pid = open( $fh , "cmd 2>&1 |" ) ;
+		$pid = open( $fh , "$cmd 2>&1 |" ) ;
 	}
 	else
 	{

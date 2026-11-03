@@ -1849,7 +1849,7 @@ sub testPollRunRetry
 	Check::running( $server->pid() , $server->message() ) ;
 
 	# test that "retry:1" unfails one message having only one previous failure
-	System::waitForFileLine( $server->log() , "poll runner.*retrying" ) ;
+	System::waitForFileLine( $server->log() , "info: retrying" ) ;
 	Check::fileContains( $server->log() , "retrying.*003.*1/1" ) ;
 	Check::fileExists( "$epath1.bad" , "unexpected unfail of message 1" ) ;
 	Check::fileExists( "$epath2.bad" , "unexpected unfail of message 2" ) ;
@@ -2887,7 +2887,7 @@ sub _testTlsServer
 	# test -- run openssl s_client
 	my $client_log = System::tempfile( "sclient" ) ;
 	OpensslRun::runClient( $System::localhost.":".$emailrelay->smtpPort() , $client_log , $client_cert , $client_ca ,
-		sub { System::sleep_cs(20) ; $admin_client->doTerminate() } ) ;
+		sub { System::sleep_cs(20) ; $admin_client->doTerminate() } , System::windows() , $opt_debug_this ) ;
 	if( $expect_failure )
 	{
 		System::waitForFileLine( $server_log , "tls error" ) ;
@@ -3412,7 +3412,7 @@ for my $test ( @tests )
 		last if $result == 1 ;
 	}
 }
-System::dump("\nTemporary files ...\n") if $opt{v} ;
+System::dump("\nTemporary files ...\n") if $opt{v} > 1 ;
 
 # analyse the results and clean up
 if( $run_all_skipped )
