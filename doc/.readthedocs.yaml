@@ -14,6 +14,8 @@ build:
       - pip install myst-parser
     pre_build:
       - libexec/make-sphinx --pre . doc
+    post_build:
+      - cp $READTHEDOCS_OUTPUT/html/contents.html $READTHEDOCS_OUTPUT/html/index.html
 
 sphinx:
   configuration: doc/conf.py
