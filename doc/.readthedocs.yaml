@@ -10,6 +10,8 @@ build:
   tools:
     python: "3.11"
   jobs:
+    post_install:
+      - pip install myst-parser
     pre_build:
       - libexec/make-sphinx --pre . doc
 
